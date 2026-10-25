@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aprovação EFCdocs v0.3.0</title>
+<style>
+:root{--bg:#f4f5f7;--sup:#fff;--sup2:#f0f2f5;--borda:#d9dde3;--txt:#1d2330;--mut:#5b6474;--pri:#143c47;--amb:#c9861d;--ok:#1f7a4d;--okf:#e3f3ea;--no:#b42318;--nof:#fdecea;--warn:#8a5a00;--warnf:#fff4dc}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0c1a1f;--sup:#122a31;--sup2:#16343c;--borda:#24454f;--txt:#e9ece8;--mut:#a5b6b9;--pri:#f1a93b;--amb:#f1a93b;--ok:#6cc39c;--okf:#173a2c;--no:#ec8a7c;--nof:#3d1f1c;--warn:#f1c46b;--warnf:#3a2f14}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header{background:#143c47;color:#ece6d6;padding:18px 16px 14px;border-bottom:3px solid #f1a93b}
+header .in,main{max-width:1180px;margin:0 auto}
+header h1{margin:0;font-size:21px}
+header p{margin:4px 0 0;color:#cfd9d6;font-size:14px}
+main{padding:14px 16px 120px;display:grid;gap:14px}
+.resumo{background:var(--sup);border:1px solid var(--borda);border-radius:8px;padding:12px 14px;display:grid;gap:6px}
+.resumo h2{margin:0;font-size:16px}
+.resumo ul{margin:0;padding-left:18px}
+.nums{display:flex;flex-wrap:wrap;gap:8px}
+.nums span{background:var(--sup2);border:1px solid var(--borda);border-radius:6px;padding:3px 9px;font-size:13px;font-weight:600}
+.grupo{margin:10px 0 0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+.item{background:var(--sup);border:1px solid var(--borda);border-radius:8px;overflow:hidden}
+.item.aprovado{border-color:var(--ok);box-shadow:inset 4px 0 var(--ok)}
+.item.reprovado{border-color:var(--no);box-shadow:inset 4px 0 var(--no)}
+.cab{display:flex;gap:10px;align-items:baseline;padding:12px 14px 4px}
+.cab b.cod{font-size:13px;color:var(--pri);background:var(--sup2);border:1px solid var(--borda);border-radius:6px;padding:1px 7px;flex:none}
+.cab h3{margin:0;font-size:16px}
+.txt{padding:2px 14px 8px;color:var(--txt)}
+.txt p{margin:4px 0}
+.txt .q{background:var(--warnf);color:var(--warn);border-radius:6px;padding:6px 9px;font-weight:600;margin-top:6px}
+.fotos{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 14px 10px}
+.fotos.um{grid-template-columns:1fr}
+.fotos.cel{grid-template-columns:repeat(auto-fill,minmax(180px,240px))}
+figure{margin:0;display:grid;gap:4px}
+figcaption{font-size:12.5px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+figure img{width:100%;border:1px solid var(--borda);border-radius:6px;display:block;cursor:zoom-in;background:#fff}
+.resp{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;padding:10px 14px 12px;border-top:1px solid var(--borda);background:var(--sup2)}
+.resp label.op{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--borda);background:var(--sup);border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer}
+.resp input[type=radio]{accent-color:var(--pri);width:17px;height:17px}
+.resp label.op.sim:has(input:checked){background:var(--okf);border-color:var(--ok);color:var(--ok)}
+.resp label.op.nao:has(input:checked){background:var(--nof);border-color:var(--no);color:var(--no)}
+.resp textarea{flex:1 1 280px;min-height:38px;border:1px solid var(--borda);border-radius:6px;padding:7px 9px;font:inherit;font-size:14px;background:var(--sup);color:var(--txt);resize:vertical}
+.barra{position:fixed;left:0;right:0;bottom:0;background:var(--sup);border-top:1px solid var(--borda);padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 -6px 18px rgba(0,0,0,.12)}
+.barra button{background:#143c47;color:#ece6d6;border:0;border-radius:8px;padding:11px 18px;font:inherit;font-weight:800;cursor:pointer}
+.barra .cont{font-weight:700;color:var(--mut)}
+.barra .ok{color:var(--ok);font-weight:700}
+dialog{border:0;padding:0;max-width:96vw;max-height:94vh;background:transparent}
+dialog img{max-width:96vw;max-height:94vh;display:block}
+dialog::backdrop{background:rgba(0,0,0,.75)}
+@media (max-width:760px){.fotos{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="in">
+  <h1>EFCdocs v0.3.0 · Post-its e Quadro · página de aprovação</h1>
+  <p>25/10/2026 · nada vai ao GitHub antes da sua aprovação. Toque numa imagem para ampliar. No fim, "Copiar respostas" e cole na conversa.</p>
+</div></header>
+<main>
+  <section class="resumo">
+    <h2>Resumo</h2>
+    <div class="nums"><span>37/37 testes de regras</span><span>30/30 testes no navegador</span><span>console sem erros</span><span>{{TAMANHO}}</span><span>16 itens para decidir</span></div>
+    <ul>
+      <li>O código-fonte da v0.2.0 não estava em lugar nenhum (só o app montado). Ele foi <b>reconstruído a partir do app publicado</b>, com o mesmo CSS, o mesmo catálogo de comandos e o mesmo comportamento. Os prints de "antes" são da v0.2.0 de verdade.</li>
+      <li>O quadro de post-its funciona por inteiro: post-its, formas de fluxograma, setas presas, Kanban, raias, PDF paisagem, PNG, imprimir.</li>
+      <li>Entraram os 5 achados do Grok, a correção do aviso do PDF e uma correção que vinha da v0.2.0 (a página recarregava sozinha na primeira visita).</li>
+    </ul>
+  </section>
+  {{ITENS}}
+</main>
+<div class="barra">
+  <span class="cont" id="cont">0 de 16 respondidos</span>
+  <button type="button" id="copiar">Copiar respostas</button>
+  <span class="ok" id="copiado" hidden>Copiado. Cole na conversa.</span>
+</div>
+<dialog id="zoom"><img alt=""></dialog>
+<script>
+(function(){
+  var CHAVE='efcdocs-aprovacao-v0.3.0';
+  var salvo={};
+  try{salvo=JSON.parse(localStorage.getItem(CHAVE)||'{}')}catch(e){salvo={}}
+  var itens=[].slice.call(document.querySelectorAll('.item'));
+  function guardar(){try{localStorage.setItem(CHAVE,JSON.stringify(salvo))}catch(e){}}
+  function atualizar(){
+    var n=0;
+    itens.forEach(function(it){
+      var c=it.dataset.cod, r=salvo[c]&&salvo[c].r;
+      it.classList.toggle('aprovado',r==='APROVADO');
+      it.classList.toggle('reprovado',r==='REPROVADO');
+      if(r)n++;
+    });
+    document.getElementById('cont').textContent=n+' de '+itens.length+' respondidos';
+  }
+  itens.forEach(function(it){
+    var c=it.dataset.cod;
+    salvo[c]=salvo[c]||{};
+    it.querySelectorAll('input[type=radio]').forEach(function(rb){
+      if(salvo[c].r===rb.value)rb.checked=true;
+      rb.addEventListener('change',function(){salvo[c].r=rb.value;guardar();atualizar()});
+    });
+    var ta=it.querySelector('textarea');
+    ta.value=salvo[c].t||'';
+    ta.addEventListener('input',function(){salvo[c].t=ta.value;guardar()});
+  });
+  atualizar();
+  document.getElementById('copiar').addEventListener('click',function(){
+    var linhas=['EFCdocs v0.3.0 · respostas da aprovação ('+new Date().toLocaleDateString('pt-BR')+')',''];
+    itens.forEach(function(it){
+      var c=it.dataset.cod, s=salvo[c]||{};
+      linhas.push(c+' '+it.dataset.titulo+': '+(s.r||'SEM RESPOSTA'));
+      if(s.t&&s.t.trim())linhas.push('  Comentário: '+s.t.trim());
+    });
+    var texto=linhas.join('\n');
+    function feito(){var e=document.getElementById('copiado');e.hidden=false;setTimeout(function(){e.hidden=true},4000)}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(texto).then(feito,function(){reserva(texto);feito()})}else{reserva(texto);feito()}
+  });
+  function reserva(t){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove()}
+  var dz=document.getElementById('zoom');
+  document.querySelectorAll('figure img').forEach(function(im){im.addEventListener('click',function(){dz.querySelector('img').src=im.src;dz.showModal()})});
+  dz.addEventListener('click',function(){dz.close()});
+})();
+</script>
+</body>
+</html>

@@ -1,14 +1,14 @@
 /* EFCdocs — sw.js (gerado no build; não edite o de dist/).
-   Guarda a TELA do app no aparelho para abrir sem internet. Os dados (a partir da v0.7.0) têm cache próprio.
+   Guarda a TELA do app no aparelho para abrir sem internet. Os arquivos do usuário ficam no IndexedDB, fora deste cache.
    REGRA DE CONVIVÊNCIA: EFClaudian, EFCquiz e EFCdocs dividem o mesmo site. Este arquivo só mexe em
    caches que começam com "efcdocs-"; nunca lê, troca nem apaga cache de outro app. */
-const VERSAO = 'efcdocs-v0.2.0';
+const VERSAO = 'efcdocs-v0.3.0';
 const PREFIXO = 'efcdocs-';
 const ARQUIVOS = [
   "./",
   "./apple-touch-icon.png",
-  "./assets/app-YHLXROL2.css",
-  "./assets/app-YTU62HMC.js",
+  "./assets/app-MKMCXYMJ.css",
+  "./assets/app-6W7AVUYU.js",
   "./icon-192.png",
   "./icon-512.png",
   "./icon-maskable-512.png",
