@@ -62,7 +62,12 @@ export function lerEntrada(texto, formatoAtual = 'General') {
     if (dd != null && hh != null) return { v: dd + hh, nf: 'dd/mm/yyyy hh:mm' };
   }
   const h = lerHoraTexto(s);
-  if (h != null) return { v: h, nf: /:\d{2}:\d{2}$/.test(s) ? 'hh:mm:ss' : FORMATO_HORA };
+  if (h != null) {
+    /* 25:00 ou mais: o Excel mostra as horas somadas ([h]:mm), não 01:00 do dia seguinte */
+    const seg = /:\d{2}:\d{2}/.test(s);
+    const nf = h >= 1 ? (seg ? '[h]:mm:ss' : '[h]:mm') : seg ? 'hh:mm:ss' : FORMATO_HORA;
+    return { v: h, nf };
+  }
   return { v: t };
 }
 

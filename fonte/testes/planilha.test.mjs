@@ -1,4 +1,4 @@
-/* EFCdocs v0.4.0 — testes das regras da Planilha (motor, fórmulas, formatos, entrada, operações). */
+/* EFCdocs v0.4.1 — testes das regras da Planilha (motor, fórmulas, formatos, entrada, operações). */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Motor } from '../src/planilha/motor.js';
@@ -418,4 +418,75 @@ test('tokens da fórmula guardam posição (para cores e dicas)', () => {
   assert.equal(escrever(ajustarEstrutura(ler('SUM(A1:A9)', 'en'), { abaAlvo: 'x', abaDaFormula: 'x', eixo: 'l', i: 0, n: -1 }), 'en'), 'SUM(A1:A8)');
   assert.equal(escreverTSV([['a', 'b\tc']]), 'a\t"b\tc"\r\n');
   assert.deepEqual(lerTSV('1\t2\r\n3\t4'), [['1', '2'], ['3', '4']]);
+});
+
+/* ---------- v0.4.1: correções da aprovação ---------- */
+import { formatoDaFormula } from '../src/planilha/formatoAuto.js';
+import { numeroCheio } from '../src/planilha/valores.js';
+import { corLegivel } from '../src/planilha/grade.js';
+
+test('v0.4.1: fórmula com data herda o formato de data (data - data fica número)', () => {
+  const nf = (n) => ({ '0,0': 'dd/mm/yyyy', '0,1': '"R$" #,##0.00', '0,2': 'hh:mm', '0,3': 'hh:mm', '0,4': '@' })[`${n.t === 'ref' ? n.l : n.l1},${n.t === 'ref' ? n.c : n.c1}`];
+  igualF('A1+1', 'dd/mm/yyyy');
+  igualF('DATE(2024,2,29)', 'dd/mm/yyyy');
+  igualF('TODAY()', 'dd/mm/yyyy');
+  igualF('NOW()', 'dd/mm/yyyy hh:mm');
+  igualF('TIME(1,2,3)', 'hh:mm');
+  igualF('A1-A1', null);
+  igualF('TODAY()-A1', null);
+  igualF('D1-C1', 'hh:mm');
+  igualF('A1', 'dd/mm/yyyy');
+  igualF('SUM(B1:B3)', '"R$" #,##0.00');
+  igualF('B1*2', null);
+  igualF('IF(1,A1,0)', 'dd/mm/yyyy');
+  igualF('E1', null);
+  igualF('Z9+1', null);
+  function igualF(f, esperado) { assert.equal(formatoDaFormula(f, nf), esperado, f); }
+});
+
+test('v0.4.1: 25:00 é guardado como horas somadas ([h]:mm)', () => {
+  const r = lerEntrada('25:00', 'General');
+  assert.equal(r.nf, '[h]:mm');
+  assert.equal(formatar(r.v, r.nf).t, '25:00');
+  assert.equal(lerEntrada('25:30:10', 'General').nf, '[h]:mm:ss');
+  assert.equal(lerEntrada('9:05', 'General').nf, 'hh:mm');
+  assert.equal(formatar(lerEntrada('123:15', 'General').v, '[h]:mm').t, '123:15');
+});
+
+test('v0.4.1: número para editar sai inteiro (sem 1,23457E+14)', () => {
+  assert.equal(numeroCheio(123456789012345), '123456789012345');
+  assert.equal(numeroCheio(0.1 + 0.2), '0,3');
+  assert.equal(numeroCheio(-42.125), '-42,125');
+  assert.equal(numeroCheio(1 / 3), '0,333333333333333');
+  assert.equal(numeroCheio(1e21), '1E+21');
+});
+
+test('v0.4.1: dica da função continua com o cursor logo depois do ")"', () => {
+  const t = 'SE(A1>1;"OK";"Não")';
+  const r = contextoNoCursor(t, t.length);
+  assert.equal(r.funcao.pt, 'SE');
+  assert.equal(r.fechada, true);
+  assert.equal(contextoNoCursor('SOMA(A1)+1', 10).funcao, null);
+  assert.equal(contextoNoCursor('SE(A1>1;SOMA(B1:B2)', 19).funcao.pt, 'SE');
+});
+
+test('v0.4.1: mensagens de erro explicam e dão exemplo', () => {
+  assert.match(diagnosticar('SE(A1)')[0].msg, /Falta: valor_se_verdadeiro\. Exemplo:/);
+  assert.match(diagnosticar('SOMA(A1,A2)')[0].msg, /vírgula é só para casas decimais/);
+  assert.match(diagnosticar('SOMA(A1')[0].msg, /ponha "\)" no fim/);
+});
+
+test('v0.4.1: cor da letra se ajusta ao tema sem perder o matiz', () => {
+  /* preto no tema escuro: vira o texto do tema */
+  assert.equal(corLegivel('#000000', '#1e1e1e', '#e6e6e6'), '#e6e6e6');
+  /* amarelo no claro: escurece (ocre), não vira preto */
+  const am = corLegivel('#ffff00', '#ffffff', '#1f1f1f');
+  assert.notEqual(am, '#ffff00');
+  assert.notEqual(am, '#000000');
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(am.slice(i, i + 2), 16));
+  assert.ok(r > b + 40 && g > b + 40, 'perdeu o amarelo: ' + am);
+  /* cinza no branco já se lê: fica */
+  assert.equal(corLegivel('#808080', '#ffffff', '#1f1f1f'), '#808080');
+  /* vermelho no escuro já se lê: fica */
+  assert.equal(corLegivel('#ff0000', '#1e1e1e', '#e6e6e6'), '#ff0000');
 });

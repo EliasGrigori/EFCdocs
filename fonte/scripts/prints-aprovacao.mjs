@@ -1,4 +1,4 @@
-/* EFCdocs — prints de antes (v0.3.2 em /v032/) e depois (v0.4.0) para a página de aprovação da Planilha.
+/* EFCdocs — prints de antes (v0.4.0 em /v040/) e depois (v0.4.1) para a página de aprovação das correções.
    Uso: node scripts/prints-aprovacao.mjs <endereço> <pasta> */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -6,143 +6,126 @@ const BASE = process.argv[2], OUT = process.argv[3];
 mkdirSync(OUT, { recursive: true });
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome', env: { ...process.env, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' } });
 const PC = { viewport: { width: 1366, height: 800 } };
+const CEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 const espera = (p, ms = 150) => p.waitForTimeout(ms);
-const foto = (p, nome) => p.screenshot({ path: `${OUT}/${nome}.png` });
+const foto = (p, nome, clip) => p.screenshot({ path: `${OUT}/${nome}.png`, ...(clip ? { clip } : {}) });
 
-/* antes: a planilha da v0.3.2 ainda era "em breve" */
-{
-  const ctx = await b.newContext(PC); const p = await ctx.newPage();
-  await p.goto(BASE + 'v032/#/planilha'); await espera(p, 900);
-  await p.click('[data-novo=planilha]'); await espera(p, 600);
-  await foto(p, 'antes-planilha');
-  await ctx.close();
-}
+const ir = async (p, r) => { await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill(r); await p.locator('.pl-nome').press('Enter'); await espera(p, 80); };
+const digitar = async (p, r, lista) => { await ir(p, r); for (const t of lista) { await p.keyboard.type(t); await p.keyboard.press('Enter'); } await espera(p, 120); };
+const cmd = (p, id) => p.locator(`[data-cmd="${id}"]`).first().click();
+const nova = async (p, raiz) => { await p.goto(raiz + '#/planilha'); await espera(p, 900); await p.click('[data-novo=planilha]'); await espera(p, 500); };
+const tema = async (p, id) => {
+  await p.locator('.topbar [aria-label="Opções"]').click(); await espera(p);
+  await p.locator(`.tema-b[data-tema="${id}"]`).click(); await espera(p);
+  await p.keyboard.press('Escape'); await espera(p, 250);
+};
+const perfil = async (p, nome) => {
+  await p.locator('.topbar [aria-label="Opções"]').click(); await espera(p);
+  await p.locator(`.opcoes .chipb:has-text("${nome}")`).click();
+  await p.keyboard.press('Escape'); await espera(p, 200);
+};
+const grade = async (p, w = 560, h = 260) => { const c = await p.locator('.pl-cv').boundingBox(); return { x: c.x, y: c.y - 60, width: w, height: h + 60 }; };
 
-const ctx = await b.newContext(PC); const p = await ctx.newPage();
-const ir = async (r) => { await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill(r); await p.locator('.pl-nome').press('Enter'); await espera(p, 80); };
-const digitar = async (r, lista) => { await ir(r); for (const t of lista) { await p.keyboard.type(t); await p.keyboard.press('Enter'); } await espera(p, 80); };
-const cmd = (id) => p.locator(`[data-cmd="${id}"]`).first().click();
-const colar = (t) => p.evaluate((x) => { const d = new DataTransfer(); d.setData('text/plain', x); document.querySelector('.pl-cap').dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true })); }, t);
+for (const [lado, raiz] of [['antes', BASE + 'v040/'], ['depois', BASE]]) {
+  /* G01: o mesmo arquivo em duas abas */
+  {
+    const ctx = await b.newContext(PC); const p = await ctx.newPage();
+    await nova(p, raiz);
+    await digitar(p, 'A1', ['Lote', 'L-012']);
+    const p2 = await ctx.newPage();
+    await p2.goto(p.url()); await espera(p2, 1200);
+    await ir(p2, 'B1'); await p2.keyboard.type('Digitado na aba 2'); await p2.keyboard.press('Enter'); await espera(p2, 400);
+    await foto(p2, `${lado}-duas-abas`, { x: 0, y: 0, width: 1366, height: 330 });
+    if (lado === 'depois') {
+      /* conflito: outro lugar gravou no meio */
+      await p.bringToFront();
+      await p.evaluate(() => new Promise((ok) => {
+        const id = location.hash.split('/').pop();
+        const r = indexedDB.open('efcdocs');
+        r.onsuccess = () => { const t = r.result.transaction('arquivos', 'readwrite'); const s = t.objectStore('arquivos'); const g = s.get(id); g.onsuccess = () => s.put({ ...g.result, marca: 'outra' }); t.oncomplete = () => ok(); };
+      }));
+      await p2.close();
+      await espera(p, 600);
+      await digitar(p, 'A3', ['L-013']);
+      await espera(p, 500);
+      await foto(p, 'depois-conflito', { x: 0, y: 0, width: 1366, height: 330 });
+    }
+    await ctx.close();
+  }
 
-await p.goto(BASE + '#/planilha'); await espera(p, 900);
-await p.click('[data-novo=planilha]'); await espera(p, 500);
-await digitar('A1', ['Controle de cloro livre (exemplo)']);
-await ir('A2');
-await colar('Lote\tData\tCloro livre\tSituação\r\nL-012\t20/10/2026\t1,2\r\nL-013\t21/10/2026\t0,3\r\nL-014\t22/10/2026\t2,5\r\nL-015\t23/10/2026\t0,8\r\nL-016\t24/10/2026\t1,9\r\n');
-await espera(p, 200);
-await digitar('F1', ['Meta', '0,5']);
-await ir('F2'); await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('Meta_Cloro'); await p.locator('.pl-nome').press('Enter'); await espera(p);
-await ir('A2'); await p.keyboard.press('Shift+ArrowRight'); await p.keyboard.press('Shift+ArrowRight'); await p.keyboard.press('Shift+ArrowRight');
-await cmd('formatar.negrito'); await cmd('formatar.preenchimento'); await p.locator('.pl-cor[title="Azul bem claro"]').click(); await espera(p);
-await cmd('formatar.bordas'); await p.locator('.pl-menu button:has-text("Contorno")').first().click(); await espera(p);
-/* fórmula com a ajuda aberta */
-await ir('D3');
-await p.keyboard.type('=SE(E(C3>=Meta_Cloro;C3<=2);"OK";"Ajus');
-await espera(p, 200);
-await foto(p, 'depois-ajuda');
-await p.keyboard.type('tar")');
-await p.keyboard.press('Enter');
-/* alça: leva a fórmula até o fim dos dados (dois toques na alça) */
-await ir('D3');
-const cv = await p.locator('.pl-cv').boundingBox();
-await p.mouse.dblclick(cv.x + 46 + 80 * 4 - 1, cv.y + 24 + 22 * 3 - 1);
-await espera(p, 200);
-await ir('C3'); await p.keyboard.press('Shift+ArrowDown'); await p.keyboard.press('Shift+ArrowDown'); await p.keyboard.press('Shift+ArrowDown'); await p.keyboard.press('Shift+ArrowDown');
-await espera(p);
-await p.locator('.pl-st[data-est=soma]').click(); await espera(p);
-await foto(p, 'depois-status');
-await p.keyboard.press('Escape');
-/* barra de fórmula com o nome da coluna */
-await ir('D4'); await espera(p);
-await foto(p, 'depois-barra');
-/* erro antes do Enter */
-await ir('E3');
-await p.keyboard.type('=SE(C3>=0,5;"OK","Ajustar"'); await espera(p, 200);
-await foto(p, 'depois-erro');
-await p.keyboard.press('Escape');
-/* nome em inglês */
-await ir('E3');
-await p.keyboard.type('=VLOOKUP("L-013";A3:C7;3;0)'); await espera(p, 200);
-await foto(p, 'depois-ingles');
-await p.keyboard.press('Enter');
-/* formatos */
-await digitar('G2', ['Custo', 'R$ 12,5', '8%', '1O/1O/2026']);
-await ir('H2'); await p.keyboard.type('Observação comprida que avança sobre as células vazias do lado'); await p.keyboard.press('Enter');
-await espera(p, 200);
-await foto(p, 'depois-formatos');
-await p.click('.tab:has-text("Exibir")'); await cmd('exibir.folhaClara'); await espera(p, 200);
-await foto(p, 'depois-folhaclara');
-await cmd('exibir.folhaClara');
-/* menu do botão direito */
-await p.mouse.click(cv.x + 46 + 80 * 2 + 40, cv.y + 24 + 22 * 4 + 10, { button: 'right' }); await espera(p, 200);
-await foto(p, 'depois-menu');
-await p.keyboard.press('Escape');
-/* inserir função */
-await p.click('.tab:has-text("Fórmulas")'); await cmd('formula.inserir'); await espera(p, 200);
-await p.locator('.pl-jfun-q').fill('contar'); await espera(p, 200);
-await foto(p, 'depois-funcoes');
-await p.keyboard.press('Escape');
-/* quem usa */
-await ir('F2'); await cmd('formula.origem'); await espera(p, 200);
-await foto(p, 'depois-quemusa');
-await p.keyboard.press('Escape');
-/* nomes */
-await cmd('formula.nomes'); await espera(p, 200);
-await foto(p, 'depois-nomes');
-await p.keyboard.press('Escape');
-/* Ctrl+K */
-await p.keyboard.press('Control+k'); await p.keyboard.type('cloro'); await espera(p, 250);
-await foto(p, 'depois-ctrlk');
-await p.keyboard.press('Escape');
-/* abas e congelar */
-await p.locator('.pl-aba-nova').click(); await espera(p, 200);
-await digitar('A1', ['Resumo da semana', '=MÉDIA(Planilha1!C3:C7)']);
-await p.locator('.pl-aba.on').dblclick(); await p.locator('.janela input').fill('Resumo'); await p.locator('.janela .btn.primary').click();
-await p.locator('.pl-aba:has-text("Planilha1")').click(); await espera(p, 200);
-await p.click('.tab:has-text("Exibir")'); await cmd('exibir.congelar'); await p.locator('.pl-opcao:has-text("Congelar até a célula ativa")').click();
-await espera(p, 200);
-await foto(p, 'depois-abas');
-/* linha do tempo */
-await p.locator('.topbar-row [data-cmd="editar.historico"]').click(); await espera(p, 200);
-await foto(p, 'depois-tempo');
-await p.keyboard.press('Escape');
-await ctx.close();
+  /* G02..G05 e G08, G09 na mesma planilha */
+  {
+    const ctx = await b.newContext(PC); const p = await ctx.newPage();
+    await nova(p, raiz);
+    await digitar(p, 'A1', ['Entrada', '01/03/2024', '=A2+1', '=DATA(2024;2;29)', '25:00', '123456789012345']);
+    await digitar(p, 'B1', ['Como foi digitado', "'01/03/2024", "'=A2+1", "'=DATA(2024;2;29)", "'25:00", "'123456789012345"]);
+    await ir(p, 'A6'); await espera(p);
+    await foto(p, `${lado}-datas`, await grade(p, 520, 150));
 
-/* 10 mil linhas */
-{
-  const c2 = await b.newContext(PC); const q = await c2.newPage();
-  await q.goto(BASE + '#/planilha'); await espera(q, 900); await q.click('[data-novo=planilha]'); await espera(q, 500);
-  const linhas = ['Lote\tCloro livre\tSituação'];
-  for (let i = 1; i <= 10000; i++) linhas.push(`L-${String(i).padStart(5, '0')}\t${((i % 25) / 10).toFixed(1).replace('.', ',')}`);
-  await q.evaluate((x) => { const d = new DataTransfer(); d.setData('text/plain', x); document.querySelector('.pl-cap').dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true })); }, linhas.join('\r\n'));
-  await espera(q, 400);
-  await q.locator('.pl-nome').click(); await q.locator('.pl-nome').fill('E1'); await q.locator('.pl-nome').press('Enter'); await espera(q, 80);
-  for (const t of ['Fora da faixa', '=CONT.SES(B:B;"<0,5")+CONT.SE(B:B;">2")', 'Média', '=MÉDIA(B:B)']) { await q.keyboard.type(t); await q.keyboard.press('Enter'); }
-  await q.locator('.pl-nome').click(); await q.locator('.pl-nome').fill('A9990'); await q.locator('.pl-nome').press('Enter'); await espera(q, 300);
-  await foto(q, 'depois-10mil');
-  await c2.close();
-}
+    /* dica do SE com o cursor no fim */
+    await ir(p, 'D2');
+    await p.keyboard.type('=SE(A2>1;"OK";"Não")'); await espera(p, 250);
+    await foto(p, `${lado}-dica-fim`, await grade(p, 760, 330));
+    await p.keyboard.press('Escape');
 
-/* celular */
-{
-  const c3 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-  const q = await c3.newPage();
-  await q.goto(BASE + '#/planilha'); await espera(q, 900);
-  await q.locator('[data-novo=planilha]').tap(); await espera(q, 500);
-  await q.evaluate((x) => { const d = new DataTransfer(); d.setData('text/plain', x); document.querySelector('.pl-cap').dispatchEvent(new ClipboardEvent('paste', { clipboardData: d, bubbles: true, cancelable: true })); }, 'Lote\tCloro\r\nL-1\t1,2\r\nL-2\t0,4\r\nL-3\t2,2');
-  await espera(q, 300);
-  await foto(q, 'depois-celular-alcas');
-  const cv2 = await q.locator('.pl-cv').boundingBox();
-  await q.touchscreen.tap(cv2.x + 46 + 80 * 2 + 40, cv2.y + 24 + 22 + 11);
-  await espera(q, 100);
-  await q.touchscreen.tap(cv2.x + 46 + 80 * 2 + 40, cv2.y + 24 + 22 + 11);
-  await espera(q, 60);
-  await q.touchscreen.tap(cv2.x + 46 + 80 * 2 + 40, cv2.y + 24 + 22 + 11);
-  await q.waitForSelector('.pl-banda');
-  await q.locator('.pl-banda textarea').fill('=SE(B2>=0,5;"OK";"Ajustar")');
-  await espera(q, 200);
-  await foto(q, 'depois-celular-banda');
-  await c3.close();
+    /* mensagens de erro */
+    await ir(p, 'D3');
+    await p.keyboard.type('=SOMA(A2,A3'); await espera(p, 250);
+    await foto(p, `${lado}-mensagens`, await grade(p, 760, 330));
+    await p.keyboard.press('Escape');
+    await ir(p, 'D4');
+    await p.keyboard.type('=PROCV(A2)'); await espera(p, 250);
+    await foto(p, `${lado}-mensagens2`, await grade(p, 760, 440));
+    await p.keyboard.press('Escape');
+
+    /* congelar a linha 1 e rolar */
+    await ir(p, 'A1');
+    await p.click('.tab:has-text("Exibir")');
+    await cmd(p, 'exibir.congelar');
+    await p.locator('.pl-opcao:has-text("Congelar a linha de cima")').click(); await espera(p);
+    await p.locator('.pl-rol').evaluate((el) => { el.scrollTop = 300; }); await espera(p, 250);
+    { const c = await p.locator('.pl-cv').boundingBox(); await foto(p, `${lado}-congelado`, { x: c.x, y: c.y, width: 260, height: 120 }); }
+    await p.locator('.pl-rol').evaluate((el) => { el.scrollTop = 0; }); await espera(p);
+    await p.click('.tab:has-text("Página Inicial")');
+
+    /* cores da fonte nos temas */
+    await digitar(p, 'F1', ['Cor da fonte', 'Preto', 'Amarelo', 'Vermelho', 'Azul escuro', 'Laranja']);
+    const cores = [['F2', 'Preto'], ['F3', 'Amarelo'], ['F4', 'Vermelho'], ['F5', 'Azul escuro'], ['F6', 'Laranja']];
+    for (const [r, nome] of cores) {
+      await ir(p, r);
+      await cmd(p, 'formatar.corFonte'); await espera(p, 120);
+      await p.locator(`.pl-cor[title="${nome}"]`).first().click(); await espera(p, 80);
+    }
+    await ir(p, 'H1');
+    const clipCores = async () => { const c = await p.locator('.pl-cv').boundingBox(); return { x: c.x + 46 + 80 * 5, y: c.y, width: 120, height: 24 + 22 * 6 }; };
+    await tema(p, 'light'); await foto(p, `${lado}-cores-claro`, await clipCores());
+    await tema(p, 'dark'); await foto(p, `${lado}-cores-escuro`, await clipCores());
+    await tema(p, 'light');
+
+    /* barra de fórmulas com o número grande */
+    await ir(p, 'A6'); await espera(p);
+    { const c = await p.locator('.pl-cv').boundingBox(); await foto(p, `${lado}-barra-numero`, { x: 0, y: c.y - 44, width: 700, height: 44 + 24 + 22 * 6 }); }
+
+    /* Leitor tenta digitar */
+    await perfil(p, 'Leitor');
+    await ir(p, 'C2'); await p.keyboard.type('x'); await espera(p, 300);
+    await foto(p, `${lado}-leitor`);
+    await perfil(p, 'Admin');
+    await ctx.close();
+  }
+
+  /* G06: celular, dois toques e digitar */
+  {
+    const ctx = await b.newContext(CEL); const p = await ctx.newPage();
+    await p.goto(raiz + '#/planilha'); await espera(p, 900);
+    await p.locator('[data-novo=planilha]').tap(); await espera(p, 500);
+    const cv = await p.locator('.pl-cv').boundingBox();
+    await p.touchscreen.tap(cv.x + 86, cv.y + 35); await espera(p, 120);
+    await p.touchscreen.tap(cv.x + 86, cv.y + 35); await espera(p, 200);
+    await p.keyboard.type('123'); await espera(p, 200);
+    await foto(p, `${lado}-celular`);
+    await ctx.close();
+  }
 }
 await b.close();
-console.log('prints em', OUT);
+console.log('prints prontos em ' + OUT);

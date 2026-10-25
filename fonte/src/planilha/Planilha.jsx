@@ -11,12 +11,13 @@ import { PortalPainel } from '../quadro/partes.jsx';
 import { Motor } from './motor.js';
 import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, normalFaixa, lerEndereco, nomeAbaNaFormula } from './ref.js';
 import { eixo, ALT_PADRAO, LARG_PADRAO, estiloDe, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
-import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO } from './grade.js';
+import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
 import { paraMostrar, refTexto, tokenizar, ler as lerFormula, paraGuardar } from './formula.js';
 import { diagnosticar, corrigir, contextoNoCursor, sugestoes, pedacosColoridos, CORES_REF } from './ajuda.js';
-import { ERRO_EXPLICA, ehErro, numeroGeral, serialHoje, serialAgora } from './valores.js';
+import { formatoDaFormula } from './formatoAuto.js';
+import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora } from './valores.js';
 import * as O from './operacoes.js';
 import { CampoFormula, AjudaFormula } from './EditorFormula.jsx';
 import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, BarraSimbolos, ESTATS } from './partes.jsx';
@@ -150,6 +151,13 @@ export function Planilha({ arquivo, cx }) {
   useEffect(() => { gravar('pl-aba:' + ficha.id, abaId); }, [abaId, ficha.id]);
 
   const setSel = useCallback((s) => { setSelEstado(s); selPorAba.current[abaId] = s; }, [abaId]);
+  /* quem só pode ver recebe um aviso ao tentar mexer (sem repetir a cada tecla) */
+  const ultimoAvisoLeitura = useRef(0);
+  const avisarLeitura = () => {
+    if (Date.now() - ultimoAvisoLeitura.current < 2500) return;
+    ultimoAvisoLeitura.current = Date.now();
+    cx.avisar(cx.travado && cx.travado.motivo === 'conflito' ? 'Antes de continuar, escolha no aviso do topo: ver a versão gravada ou gravar a sua por cima.' : cx.travado ? 'Só para ver: este arquivo está aberto em outra aba. Toque em "Editar aqui" no topo para editar nesta.' : 'Só leitura: seu perfil de teste (Leitor) só vê a planilha. Para editar, troque o perfil em Opções.', { ic: 'ver' });
+  };
   const faixa = sel.faixas[sel.faixas.length - 1];
 
   /* cores do tema (a grade acompanha o tema; "Folha clara" deixa branca) */
@@ -319,7 +327,7 @@ export function Planilha({ arquivo, cx }) {
 
   /* ---------- mudanças ---------- */
   const mudar = useCallback((mud, rotulo, acao = 'editou') => {
-    if (somenteLeitura) { cx.avisar('Seu perfil não permite esta ação.', { ic: 'aviso' }); return false; }
+    if (somenteLeitura) { avisarLeitura(); return false; }
     if (!mud || !Object.keys(mud).length) return false;
     return cx.aplicar(mud, rotulo, acao);
   }, [somenteLeitura, cx]);
@@ -339,12 +347,13 @@ export function Planilha({ arquivo, cx }) {
     if (v == null) return '';
     if (typeof v === 'number') {
       const nf = e.nf || '';
+      if (/\[h\]/i.test(nf)) return formatar(v, /s/i.test(nf) ? '[h]:mm:ss' : '[h]:mm').t;
       if (ehFormatoData(nf)) {
         const t = formatar(v, Number.isInteger(v) ? 'dd/mm/yyyy' : /h/i.test(nf) && v >= 1 ? 'dd/mm/yyyy hh:mm:ss' : v < 1 ? 'hh:mm:ss' : 'dd/mm/yyyy hh:mm').t;
         return t.replace(/:00$/, (m) => (/:\d\d:00$/.test(t) ? '' : m));
       }
-      if (/%/.test(nf)) return numeroGeral(Number((v * 100).toPrecision(15))) + '%';
-      return numeroGeral(v);
+      if (/%/.test(nf)) return numeroCheio(v * 100) + '%';
+      return numeroCheio(v);
     }
     if (typeof v === 'boolean') return v ? 'VERDADEIRO' : 'FALSO';
     if (ehErro(v)) return v.toString();
@@ -352,7 +361,7 @@ export function Planilha({ arquivo, cx }) {
   };
 
   const comecarEdicao = useCallback(({ texto, modo = 'editar', onde = cel ? 'banda' : 'celula', cursor = null, l = sel.ativa.l, col = sel.ativa.c } = {}) => {
-    if (somenteLeitura) { cx.avisar('Seu perfil de teste só permite ver a planilha.', { ic: 'info' }); return; }
+    if (somenteLeitura) { avisarLeitura(); return; }
     const m = mesclaEm(mesc, l, col);
     if (m) { l = m.l1; col = m.c1; }
     const x = aba.cel[chave(l, col)];
@@ -381,6 +390,15 @@ export function Planilha({ arquivo, cx }) {
       if (w > LARG_PADRAO && w > (porCol.get(col) || 0)) porCol.set(col, Math.min(w, 300));
     }
     for (const [col, w] of porCol) lote.outras[`conteudo.abas.${id}.larg.${col}`] = w;
+  };
+
+  /** Formato da célula apontada por um nó ref/area da fórmula (para a fórmula herdar data, moeda...). */
+  const nfDaRef = (id0) => (n) => {
+    let id = id0;
+    if (n.aba) { id = c.ordem.find((x) => c.abas[x].nome.toLowerCase() === String(n.aba).toLowerCase()); if (!id) return null; }
+    const a = c.abas[id];
+    const x = a && a.cel[chave(n.t === 'ref' ? n.l : n.l1, n.t === 'ref' ? n.c : n.c1)];
+    return x ? estiloDe(c, x).nf || null : null;
   };
 
   /** Grava o que foi digitado. mover: [dl, dc] ou null. Devolve false se a fórmula tem erro. */
@@ -420,7 +438,8 @@ export function Planilha({ arquivo, cx }) {
     delete nova.v; delete nova.f;
     if (r.f != null) nova.f = r.f;
     else if (!r.vazio) nova.v = paraGuardarValor(r.v);
-    if (r.nf && (!est.nf || /^general$/i.test(est.nf))) { const s = lote.estilo({ ...est, nf: r.nf }); if (s) nova.s = s; }
+    const nfNovo = r.nf || (r.f != null ? formatoDaFormula(r.f, nfDaRef(e.abaId)) : null);
+    if (nfNovo && (!est.nf || /^general$/i.test(est.nf))) { const s = lote.estilo({ ...est, nf: nfNovo }); if (s) nova.s = s; }
     /* grava e devolve o teclado para a grade na mesma hora (quem digita rápido não perde letra) */
     flushSync(() => {
       setEdit(null);
@@ -640,8 +659,8 @@ export function Planilha({ arquivo, cx }) {
     if (k === 'Home') { ev.preventDefault(); if (ctrl) selecionar(cl, cc0); else selecionar(sel.ativa.l, cc0); return; }
     if (k === 'End' && ctrl) { ev.preventDefault(); selecionar(Math.max(0, usado.lMax), Math.max(0, usado.cMax)); return; }
     if (k === 'F2') { ev.preventDefault(); comecarEdicao({ modo: 'editar' }); return; }
-    if (k === 'Delete') { ev.preventDefault(); apagar(); return; }
-    if (k === 'Backspace') { ev.preventDefault(); if (!somenteLeitura) comecarEdicao({ texto: '', modo: 'entrar' }); return; }
+    if (k === 'Delete') { ev.preventDefault(); if (somenteLeitura) avisarLeitura(); else apagar(); return; }
+    if (k === 'Backspace') { ev.preventDefault(); if (somenteLeitura) avisarLeitura(); else comecarEdicao({ texto: '', modo: 'entrar' }); return; }
     if (k === 'Escape') { setCopia(null); setPincel(null); return; }
     if (k === 'F4' && !ctrl) { return; }
     if (ev.key === ' ' && ev.shiftKey && !ctrl) { ev.preventDefault(); setSel({ ativa: sel.ativa, faixas: [{ l1: faixa.l1, c1: 0, l2: faixa.l2, c2: MAX_COL - 1 }] }); return; }
@@ -779,7 +798,8 @@ export function Planilha({ arquivo, cx }) {
           if (r.f != null) nova.f = r.f;
           else if (!r.vazio && !r.erro) nova.v = paraGuardarValor(r.v);
           else if (r.erro) nova.v = x.texto;
-          if (r.nf && (!est.nf || /^general$/i.test(est.nf))) { const s = lote.estilo({ ...est, nf: r.nf }); if (s) nova.s = s; }
+          const nfNovo = r.nf || (r.f != null ? formatoDaFormula(r.f, nfDaRef(e.abaId)) : null);
+    if (nfNovo && (!est.nf || /^general$/i.test(est.nf))) { const s = lote.estilo({ ...est, nf: nfNovo }); if (s) nova.s = s; }
           if (r.aviso && /letra O/.test(r.aviso)) corrigidas++;
           if (r.aviso && /não é uma data/.test(r.aviso)) invalidas++;
         }
@@ -1342,7 +1362,11 @@ export function Planilha({ arquivo, cx }) {
         const dois = ultimoToque.current && Date.now() - ultimoToque.current.t < 380 && ultimoToque.current.l === o.l && ultimoToque.current.c === o.c;
         ultimoToque.current = { t: Date.now(), l: o.l, c: o.c };
         if (pincel) { aplicarPincel([{ l1: o.l, c1: o.c, l2: o.l, c2: o.c }]); return; }
-        if (dois) comecarEdicao({ modo: 'editar', l: o.l, col: o.c });
+        if (dois) {
+          /* abre o campo já com o foco, ainda dentro do toque: o teclado do celular sobe e o primeiro dígito não se perde */
+          flushSync(() => comecarEdicao({ modo: 'editar', l: o.l, col: o.c }));
+          if (campoCel.current) campoCel.current.focar();
+        }
         else selecionar(o.l, o.c, { semRolar: true });
       } else if (o.tipo === 'col') setSel({ ativa: { l: Math.max(cl, G.l0), c: o.c }, faixas: [{ l1: 0, l2: MAX_LIN - 1, c1: o.c, c2: o.c }] });
       else if (o.tipo === 'lin') setSel({ ativa: { l: o.l, c: Math.max(cc0, G.c0) }, faixas: [{ c1: 0, c2: MAX_COL - 1, l1: o.l, l2: o.l }] });
@@ -1614,7 +1638,7 @@ export function Planilha({ arquivo, cx }) {
             : barraLeitura}
         </div>
       </div>
-      {somenteLeitura && <div className="qd-modo leitura pl-leitura"><Icone n="ver" />Só leitura: seu perfil de teste não edita a planilha.</div>}
+      {somenteLeitura && <div className="qd-modo leitura pl-leitura"><Icone n="ver" />{cx.travado && cx.travado.motivo === 'conflito' ? 'Em espera: escolha no aviso do topo o que fazer.' : cx.travado ? 'Só para ver: este arquivo está aberto em outra aba.' : 'Só leitura: seu perfil de teste não edita a planilha.'}</div>}
 
       <div className="pl-area">
         <div className="pl-rol" ref={rolRef} onScroll={aoRolar} onContextMenu={aoMenuContexto}>
@@ -1622,6 +1646,7 @@ export function Planilha({ arquivo, cx }) {
             <canvas ref={cvRef} className="pl-cv" role="grid" aria-label={'Planilha ' + ficha.nome + ', aba ' + aba.nome}
               aria-rowcount={MAX_LIN} aria-colcount={MAX_COL}
               onPointerDown={aoBaixar} onPointerMove={aoMover} onPointerUp={aoSoltar}
+              onMouseDown={(ev) => { const f = document.activeElement; if (f && (f.classList.contains('pl-cap') || f.classList.contains('ef-campo'))) ev.preventDefault(); }}
               onPointerCancel={() => { if (toque.current) { clearTimeout(toque.current.longo); toque.current = null; } setArrasto(null); }} />
           </div>
         </div>
@@ -1632,7 +1657,8 @@ export function Planilha({ arquivo, cx }) {
           onKeyDown={teclaGrade}
           onInput={(ev) => {
             const t = ev.target.value; ev.target.value = '';
-            if (!t || /^[\r\n\t]+$/.test(t) || somenteLeitura || editRef.current) return;
+            if (!t || /^[\r\n\t]+$/.test(t) || editRef.current) return;
+            if (somenteLeitura) { avisarLeitura(); return; }
             /* troca o foco na mesma hora, para não perder as letras seguintes de quem digita rápido */
             flushSync(() => comecarEdicao({ texto: t, modo: 'entrar' }));
             const r = campoCel.current;
@@ -1641,7 +1667,7 @@ export function Planilha({ arquivo, cx }) {
           onCopy={(ev) => aoCopiar(ev, false)} onCut={(ev) => { if (somenteLeitura) return; aoCopiar(ev, true); }} onPaste={aoColar} />
         {/* edição dentro da célula (computador) */}
         {editandoAqui && !cel && posEditor && (
-          <div className="pl-edcel" style={{ left: posEditor.x, top: posEditor.y, minWidth: posEditor.w, width: largEditor, minHeight: posEditor.h, font: fonteCanvas(estEdit, z, familia), background: estEdit.fundo || undefined, color: estEdit.cor || undefined }}>
+          <div className="pl-edcel" style={{ left: posEditor.x, top: posEditor.y, minWidth: posEditor.w, width: largEditor, minHeight: posEditor.h, font: fonteCanvas(estEdit, z, familia), background: estEdit.fundo || undefined, color: estEdit.cor ? corLegivel(estEdit.cor, estEdit.fundo || cores.fundoHex, estEdit.fundo ? null : cores.texto) : undefined }}>
             <CampoFormula ref={campoCel} {...campoProps('celula')} classe="celula" rotulo={'Editando ' + chave(edit.l, edit.c)} focar={edit.onde === 'celula'} />
           </div>
         )}

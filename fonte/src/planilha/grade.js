@@ -35,25 +35,62 @@ export function geometria({ linhas, colunas, z, sx, sy, cong, W, H }) {
 }
 
 /* ---------- cores ---------- */
-function rgb(hex) {
-  const h = hex.replace('#', '');
-  const n = h.length === 3 ? h.split('').map((x) => x + x).join('') : h;
-  return [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)];
+function rgb(cor) {
+  const c = String(cor).trim();
+  const m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(c);
+  if (m) return [+m[1], +m[2], +m[3]];
+  const h = c.replace('#', '');
+  const n = h.length === 3 ? h.split('').map((x) => x + x).join('') : h.slice(0, 6);
+  const r = [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)];
+  if (r.some((x) => Number.isNaN(x))) throw new Error('cor');
+  return r;
 }
+const hex = (a) => '#' + a.map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('');
 const luz = ([r, g, b]) => {
   const f = (x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 };
 const contraste = (a, b) => { const x = luz(a), y = luz(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-/** Cor de letra posta de propósito que ficou ilegível no fundo escuro: clareia só na tela (o arquivo não muda). */
-export function corLegivel(cor, fundo) {
+function paraHsl([r, g, b]) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  if (mx === mn) return [0, 0, l];
+  const d = mx - mn, s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h / 6, s, l];
+}
+function deHsl([h, s, l]) {
+  if (!s) return [l * 255, l * 255, l * 255];
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const k = (t) => { if (t < 0) t += 1; if (t > 1) t -= 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+  return [k(h + 1 / 3) * 255, k(h) * 255, k(h - 1 / 3) * 255];
+}
+/** Preto, cinza ou branco (sem matiz). */
+const neutra = (a) => Math.max(...a) - Math.min(...a) < 28;
+
+/**
+ * Cor de letra posta de propósito que ficou ilegível no fundo (só na tela: o arquivo não muda).
+ * - preto/cinza/branco sem fundo pintado: vira a cor de texto do tema (preto no tema escuro some, vira o texto claro);
+ * - cor com matiz (amarelo, vermelho...): mantém o matiz e só escurece ou clareia até ler bem (amarelo no claro vira ocre).
+ * fundo: cor do fundo da célula. textoTema: a cor normal do texto (quando o fundo é o do tema).
+ */
+export function corLegivel(cor, fundo, textoTema) {
   try {
     const a = rgb(cor), b = rgb(fundo);
+    /* já se lê (contraste 3, como o Excel aceita cinza no branco): fica como está; se precisar ajustar, vai até 4,5 */
     if (contraste(a, b) >= 3) return cor;
+    if (neutra(a)) {
+      if (textoTema) { try { if (contraste(rgb(textoTema), b) >= 4.5) return textoTema; } catch { /* segue */ } }
+      return luz(b) < 0.4 ? '#f2f2f2' : '#1f1f1f';
+    }
     const escuro = luz(b) < 0.4;
-    for (let t = 0.15; t <= 1; t += 0.15) {
-      const m = a.map((x) => Math.round(escuro ? x + (255 - x) * t : x * (1 - t)));
-      if (contraste(m, b) >= 3.2) return '#' + m.map((x) => x.toString(16).padStart(2, '0')).join('');
+    let [h, s0, l0] = paraHsl(a);
+    /* amarelo no fundo claro: escurecer puro dá verde-oliva; puxa um pouco para o ocre (dourado) */
+    if (!escuro && h > 45 / 360 && h < 70 / 360) h = 45 / 360;
+    for (let i = 1; i <= 20; i++) {
+      const l = escuro ? l0 + (1 - l0) * (i / 20) : l0 * (1 - i / 20);
+      const m = deHsl([h, Math.min(1, s0 + (escuro ? 0 : 0.1)), l]);
+      if (contraste(m, b) >= 4.5) return hex(m);
     }
     return escuro ? '#ffffff' : '#000000';
   } catch { return cor; }
@@ -228,7 +265,7 @@ function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
   ctx.font = fonteCanvas(e, z, familia);
   const fundo = e.fundo || cores.fundo;
   let cor = tx.cor || e.cor || cores.texto;
-  if (e.cor || tx.cor) cor = corLegivel(cor, fundo.startsWith('#') ? fundo : cores.fundoHex);
+  if (e.cor || tx.cor) cor = corLegivel(cor, fundo.startsWith('#') ? fundo : cores.fundoHex, e.fundo ? null : cores.texto);
   /* fundo pintado de propósito e letra automática: a letra fica escura ou clara conforme o fundo (PL23) */
   else if (e.fundo && e.fundo.startsWith('#')) { try { cor = luz(rgb(e.fundo)) > 0.35 ? '#1f1f1f' : '#ffffff'; } catch { /* cor inválida */ } }
   ctx.fillStyle = cor;
@@ -307,7 +344,7 @@ function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
   if (e.fundo && (x2 > x + w || x1 < x)) {
     /* dentro da célula pintada usa a cor do fundo dela; fora, a do tema */
     escreve(x, x + w, cor);
-    const fora = e.cor || tx.cor ? cor : cores.texto;
+    const fora = e.cor || tx.cor ? corLegivel(tx.cor || e.cor, cores.fundoHex, cores.texto) : cores.texto;
     if (x2 > x + w) escreve(x + w, x2, fora);
     if (x1 < x) escreve(x1, x, fora);
   } else escreve(x1, x2, cor);
@@ -421,40 +458,48 @@ function desenharCabecalhos(p, mesc) {
   ctx.font = `500 ${(11.5 * Math.max(0.8, z)).toFixed(1)}px ${familia}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  /* colunas */
-  const cols = [];
-  if (G.cc) for (let c = 0; c < G.cc; c++) cols.push(c);
-  for (let c = Math.max(G.cc, G.c0); c <= G.c1; c++) cols.push(c);
-  ctx.save(); ctx.beginPath(); ctx.rect(hw, 0, W - hw, hh); ctx.clip();
-  for (const c of cols) {
+  /* colunas: as congeladas e as que rolam em recortes separados (uma não passa por cima da outra) */
+  const umaCol = (c) => {
     const w = G.colunas.tam(c) * z;
-    if (!w) continue;
+    if (!w) return;
     const x = G.xDe(c);
-    if (x > W) continue;
+    if (x > W || x + w < hw) return;
+    ctx.fillStyle = cores.cab; ctx.fillRect(x, 0, w, hh);
     if (destaqueC(c)) { ctx.fillStyle = cores.cabSel; ctx.fillRect(x, 0, w, hh); ctx.fillStyle = cores.sel; ctx.fillRect(x, hh - 2, w, 2); }
     ctx.fillStyle = destaqueC(c) ? cores.cabSelTexto : cores.cabTexto;
     ctx.fillText(letraCol(c), x + w / 2, hh / 2 + 1);
     ctx.fillStyle = cores.cabLinha;
     ctx.fillRect(Math.round(x + w) - 1, 0, 1, hh);
-  }
+  };
+  ctx.save(); ctx.beginPath(); ctx.rect(hw + G.fx, 0, Math.max(0, W - hw - G.fx), hh); ctx.clip();
+  for (let c = Math.max(G.cc, G.c0); c <= G.c1; c++) umaCol(c);
   ctx.restore();
-  /* linhas */
-  const lins = [];
-  if (G.cl) for (let l = 0; l < G.cl; l++) lins.push(l);
-  for (let l = Math.max(G.cl, G.l0); l <= G.l1; l++) lins.push(l);
-  ctx.save(); ctx.beginPath(); ctx.rect(0, hh, hw, H - hh); ctx.clip();
-  for (const l of lins) {
+  if (G.cc) {
+    ctx.save(); ctx.beginPath(); ctx.rect(hw, 0, G.fx, hh); ctx.clip();
+    for (let c = 0; c < G.cc; c++) umaCol(c);
+    ctx.restore();
+  }
+  /* linhas: idem */
+  const umaLin = (l) => {
     const h = G.linhas.tam(l) * z;
-    if (!h) continue;
+    if (!h) return;
     const y = G.yDe(l);
-    if (y > H) continue;
+    if (y > H || y + h < hh) return;
+    ctx.fillStyle = cores.cab; ctx.fillRect(0, y, hw, h);
     if (destaqueL(l)) { ctx.fillStyle = cores.cabSel; ctx.fillRect(0, y, hw, h); ctx.fillStyle = cores.sel; ctx.fillRect(hw - 2, y, 2, h); }
     ctx.fillStyle = destaqueL(l) ? cores.cabSelTexto : cores.cabTexto;
     ctx.fillText(String(l + 1), hw / 2, y + h / 2 + 1);
     ctx.fillStyle = cores.cabLinha;
     ctx.fillRect(0, Math.round(y + h) - 1, hw, 1);
-  }
+  };
+  ctx.save(); ctx.beginPath(); ctx.rect(0, hh + G.fy, hw, Math.max(0, H - hh - G.fy)); ctx.clip();
+  for (let l = Math.max(G.cl, G.l0); l <= G.l1; l++) umaLin(l);
   ctx.restore();
+  if (G.cl) {
+    ctx.save(); ctx.beginPath(); ctx.rect(0, hh, hw, G.fy); ctx.clip();
+    for (let l = 0; l < G.cl; l++) umaLin(l);
+    ctx.restore();
+  }
   /* canto */
   ctx.fillStyle = cores.cab;
   ctx.fillRect(0, 0, hw, hh);

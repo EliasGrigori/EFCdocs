@@ -168,7 +168,7 @@ export function ler(texto, loc = 'pt') {
     throw new ErroFormula(msg, ruim.i, { tk: ruim });
   }
   const aberto = tk.find((t) => t.t === 'str' && t.aberto);
-  if (aberto) throw new ErroFormula('Falta fechar as aspas do texto.', aberto.i);
+  if (aberto) throw new ErroFormula('O texto foi aberto com aspas e não foi fechado. Todo texto vai entre um par de aspas, assim: "OK".', aberto.i);
 
   function expr() { return comparacao(); }
   function comparacao() {
@@ -219,14 +219,14 @@ export function ler(texto, loc = 'pt') {
     if (olha() && olha().t === 'fecha') { p++; return args; }
     for (;;) {
       const t = olha();
-      if (!t) throw new ErroFormula('Falta fechar o parêntese.', texto.length, { falta: ')' });
+      if (!t) throw new ErroFormula('Falta fechar o parêntese: ponha ")" no fim.', texto.length, { falta: ')' });
       if (t.t === 'sep' || t.t === 'fecha') args.push({ t: 'vazio' });
       else args.push(expr());
       const d = olha();
-      if (!d) throw new ErroFormula('Falta fechar o parêntese.', texto.length, { falta: ')' });
+      if (!d) throw new ErroFormula('Falta fechar o parêntese: ponha ")" no fim.', texto.length, { falta: ')' });
       if (d.t === 'sep') { p++; continue; }
       if (d.t === 'fecha') { p++; return args; }
-      throw new ErroFormula('Falta um ponto e vírgula (;) ou um sinal entre os valores.', d.i);
+      throw new ErroFormula('Entre dois valores falta um ponto e vírgula (;) ou um sinal de conta (+, -, *, /).', d.i);
     }
   }
   function constante() {
@@ -244,7 +244,7 @@ export function ler(texto, loc = 'pt') {
   }
   function primario() {
     const t = tk[p++];
-    if (!t) throw new ErroFormula('A conta terminou no meio. Falta um valor.', texto.length);
+    if (!t) throw new ErroFormula('A conta terminou no meio: depois do último sinal falta um número, uma célula ou uma função.', texto.length);
     switch (t.t) {
       case 'num': return { t: 'num', v: t.v, i: t.i, f: t.f };
       case 'str': return { t: 'str', v: t.v, i: t.i, f: t.f };
@@ -261,7 +261,7 @@ export function ler(texto, loc = 'pt') {
       }
       case 'abre': {
         const a = expr();
-        espera('fecha', 'Falta fechar o parêntese.');
+        espera('fecha', 'Falta fechar o parêntese: ponha ")" no fim.');
         return { t: 'paren', a };
       }
       case 'chaveA': {
@@ -277,18 +277,18 @@ export function ler(texto, loc = 'pt') {
         if (lin.some((l) => l.length !== lin[0].length)) throw new ErroFormula('As linhas da matriz têm tamanhos diferentes.', t.i);
         return { t: 'arr', lin };
       }
-      case 'op': throw new ErroFormula(`Sobrou o sinal "${t.v}" sem valor antes.`, t.i);
-      case 'fecha': throw new ErroFormula('Tem um parêntese fechando sem ter aberto.', t.i);
-      case 'sep': throw new ErroFormula('Ponto e vírgula fora de uma função.', t.i);
-      default: throw new ErroFormula('Não entendi esta parte da conta.', t.i);
+      case 'op': throw new ErroFormula(`Antes do sinal "${t.v}" falta um valor. Exemplo: =A1${t.v}B1.`, t.i);
+      case 'fecha': throw new ErroFormula('Este parêntese fecha algo que não foi aberto. Cada "(" precisa de um ")".', t.i);
+      case 'sep': throw new ErroFormula('O ponto e vírgula só separa as partes de uma função, como em SOMA(A1;B1). Aqui ele está fora de qualquer função.', t.i);
+      default: throw new ErroFormula('Não consegui entender esta parte da conta. Confira se não sobrou ou faltou algum sinal.', t.i);
     }
   }
-  if (!tk.length) throw new ErroFormula('A conta está vazia.', 0);
+  if (!tk.length) throw new ErroFormula('Depois do = falta a conta. Exemplo: =A1+B1.', 0);
   const arv = expr();
   if (p < tk.length) {
     const t = tk[p];
-    if (t.t === 'fecha') throw new ErroFormula('Tem um parêntese fechando sem ter aberto.', t.i);
-    throw new ErroFormula('Falta um sinal (+, -, *, /, &) entre os valores.', t.i);
+    if (t.t === 'fecha') throw new ErroFormula('Este parêntese fecha algo que não foi aberto. Cada "(" precisa de um ")".', t.i);
+    throw new ErroFormula('Entre dois valores falta um sinal de conta (+, -, *, /) ou o & para juntar textos.', t.i);
   }
   return arv;
 }

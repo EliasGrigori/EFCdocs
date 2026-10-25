@@ -15,16 +15,21 @@ export function contextoNoCursor(texto, pos) {
   const tk = tokenizar(antes, 'pt');
   const pilha = [];
   let ultimoFn = null;
+  let fechou = null; // função que acabou de ser fechada logo antes do cursor
   for (const t of tk) {
+    const saiu = t.t === 'fecha' ? pilha.pop() : null;
+    fechou = saiu && saiu.fn ? saiu : null;
     if (t.t === 'fn') ultimoFn = t;
     else if (t.t === 'abre') { pilha.push({ fn: ultimoFn, arg: 0, i: t.i }); ultimoFn = null; }
-    else if (t.t === 'fecha') { pilha.pop(); ultimoFn = null; }
     else if (t.t === 'sep') { if (pilha.length) pilha[pilha.length - 1].arg++; ultimoFn = null; }
     else ultimoFn = null;
   }
   const dentroTexto = tk.length && tk[tk.length - 1].t === 'str' && tk[tk.length - 1].aberto;
   let topo = null;
   for (let i = pilha.length - 1; i >= 0; i--) if (pilha[i].fn) { topo = pilha[i]; break; }
+  /* cursor logo depois do ")" (no fim da fórmula, por exemplo): continua mostrando a ajuda da função que fechou */
+  const depoisDeFechar = !topo && !!fechou;
+  if (depoisDeFechar) topo = fechou;
   const achou = topo && acharFuncao(topo.fn.v);
   const m = dentroTexto ? null : /[A-Za-zÀ-ÿ_\\][\wÀ-ÿ.]*$/.exec(antes);
   const ultimo = tk[tk.length - 1];
@@ -34,7 +39,8 @@ export function contextoNoCursor(texto, pos) {
   return {
     funcao: achou ? achou.f : null,
     nomeDigitado: topo ? topo.fn.v : null,
-    arg: topo ? topo.arg : 0,
+    arg: topo ? (depoisDeFechar ? -1 : topo.arg) : 0,
+    fechada: depoisDeFechar,
     prefixo: prefixo || '',
     esperaValor,
     dentroTexto: !!dentroTexto,
@@ -64,19 +70,19 @@ export function diagnosticar(texto, { nomes = new Set(), abas = new Set() } = {}
   const tk = tokenizar(texto, 'pt');
   /* aspas abertas */
   const aberta = tk.find((t) => t.t === 'str' && t.aberto);
-  if (aberta) out.push({ nivel: 'erro', msg: 'Falta fechar as aspas do texto.', i: aberta.i, f: texto.length, troca: { i: texto.length, f: texto.length, novo: '"' }, rotulo: 'Fechar aspas' });
+  if (aberta) out.push({ nivel: 'erro', msg: 'O texto foi aberto com aspas e não foi fechado. Todo texto vai entre um par de aspas, assim: "OK".', i: aberta.i, f: texto.length, troca: { i: texto.length, f: texto.length, novo: '"' }, rotulo: 'Fechar aspas' });
   /* vírgula no lugar de ponto e vírgula */
   for (let k = 0; k < tk.length; k++) {
     const t = tk[k];
     if (t.t === 'ruim' && t.v === ',') {
       const a = tk[k - 1], b = tk[k + 1];
-      const entre = a && b ? `Entre ${trecho(texto, a)} e ${trecho(texto, b)} use ponto e vírgula, não vírgula.` : 'Use ponto e vírgula (;) entre os argumentos, não vírgula.';
+      const entre = a && b ? `Entre ${trecho(texto, a)} e ${trecho(texto, b)} vai ponto e vírgula (;). No Brasil a vírgula é só para casas decimais, como em 0,5.` : 'Separe as partes da função com ponto e vírgula (;). No Brasil a vírgula é só para casas decimais, como em 0,5.';
       out.push({ nivel: 'erro', msg: entre, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: ';' }, rotulo: 'Trocar por ;' });
     }
     if (t.t === 'num' && t.txt && t.txt[0] === ',' && k > 0 && ['num', 'ref', 'area', 'str', 'fecha', 'nome', 'bool'].includes(tk[k - 1].t) && tk[k - 1].f === t.i) {
-      out.push({ nivel: 'erro', msg: 'Use ponto e vírgula (;) entre os argumentos. A vírgula é só para casas decimais.', i: t.i, f: t.i + 1, troca: { i: t.i, f: t.i + 1, novo: ';' }, rotulo: 'Trocar por ;' });
+      out.push({ nivel: 'erro', msg: 'Aqui parece faltar o ponto e vírgula (;) entre as partes da função. A vírgula só serve para casas decimais, como em 0,5.', i: t.i, f: t.i + 1, troca: { i: t.i, f: t.i + 1, novo: ';' }, rotulo: 'Trocar por ;' });
     }
-    if (t.t === 'ruim' && t.v !== ',') out.push({ nivel: 'erro', msg: t.msg === 'aba sem célula' ? 'Depois do nome da aba e do ! falta a célula (ex.: Lotes!A1).' : `Não entendi o sinal "${t.v}".`, i: t.i, f: t.f });
+    if (t.t === 'ruim' && t.v !== ',') out.push({ nivel: 'erro', msg: t.msg === 'aba sem célula' ? 'Depois do nome da aba e do ponto de exclamação vem a célula. Exemplo: Lotes!A1.' : `O sinal "${t.v}" não é usado em contas. Os sinais que valem são + - * / ^ & e os de comparar (=, <, >).`, i: t.i, f: t.f });
   }
   /* nomes de função */
   for (const t of tk) {
@@ -85,12 +91,12 @@ export function diagnosticar(texto, { nomes = new Set(), abas = new Set() } = {}
     if (!a) {
       const p = funcaoParecida(t.v);
       out.push(p
-        ? { nivel: 'erro', msg: `A função ${t.v} não existe. Você quis dizer ${p.pt}?`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: p.pt }, rotulo: 'Usar ' + p.pt }
-        : { nivel: 'aviso', msg: `O EFCdocs ainda não conhece a função ${t.v}. A fórmula fica guardada, mas a célula mostra #NOME?.`, i: t.i, f: t.f });
+        ? { nivel: 'erro', msg: `Não conheço a função ${t.v}. Será que você quis dizer ${p.pt}? Toque em "Usar ${p.pt}" para trocar.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: p.pt }, rotulo: 'Usar ' + p.pt }
+        : { nivel: 'aviso', msg: `O EFCdocs ainda não sabe calcular ${t.v}. Você pode gravar assim: a fórmula fica guardada como está, mas a célula mostra #NOME? até a função chegar.`, i: t.i, f: t.f });
     } else if (a.como === 'en' && a.f.pt !== a.f.en) {
-      out.push({ nivel: 'dica', msg: `${a.f.en} é ${a.f.pt} em português.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: a.f.pt }, rotulo: 'Trocar' });
+      out.push({ nivel: 'dica', msg: `${a.f.en} é o nome em inglês. Em português é ${a.f.pt}, e as duas formas funcionam.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: a.f.pt }, rotulo: 'Trocar' });
     } else if ((a.como === 'semAcento' || a.como === 'apelido') && t.v !== a.f.pt) {
-      out.push({ nivel: 'dica', msg: `O nome certo é ${a.f.pt}.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: a.f.pt }, rotulo: 'Trocar' });
+      out.push({ nivel: 'dica', msg: `Funciona, mas o nome oficial é ${a.f.pt}. Trocar deixa a fórmula igual à do Excel.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: a.f.pt }, rotulo: 'Trocar' });
     }
   }
   /* texto sem aspas (nome que não existe) */
@@ -100,12 +106,12 @@ export function diagnosticar(texto, { nomes = new Set(), abas = new Set() } = {}
     if (t.t !== 'nome') continue;
     const nm = t.v.toLowerCase();
     if (nomes.has(nm) || locais.has(nm)) continue;
-    out.push({ nivel: 'erro', msg: `"${t.v}" não é célula, função nem nome. Se é texto, ponha entre aspas.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: '"' + t.v + '"' }, rotulo: 'Pôr aspas' });
+    out.push({ nivel: 'erro', msg: `Não sei o que é "${t.v}": não é uma célula (como B2), nem uma função, nem um nome definido. Se for um texto, ele vai entre aspas: "${t.v}".`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: '"' + t.v + '"' }, rotulo: 'Pôr aspas' });
   }
   /* aba que não existe e intervalo invertido */
   for (const t of tk) {
     if ((t.t === 'ref' || t.t === 'area') && t.v.aba != null && abas.size && !abas.has(t.v.aba.toLowerCase())) {
-      out.push({ nivel: 'erro', msg: `Não existe aba chamada "${t.v.aba}".`, i: t.i, f: t.f });
+      out.push({ nivel: 'erro', msg: `Não há nenhuma aba chamada "${t.v.aba}" neste arquivo. Confira o nome na barra de abas, embaixo (maiúsculas e minúsculas não importam).`, i: t.i, f: t.f });
     }
     if (t.t === 'area' && t.v.tipo === 'cel' && (t.v.l1 > t.v.l2 || t.v.c1 > t.v.c2)) {
       const txt = texto.slice(t.i, t.f);
@@ -117,7 +123,7 @@ export function diagnosticar(texto, { nomes = new Set(), abas = new Set() } = {}
       if (ca && cb) {
         const c1 = [ca[1], cb[1]].sort((x, y) => x.length - y.length || x.localeCompare(y)), l1 = [+ca[2], +cb[2]].sort((x, y) => x - y);
         const novo = pref + c1[0].toUpperCase() + l1[0] + ':' + c1[1].toUpperCase() + l1[1];
-        out.push({ nivel: 'aviso', msg: `O intervalo está de trás para a frente. O certo é ${novo}.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo }, rotulo: 'Arrumar' });
+        out.push({ nivel: 'aviso', msg: `O intervalo foi escrito de trás para a frente. Funciona, mas o costume é começar pela célula de cima à esquerda: ${novo}.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo }, rotulo: 'Arrumar' });
       }
     }
   }
@@ -131,7 +137,7 @@ export function diagnosticar(texto, { nomes = new Set(), abas = new Set() } = {}
     if (t.t === 'sep') { if (pilha.length) { pilha[pilha.length - 1].args++; } continue; }
     if (t.t === 'fecha') {
       const p = pilha.pop();
-      if (!p) { out.push({ nivel: 'erro', msg: 'Tem um parêntese fechando sem ter aberto.', i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: '' }, rotulo: 'Tirar' }); continue; }
+      if (!p) { out.push({ nivel: 'erro', msg: 'Este parêntese fecha algo que não foi aberto. Conte os parênteses: cada "(" precisa de um ")".', i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: '' }, rotulo: 'Tirar' }); continue; }
       if (p.fn) {
         const a = acharFuncao(p.fn.v);
         if (a) {
@@ -140,9 +146,9 @@ export function diagnosticar(texto, { nomes = new Set(), abas = new Set() } = {}
           const max = a.f.args.some((x) => x.rep) ? Infinity : a.f.args.length;
           if (n < min) {
             const falta = a.f.args.filter((x) => !x.opc).slice(n).map((x) => x.n).join(', ');
-            out.push({ nivel: 'erro', msg: `${a.f.pt} precisa de ${min} ${min === 1 ? 'argumento' : 'argumentos'}. Falta: ${falta}.`, i: p.fn.i, f: t.f });
+            out.push({ nivel: 'erro', msg: `A função ${a.f.pt} precisa de ${min} ${min === 1 ? 'parte' : 'partes'} separadas por ponto e vírgula. Falta: ${falta}. Exemplo: ${a.f.ex}`, i: p.fn.i, f: t.f });
           } else if (n > max) {
-            out.push({ nivel: 'erro', msg: `${a.f.pt} aceita no máximo ${max} ${max === 1 ? 'argumento' : 'argumentos'}.`, i: p.fn.i, f: t.f });
+            out.push({ nivel: 'erro', msg: `A função ${a.f.pt} recebe no máximo ${max} ${max === 1 ? 'parte' : 'partes'}, e aqui tem mais. Veja se sobrou um ponto e vírgula ou se falta fechar um parêntese antes. Exemplo: ${a.f.ex}`, i: p.fn.i, f: t.f });
           }
         }
       }
@@ -154,8 +160,8 @@ export function diagnosticar(texto, { nomes = new Set(), abas = new Set() } = {}
   if (pilha.length && !aberta) {
     const nomesF = pilha.filter((p) => p.fn).map((p) => { const a = acharFuncao(p.fn.v); return a ? a.f.pt : p.fn.v; });
     const msg = pilha.length === 1
-      ? `Falta fechar o parêntese${nomesF.length ? ' do ' + nomesF[0] : ''}.`
-      : `Faltam fechar ${pilha.length} parênteses.`;
+      ? `Falta fechar o parêntese${nomesF.length ? ' do ' + nomesF[0] : ''}: ponha ")" no fim.`
+      : `Faltam fechar ${pilha.length} parênteses: cada "(" precisa de um ")".`;
     out.push({ nivel: 'erro', msg, i: pilha[pilha.length - 1].i, f: texto.length, troca: { i: texto.length, f: texto.length, novo: ')'.repeat(pilha.length) }, rotulo: 'Fechar' });
   }
   /* se nada acima pegou, o leitor diz o que não entendeu */

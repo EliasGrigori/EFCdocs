@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.4.0', () => assert.equal(VERSAO, 'v0.4.0'));
+test('versão é v0.4.1', () => assert.equal(VERSAO, 'v0.4.1'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -136,7 +136,7 @@ test('comandos: ids únicos e ícone em todos', () => {
 test('comandos da planilha chegam na v0.4.0 (menos os das próximas versões)', () => {
   for (const id of ['editar.colar', 'formatar.negrito', 'formatar.moeda', 'formatar.bordas', 'formula.inserir', 'formula.autosoma', 'formula.origem', 'exibir.congelar', 'exibir.grade', 'exibir.zoom'])
     assert.equal(chegaNa(PorId[id], 'planilha'), null, id);
-  assert.equal(chegaNa(PorId['formula.explicar'], 'planilha'), 'v0.4.1');
+  assert.equal(chegaNa(PorId['formula.explicar'], 'planilha'), 'v0.4.2');
   assert.equal(chegaNa(PorId['formatar.condicional'], 'planilha'), 'v0.6.0');
   assert.equal(chegaNa(PorId['arquivo.exportarExcel'], 'planilha'), 'v0.5.0');
 });
@@ -203,4 +203,22 @@ test('armazém: chaves separadas na demo', () => {
   assert.equal(chave('x', true), 'efcdocs-demo:x');
   assert.ok(ehDemo('https://a/b/?demo=1'));
   assert.equal(ehDemo('https://a/b/'), false);
+});
+
+test('v0.4.1: duas abas gravando o mesmo arquivo: a segunda gravação com marca velha não passa', async () => {
+  const b = criarBanco({ backend: bancoNaMemoria() });
+  const a = criarArquivo({ tipo: 'planilha' });
+  await b.criar(a);
+  const aba1 = (await b.abrir(a.ficha.id)).marca;
+  const aba2 = (await b.abrir(a.ficha.id)).marca;
+  assert.equal(aba1, aba2);
+  const g1 = await b.salvar({ ...a, ficha: { ...a.ficha, nome: 'Da aba 1' } }, 'salvou', aba1);
+  assert.ok(g1.marca && !g1.conflito);
+  const g2 = await b.salvar({ ...a, ficha: { ...a.ficha, nome: 'Da aba 2' } }, 'salvou', aba2);
+  assert.equal(g2.conflito, true);
+  assert.equal((await b.abrir(a.ficha.id)).ficha.nome, 'Da aba 1');
+  /* "Gravar a minha por cima" grava sem conferir a marca */
+  const g3 = await b.salvar({ ...a, ficha: { ...a.ficha, nome: 'Da aba 2' } }, 'salvou');
+  assert.ok(g3.marca);
+  assert.equal((await b.abrir(a.ficha.id)).ficha.nome, 'Da aba 2');
 });

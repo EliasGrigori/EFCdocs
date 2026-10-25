@@ -90,7 +90,7 @@ export function App() {
   const avisar = useCallback((texto, extra = {}) => {
     const id = Date.now() + Math.random();
     setAvisos((l) => [...l.slice(-2), { id, texto, ...extra }]);
-    setTimeout(() => setAvisos((l) => l.filter((a) => a.id !== id)), extra.acao ? 6500 : 3400);
+    setTimeout(() => setAvisos((l) => l.filter((a) => a.id !== id)), extra.acao ? 6500 : extra.longo ? 6000 : 3400);
   }, []);
   const tirarAviso = useCallback((id) => setAvisos((l) => l.filter((a) => a.id !== id)), []);
 
@@ -99,13 +99,78 @@ export function App() {
   }, [banco, avisar]);
   useEffect(() => { recarregar(); }, [recarregar]);
 
+  /* ---------- o mesmo arquivo em duas abas do navegador (nada pode se perder em silêncio) ----------
+     Cada gravação leva uma "marca"; a aba só grava se a marca guardada é a que ela conhece.
+     Além disso as abas conversam: a segunda que abre o arquivo fica só para ver, com "Editar aqui". */
+  const abaApp = useMemo(() => Date.now().toString(36) + Math.random().toString(36).slice(2, 7), []);
+  const canal = useMemo(() => (typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('efcdocs-abas' + (demo ? '-demo' : '')) : null), [demo]);
+  const marcas = useRef(new Map());
+  const fila = useRef({ pendente: null, rodando: false });
+  const [travado, setTravadoEstado] = useState(null);
+  const travadoRef = useRef(null);
+  const setTravado = useCallback((v) => { travadoRef.current = v; setTravadoEstado(v); }, []);
+  const avisarRef = useRef(avisar);
+
+  /** Lê de novo o arquivo aberto do aparelho (o que a outra aba gravou). */
+  const recarregarAberto = useCallback(async () => {
+    const atual = abertoRef.current;
+    if (!atual) return null;
+    const r = await banco.abrir(atual.arquivo.ficha.id);
+    if (!r) return null;
+    marcas.current.set(r.ficha.id, r.marca);
+    setAberto((a) => (a && a.arquivo.ficha.id === r.ficha.id
+      ? { arquivo: { ficha: r.ficha, conteudo: abrirConteudo(r.ficha, r.conteudo) }, h: novoHistorico(), tamanho: r.tamanho, sujo: false, salvoEm: r.ficha.alteradoEm }
+      : a));
+    return r;
+  }, [banco, setAberto]);
+
+  const postar = useCallback((m) => { try { if (canal) canal.postMessage({ ...m, de: abaApp }); } catch { /* sem canal */ } }, [canal, abaApp]);
+
+  useEffect(() => {
+    if (!canal) return undefined;
+    const tratar = (ev) => {
+      const m = ev.data || {};
+      const meu = abertoRef.current && abertoRef.current.arquivo.ficha.id;
+      if (!meu || m.arq !== meu || m.de === abaApp) return;
+      if (m.t === 'abri' && !travadoRef.current) postar({ t: 'tenho', arq: meu, para: m.de });
+      else if (m.t === 'tenho' && m.para === abaApp && !travadoRef.current) {
+        setTravado({ motivo: 'outraAba' });
+        avisarRef.current('Este arquivo já está aberto em outra aba. Aqui fica só para ver, para nada se perder.', { ic: 'aviso', longo: true });
+      } else if (m.t === 'salvou' && travadoRef.current && travadoRef.current.motivo === 'outraAba') recarregarAberto();
+      else if (m.t === 'assumir' && !travadoRef.current) {
+        setTravado({ motivo: 'outraAba' });
+        avisarRef.current('A outra aba passou a editar este arquivo. Aqui fica só para ver.', { ic: 'info', longo: true });
+        setTimeout(recarregarAberto, 400);
+      } else if (m.t === 'fechei' && travadoRef.current && travadoRef.current.motivo === 'outraAba') {
+        recarregarAberto().then(() => { setTravado(null); avisarRef.current('A outra aba fechou este arquivo. Agora dá para editar aqui.', { ic: 'check' }); });
+      }
+    };
+    canal.addEventListener('message', tratar);
+    const sair = () => { const a = abertoRef.current; if (a && !travadoRef.current) postar({ t: 'fechei', arq: a.arquivo.ficha.id }); };
+    addEventListener('pagehide', sair);
+    return () => { canal.removeEventListener('message', tratar); removeEventListener('pagehide', sair); };
+  }, [canal, abaApp, postar, recarregarAberto, setTravado]);
+
+  const editarAqui = useCallback(async () => {
+    const a = abertoRef.current;
+    if (!a) return;
+    postar({ t: 'assumir', arq: a.arquivo.ficha.id });
+    await new Promise((ok) => setTimeout(ok, 500));
+    await recarregarAberto();
+    setTravado(null);
+    avisar('Agora você edita nesta aba. A outra ficou só para ver.', { ic: 'check' });
+  }, [postar, recarregarAberto, setTravado, avisar]);
+
   /* abrir arquivo pela rota #/arq/<id> */
   const idRota = rota.startsWith('arq/') ? rota.slice(4) : null;
   useEffect(() => {
     let vivo = true;
     setGaveta(false);
-    if (!idRota) { setAberto(null); setStatusEd(null); return undefined; }
+    const anterior = abertoRef.current;
+    if (anterior && anterior.arquivo.ficha.id !== idRota && !travadoRef.current) postar({ t: 'fechei', arq: anterior.arquivo.ficha.id });
+    if (!idRota) { setAberto(null); setStatusEd(null); setTravado(null); return undefined; }
     if (abertoRef.current && abertoRef.current.arquivo.ficha.id === idRota) return undefined;
+    setTravado(null);
     banco.abrir(idRota).then((r) => {
       if (!vivo) return;
       if (!r || r.ficha.status === 'lixeira') {
@@ -113,29 +178,58 @@ export function App() {
         irPara('');
         return;
       }
+      marcas.current.set(r.ficha.id, r.marca);
       setAberto({ arquivo: { ficha: r.ficha, conteudo: abrirConteudo(r.ficha, r.conteudo) }, h: novoHistorico(), tamanho: r.tamanho, sujo: false, salvoEm: r.ficha.alteradoEm });
       setAba(r.ficha.tipo === 'postits' ? 'inserir' : 'inicio');
       setFaixaTemp(false);
+      postar({ t: 'abri', arq: r.ficha.id });
     });
     return () => { vivo = false; };
-  }, [idRota, banco, avisar, setAberto]);
+  }, [idRota, banco, avisar, setAberto, postar, setTravado]);
 
-  /* gravação: só depois da tela já mostrar a mudança */
-  const salvar = useCallback(async (novo, acao) => {
-    setAberto({ ...novo, sujo: true });
-    try {
-      const t = await banco.salvar(novo.arquivo, acao);
-      setAberto((atual) => (atual && atual.arquivo === novo.arquivo ? { ...atual, tamanho: t, sujo: false, salvoEm: new Date().toISOString() } : atual));
-      recarregar();
-    } catch {
-      avisar('Não foi possível salvar neste aparelho. Libere espaço e tente de novo.', { ic: 'aviso' });
+  /* gravação: só depois da tela já mostrar a mudança; uma de cada vez, sempre a mais nova */
+  const rodarFila = useCallback(async () => {
+    const f = fila.current;
+    if (f.rodando) return;
+    f.rodando = true;
+    while (f.pendente) {
+      const { arquivo, acao, forcar } = f.pendente;
+      f.pendente = null;
+      try {
+        const id = arquivo.ficha.id;
+        const t = await banco.salvar(arquivo, acao, forcar ? undefined : (marcas.current.has(id) ? marcas.current.get(id) : undefined));
+        if (t.conflito) {
+          f.pendente = null;
+          setTravado({ motivo: 'conflito' });
+          setAberto((a) => (a && a.arquivo.ficha.id === id ? { ...a, sujo: true } : a));
+          break;
+        }
+        marcas.current.set(id, t.marca);
+        setAberto((atual) => (atual && atual.arquivo === arquivo ? { ...atual, tamanho: t, sujo: false, salvoEm: new Date().toISOString() } : atual));
+        postar({ t: 'salvou', arq: id });
+        recarregar();
+      } catch {
+        avisar('Não foi possível salvar neste aparelho. Libere espaço e tente de novo.', { ic: 'aviso' });
+      }
     }
-  }, [banco, recarregar, avisar, setAberto]);
+    f.rodando = false;
+  }, [banco, recarregar, avisar, setAberto, postar, setTravado]);
+
+  const salvar = useCallback((novo, acao, forcar = false) => {
+    setAberto({ ...novo, sujo: true });
+    fila.current.pendente = { arquivo: novo.arquivo, acao, forcar };
+    rodarFila();
+  }, [setAberto, rodarFila]);
+
+  const MSG_TRAVADO = 'Este arquivo está aberto em outra aba. Toque em "Editar aqui" para editar nesta.';
+  const MSG_CONFLITO = 'Antes de continuar, escolha no aviso do topo: ver a versão gravada ou gravar a sua por cima.';
+  const msgTravado = () => (travadoRef.current && travadoRef.current.motivo === 'conflito' ? MSG_CONFLITO : MSG_TRAVADO);
 
   /** Aplica um diff no arquivo aberto (entra no desfazer e grava). */
   const aplicarDiff = useCallback((diff, acao = 'alterou') => {
     const atual = abertoRef.current;
     if (!atual) return false;
+    if (travadoRef.current) { avisar(msgTravado(), { ic: 'aviso' }); return false; }
     const r = fazer(atual.h, atual.arquivo, diff);
     if (r.estado === atual.arquivo) return false;
     salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, AUTOR) }, acao);
@@ -161,6 +255,7 @@ export function App() {
   const desfazerOuRefazer = useCallback((re) => {
     const atual = abertoRef.current;
     if (!atual) return;
+    if (travadoRef.current) { avisar(msgTravado(), { ic: 'aviso' }); return; }
     const r = re ? refazer(atual.h, atual.arquivo) : desfazer(atual.h, atual.arquivo);
     if (!r.diff) return;
     salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, AUTOR) }, re ? 'refez' : 'desfez');
@@ -171,6 +266,7 @@ export function App() {
   const irParaPasso = useCallback((feitosAlvo) => {
     const atual = abertoRef.current;
     if (!atual) return;
+    if (travadoRef.current) { avisar(msgTravado(), { ic: 'aviso' }); return; }
     let h = atual.h, estado = atual.arquivo, n = 0;
     while (h.feitos.length > feitosAlvo && h.feitos.length) { const r = desfazer(h, estado); h = r.h; estado = r.estado; n++; }
     while (h.feitos.length < feitosAlvo && h.desfeitos.length) { const r = refazer(h, estado); h = r.h; estado = r.estado; n--; }
@@ -228,8 +324,10 @@ export function App() {
 
   const semPermissao = useCallback((acao, ficha) => {
     const f = ficha || (abertoRef.current && abertoRef.current.arquivo.ficha);
+    const doAberto = !ficha || (abertoRef.current && abertoRef.current.arquivo.ficha.id === ficha.id);
+    if (travado && doAberto && acao !== 'ver' && acao !== 'exportar') return travado.motivo === 'conflito' ? MSG_CONFLITO : MSG_TRAVADO;
     return pode(prefs.perfil, acao, { usuario: AUTOR, criadoPor: f ? f.criadoPor : AUTOR }) ? '' : SEM_PERMISSAO;
-  }, [prefs.perfil]);
+  }, [prefs.perfil, travado]);
 
   const bloqueado = useCallback((id, ficha) => {
     const cmd = PorId[id];
@@ -344,7 +442,7 @@ export function App() {
     instalar: estadoPwa.instalar ? pedirInstalacao : null,
     /* para o editor */
     aplicar, avisar, perguntar: setPergunta, temJanela: !!(paleta || opcoes || pergunta || gaveta || linhaTempo),
-    pode: (acao) => !semPermissao(acao), buscarNoEditor: (q) => { const ed = editorRef.current; return ed && ed.buscar ? ed.buscar(q) : []; },
+    pode: (acao) => !semPermissao(acao), travado, buscarNoEditor: (q) => { const ed = editorRef.current; return ed && ed.buscar ? ed.buscar(q) : []; },
     registrarEditor: (ed) => { editorRef.current = ed; }, setStatus: setStatusEd,
     alvoPainel, abrirPainel: () => setPref('painel', true), painelAberto: prefs.painel, cel,
   };
@@ -384,6 +482,19 @@ export function App() {
         )}
         {demo && (
           <div className="faixa-aviso demo" role="status"><Icone n="info" />Demonstração: até 3 arquivos, guardados só neste aparelho. Exportações saem com a marca DEMO · EFC.</div>
+        )}
+        {aberto && travado && travado.motivo === 'outraAba' && (
+          <div className="faixa-aviso trava" role="alert">
+            <Icone n="aviso" /><span>Este arquivo está aberto em outra aba. Aqui fica só para ver (o que a outra aba grava aparece aqui).</span>
+            <button type="button" className="btn sm" onClick={editarAqui}>Editar aqui</button>
+          </div>
+        )}
+        {aberto && travado && travado.motivo === 'conflito' && (
+          <div className="faixa-aviso trava" role="alert">
+            <Icone n="aviso" /><span>Outra aba gravou este arquivo enquanto você editava aqui. Sua última mudança <b>ainda não foi gravada</b>. Escolha:</span>
+            <button type="button" className="btn sm" onClick={async () => { await recarregarAberto(); setTravado(null); avisar('Carregada a versão gravada pela outra aba.', { ic: 'check' }); }}>Ver a versão gravada</button>
+            <button type="button" className="btn sm" onClick={() => { const a = abertoRef.current; setTravado(null); if (a) salvar(a, 'gravou por cima', true); postar({ t: 'assumir', arq: a && a.arquivo.ficha.id }); avisar('Gravada a sua versão. A outra aba passou a só ver.', { ic: 'check' }); }}>Gravar a minha por cima</button>
+          </div>
         )}
         <Topo titulo={TITULOS[rota] || 'EFCdocs'} ficha={ficha} salvo={salvo} prefs={prefs} cx={cx} cel={cel}
           aba={aba} setAba={setAba} faixaTemp={faixaTemp} setFaixaTemp={setFaixaTemp} abrirGaveta={() => setGaveta(true)} />

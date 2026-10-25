@@ -906,7 +906,7 @@ export function Quadro({ arquivo, cx }) {
         <button type="button" role="tab" aria-selected={vista === 'kanban'} className={vista === 'kanban' ? 'on' : ''} onClick={() => setVista('kanban')}><Icone n="kanban" />Kanban</button>
         {vista === 'kanban' && !somenteLeitura && <button type="button" className="qd-gut" data-cmd="organizar.ordenarGut" title="Ordenar cada coluna pela nota GUT (maior primeiro)" onClick={() => trata('organizar.ordenarGut')}><Icone n="classificar" />GUT</button>}
       </div>
-      {somenteLeitura && <div className="qd-modo leitura"><Icone n="ver" />Só leitura: seu perfil de teste não edita o quadro.</div>}
+      {somenteLeitura && <div className="qd-modo leitura"><Icone n="ver" />{cx.travado && cx.travado.motivo === 'conflito' ? 'Em espera: escolha no aviso do topo o que fazer.' : cx.travado ? 'Só para ver: este quadro está aberto em outra aba.' : 'Só leitura: seu perfil de teste não edita o quadro.'}</div>}
 
       {vista === 'kanban' ? (
         <KanbanVista c={c} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} sel={selValida} setSel={setSel} cx={cx} codigos={qp.codigos} hoje={hoje} />

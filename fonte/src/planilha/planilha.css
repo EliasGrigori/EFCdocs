@@ -249,3 +249,8 @@ body[data-theme=light] .tk-num, body[data-theme=campo] .tk-num, .pl.clara .pl-ed
   .pl-jform, .pl-jfun-g { grid-template-columns: 1fr; }
   .pl-jfun-l { max-height: 160px; }
 }
+
+/* v0.4.1: arquivo aberto em outra aba (aviso no topo, nada se perde em silêncio) */
+.faixa-aviso.trava { background: var(--crit-soft); color: var(--text); flex-wrap: wrap; border-bottom: 1px solid var(--crit); }
+.faixa-aviso.trava svg { color: var(--crit); }
+.faixa-aviso.trava .btn { min-height: 28px; }

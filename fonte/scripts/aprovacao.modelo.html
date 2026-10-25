@@ -32,6 +32,8 @@ main{padding:14px 16px 120px;display:grid;gap:14px}
 .fotos{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 14px 10px}
 .fotos.um{grid-template-columns:1fr}
 .fotos.cel{grid-template-columns:repeat(auto-fill,minmax(180px,240px))}
+.fotos.quatro{grid-template-columns:repeat(4,minmax(0,170px))}
+.fotos.par img,.fotos.quatro img{width:auto;max-width:100%}
 figure{margin:0;display:grid;gap:4px}
 figcaption{font-size:12.5px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
 figure img{width:100%;border:1px solid var(--borda);border-radius:6px;display:block;cursor:zoom-in;background:#fff}
@@ -48,7 +50,7 @@ figure img{width:100%;border:1px solid var(--borda);border-radius:6px;display:bl
 dialog{border:0;padding:0;max-width:96vw;max-height:94vh;background:transparent}
 dialog img{max-width:96vw;max-height:94vh;display:block}
 dialog::backdrop{background:rgba(0,0,0,.75)}
-@media (max-width:760px){.fotos{grid-template-columns:1fr}}
+@media (max-width:760px){.fotos{grid-template-columns:1fr}.fotos.quatro{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>

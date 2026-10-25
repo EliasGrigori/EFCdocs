@@ -77,10 +77,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.4.0', async () => {
+await caso('abre sem erro, rodapé mostra v0.4.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.4.0'), 'rodapé sem v0.4.0');
+  certo((await p.locator('.foot').innerText()).includes('v0.4.1'), 'rodapé sem v0.4.1');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -95,6 +95,7 @@ await caso('menu: Pastas e Documentos externos com "em breve" explicado', async 
 });
 await caso('início com os três botões de novo', async () => {
   await p.click('.rail a[href="#/"]');
+  await p.waitForSelector('[data-novo]');
   igual(await p.locator('[data-novo]').count(), 3);
   await print(p, '02-inicio');
 });
@@ -763,7 +764,7 @@ await caso('v0.4.0: erro avisado antes do Enter e "Corrigir os dois"', async () 
   await p.keyboard.type('=SE(B2>=0,5;"OK","Ajustar"');
   await p.waitForTimeout(120);
   const ajuda = await p.locator('.pl-ajuda').innerText();
-  certo(ajuda.includes('use ponto e vírgula') && ajuda.includes('Falta fechar o parêntese do SE'), 'ajuda: ' + ajuda);
+  certo(ajuda.includes('vai ponto e vírgula') && ajuda.includes('Falta fechar o parêntese do SE'), 'ajuda: ' + ajuda);
   await p.keyboard.press('Enter');
   await p.waitForTimeout(100);
   certo(await p.locator('.pl-edcel').isVisible(), 'deixou gravar fórmula com erro');
@@ -776,7 +777,7 @@ await caso('v0.4.0: VLOOKUP vira PROCV, autocompletar completa com Tab, F4 põe 
   await celula(p, 'E2');
   await p.keyboard.type('=VLOOKUP("L-013";A2:B4;2;0)');
   await p.waitForTimeout(100);
-  certo((await p.locator('.pl-ajuda').innerText()).includes('VLOOKUP é PROCV em português'));
+  certo((await p.locator('.pl-ajuda').innerText()).includes('Em português é PROCV'));
   await p.keyboard.press('Enter');
   igual(await celula(p, 'E2'), '0,3');
   igual(await fxTexto(p), '=PROCV("L-013";A2:B4;2;0)');
@@ -965,6 +966,8 @@ await caso('v0.4.0: perfil Leitor só vê a planilha', async () => {
   await p.keyboard.type('x');
   await p.waitForTimeout(100);
   igual(await p.locator('.pl-edcel').count(), 0, 'Leitor conseguiu editar');
+  /* v0.4.1: o Leitor vê o aviso ao tentar digitar */
+  certo((await p.locator('.toasts').innerText()).includes('Só leitura'), 'sem aviso Só leitura ao digitar');
   await p.locator('.topbar [aria-label="Opções"]').click();
   await p.locator('.opcoes .chipb:has-text("Admin")').click();
   await p.keyboard.press('Escape');
@@ -1032,6 +1035,164 @@ await caso('v0.4.0 celular: faixa de edição embaixo com ; ( ) e funções; pr�
   igual(await celula(p, 'A2'), '7');
   const larg = await p.evaluate(() => document.documentElement.scrollWidth);
   certo(larg <= 390, 'rolagem lateral: ' + larg);
+});
+await ctx.close();
+
+/* ---------- v0.4.1: correções da aprovação ---------- */
+({ ctx, p } = await novaPagina());
+await caso('v0.4.1: datas na fórmula saem como data; 25:00 fica 25:00; número grande inteiro na barra', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['01/03/2024', '=A1+1', '=DATA(2024;2;29)', '25:00', '123456789012345', '=A1-A1', '=AGORA()']);
+  igual(await celula(p, 'A2'), '02/03/2024', '=A1+1');
+  igual(await celula(p, 'A3'), '29/02/2024', '=DATA');
+  igual(await celula(p, 'A4'), '25:00', '25:00');
+  await celula(p, 'A5');
+  igual((await fxTexto(p)).trim(), '123456789012345', 'barra de fórmulas');
+  igual(await celula(p, 'A6'), '0', 'data - data é número');
+  certo(/^\d\d\/\d\d\/\d{4} \d\d:\d\d$/.test(await celula(p, 'A7')), 'AGORA com data e hora');
+  await celula(p, 'A4');
+  igual((await fxTexto(p)).trim(), '25:00', 'barra mostra 25:00');
+});
+await caso('v0.4.1: dica do SE continua com o cursor no fim da fórmula; mensagens mais claras', async () => {
+  await celula(p, 'C1');
+  await p.keyboard.type('=SE(A1>1;"OK";"Não")');
+  await p.waitForTimeout(120);
+  certo(await p.locator('.pl-sig').isVisible(), 'sem dica no fim');
+  certo((await p.locator('.pl-sig').innerText()).includes('SE'), 'dica não é do SE');
+  await p.keyboard.press('Escape');
+  await celula(p, 'C2');
+  await p.keyboard.type('=SOMA(A1,A2');
+  await p.waitForTimeout(120);
+  const t = await p.locator('.pl-ajuda').innerText();
+  certo(t.includes('vírgula é só para casas decimais'), 'mensagem da vírgula: ' + t);
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.1: cabeçalho congelado não se sobrepõe ao número das linhas roladas', async () => {
+  await celula(p, 'A1');
+  await p.click('.tab:has-text("Exibir")');
+  await cmd(p, 'exibir.congelar');
+  await p.locator('.pl-opcao:has-text("Congelar a linha de cima")').click();
+  await p.waitForTimeout(150);
+  /* conta os pixels de "tinta" no cabeçalho da linha 1 (congelada): rolando, tem que continuar igual */
+  const tinta = () => p.evaluate(() => {
+    const cv = document.querySelector('.pl-cv');
+    const g = cv.getContext('2d');
+    const d = window.devicePixelRatio || 1;
+    const img = g.getImageData(Math.round(4 * d), Math.round(26 * d), Math.round(36 * d), Math.round(18 * d)).data;
+    const f = [img[0], img[1], img[2]];
+    let n = 0; for (let i = 0; i < img.length; i += 4) if (Math.abs(img[i] - f[0]) + Math.abs(img[i + 1] - f[1]) + Math.abs(img[i + 2] - f[2]) > 90) n++;
+    return n;
+  });
+  const n0 = await tinta();
+  for (const y of [300, 611, 1237]) {
+    await p.locator('.pl-rol').evaluate((el, v) => { el.scrollTop = v; }, y);
+    await p.waitForTimeout(150);
+    const n1 = await tinta();
+    certo(Math.abs(n1 - n0) <= Math.max(6, n0 * 0.15), `cabeçalho da linha 1 mudou ao rolar ${y}: ${n0} → ${n1}`);
+  }
+  await print(p, '41-congelado-rolado');
+  await p.locator('.pl-rol').evaluate((el) => { el.scrollTop = 0; });
+});
+await ctx.close();
+
+/* o mesmo arquivo em duas abas do navegador */
+({ ctx, p } = await novaPagina());
+await caso('v0.4.1: mesmo arquivo em duas abas: a segunda fica só para ver, recebe o que a primeira grava e pode assumir', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['10']);
+  const url = p.url();
+  const p2 = await ctx.newPage();
+  p2.on('pageerror', (e) => errosConsole.push(`[${atual}] erro de página (aba 2): ${e.message}`));
+  await p2.goto(url);
+  await p2.waitForSelector('.pl-cv');
+  await p2.waitForSelector('.faixa-aviso.trava', { timeout: 3000 });
+  certo((await p2.locator('.faixa-aviso.trava').innerText()).includes('aberto em outra aba'), 'aba 2 sem aviso');
+  igual(await p.locator('.faixa-aviso.trava').count(), 0, 'aba 1 travou');
+  /* a aba 2 tenta digitar: nada muda e aparece o aviso */
+  await celula(p2, 'A2');
+  await p2.keyboard.type('99');
+  await p2.waitForTimeout(150);
+  igual(await p2.locator('.pl-edcel').count(), 0, 'aba 2 conseguiu editar');
+  certo((await p2.locator('.toasts').innerText()).includes('outra aba'), 'sem aviso ao digitar na aba 2');
+  /* a aba 1 grava: a aba 2 recebe */
+  await p.bringToFront();
+  await digitarEm(p, 'B1', ['20']);
+  await p2.waitForTimeout(700);
+  igual(await celula(p2, 'B1'), '20', 'aba 2 não recebeu');
+  /* a aba 2 assume */
+  await p2.bringToFront();
+  await p2.locator('.faixa-aviso.trava button:has-text("Editar aqui")').click();
+  await p2.waitForTimeout(900);
+  igual(await p2.locator('.faixa-aviso.trava').count(), 0, 'aba 2 continua travada');
+  await p.waitForSelector('.faixa-aviso.trava', { timeout: 3000 });
+  await digitarEm(p2, 'C1', ['30']);
+  await p.waitForTimeout(700);
+  igual(await celula(p, 'C1'), '30', 'aba 1 não recebeu da aba 2');
+  igual(await celula(p, 'A1'), '10');
+  await print(p, '42-duas-abas');
+  /* fechar a aba 2: a aba 1 volta a editar */
+  await p2.close();
+  await p.waitForTimeout(800);
+  igual(await p.locator('.faixa-aviso.trava').count(), 0, 'aba 1 não destravou ao fechar a outra');
+});
+await caso('v0.4.1: quadro de post-its em duas abas também fica protegido', async () => {
+  await p.goto(BASE + '#/postits');
+  await p.waitForSelector('[data-novo=postits]');
+  await p.click('[data-novo=postits]');
+  await p.waitForTimeout(500);
+  const p2 = await ctx.newPage();
+  await p2.goto(p.url());
+  await p2.waitForSelector('.faixa-aviso.trava', { timeout: 3000 });
+  certo((await p2.locator('.qd-modo.leitura').innerText()).includes('outra aba'), 'quadro da aba 2 não ficou só para ver');
+  await p2.close();
+  await p.waitForTimeout(500);
+  await novaPlanilha(p);
+  await digitarEm(p, 'D1', ['1']);
+});
+await caso('v0.4.1: gravação de outro lugar no meio da edição: avisa e não perde nada', async () => {
+  /* simula outra aba gravando sem avisar (marca nova direto no aparelho) */
+  await p.evaluate(() => new Promise((ok) => {
+    const id = location.hash.split('/').pop();
+    const r = indexedDB.open('efcdocs');
+    r.onsuccess = () => {
+      const t = r.result.transaction('arquivos', 'readwrite');
+      const s = t.objectStore('arquivos');
+      const g = s.get(id);
+      g.onsuccess = () => { s.put({ ...g.result, marca: 'outra' }); };
+      t.oncomplete = () => ok();
+    };
+  }));
+  await digitarEm(p, 'D1', ['40']);
+  await p.waitForSelector('.faixa-aviso.trava', { timeout: 3000 });
+  const t = await p.locator('.faixa-aviso.trava').innerText();
+  certo(t.includes('ainda não foi gravada'), 'sem aviso de conflito: ' + t);
+  await print(p, '43-conflito');
+  await p.locator('.faixa-aviso.trava button:has-text("Gravar a minha por cima")').click();
+  await p.waitForTimeout(500);
+  igual(await p.locator('.faixa-aviso.trava').count(), 0, 'continua travado');
+  await p.reload();
+  await p.waitForSelector('.pl-cv');
+  await p.waitForTimeout(300);
+  igual(await celula(p, 'D1'), '40', 'a mudança se perdeu');
+});
+await ctx.close();
+
+/* celular: dois toques e digitar */
+({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }));
+await caso('v0.4.1 celular: dois toques na célula e o primeiro número digitado não se perde', async () => {
+  await p.goto(BASE + '#/planilha');
+  await p.waitForSelector('[data-novo=planilha]');
+  await p.locator('[data-novo=planilha]').tap();
+  await p.waitForSelector('.pl-cv');
+  await p.waitForTimeout(300);
+  const cv = await p.locator('.pl-cv').boundingBox();
+  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+  await p.waitForTimeout(120);
+  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+  await p.waitForTimeout(150);
+  await p.keyboard.type('123');
+  await p.waitForTimeout(80);
+  igual(await p.locator('.pl-banda textarea').inputValue(), '123', 'o primeiro dígito sumiu');
 });
 await ctx.close();
 

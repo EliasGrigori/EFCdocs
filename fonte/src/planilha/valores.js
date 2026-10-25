@@ -21,15 +21,15 @@ export const ehErro = (v) => v instanceof Erro;
 
 /* o que cada erro quer dizer, em português simples (painel da célula e dica) */
 export const ERRO_EXPLICA = {
-  '#DIV/0!': 'divisão por zero ou por célula vazia',
-  '#N/A': 'o valor procurado não foi encontrado',
-  '#REF!': 'a conta aponta para uma célula que não existe mais (linha, coluna ou aba excluída)',
-  '#VALUE!': 'a conta recebeu texto onde esperava número (ou o tipo errado de valor)',
-  '#NAME?': 'nome de função ou nome definido que não existe',
-  '#NUM!': 'número inválido para esta conta (ex.: raiz de número negativo)',
-  '#NULL!': 'duas faixas que não se cruzam',
-  '#SPILL!': 'o resultado precisa de várias células e alguma delas já está ocupada',
-  '#CALC!': 'a conta não tem resultado (ex.: FILTRO sem nenhum item)',
+  '#DIV/0!': 'a conta divide por zero, ou por uma célula vazia. Confira o divisor, ou use SEERRO para mostrar outra coisa',
+  '#N/A': 'o valor procurado não está na lista. Confira se está escrito igual (espaços contam) ou use SENÃODISP',
+  '#REF!': 'a conta apontava para uma célula que não existe mais, porque a linha, a coluna ou a aba foi excluída. Refaça a referência',
+  '#VALUE!': 'a conta recebeu um texto onde esperava um número. Veja se alguma célula da conta tem letras ou espaços',
+  '#NAME?': 'a fórmula usa uma função ou um nome que não existe. Confira a grafia',
+  '#NUM!': 'o número não serve para esta conta, como a raiz de um número negativo',
+  '#NULL!': 'as duas faixas da conta não se cruzam. Entre faixas use ponto e vírgula (;)',
+  '#SPILL!': 'o resultado ocupa várias células e alguma delas já tem conteúdo. Esvazie as células de baixo ou do lado',
+  '#CALC!': 'a conta não chegou a um resultado, como um FILTRO que não achou nenhum item',
 };
 
 /* ---------- números no jeito do Brasil ---------- */
@@ -63,6 +63,16 @@ export function numeroGeral(n) {
     s = String(Number(n.toFixed(casas)));
     if (/e/.test(s)) s = n.toFixed(casas).replace(/\.?0+$/, '');
   }
+  return s.replace('.', ',');
+}
+
+/** Número completo para editar (como a barra de fórmulas do Excel): até 15 dígitos, sem notação científica quando dá. */
+export function numeroCheio(n) {
+  if (!Number.isFinite(n)) return '#NÚM!';
+  if (n === 0) return '0';
+  const r = Number(n.toPrecision(15));
+  const s = String(r);
+  if (/e/i.test(s)) return numeroGeral(n);
   return s.replace('.', ',');
 }
 
@@ -184,7 +194,7 @@ export function lerDataTexto(t, hoje = new Date()) {
 
 /** "14:30", "14:30:15", "9:05" → fração do dia; null se não for hora. */
 export function lerHoraTexto(t) {
-  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(String(t).trim());
+  const m = /^(\d{1,4}):(\d{2})(?::(\d{2}))?$/.exec(String(t).trim());
   if (!m) return null;
   const h = +m[1], mi = +m[2], se = +(m[3] || 0);
   if (mi > 59 || se > 59 || h > 9999) return null;

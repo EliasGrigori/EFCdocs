@@ -4,7 +4,7 @@
 import { conteudoQuadroVazio } from '../quadro/modelo.js';
 import { planilhaVazia } from '../planilha/modelo.js';
 
-export const VERSAO = 'v0.4.0';
+export const VERSAO = 'v0.4.1';
 
 export const TIPOS = {
   planilha: { nome: 'Planilha', novo: 'Nova planilha', padrao: 'Planilha sem título', chega: null },

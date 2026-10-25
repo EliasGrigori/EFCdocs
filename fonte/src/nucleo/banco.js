@@ -16,6 +16,12 @@ export function bancoNaMemoria() {
     async todos() { return [...arquivos.values()].map((r) => structuredClone(r)); },
     async um(id) { const r = arquivos.get(id); return r ? structuredClone(r) : null; },
     async por(r) { arquivos.set(r.id, structuredClone(r)); },
+    async porSe(r, esperado) {
+      const atual = arquivos.get(r.id);
+      if (atual && esperado !== undefined && (atual.marca || null) !== (esperado || null)) return false;
+      arquivos.set(r.id, structuredClone(r));
+      return true;
+    },
     async tira(id) { arquivos.delete(id); },
     async anota(ev) { hist.push(structuredClone(ev)); },
     async eventos() { return hist.map((e) => structuredClone(e)); },
@@ -48,6 +54,22 @@ function bancoIndexedDB(nome) {
     todos: () => tx('arquivos', 'readonly', (s) => s.getAll()),
     um: (id) => tx('arquivos', 'readonly', (s) => s.get(id)).then((r) => r || null),
     por: (r) => tx('arquivos', 'readwrite', (s) => s.put(r)),
+    /* grava só se ninguém gravou no meio (outra aba): ler e gravar na mesma transação */
+    porSe: (r, esperado) => abrir().then((db) => new Promise((ok, erro) => {
+      const t = db.transaction('arquivos', 'readwrite');
+      const s = t.objectStore('arquivos');
+      let gravou = false;
+      const g = s.get(r.id);
+      g.onsuccess = () => {
+        const atual = g.result;
+        if (atual && esperado !== undefined && (atual.marca || null) !== (esperado || null)) return;
+        s.put(r);
+        gravou = true;
+      };
+      t.oncomplete = () => ok(gravou);
+      t.onerror = () => erro(t.error);
+      t.onabort = () => erro(t.error);
+    })),
     tira: (id) => tx('arquivos', 'readwrite', (s) => s.delete(id)),
     anota: (ev) => tx('hist', 'readwrite', (s) => s.add(ev)),
     eventos: () => tx('hist', 'readonly', (s) => s.getAll()),
@@ -88,17 +110,27 @@ export function criarBanco({ demo = false, backend = bancoPadrao(demo), agora = 
       await this.salvar(arquivo, 'criou');
       return arquivo;
     },
-    async salvar(arquivo, acao = 'salvou') {
+    /**
+     * Grava o arquivo. esperado = a marca da última gravação que esta aba conhece:
+     * se outra aba gravou no meio, não grava e devolve { conflito: true } (nada se perde em silêncio).
+     */
+    async salvar(arquivo, acao = 'salvou', esperado) {
       const pacote = await compactar(arquivo.conteudo);
-      await backend.por({ id: arquivo.ficha.id, ficha: arquivo.ficha, pacote });
+      const marca = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const r = { id: arquivo.ficha.id, ficha: arquivo.ficha, pacote, marca };
+      if (esperado !== undefined && backend.porSe) {
+        const ok = await backend.porSe(r, esperado);
+        if (!ok) return { conflito: true };
+      } else await backend.por(r);
       if (acao) await anotar(acao, arquivo.ficha);
-      return { bytesOriginal: pacote.bytesOriginal, bytesFinal: pacote.bytesFinal, fmt: pacote.fmt };
+      return { bytesOriginal: pacote.bytesOriginal, bytesFinal: pacote.bytesFinal, fmt: pacote.fmt, marca };
     },
     async abrir(id) {
       const r = await backend.um(id);
       if (!r) return null;
       return {
         ficha: r.ficha,
+        marca: r.marca || null,
         conteudo: await descompactar(r.pacote),
         tamanho: { bytesOriginal: r.pacote.bytesOriginal, bytesFinal: r.pacote.bytesFinal, fmt: r.pacote.fmt },
       };
@@ -107,7 +139,7 @@ export function criarBanco({ demo = false, backend = bancoPadrao(demo), agora = 
       const r = await backend.um(id);
       if (!r) return null;
       const ficha = { ...r.ficha, ...mudancas };
-      await backend.por({ ...r, ficha });
+      await backend.por({ ...r, ficha, marca: Date.now().toString(36) + Math.random().toString(36).slice(2, 8) });
       if (acao) await anotar(acao, ficha, extra);
       return ficha;
     },

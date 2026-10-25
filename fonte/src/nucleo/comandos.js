@@ -106,7 +106,7 @@ export const COMANDOS = [
 
   C('formula.inserir', 'Inserir função', 'funcao', { sin: ['fórmula', 'função', 'calcular', 'fx'], chega: V4, mods: ['planilha'] }),
   C('formula.autosoma', 'AutoSoma', 'soma', { sin: ['somar', 'total', 'soma'], chega: V4, mods: ['planilha'] }),
-  C('formula.explicar', 'Explicar esta conta', 'explicar', { sin: ['entender fórmula', 'por que deu erro', 'erro na fórmula'], chega: 'v0.4.1', mods: ['planilha'] }),
+  C('formula.explicar', 'Explicar esta conta', 'explicar', { sin: ['entender fórmula', 'por que deu erro', 'erro na fórmula'], chega: 'v0.4.2', mods: ['planilha'] }),
   C('formula.origem', 'De onde vem / quem usa esta célula', 'origem', { sin: ['rastrear precedentes', 'dependentes', 'referências', 'quem usa', 'para onde vai'], chega: V4, mods: ['planilha'] }),
   C('formula.nome', 'Dar nome à seleção', 'renomear', { sin: ['nome definido', 'meta', 'gerenciador de nomes', 'apelido da célula'], chega: V4, mods: ['planilha'], acao: 'planilha.editar' }),
   C('formula.nomes', 'Nomes da planilha', 'lista', { sin: ['gerenciador de nomes', 'renomear nome', 'nomes definidos'], chega: V4, mods: ['planilha'] }),
