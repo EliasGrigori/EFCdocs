@@ -336,10 +336,10 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 
 /* barra de ferramentas vertical (computador) */
 .qd-ferr {
-  position: absolute; left: 10px; top: 56px; bottom: 56px; z-index: 44; width: 64px; padding: 2px 4px 4px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; scrollbar-width: thin; align-content: flex-start; height: fit-content; max-height: calc(100% - 112px);
+  position: absolute; left: 10px; top: 56px; bottom: 56px; z-index: 44; width: 78px; padding: 2px 4px 4px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; scrollbar-width: thin; align-content: flex-start; height: fit-content; max-height: calc(100% - 112px);
   background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--r-ctl); box-shadow: 0 4px 12px rgba(0,0,0,.12);
 }
-.qd-ferr-b { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 2px; border-radius: var(--r-chip); color: var(--text-muted); font-size: 10.5px; font-weight: 700; line-height: 1.1; text-align: center; }
+.qd-ferr-b { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 2px; border-radius: var(--r-chip); color: var(--text-muted); font-size: 10.5px; font-weight: 700; line-height: 1.1; text-align: center; max-width: 100%; white-space: nowrap; }
 .qd-ferr-b svg { width: 20px; height: 20px; }
 .qd-ferr-b:hover { background: var(--surface-2); color: var(--text); }
 .qd-ferr-b.on { background: var(--primary-soft); color: var(--primary); }
@@ -388,3 +388,8 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .app.cel .qd-lamp em { position: absolute; top: -4px; right: -4px; }
 .app.cel .qd-assist { right: 8px; width: calc(100% - 16px); }
 @media print { .qd-ferr, .qd-lamp, .qd-assist, .qd-cores-cel { display: none !important; } }
+
+/* texto do item: o que não cabe termina em reticências */
+.qi-clamp { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; text-overflow: ellipsis; }
+
+.qi-tar-l1 .sem-resp { font-weight: 400; font-style: italic; color: #667085; }

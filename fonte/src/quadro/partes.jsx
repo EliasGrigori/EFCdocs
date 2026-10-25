@@ -19,6 +19,13 @@ const estiloTexto = (it) => {
   };
 };
 
+/** Quantas linhas de texto cabem no item; o resto vira reticências (…). */
+export function linhasQueCabem(it, comTarefa) {
+  const fs = it.tipo === 'texto' && !it.borda ? 18 : 14;
+  const pad = it.tipo === 'postit' ? 28 + (comTarefa ? 38 : 0) : it.tipo === 'decisao' ? it.h * 0.44 : it.tipo === 'texto' ? 4 : 12;
+  return Math.max(1, Math.floor((it.h - pad) / (fs * 1.3)));
+}
+
 function FormaSvg({ it }) {
   const pts = contornoForma({ ...it, x: 0, y: 0 });
   const fill = COR[it.cor] || '#ffffff';
@@ -66,7 +73,7 @@ function LegendaView({ it }) {
 function RodapeTarefa({ t }) {
   return (
     <div className="qi-tarefa">
-      <span className="qi-tar-l1"><span>Resp.: {t.resp || '—'}</span>{t.gut > 0 && <em className={'gut gut-' + t.nivel} title={'Nota GUT ' + t.gut + ' · prioridade ' + t.nivel}>GUT {t.gut}</em>}</span>
+      <span className="qi-tar-l1"><span className={t.resp ? '' : 'sem-resp'}>{t.resp ? 'Resp.: ' + t.resp : 'Sem responsável'}</span>{t.gut > 0 && <em className={'gut gut-' + t.nivel} title={'Nota GUT ' + t.gut + ' · prioridade ' + t.nivel}>GUT {t.gut}</em>}</span>
       <span className={'qi-tar-l2' + (t.vencida ? ' venc' : '')}>{t.prazo ? (t.vencida ? 'Vencido: ' + t.prazo : 'Prazo: ' + t.prazo + ' · ' + t.status) : 'Sem prazo · ' + t.status}</span>
     </div>
   );
@@ -85,7 +92,7 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa }) {
       {it.tipo === 'raia' && <div className="qi-raia-h"><span>{escondeTexto ? '' : it.texto}</span></div>}
       {it.tipo === 'pagina' && <div className="qi-pg-h"><span>{escondeTexto ? '' : it.texto}</span></div>}
       {it.tipo === 'legenda' && <LegendaView it={it} />}
-      {!['imagem', 'raia', 'pagina', 'legenda'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : it.texto}</div>}
+      {!['imagem', 'raia', 'pagina', 'legenda'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : <span className="qi-clamp" style={{ WebkitLineClamp: linhasQueCabem(it, !!tarefa) }}>{it.texto}</span>}</div>}
       {tarefa && <RodapeTarefa t={tarefa} />}
       {codigos && it.cod && <span className="qi-cod">{it.cod}</span>}
       {(it.nota || it.link) && (
@@ -390,6 +397,7 @@ export function JanelaModelos({ aoEscolher, aoFechar }) {
 export function PainelTarefa({ it, c, hoje, bloqueado, aoMudar }) {
   const [resp, setResp] = useState(it.resp || '');
   const [prazo, setPrazo] = useState(it.prazo || '');
+  const [dataRuim, setDataRuim] = useState(false);
   /* desfazer/refazer mudam o item por fora: o campo acompanha */
   useEffect(() => { setResp(it.resp || ''); }, [it.resp]);
   useEffect(() => { setPrazo(it.prazo || ''); }, [it.prazo]);
@@ -411,8 +419,9 @@ export function PainelTarefa({ it, c, hoje, bloqueado, aoMudar }) {
         <input value={resp} maxLength={60} disabled={bloqueado} placeholder="Nome de quem faz" onChange={(ev) => setResp(ev.target.value)} onBlur={() => { if (resp.trim() !== (it.resp || '')) aoMudar({ resp }); }} onKeyDown={(ev) => { if (ev.key === 'Enter') ev.currentTarget.blur(); }} />
       </label>
       <label className="campo-t">Prazo
-        <input type="date" value={prazo} min="2000-01-01" max="2100-12-31" disabled={bloqueado} onChange={(ev) => setPrazo(ev.target.value)} onBlur={() => { if (prazo !== (it.prazo || '') && (prazo === '' || prazoValido(prazo))) aoMudar({ prazo }); }} />
+        <input type="date" value={prazo} min="2000-01-01" max="2100-12-31" disabled={bloqueado} onChange={(ev) => { setPrazo(ev.target.value); setDataRuim(false); }} onBlur={() => { if (prazo !== '' && !prazoValido(prazo)) { setDataRuim(true); setPrazo(it.prazo || ''); return; } if (prazo !== (it.prazo || '')) aoMudar({ prazo }); }} />
       </label>
+      {dataRuim && <p className="qd-aviso venc" role="alert">Data não aceita. Use uma data de 01/01/2000 a 31/12/2100.</p>}
       {r && r.vencida && <p className="qd-aviso venc" role="status">Prazo vencido ({r.prazo}).</p>}
       <div className="qd-gut-sel"><b>GUT</b>{nota('g', 'Gravidade')}{nota('u', 'Urgência')}{nota('t', 'Tendência')}</div>
       <p className={'qd-gut-res' + (nivel ? ' gut-' + nivel : '')} role="status">

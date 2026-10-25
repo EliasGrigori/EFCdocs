@@ -3,7 +3,7 @@
 
 import { conteudoQuadroVazio } from '../quadro/modelo.js';
 
-export const VERSAO = 'v0.3.1';
+export const VERSAO = 'v0.3.2';
 
 export const TIPOS = {
   planilha: { nome: 'Planilha', novo: 'Nova planilha', padrao: 'Planilha sem título', chega: 'v0.4.0' },

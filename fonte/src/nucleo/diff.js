@@ -59,6 +59,14 @@ export function fazer(hist, estado, diff) {
   return { h: { ...hist, feitos, desfeitos: [] }, estado: aplicarDiff(estado, diff) };
 }
 
+/** Junta as duas últimas ações numa só (ex.: criar o post-it e escrever o primeiro texto = um Ctrl+Z). */
+export function juntarUltimas(hist) {
+  const f = hist.feitos;
+  if (f.length < 2) return hist;
+  const [a, b] = [f[f.length - 2], f[f.length - 1]];
+  return { ...hist, feitos: [...f.slice(0, -2), { rotulo: a.rotulo, ops: [...a.ops, ...b.ops] }] };
+}
+
 export function desfazer(hist, estado) {
   if (!hist.feitos.length) return { h: hist, estado, diff: null };
   const diff = hist.feitos[hist.feitos.length - 1];

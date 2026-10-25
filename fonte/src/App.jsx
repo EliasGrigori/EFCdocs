@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ehDemo, ler, gravar } from './nucleo/armazem.js';
 import { pwa, atualizarAgora, pedirInstalacao } from './nucleo/pwa.js';
 import { TIPOS, VERSAO, criarArquivo, validarNome, carimbar, ativos } from './nucleo/modelo.js';
-import { criarDiff, novoHistorico, fazer, desfazer, refazer, podeDesfazer, podeRefazer, rotuloDesfazer } from './nucleo/diff.js';
+import { criarDiff, novoHistorico, fazer, desfazer, refazer, podeDesfazer, podeRefazer, rotuloDesfazer, juntarUltimas } from './nucleo/diff.js';
 import { tamanhoLegivel } from './nucleo/compacta.js';
 import { criarBanco } from './nucleo/banco.js';
 import { PorId, chegaNa } from './nucleo/comandos.js';
@@ -138,11 +138,20 @@ export function App() {
   }, [salvar]);
 
   /** Atalho do editor: mudanças { caminho: valor } + rótulo do desfazer. */
-  const aplicar = useCallback((mudancas, rotulo, acao) => {
+  const aplicar = useCallback((mudancas, rotulo, acao, opcoes = {}) => {
     const atual = abertoRef.current;
     if (!atual) return false;
-    return aplicarDiff(criarDiff(atual.arquivo, mudancas, rotulo), acao);
-  }, [aplicarDiff]);
+    /* opcoes.juntar: só junta se a ação anterior foi uma criação ("Novo ...") */
+    const anterior = atual.h.feitos[atual.h.feitos.length - 1];
+    const juntar = !!opcoes.juntar && !!anterior && /^Novo/.test(anterior.rotulo || '');
+    const r = criarDiff(atual.arquivo, mudancas, rotulo);
+    const ok = aplicarDiff(r, acao);
+    if (ok && juntar) {
+      const depois = abertoRef.current;
+      if (depois) setAberto({ ...depois, h: juntarUltimas(depois.h) });
+    }
+    return ok;
+  }, [aplicarDiff, setAberto]);
 
   const desfazerOuRefazer = useCallback((re) => {
     const atual = abertoRef.current;

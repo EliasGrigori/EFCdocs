@@ -72,10 +72,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.3.1', async () => {
+await caso('abre sem erro, rodapé mostra v0.3.2', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.3.1'), 'rodapé sem v0.3.1');
+  certo((await p.locator('.foot').innerText()).includes('v0.3.2'), 'rodapé sem v0.3.2');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -329,7 +329,7 @@ await ctx.close();
 
 /* ---------- 2. compatibilidade com quadro criado na v0.2.0 ---------- */
 ({ ctx, p } = await novaPagina());
-await caso('quadro criado na v0.2.0 abre e edita na v0.3.1', async () => {
+await caso('quadro criado na v0.2.0 abre e edita na v0.3.2', async () => {
   await p.goto(BASE + 'v020/');
   await p.waitForSelector('[data-novo=postits]');
   await p.click('[data-novo=postits]');
@@ -489,6 +489,117 @@ await caso('v0.3.1: página leva os itens de dentro e dois toques dentro dela cr
   await p.mouse.dblclick(h2.x + 60, h2.y + 12);
   certo(await p.locator('textarea.qd-edita').count() === 1, 'dois toques no título não abrem a escrita');
   await p.keyboard.press('Escape');
+});
+await caso('v0.3.2: criar e escrever o post-it é um Ctrl+Z só; três páginas seguidas não se empilham; rótulo da barra inteiro', async () => {
+  await p.goto(BASE);
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await p.locator('.qd-ferr [data-ferr="inserir.postit"]').click();
+  await escreverNoItem(p, 'Teste de desfazer');
+  igual((await contar(p)).postits, 1);
+  await p.keyboard.press('Escape');
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(200);
+  igual((await contar(p)).postits, 0, 'um Ctrl+Z não desfez criar + escrever');
+  for (let i = 0; i < 3; i++) { await p.locator('.qd-ferr [data-ferr="inserir.pagina"]').click(); await p.keyboard.press('Control+Enter'); await p.keyboard.press('Escape'); await p.waitForTimeout(120); }
+  const caixas = await p.locator('.qi-pagina').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }));
+  igual(caixas.length, 3);
+  for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) {
+    const a = caixas[i], b = caixas[j];
+    certo(!(a.x < b.x + b.w - 2 && a.x + a.w > b.x + 2 && a.y < b.y + b.h - 2 && a.y + a.h > b.y + 2), 'páginas ' + i + ' e ' + j + ' se sobrepõem');
+  }
+  const cortado = await p.locator('.qd-ferr-b span').evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1).map((e) => e.textContent));
+  igual(cortado.length, 0, 'rótulo cortado: ' + cortado.join(', '));
+});
+await caso('v0.3.2: data fora de 2000 a 2100 avisa; sem responsável aparece escrito; 500 letras ficam dentro do post-it', async () => {
+  await p.goto(BASE);
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await p.locator('.qd-ferr [data-ferr="inserir.postit"]').click();
+  await escreverNoItem(p, 'A'.repeat(500));
+  await p.locator('.qd-barra [data-acao=detalhes]').click();
+  await p.waitForSelector('.qd-tarefa-p');
+  const dt = p.locator('.qd-tarefa-p input[type=date]');
+  await dt.fill('1999-05-05'); await dt.blur();
+  certo((await p.locator('.qd-tarefa-p [role=alert]').innerText()).includes('Data não aceita'), 'sem aviso de data');
+  await dt.fill('2030-05-05'); await dt.blur(); await p.waitForTimeout(200);
+  const rod = await p.locator('.qi-postit .qi-tarefa').innerText();
+  certo(rod.includes('Sem responsável'), rod);
+  const texto = await p.locator('.qi-postit .qi-clamp').boundingBox();
+  const base = await p.locator('.qi-postit .qi-tarefa').boundingBox();
+  certo(texto.y + texto.height <= base.y + 1, 'o texto passou por cima do rodapé');
+});
+await caso('v0.3.2: passou da meia-noite, o prazo de hoje vira vencido na tela sem recarregar', async () => {
+  const { ctx: c2, p: q } = await novaPagina();
+  await q.clock.install({ time: new Date(2026, 9, 25, 23, 59, 0) });
+  await q.goto(BASE);
+  await q.click('.rail a[href="#/postits"]');
+  await q.click('[data-novo=postits]');
+  await q.waitForSelector('.qd-vazio');
+  await q.locator('.qd-ferr [data-ferr="inserir.postit"]').click();
+  await q.locator('textarea.qd-edita').fill('Prazo de hoje'); await q.locator('textarea.qd-edita').press('Control+Enter');
+  await q.locator('.qd-barra [data-acao=detalhes]').click();
+  await q.waitForSelector('.qd-tarefa-p');
+  const dt = q.locator('.qd-tarefa-p input[type=date]');
+  await dt.fill('2026-10-25'); await dt.blur();
+  await q.clock.runFor(2000);
+  certo(!(await q.locator('.qi-postit .qi-tarefa').innerText()).includes('Vencido'), 'vencido antes da hora');
+  await q.clock.runFor(90000);
+  await q.waitForTimeout(200);
+  certo((await q.locator('.qi-postit .qi-tarefa').innerText()).includes('Vencido'), 'não virou vencido depois da meia-noite');
+  await c2.close();
+});
+await caso('v0.3.2: colar 62 linhas cria 62 post-its abaixo do que já existe, sem cobrir', async () => {
+  await p.goto(BASE);
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await p.locator('.qd-ferr [data-ferr="inserir.decisao"]').click();
+  await escreverNoItem(p, 'Cloro ok?');
+  await p.keyboard.press('Escape');
+  const texto = Array.from({ length: 62 }, (_, i) => 'Teste ' + (i + 1)).join('\n');
+  await p.evaluate((t) => { const dt = new DataTransfer(); dt.setData('text/plain', t); document.body.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); }, texto);
+  await p.waitForTimeout(400);
+  igual((await contar(p)).postits, 62);
+  const dec = await p.evaluate(() => { const e = document.querySelector('.qi-decisao').getBoundingClientRect(); return { y: e.y + e.height }; });
+  const topoColados = await p.evaluate(() => Math.min(...[...document.querySelectorAll('.qi-postit')].map((e) => e.getBoundingClientRect().y)));
+  certo(topoColados > dec.y, 'os colados cobrem a decisão');
+});
+await caso('v0.3.2: texto grande termina em reticências e palavra gigante não sai da caixa', async () => {
+  await p.goto(BASE);
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await p.locator('.qd-ferr [data-ferr="inserir.postit"]').click();
+  await escreverNoItem(p, 'Palavragigantesemespaco'.repeat(6) + ' ' + 'linha longa '.repeat(30));
+  const it = await p.locator('.qi-postit').first().boundingBox();
+  const t = await p.locator('.qi-postit .qi-clamp').first().boundingBox();
+  certo(t.x >= it.x - 1 && t.x + t.width <= it.x + it.width + 1 && t.y + t.height <= it.y + it.height + 1, 'texto passou da caixa');
+  const [d] = await Promise.all([p.waitForEvent('download'), (async () => { await p.click('.tab:has-text("Arquivo")'); await cmd(p, 'arquivo.exportarPDF'); })()]);
+  certo((await d.suggestedFilename()).endsWith('.pdf'));
+});
+await caso('v0.3.2: Seta reta e em cotovelo desenham diferente quando os itens estão desalinhados', async () => {
+  await p.goto(BASE);
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await p.locator('.qd-ferr [data-ferr="inserir.postit"]').click();
+  await escreverNoItem(p, 'A');
+  await escolher(p, '.qi-postit');
+  await p.locator('[data-ponto=r]').click();
+  await escreverNoItem(p, 'B');
+  await p.keyboard.press('Escape');
+  const b = await caixa(p, '.qi[data-cod="Q-002"]');
+  await arrastar(p, meio(b), { x: meio(b).x + 40, y: meio(b).y + 160 });
+  await p.keyboard.press('Escape');
+  const antes = await p.locator('.qd-seta-linha').first().getAttribute('d');
+  await p.locator('.qd-seta-toque').first().click({ force: true });
+  await p.locator('.qd-barra [aria-label="Seta reta"], .qd-barra [title="Seta reta"]').first().click();
+  await p.waitForTimeout(150);
+  const depois = await p.locator('.qd-seta-linha').first().getAttribute('d');
+  certo(antes !== depois, 'a seta não mudou de desenho');
 });
 await caso('v0.3.1: modelo RNC entra inteiro, sem erro no Assistente, e Ctrl+Z desfaz tudo', async () => {
   await p.goto(BASE);

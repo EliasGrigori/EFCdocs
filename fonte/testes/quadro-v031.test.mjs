@@ -225,3 +225,33 @@ test('raia, página e legenda não recebem seta nem "próximo passo"', () => {
   assert.equal(Q.proximoPasso(c, pg.item.id), null);
   assert.equal(Q.proximoPasso(c, lg.id), null);
 });
+
+/* ---------- texto: palavra gigante ---------- */
+import { quebrarTexto } from '../src/quadro/desenho.js';
+const ctxFalso = { measureText: (t) => ({ width: String(t).length * 7 }) };
+test('quebra de texto: palavra maior que a caixa é cortada, mesmo depois de outras palavras', () => {
+  const linhas = quebrarTexto(ctxFalso, 'Longo ' + 'a'.repeat(50) + ' fim', 70);
+  assert.ok(linhas.every((l) => l.length * 7 <= 70), JSON.stringify(linhas));
+  assert.equal(linhas.join('').replace(/\s/g, ''), 'Longo' + 'a'.repeat(50) + 'fim');
+  assert.deepEqual(quebrarTexto(ctxFalso, 'um dois', 70), ['um dois']);
+  assert.deepEqual(quebrarTexto(ctxFalso, '', 70), ['']);
+});
+
+/* ---------- desfazer: criar + escrever numa ação só ---------- */
+import { novoHistorico, fazer, juntarUltimas, desfazer } from '../src/nucleo/diff.js';
+test('juntarUltimas: criar e escrever viram uma ação; um desfazer volta ao estado antes de criar', () => {
+  let est = { conteudo: { itens: {} } };
+  let h = novoHistorico();
+  const passos = [
+    [{ 'conteudo.itens.a': { id: 'a', texto: '' } }, 'Novo: post-it'],
+    [{ 'conteudo.itens.a': { id: 'a', texto: 'Oi' } }, 'Editar texto'],
+  ];
+  for (const [m, rot] of passos) { const r = fazer(h, est, criarDiff(est, m, rot)); h = r.h; est = r.estado; }
+  assert.equal(h.feitos.length, 2);
+  h = juntarUltimas(h);
+  assert.equal(h.feitos.length, 1);
+  assert.equal(h.feitos[0].rotulo, 'Novo: post-it');
+  const d = desfazer(h, est);
+  assert.deepEqual(d.estado.conteudo.itens, {});
+  assert.equal(juntarUltimas(novoHistorico()).feitos.length, 0);
+});

@@ -1,79 +1,59 @@
-"""EFCdocs — monta a página de aprovação da v0.3.1 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.3.2 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" """
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.3.1'
+VERSAO = 'v0.3.2'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
 ITENS = [
-    ('D01', 'Páginas dentro do quadro (PQ01)', 'Post-its e Quadro (v0.3.1)',
-     '<p>Nova peça <b>Página</b> (Inserir › Página): uma moldura tracejada com título, que fica atrás de tudo. Você pode ter várias no mesmo quadro, mudar o tamanho e o título. '
-     'Arrastar a página pelo título <b>leva junto tudo o que está dentro</b>. Pertence à página o que tem o centro dentro dela.</p>'
-     '<p>No <b>PDF</b> e na <b>impressão</b> cada página vira uma folha A4 paisagem; o que ficou fora de todas as páginas sai numa última folha "Fora das páginas". '
-     'O PNG continua sendo o quadro inteiro. O rodapé do app mostra quantas páginas o quadro tem.</p>',
-     'O fluxograma grande da RNC cabe melhor em uma folha ou em várias? Dá para ajustar o tamanho padrão da página (hoje 560 × 380).',
-     [('Página em volta dos 3 primeiros passos, legenda ao lado', 'depois-paginas-legenda')], 'um'),
-    ('D02', 'Legenda automática do fluxograma (PQ02)', 'Post-its e Quadro (v0.3.1)',
-     '<p>Inserir › Legenda cria uma caixa que mostra <b>só as formas que o quadro usa</b> (Início/Fim, Atividade, Decisão, Entrada/Saída, Post-it, Seta) e se atualiza sozinha quando você acrescenta ou tira formas. '
-     'Para trocar o texto de uma linha: escolha a legenda e abra Detalhes. Apagar o texto volta ao padrão.</p>'
-     '<p>A legenda também sai no PDF, no PNG e na impressão.</p>',
-     '', [('Folha 2 do PDF: fluxograma com a legenda', 'pdf-2')], 'um'),
-    ('D03', 'Post-it de tarefa: responsável, prazo e GUT (PQ03)', 'Post-its e Quadro (v0.3.1)',
-     '<p>Em Detalhes, todo post-it ganha <b>Responsável</b>, <b>Prazo</b> e as notas <b>G, U e T</b> (1 a 5). O rodapé do post-it mostra "Resp.", o prazo e a etiqueta GUT colorida. '
-     'GUT = G × U × T. Prioridade <b>Alta</b> de 64 a 125, <b>Média</b> de 27 a 63, <b>Baixa</b> de 1 a 26.</p>'
-     '<p>Prazo vencido fica em vermelho ("Vencido: data"), exceto se o post-it já está na <b>última coluna</b> do Kanban (concluído). '
-     'A data só aceita data de verdade: não deixa 30/02 nem "2O26" com a letra O. Post-it sem nada preenchido continua sendo um post-it comum.</p>',
-     'As faixas do GUT (64 e 27) servem para a sua rotina? Se usa outras, diga no comentário.',
-     [('Post-its com tarefa e painel de Detalhes', 'depois-tarefa-assistente')], 'um'),
-    ('D04', 'Kanban mostra a tarefa e ordena pelo GUT', 'Post-its e Quadro (v0.3.1)',
-     '<p>No Kanban, o cartão mostra responsável, prazo e GUT. O botão <b>GUT</b> ao lado de Quadro/Kanban (ou Organizar › Ordenar GUT) ordena <b>cada coluna</b> da maior nota para a menor; '
-     'quem não tem nota fica no fim, na ordem de antes. Dá para desfazer com Ctrl+Z.</p>',
-     '', [('Kanban depois de ordenar pelo GUT', 'depois-kanban-gut')], 'um'),
-    ('D05', 'Barra de ferramentas vertical no computador (PQ06)', 'Post-its e Quadro (v0.3.1)',
-     '<p>No computador aparece, à esquerda do quadro, uma barra com as peças sempre à mão: Post-it, Início/Fim, Atividade, Decisão, Entrada/Saída, Texto, Página, Legenda e Seta. '
-     'Um clique cria a peça no meio da tela; Seta liga dois itens. Dá para esconder no X ou em Exibir › Ferramentas. No celular ela <b>não aparece</b>, porque não há espaço.</p>',
-     '', [('Antes (v0.3.0)', 'antes-fluxo'), ('Depois', 'depois-rnc')], ''),
-    ('D06', 'Cores à mão no celular (PQ07)', 'Post-its e Quadro (v0.3.1)',
-     '<p>No celular, ao escolher um item aparece embaixo uma faixa com <b>Editar</b> e todas as cores em círculos. Um toque troca a cor, sem abrir janela. '
-     'A barra da seleção (lixeira, ligar, duplicar) continua acima da faixa.</p>',
-     '', [('Antes (v0.3.0)', 'antes-celular-selecao'), ('Depois', 'depois-celular-selecao')], 'cel'),
-    ('D07', 'Assistente do quadro (PQ08)', 'Post-its e Quadro (v0.3.1)',
-     '<p>A lâmpada (embaixo à direita; no celular, no alto) mostra quantas pendências o quadro tem e abre a lista; <b>Ir</b> leva até o item. Ele só avisa, nunca muda nada. Regras:</p>'
-     '<ul><li><b>Erro</b>: decisão sem duas saídas; tarefa com prazo vencido.</li>'
-     '<li><b>Aviso</b>: saída de decisão sem Sim/Não; passo solto ou sem entrada; falta Início ou Fim do fluxo; tarefa com prazo ou GUT sem responsável.</li></ul>'
-     '<p>As regras do fluxo só valem quando há formas de fluxograma; um quadro só de post-its não recebe aviso de "passo solto".</p>',
-     'Falta alguma regra que você conferiria no fluxograma da qualidade (por exemplo, "toda ação precisa de responsável")?',
-     [('Computador: aviso de prazo vencido', 'depois-tarefa-assistente'), ('Celular', 'depois-celular-assistente')], ''),
-    ('D08', 'Modelos de quadro da qualidade (PQ05)', 'Post-its e Quadro (v0.3.1)',
-     '<p>Inserir › Modelos (ou o botão "Modelos" do quadro vazio): <b>Fluxograma de RNC</b>, <b>Ishikawa 6M</b>, <b>5W2H</b>, <b>Matriz GUT</b>, <b>PDCA</b>, <b>Kanban</b>, <b>Mapa mental</b> e <b>Linha do tempo</b>. '
-     'Entram com textos de exemplo para você trocar, com códigos Q em ordem, e já vêm com as setas ligadas. Se o quadro já tem itens, o modelo entra <b>embaixo</b> deles. '
-     'Desfazer (Ctrl+Z) tira o modelo inteiro de uma vez. Nenhum modelo tem nome de pessoa, setor ou dado da fazenda.</p>',
-     'Algum modelo que você usa e que não está na lista (8D, A3, FMEA, 5 porquês)? Diga quais entram na próxima rodada.',
-     [('Janela de modelos', 'depois-modelos'), ('Fluxograma de RNC inserido', 'depois-rnc')], ''),
-    ('D09', 'PDF e impressão com uma folha por página', 'Post-its e Quadro (v0.3.1)',
-     '<p>Com páginas no quadro, o PDF sai com <b>uma folha por página</b>, cada uma com título, data e "folha 1 de 2" no rodapé. O Kanban também mostra responsável, prazo e GUT nos cartões do PDF. '
-     'Sem páginas, tudo continua igual à v0.3.0 (uma folha com o quadro inteiro).</p>',
-     '', [('Folha 1: a página', 'pdf-1'), ('Folha 2: fora das páginas', 'pdf-2')], ''),
-    ('D10', 'Nomes das formas: Atividade e Entrada/Saída', 'Ajustes',
-     '<p>Na faixa, na busca e na legenda: <b>Processo</b> virou <b>Atividade</b> e <b>Dados</b> virou <b>Entrada/Saída</b>, que é como o fluxograma da qualidade costuma chamar. '
-     'Quem digitar "processo" ou "dados" na busca (Ctrl+K) ainda acha as duas formas. Quadros antigos abrem normalmente.</p>',
-     '', [('Antes (v0.3.0)', 'antes-inserir'), ('Depois', 'depois-paginas-legenda')], ''),
-    ('D11', 'Correções pequenas', 'Ajustes',
-     '<p>Raia, página e legenda <b>não recebem seta</b> (nem pelo "próximo passo"): são fundo ou explicação, não etapa do fluxo. '
-     'Dois toques <b>dentro</b> de uma página ou de uma raia (fora do título) criam um post-it ali; dois toques no <b>título</b> trocam o nome. '
-     'Post-it criado dentro do Kanban agora já nasce com a posição certa na coluna, e a ordem do cartão não se perde ao ordenar pelo GUT.</p>',
+    ('E01', 'Colar muitas linhas sem perder nem cobrir nada (achados 1 e 2 do Grok)', 'Achados do Grok na v0.3.0',
+     '<p>O Grok colou 62 linhas e saíram só <b>30</b> post-its, sem aviso; e eles caíram <b>por cima</b> do fluxograma que já estava no quadro.</p>'
+     '<p>Agora cada linha vira um post-it, até <b>200</b> de uma vez. Passou disso, aparece o aviso "Colei as primeiras 200 linhas. Sobraram N". '
+     'Se o quadro já tem itens, os colados entram em grade <b>embaixo de tudo</b> e a tela vai até eles; se o quadro está vazio, entram no meio da tela. Ctrl+Z desfaz o lote inteiro.</p>',
+     'Serve o limite de 200 linhas por colagem?', [('Antes (v0.3.1): 30 post-its por cima do fluxo, quando eram 62', 'antes-colar'), ('Depois: 62 post-its embaixo do fluxo', 'depois-colar')], ''),
+    ('E02', 'Palavra gigante e texto longo (achado 3 do Grok)', 'Achados do Grok na v0.3.0',
+     '<p>No PDF e no PNG, uma palavra enorme depois de outra palavra saía <b>pelos lados</b> do post-it. Agora ela é partida em linhas dentro da caixa.</p>'
+     '<p>Na tela, o texto que não cabe passa a terminar em reticências (<b>…</b>) em vez de ser cortado seco embaixo. Para ver tudo, aumente o post-it ou abra o texto com dois toques.</p>',
+     '', [('Antes (v0.3.1): PNG exportado', 'antes-longo-export'), ('Depois: PNG exportado', 'depois-longo-export'), ('Depois: na tela', 'depois-longo')], ''),
+    ('E03', 'Seta reta e seta em cotovelo (V07 do Grok)', 'Achados do Grok na v0.3.0',
+     '<p>O Grok achou que o botão não funcionava. Não era defeito: com os dois itens <b>alinhados</b>, a seta reta e a seta em cotovelo são o mesmo desenho. Desalinhando os itens, o desenho muda (agora há um teste que confere isso).</p>'
+     '<p>O que confunde é o botão: o nome dele mostra o estilo <b>para onde vai</b> ("Seta reta" enquanto a seta ainda é cotovelo).</p>',
+     'Quer que o botão mostre o estilo atual (por exemplo "Estilo: cotovelo") e abra as duas opções? Se não, fica como está.', [], ''),
+    ('E04', 'PDF como imagem, sem texto selecionável (achado 4 do Grok)', 'Achados do Grok na v0.3.0',
+     '<p>Hoje o PDF é a foto do quadro dentro da folha A4: acentos e R$ saem certos, mas o texto não dá para selecionar nem pesquisar. Foi uma escolha da v0.3.0 para o PDF sair igual à tela, com qualquer fonte e forma.</p>'
+     '<p>Fazer um PDF com texto de verdade é possível, mas é um trabalho grande (desenhar cada forma, seta e texto como PDF). Sugestão: <b>deixar como está</b> por enquanto e rever na v1.0.0, quando o quadro estiver completo.</p>',
+     'Deixar como está até a v1.0.0 (sugestão) ou colocar o PDF com texto no plano antes?', [], ''),
+    ('E05', 'Data de prazo recusada sem aviso e "Resp.: —" (V04 do Grok na v0.3.1)', 'Achados do Grok na v0.3.1',
+     '<p>O Grok digitou datas de 1999 e do ano 0026 no Prazo: o campo continuava mostrando a data, mas ela não era gravada, e <b>nenhum aviso</b> aparecia.</p>'
+     '<p>Agora, uma data fora de 01/01/2000 a 31/12/2100 mostra em vermelho "Data não aceita. Use uma data de 01/01/2000 a 31/12/2100." e, ao sair do campo, volta para o último prazo válido. '
+     'Sem responsável, o post-it mostra <b>"Sem responsável"</b> (em itálico) no lugar de "Resp.: —".</p>',
+     'Serve o limite de 2000 a 2100 para datas?', [('Antes (v0.3.1): "Resp.: —"', 'antes-semresp'), ('Depois: "Sem responsável"', 'depois-semresp')], ''),
+    ('E06', 'Texto de 500 letras por cima do código e do rodapé da tarefa (Grok na v0.3.1)', 'Achados do Grok na v0.3.1',
+     '<p>Com responsável e prazo preenchidos, um texto muito longo passava por cima do código Q-001 e das linhas de responsável e prazo (só no PDF saía certo).</p>'
+     '<p>Agora o texto fica <b>dentro da área livre</b> do post-it e termina em reticências; o rodapé da tarefa nunca é coberto.</p>',
+     '', [('Antes (v0.3.1)', 'antes-tarefa500'), ('Depois', 'depois-tarefa500')], ''),
+    ('E07', '"Entrada/Saída" cortado na barra vertical (Grok na v0.3.1)', 'Achados do Grok na v0.3.1',
+     '<p>O nome da forma aparecia cortado na barra vertical. A barra ficou um pouco mais larga e, se a tela for baixa, ela rola em vez de esconder botões.</p>',
+     '', [('Antes (v0.3.1)', 'antes-barra'), ('Depois', 'depois-barra')], ''),
+    ('E08', 'Prazo vencido depois da meia-noite (Grok na v0.3.1)', 'Achados do Grok na v0.3.1',
+     '<p>Com o app aberto de um dia para o outro, o prazo de ontem só aparecia como vencido no PDF. Agora a tela confere a data a cada 30 segundos e quando você volta para a aba, e passa a mostrar "Vencido: data" sozinha. Há um teste que simula a virada da meia-noite.</p>',
      '', [], ''),
+    ('E09', 'Três páginas seguidas uma em cima da outra (Grok na v0.3.1)', 'Achados do Grok na v0.3.1',
+     '<p>Inserir Página três vezes empilhava todas no mesmo lugar. Agora cada nova página entra ao lado da anterior (três por linha, depois uma nova linha) sem cobrir as outras.</p>',
+     '', [('Antes (v0.3.1): páginas empilhadas', 'antes-paginas'), ('Depois: três páginas lado a lado', 'depois-paginas')], ''),
+    ('E10', 'Cada post-it gastava 2 desfazer (Grok na v0.3.1)', 'Achados do Grok na v0.3.1',
+     '<p>Criar um post-it e escrever o primeiro texto contava como duas ações de desfazer. Agora o <b>criar + primeiro texto</b> é uma só: um Ctrl+Z remove o post-it. Edições posteriores continuam separadas.</p>',
+     'Está bom assim, ou prefere que desfazer só apague o texto e deixe o post-it vazio?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
-    f'<div class="nums"><span>53/53 testes de regras</span><span>37/37 testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
+    f'<div class="nums"><span>55/55 testes de regras</span><span>43/43 testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>Sai o que você aprovou na Proposta 03 como <b>PQ10 · A</b>: os ajustes do quadro de post-its <b>antes</b> de começar a Planilha (v0.4.0). A Planilha só começa quando você disser "pode iniciar".</li>'
-    '<li>Entram páginas, legenda automática, post-it de tarefa com GUT, barra vertical, cores no celular, Assistente e 8 modelos. Ficam para depois: gráfico ligado à planilha (v0.6.0) e arquivar com motivo (v0.8.0).</li>'
-    '<li>Quadros da v0.3.0 abrem sem mudança: nada que já existia foi renomeado dentro do arquivo, só o que aparece na tela.</li>'
+    '<li>A <b>v0.3.1 já está no GitHub</b> (commit ef17e62), aprovada por você (D01 a D11). Esta é uma versão pequena, só com o que o Grok achou na verificação da v0.3.0 e da v0.3.1.</li>'
+    '<li>Dos achados da v0.3.0: 2 viraram correção (E01, E02), 1 não era defeito (E03) e 1 é decisão sua (E04). Da v0.3.1: 6 correções (E05 a E10); o V01 a V12 do roteiro passaram, só o V04 falhou. Nada vai ao GitHub antes da sua resposta.</li>'
     '</ul>'
 )
 
@@ -99,7 +79,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Post-its: páginas, tarefa e modelos')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Post-its: achados do Grok')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

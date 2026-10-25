@@ -88,9 +88,13 @@ export function Quadro({ arquivo, cx }) {
   const setSel = setSelEstado;
   const umItem = selValida.itens.length === 1 ? c.itens[selValida.itens[0]] : null;
 
-  const aplicarQ = useCallback((mud, rotulo, acao) => {
+  /* criouRef: item recém-criado; o primeiro texto dele entra na mesma ação do desfazer (um Ctrl+Z desfaz criar + escrever) */
+  const criouRef = useRef(null);
+  const aplicarQ = useCallback((mud, rotulo, acao, opcoes = {}) => {
     if (!mud || !Object.keys(mud).length) return false;
-    return cx.aplicar(Q.noArquivo(mud), rotulo, acao);
+    const ok = cx.aplicar(Q.noArquivo(mud), rotulo, acao, opcoes);
+    criouRef.current = opcoes.criou || null;
+    return ok;
   }, [cx]);
 
   /* ---------- tamanho da área e primeiro enquadramento ---------- */
@@ -135,7 +139,14 @@ export function Quadro({ arquivo, cx }) {
     }
     return cd;
   }, [cd, arrasto]);
-  const hoje = hojeISO();
+  /* "hoje" acompanha o relógio: passou da meia-noite (ou o aparelho acordou), os prazos se atualizam sozinhos */
+  const [hoje, setHoje] = useState(hojeISO);
+  useEffect(() => {
+    const confere = () => setHoje((h) => { const n = hojeISO(); return n === h ? h : n; });
+    const t = setInterval(confere, 30000);
+    document.addEventListener('visibilitychange', confere);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', confere); };
+  }, []);
   const pendencias = useMemo(() => problemas(c, hoje), [c, hoje]);
 
   const ordenados = useMemo(() => Q.porZ(cv), [cv]);
@@ -173,6 +184,18 @@ export function Quadro({ arquivo, cx }) {
     const ctr = centroVisivel();
     let v = Q.vagaLivre(c, ctr.x - (extra.w || t.w) / 2, ctr.y - (extra.h || t.h) / 2, extra.w || t.w, extra.h || t.h);
     let campos = tipo === 'pagina' ? { texto: 'Página ' + (Q.contagem(c).paginas + 1) } : {};
+    if (tipo === 'pagina') {
+      /* página nova não cai em cima de outra: vai para a direita da última, e desce quando a fileira enche */
+      const w = extra.w || t.w, h = extra.h || t.h;
+      const outras = Q.listaItens(c).filter((i) => i.tipo === 'pagina');
+      const bate = (x, y) => outras.some((o) => x < o.x + o.w && x + w > o.x && y < o.y + o.h && y + h > o.y);
+      let { x, y } = v;
+      for (let i = 0; i < 60 && bate(x, y); i++) {
+        x += w + 40;
+        if ((i + 1) % 3 === 0) { x = v.x; y += h + 40; }
+      }
+      v = { x, y };
+    }
     if (tipo === 'legenda') {
       /* a legenda entra ao lado do fluxo, com a altura que as linhas pedem */
       const miolo = Q.listaItens(c).filter((i) => !Q.ehFundo(i));
@@ -181,7 +204,7 @@ export function Quadro({ arquivo, cx }) {
       if (lim) v = { x: Math.round(lim.x + lim.w + 60), y: Math.round(lim.y) };
     }
     const r = Q.novoItem(c, tipo, { ...v, ...campos, ...extra });
-    aplicarQ(r.mudancas, 'Novo: ' + t.nome.toLowerCase(), 'criou item');
+    aplicarQ(r.mudancas, 'Novo: ' + t.nome.toLowerCase(), 'criou item', { criou: r.item.id });
     setSel({ itens: [r.item.id], seta: null });
     if (COM_TEXTO(r.item) && tipo !== 'raia') setEditando({ id: r.item.id, valor: r.item.texto || '' });
     return r.item;
@@ -462,7 +485,7 @@ export function Quadro({ arquivo, cx }) {
       return;
     }
     const it = c.itens[e.id];
-    if (it && it.texto !== e.valor) aplicarQ(Q.mudancasCampo(c, [it.id], { texto: e.valor.slice(0, 2000) }), 'Editar texto', 'editou texto');
+    if (it && it.texto !== e.valor) aplicarQ(Q.mudancasCampo(c, [it.id], { texto: e.valor.slice(0, 2000) }), 'Editar texto', 'editou texto', { juntar: criouRef.current === it.id });
   };
 
   /* ---------- toque e mouse no quadro ---------- */
@@ -655,7 +678,7 @@ export function Quadro({ arquivo, cx }) {
     const p = paraMundo(ev.clientX, ev.clientY);
     const t = Q.TIPOS_ITEM.postit;
     const r = Q.novoItem(c, 'postit', { x: Math.round(p.x - t.w / 2), y: Math.round(p.y - t.h / 2) });
-    aplicarQ(r.mudancas, 'Novo post-it', 'criou item');
+    aplicarQ(r.mudancas, 'Novo post-it', 'criou item', { criou: r.item.id });
     setSel({ itens: [r.item.id], seta: null });
     setEditando({ id: r.item.id, valor: '' });
   };
@@ -712,19 +735,29 @@ export function Quadro({ arquivo, cx }) {
       if (interno && (!texto || texto === marcaClip)) { ev.preventDefault(); colarClip(interno); return; }
       if (texto && texto.trim()) {
         ev.preventDefault();
-        const linhas = texto.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(0, 30);
+        const linhas = texto.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        const MAX_COLAR = 200;
+        const sobrou = Math.max(0, linhas.length - MAX_COLAR);
+        linhas.length = Math.min(linhas.length, MAX_COLAR);
+        /* com itens no quadro, os colados entram abaixo de tudo; sem nada, no meio da tela */
+        const miolo = Q.listaItens(c).filter((i) => !Q.ehFundo(i));
+        const lim = miolo.length ? limites(miolo) : null;
         let c2 = c;
         const mud = {};
         const ids = [];
         const ctr = centroVisivel();
         linhas.forEach((l, i) => {
-          const r = Q.novoItem(c2, 'postit', { x: Math.round(ctr.x - 85 + (i % 5) * 190), y: Math.round(ctr.y - 65 + Math.floor(i / 5) * 150), texto: l.slice(0, 500) });
+          const r = Q.novoItem(c2, 'postit', lim
+            ? { x: Math.round(lim.x + (i % 5) * 190), y: Math.round(lim.y + lim.h + 60 + Math.floor(i / 5) * 150), texto: l.slice(0, 500) }
+            : { x: Math.round(ctr.x - 85 + (i % 5) * 190), y: Math.round(ctr.y - 65 + Math.floor(i / 5) * 150), texto: l.slice(0, 500) });
           Object.assign(mud, r.mudancas);
           c2 = { ...c2, seq: r.mudancas.seq, itens: { ...c2.itens, [r.item.id]: r.item } };
           ids.push(r.item.id);
         });
         aplicarQ(mud, linhas.length === 1 ? 'Colar texto' : `Colar ${linhas.length} linhas como post-its`, 'colou');
         setSel({ itens: ids, seta: null });
+        if (sobrou) cx.avisar(`Colei as primeiras ${MAX_COLAR} linhas. Sobraram ${sobrou}: cole de novo o resto.`, { ic: 'info' });
+        else if (lim && ids.length) setTimeout(() => mostrarItem(c2.itens[ids[0]]), 40);
       }
     };
     addEventListener('keydown', tecla);

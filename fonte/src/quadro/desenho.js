@@ -32,22 +32,20 @@ export function quebrarTexto(ctx, texto, largura) {
     const palavras = par.split(/\s+/).filter(Boolean);
     if (!palavras.length) { linhas.push(''); continue; }
     let atual = '';
+    /* palavra maior que a caixa: corta em pedaços; o último pedaço segue como linha atual */
+    const partir = (p) => {
+      let pedaco = '';
+      for (const ch of p) {
+        if (ctx.measureText(pedaco + ch).width > largura && pedaco) { linhas.push(pedaco); pedaco = ''; }
+        pedaco += ch;
+      }
+      return pedaco;
+    };
     for (const p of palavras) {
       const teste = atual ? atual + ' ' + p : p;
-      if (ctx.measureText(teste).width <= largura || !atual) {
-        if (!atual && ctx.measureText(p).width > largura) {
-          /* palavra maior que a caixa: corta em pedaços */
-          let pedaco = '';
-          for (const ch of p) {
-            if (ctx.measureText(pedaco + ch).width > largura && pedaco) { linhas.push(pedaco); pedaco = ''; }
-            pedaco += ch;
-          }
-          atual = pedaco;
-        } else atual = teste;
-      } else {
-        linhas.push(atual);
-        atual = p;
-      }
+      if (ctx.measureText(teste).width <= largura) { atual = teste; continue; }
+      if (atual) linhas.push(atual);
+      atual = ctx.measureText(p).width > largura ? partir(p) : p;
     }
     linhas.push(atual);
   }
@@ -190,7 +188,7 @@ function desenharTarefa(ctx, it, r) {
   ctx.font = `700 10px ${FONTE}`;
   const wg = gut ? ctx.measureText(gut).width + 12 : 0;
   ctx.font = `600 11px ${FONTE}`;
-  ctx.fillText(cortar(ctx, 'Resp.: ' + (r.resp || '—'), it.w - 16 - wg - 4), x, base - 22);
+  ctx.fillText(cortar(ctx, (r.resp ? 'Resp.: ' + r.resp : 'Sem responsável'), it.w - 16 - wg - 4), x, base - 22);
   ctx.fillStyle = r.vencida ? '#b42318' : 'rgba(31,35,40,.80)';
   if (r.vencida) ctx.font = `700 11px ${FONTE}`;
   ctx.fillText(cortar(ctx, (r.prazo ? (r.vencida ? 'Vencido: ' + r.prazo : 'Prazo: ' + r.prazo + ' · ' + r.status) : 'Sem prazo · ' + r.status), it.w - 16), x, base - 8);
