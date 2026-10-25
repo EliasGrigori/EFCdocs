@@ -11,6 +11,6 @@ Os arquivos desta pasta vão **todos juntos para a raiz** do repositório `EFCdo
 5. Abra no Chrome do celular e use o menu (três pontos) › **Instalar app**.
 
 ## Versão nova
-Envie os arquivos novos por cima (o `sw.js` e a pasta `assets` sempre vão juntos). Quem já instalou vê "Versão nova pronta — toque para atualizar".
+Envie os arquivos novos por cima (o `sw.js` e a pasta `assets` sempre vão juntos). Quem já instalou vê "Versão nova pronta. Toque para atualizar". O ícone novo pode demorar a trocar no celular; se não trocar, desinstale e instale de novo.
 
 O EFCdocs não guarda senha nem dado real no código. Fica separado do EFClaudian e do EFCquiz: só usa chaves `efcdocs:` no aparelho e caches `efcdocs-`.

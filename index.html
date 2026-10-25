@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>EFCdocs</title>
-<meta name="theme-color" content="#13131c">
+<meta name="description" content="EFCdocs: Planilha, Documento e Post-its.">
+<meta name="theme-color" content="#143c47">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -12,10 +13,33 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="EFCdocs">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="./assets/app-L5D57LXM.css">
+<style>
+/* Tela de abertura (arte do Elias): aparece na hora, antes do app carregar. */
+#abertura{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  font-family:'DejaVu Sans',Verdana,system-ui,sans-serif;color:#ece6d6;text-align:center;padding:24px;
+  background:linear-gradient(rgba(41,87,99,.35) 1px,transparent 1px) 0 0/30px 30px,linear-gradient(90deg,rgba(41,87,99,.35) 1px,transparent 1px) 0 0/30px 30px,linear-gradient(160deg,#1c4e5b 0%,#143c47 50%,#0c2a33 100%);
+  transition:opacity .28s ease}
+#abertura.sai{opacity:0;pointer-events:none}
+#abertura img{width:116px;height:116px;margin-bottom:6px}
+#abertura h1{margin:0;font-size:32px;font-weight:700;letter-spacing:.5px;color:#ece6d6}
+#abertura p{margin:0;font-size:15px;color:#f2a93b}
+#abertura .barra{width:168px;height:6px;border-radius:3px;background:#143c48;overflow:hidden;margin-top:56px}
+#abertura .barra i{display:block;width:40%;height:100%;border-radius:3px;background:#f1a93b;animation:ab-vai 1.2s ease-in-out infinite}
+#abertura small{font-size:12.5px;color:#9fb3b8;margin-top:8px}
+@keyframes ab-vai{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+@media (prefers-reduced-motion:reduce){#abertura .barra i{animation:none;width:60%}}
+</style>
+<link rel="stylesheet" href="./assets/app-YHLXROL2.css">
 </head>
 <body>
+<div id="abertura" role="status" aria-label="Carregando o EFCdocs">
+  <img src="icon-192.png" alt="">
+  <h1>EFCdocs</h1>
+  <p>Planilha • Documento • Post-its</p>
+  <div class="barra"><i></i></div>
+  <small>Carregando...</small>
+</div>
 <div id="raiz"></div>
-<script type="module" src="./assets/app-AUUGXMMR.js"></script>
+<script type="module" src="./assets/app-YTU62HMC.js"></script>
 </body>
 </html>
