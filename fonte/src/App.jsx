@@ -14,6 +14,7 @@ import { normalizarPrefs } from './nucleo/prefs.js';
 import { normalizarQuadro } from './quadro/modelo.js';
 import { Icone, Avisos, Pergunta, useMedia, useRota, irPara, dataHora, hora } from './ui/comum.jsx';
 import { Topo } from './ui/faixa.jsx';
+import { DicasComandos } from './ui/dica.jsx';
 import { Menu, BarraCelular } from './ui/menu.jsx';
 import { Paleta, Opcoes, Painel } from './ui/janelas.jsx';
 import { Inicio, ListaDoTipo, Lixeira, EmBreve, EditorEmBreve } from './ui/paginas.jsx';
@@ -496,6 +497,7 @@ export function App() {
             <button type="button" className="btn sm" onClick={() => { const a = abertoRef.current; setTravado(null); if (a) salvar(a, 'gravou por cima', true); postar({ t: 'assumir', arq: a && a.arquivo.ficha.id }); avisar('Gravada a sua versão. A outra aba passou a só ver.', { ic: 'check' }); }}>Gravar a minha por cima</button>
           </div>
         )}
+        <DicasComandos mod={mod} />
         <Topo titulo={TITULOS[rota] || 'EFCdocs'} ficha={ficha} salvo={salvo} prefs={prefs} cx={cx} cel={cel}
           aba={aba} setAba={setAba} faixaTemp={faixaTemp} setFaixaTemp={setFaixaTemp} abrirGaveta={() => setGaveta(true)} />
         <div className="work">

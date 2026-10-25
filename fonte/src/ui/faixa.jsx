@@ -1,9 +1,10 @@
 /* EFCdocs — topo: nome do arquivo, busca, faixa tipo Excel (opção A) e barra curta (opção B). */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { PorId, chegaNa, valeNoModulo } from '../nucleo/comandos.js';
 import { ROTULOS } from '../nucleo/prefs.js';
 import { validarNome } from '../nucleo/modelo.js';
 import { Icone } from './comum.jsx';
+import { dicaDoComando } from '../nucleo/dicas.js';
 
 /* item: ['g', id] botão grande · ['col', [ids]] coluna de pequenos · ['lin', [ids]] linha de ícones */
 const ABA_ARQUIVO = {
@@ -18,19 +19,19 @@ const GRUPOS_EXIBIR = [
   { nome: 'Layout', itens: [['g', 'exibir.painel'], ['col', ['exibir.layoutA', 'exibir.layoutB']]] },
   { nome: 'Aparência', itens: [['g', 'exibir.tema'], ['g', 'exibir.relevo'], ['g', 'exibir.telaCheia']] },
 ];
-const GRUPO_TRANSFERENCIA = { nome: 'Área de transferência', itens: [['g', 'editar.colar'], ['col', ['editar.recortar', 'editar.copiar', 'editar.pincel']]] };
+const GRUPO_TRANSFERENCIA = { nome: 'Área de transferência', itens: [['lin', ['editar.colar', 'editar.recortar', 'editar.copiar', 'editar.pincel']]] };
 
 const FAIXAS = {
   planilha: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
-      { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.bordas', 'formatar.preenchimento', 'formatar.corFonte', 'formatar.fonte']]] },
+      { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.bordas', 'formatar.preenchimento', 'formatar.corFonte', 'formatar.fonte'], 4]] },
       { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita', 'formatar.quebrar', 'formatar.mesclar']]] },
       { nome: 'Número', itens: [['lin', ['formatar.moeda', 'formatar.porcentagem', 'formatar.milhar', 'formatar.maisCasas', 'formatar.menosCasas', 'formatar.formatoNumero']]] },
-      { nome: 'Células', itens: [['col', ['planilha.inserirLinha', 'planilha.inserirColuna']], ['col', ['planilha.excluirLinha', 'planilha.excluirColuna']]] },
+      { nome: 'Células', itens: [['lin', ['planilha.inserirLinha', 'planilha.inserirColuna', 'planilha.excluirLinha', 'planilha.excluirColuna'], 2]] },
       { nome: 'Estilos', itens: [['g', 'formatar.condicional'], ['g', 'inserir.tabela']] },
-      { nome: 'Edição', itens: [['g', 'formula.autosoma'], ['col', ['planilha.limparConteudo', 'formatar.limpar', 'editar.historico']], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
+      { nome: 'Edição', itens: [['g', 'formula.autosoma'], ['lin', ['planilha.limparConteudo', 'formatar.limpar', 'editar.historico'], 3], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
     { id: 'inserir', nome: 'Inserir', grupos: [
-      { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['col', ['planilha.inserirLinha', 'planilha.inserirColuna']]] },
+      { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['lin', ['planilha.inserirLinha', 'planilha.inserirColuna'], 2]] },
       { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
       { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.grafico']] },
       { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
@@ -45,7 +46,7 @@ const FAIXAS = {
     { id: 'revisao', nome: 'Revisão', grupos: [
       { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar'], ['g', 'arquivo.versoes']] },
       { nome: 'Proteger', itens: [['g', 'revisao.travar']] }] },
-    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['g', 'exibir.grade'], ['g', 'exibir.folhaClara'], ['g', 'exibir.zoom']] }, { nome: 'Linhas e colunas', itens: [['col', ['planilha.ocultarLinha', 'planilha.ocultarColuna', 'planilha.reexibir']]] }, ...GRUPOS_EXIBIR] },
+    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['g', 'exibir.grade'], ['g', 'exibir.folhaClara'], ['g', 'exibir.zoom']] }, { nome: 'Linhas e colunas', itens: [['col', ['planilha.ocultarLinha', 'planilha.ocultarColuna', 'planilha.reexibir', 'planilha.reexibirColuna']]] }, ...GRUPOS_EXIBIR] },
   ],
   docx: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
@@ -127,7 +128,7 @@ export const ROTULO_CURTO = {
   'planilha.excluirLinha': 'Excluir linha', 'planilha.excluirColuna': 'Excluir coluna', 'planilha.limparConteudo': 'Limpar conteúdo',
   'formatar.limpar': 'Limpar formatos', 'planilha.novaAba': 'Nova aba', 'formula.nome': 'Dar nome', 'formula.nomes': 'Nomes',
   'planilha.cabecalho': 'Linha de títulos', 'exibir.folhaClara': 'Folha clara', 'planilha.ocultarLinha': 'Ocultar linhas',
-  'planilha.ocultarColuna': 'Ocultar colunas', 'planilha.reexibir': 'Reexibir', 'formula.inserir': 'Inserir função', 'formula.autosoma': 'AutoSoma',
+  'planilha.ocultarColuna': 'Ocultar colunas', 'planilha.reexibir': 'Reexibir linhas', 'planilha.reexibirColuna': 'Reexibir colunas', 'formula.inserir': 'Inserir função', 'formula.autosoma': 'AutoSoma',
 };
 
 /** Botão de comando. tipo: g grande · s pequeno · i só ícone · t ícone e texto */
@@ -137,10 +138,12 @@ export function BotaoCmd({ id, tipo = 'g', cx, rotulo }) {
   const chega = chegaNa(cmd, cx.mod);
   const bloq = cx.bloqueado(id);
   const ligado = cx.ligado(id);
-  const titulo = cmd.nome + (cmd.atalho ? ` (${cmd.atalho})` : '') + (chega ? ` — chega na ${chega}` : '') + (bloq ? ` — ${bloq}` : '');
+  const info = dicaDoComando(cmd, cx.mod);
+  const nota = [chega ? `Chega na ${chega}.` : '', bloq || ''].filter(Boolean).join(' ');
+  const titulo = cmd.nome + (info.atalho ? ` (${info.atalho})` : '') + (nota ? ` — ${nota}` : '');
   const classe = { g: 'rbb', s: 'rbs', i: 'rbi', t: 'tlab' }[tipo] + (ligado ? ' on' : '') + (chega ? ' futuro' : '');
   return (
-    <button type="button" className={classe} title={titulo} aria-label={tipo === 'i' ? titulo : undefined}
+    <button type="button" className={classe} aria-label={tipo === 'i' ? titulo : undefined} data-nota={nota || undefined}
       aria-pressed={ligado ? true : undefined} disabled={!!bloq} data-cmd={id} onClick={() => cx.executar(id)}>
       <Icone n={cmd.ic} />
       {tipo !== 'i' && <span>{rotulo || cmd.nome}</span>}
@@ -148,23 +151,76 @@ export function BotaoCmd({ id, tipo = 'g', cx, rotulo }) {
   );
 }
 
-function Faixa({ aba, cx, flutua }) {
+function GrupoFaixa({ g, cx }) {
+  return (
+    <div className="rb-g" role="group" aria-label={g.nome}>
+      <div className="rb-i">
+        {g.itens.map(([tipo, x, colunas], j) => tipo === 'g'
+          ? <BotaoCmd key={j} id={x} cx={cx} rotulo={ROTULO_CURTO[x]} />
+          : tipo === 'col'
+            ? <div className="rb-col" key={j}>{x.map((id) => <BotaoCmd key={id} id={id} tipo="s" cx={cx} rotulo={ROTULO_CURTO[id]} />)}</div>
+            : <div className="rb-lin" key={j} style={{ gridTemplateColumns: `repeat(${colunas || (x.length <= 4 ? x.length : Math.ceil(x.length / 2))}, 28px)` }}>
+              {x.map((id) => <BotaoCmd key={id} id={id} tipo="i" cx={cx} />)}
+            </div>)}
+      </div>
+      <div className="rb-n">{g.nome}</div>
+    </div>
+  );
+}
+
+/* A faixa nunca passa da tela: o que não cabe vai para "Mais" (as larguras dos grupos são medidas e guardadas) */
+function Faixa({ aba, cx, flutua, cel }) {
   const abas = abasDoModulo(cx.mod);
   const atual = abas.find((a) => a.id === aba) || abas[1];
+  const ref = useRef(null);
+  const larguras = useRef({});
+  const [larg, setLarg] = useState(0);
+  const [est, setEst] = useState({ corte: null, medir: true });
+  const [maisAberto, setMaisAberto] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => setLarg(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [flutua]);
+  useLayoutEffect(() => { setEst({ corte: null, medir: true }); setMaisAberto(false); }, [atual.id, cx.mod, larg, cel]);
+  useLayoutEffect(() => {
+    if (!est.medir || !ref.current) return;
+    if (cel) { setEst({ corte: null, medir: false }); return; }
+    const gs = [...ref.current.querySelectorAll(':scope > .rb-g')];
+    gs.forEach((g, i) => { larguras.current[atual.id + ':' + i] = g.offsetWidth; });
+    const w = gs.map((_, i) => larguras.current[atual.id + ':' + i] || 0);
+    const disp = ref.current.clientWidth - 16;
+    let corte = null;
+    if (w.reduce((a, b) => a + b, 0) > disp) {
+      let acc = 0, n = 0;
+      for (const x of w) { if (acc + x > disp - 74) break; acc += x; n++; }
+      corte = Math.max(1, n);
+    }
+    setEst({ corte, medir: false });
+  }, [est.medir]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!maisAberto) return undefined;
+    const fora = (ev) => { if (!ev.target.closest('.rb-mais-area')) setMaisAberto(false); };
+    const esc = (ev) => { if (ev.key === 'Escape') setMaisAberto(false); };
+    addEventListener('mousedown', fora); addEventListener('keydown', esc);
+    return () => { removeEventListener('mousedown', fora); removeEventListener('keydown', esc); };
+  }, [maisAberto]);
+  const corte = est.medir ? null : est.corte;
+  const naFaixa = corte == null ? atual.grupos : atual.grupos.slice(0, corte);
+  const noMais = corte == null ? [] : atual.grupos.slice(corte);
   return (
-    <div className={'ribbon' + (flutua ? ' flutua' : '')} role="toolbar" aria-label={'Faixa ' + atual.nome} data-aba={atual.id}>
-      {atual.grupos.map((g, i) => (
-        <div className="rb-g" role="group" aria-label={g.nome} key={i}>
-          <div className="rb-i">
-            {g.itens.map(([tipo, x], j) => tipo === 'g'
-              ? <BotaoCmd key={j} id={x} cx={cx} rotulo={ROTULO_CURTO[x]} />
-              : tipo === 'col'
-                ? <div className="rb-col" key={j}>{x.map((id) => <BotaoCmd key={id} id={id} tipo="s" cx={cx} rotulo={ROTULO_CURTO[id]} />)}</div>
-                : <div className="rb-lin" key={j}>{x.map((id) => <BotaoCmd key={id} id={id} tipo="i" cx={cx} />)}</div>)}
-          </div>
-          <div className="rb-n">{g.nome}</div>
+    <div className={'ribbon' + (flutua ? ' flutua' : '') + (cel ? '' : ' ajustada')} role="toolbar" aria-label={'Faixa ' + atual.nome} data-aba={atual.id} ref={ref}>
+      {naFaixa.map((g, i) => <GrupoFaixa g={g} cx={cx} key={atual.id + i} />)}
+      {noMais.length > 0 && (
+        <div className="rb-mais-area">
+          <button type="button" className="rbb rb-mais" aria-expanded={maisAberto} aria-label="Mais comandos" data-dica="Mais comandos|Os grupos que não cabem na largura da tela ficam aqui." onClick={() => setMaisAberto(!maisAberto)}>
+            <Icone n="mais" /><span>Mais</span>
+          </button>
+          {maisAberto && <div className="rb-mais-painel card" role="group" aria-label="Mais comandos">{noMais.map((g, i) => <GrupoFaixa g={g} cx={cx} key={'m' + i} />)}</div>}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -282,7 +338,7 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
           <ModoFaixa prefs={prefs} cx={cx} />
         </nav>
       )}
-      {mostraFaixa && <Faixa aba={aba} cx={cx} flutua={prefs.faixa !== 'tudo'} />}
+      {mostraFaixa && <Faixa aba={aba} cx={cx} flutua={prefs.faixa !== 'tudo'} cel={cel} />}
       {temArquivo && !layoutA && prefs.faixa !== 'oculta' && <BarraCurta cx={cx} soIcones={prefs.faixa === 'abas'} />}
     </header>
   );

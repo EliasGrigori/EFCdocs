@@ -54,6 +54,7 @@ export const COMANDOS = [
   C('planilha.ocultarLinha', 'Ocultar linhas', 'ver', { sin: ['esconder linha'], mods: ['planilha'], acao: 'planilha.editar' }),
   C('planilha.ocultarColuna', 'Ocultar colunas', 'ver', { sin: ['esconder coluna'], mods: ['planilha'], acao: 'planilha.editar' }),
   C('planilha.reexibir', 'Reexibir linhas', 'ver', { sin: ['mostrar linhas ocultas'], mods: ['planilha'], acao: 'planilha.editar' }),
+  C('planilha.reexibirColuna', 'Reexibir colunas', 'ver', { sin: ['mostrar colunas ocultas', 'desocultar coluna'], mods: ['planilha'], acao: 'planilha.editar' }),
   C('planilha.novaAba', 'Nova aba', 'plus', { sin: ['nova folha', 'adicionar aba', 'nova planilha dentro'], mods: ['planilha'], acao: 'planilha.editar' }),
   C('planilha.cabecalho', 'Esta linha é o cabeçalho', 'titulo', { sin: ['títulos das colunas', 'linha de títulos'], mods: ['planilha'], acao: 'planilha.editar' }),
 
@@ -106,7 +107,7 @@ export const COMANDOS = [
 
   C('formula.inserir', 'Inserir função', 'funcao', { sin: ['fórmula', 'função', 'calcular', 'fx'], chega: V4, mods: ['planilha'] }),
   C('formula.autosoma', 'AutoSoma', 'soma', { sin: ['somar', 'total', 'soma'], chega: V4, mods: ['planilha'] }),
-  C('formula.explicar', 'Explicar esta conta', 'explicar', { sin: ['entender fórmula', 'por que deu erro', 'erro na fórmula'], chega: 'v0.4.2', mods: ['planilha'] }),
+  C('formula.explicar', 'Explicar esta conta', 'explicar', { sin: ['entender fórmula', 'por que deu erro', 'erro na fórmula'], chega: 'v0.4.3', mods: ['planilha'] }),
   C('formula.origem', 'De onde vem / quem usa esta célula', 'origem', { sin: ['rastrear precedentes', 'dependentes', 'referências', 'quem usa', 'para onde vai'], chega: V4, mods: ['planilha'] }),
   C('formula.nome', 'Dar nome à seleção', 'renomear', { sin: ['nome definido', 'meta', 'gerenciador de nomes', 'apelido da célula'], chega: V4, mods: ['planilha'], acao: 'planilha.editar' }),
   C('formula.nomes', 'Nomes da planilha', 'lista', { sin: ['gerenciador de nomes', 'renomear nome', 'nomes definidos'], chega: V4, mods: ['planilha'] }),

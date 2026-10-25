@@ -67,7 +67,7 @@ export function Inicio({ fichas, cx, demo }) {
   return (
     <div className="pagina">
       <h2>Início</h2>
-      <p className="sub">Crie uma planilha, um documento ou um quadro. Tudo fica guardado neste aparelho e compactado. Nesta versão o quadro de post-its já funciona por inteiro; a planilha chega na v0.4.0 e o documento na v0.7.0.</p>
+      <p className="sub">Crie uma planilha, um documento ou um quadro. Tudo fica guardado neste aparelho e compactado. Nesta versão o quadro de post-its e a planilha já funcionam; o documento chega na v0.7.0.</p>
       <div className="secao"><h3>Novo</h3><SeloDemo fichas={fichas} demo={demo} /></div>
       <BotoesNovo tipos={['planilha', 'docx', 'postits']} cx={cx} />
       <div className="secao"><h3>Recentes</h3><span className="cont">{lista.length} {lista.length === 1 ? 'arquivo' : 'arquivos'}</span></div>

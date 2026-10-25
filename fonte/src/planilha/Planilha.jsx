@@ -510,6 +510,8 @@ export function Planilha({ arquivo, cx }) {
     .filter((p) => edit.mostrarErros || !(p.f >= edit.cursor - 1 && p.i <= edit.cursor - 1 && /não é célula|não existe|Falta um|Não entendi|terminou/.test(p.msg)) || p.nivel === 'dica') : [];
   const previa = useMemo(() => {
     if (!ehFormula || edit.texto.length < 2) return '';
+    /* conta ainda incompleta (faltam partes, parêntese aberto, texto sem aspas): não mostra prévia de erro */
+    if (diagnosticar(edit.texto.slice(1), { nomes: nomesDefinidos, abas: nomesAbas }).some((p) => p.nivel === 'erro')) return '';
     const r = motor.previa(edit.texto.slice(1), edit.abaId, edit.l, edit.c);
     if (r.erro) return '';
     if (r.circular) return '0 (conta circular: a célula usa ela mesma)';
@@ -1046,6 +1048,7 @@ export function Planilha({ arquivo, cx }) {
       case 'planilha.ocultarLinha': return ed(() => ocultar('l', false));
       case 'planilha.ocultarColuna': return ed(() => ocultar('c', false));
       case 'planilha.reexibir': return ed(() => { ocultar('l', true); });
+      case 'planilha.reexibirColuna': return ed(() => { ocultar('c', true); });
       case 'planilha.novaAba': return ed(novaAbaFn);
       case 'planilha.cabecalho': return ed(() => mudar({ [`conteudo.abas.${abaId}.cab`]: sel.ativa.l }, `Linha ${sel.ativa.l + 1} é o cabeçalho`));
       case 'formula.inserir': return ed(() => setJanela({ tipo: 'funcoes' }));

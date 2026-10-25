@@ -199,16 +199,43 @@ export function distancia(a, b) {
   return d[m][n];
 }
 
+/* Funções que existem no Excel e o EFCdocs ainda não calcula (pt-BR / inglês). Servem para NÃO sugerir
+   uma troca errada (CORREL não é CORRESP) e para dizer "ainda não sei calcular". */
+const DO_EXCEL_FALTAM = `CORREL CORREL|TENDÊNCIA TREND|FREQUÊNCIA FREQUENCY|MODO MODE|TETO CEILING|TETO.MAT CEILING.MATH|ARREDMULTB FLOOR|ARREDMULTB.MAT FLOOR.MATH|ARRED.MULT MROUND
+PERCENTIL PERCENTILE|QUARTIL QUARTILE|ORDEM RANK|ORDEM.MED RANK.AVG|INCLINAÇÃO SLOPE|INTERCEPÇÃO INTERCEPT|PREVISÃO FORECAST|PREVISÃO.LINEAR FORECAST.LINEAR|TESTE.T T.TEST
+DIST.NORM.N NORM.DIST|INV.NORM.N NORM.INV|DIST.NORMP.N NORM.S.DIST|INV.NORMP.N NORM.S.INV|PADRONIZAR STANDARDIZE|INT.CONFIANÇA CONFIDENCE|INT.CONFIANÇA.NORM CONFIDENCE.NORM|CURT KURT|DISTORÇÃO SKEW|DESV.MÉDIO AVEDEV|DESVQ DEVSQ
+MÉDIA.GEOMÉTRICA GEOMEAN|MÉDIA.HARMÔNICA HARMEAN|MODO.MULT MODE.MULT|VAR VAR|DESVPADA STDEVA|MÁXIMOA MAXA|MÍNIMOA MINA|MÉDIAA AVERAGEA|COVARIAÇÃO.P COVARIANCE.P|RSQ RSQ|PEARSON PEARSON
+TEXTOANTES TEXTBEFORE|TEXTODEPOIS TEXTAFTER|DIVIDIRTEXTO TEXTSPLIT|EMPILHARV VSTACK|EMPILHARH HSTACK|TOMAR TAKE|DESCARTAR DROP|ESCOLHERCOLS CHOOSECOLS|ESCOLHERLINS CHOOSEROWS|ORGANIZARCOLS WRAPCOLS|ORGANIZARLINS WRAPROWS|PARACOL TOCOL|PARALIN TOROW|EXPANDIR EXPAND
+HIPERLINK HYPERLINK|PROC LOOKUP|ÁREAS AREAS|ENDEREÇO ADDRESS|CÉL CELL|TIPO TYPE|T T|N N|ÉPAR ISEVEN|ÉIMPAR ISODD|ÉREF ISREF|ÉFÓRMULA ISFORMULA|ÉNÃOTEXTO ISNONTEXT
+LOG LOG|LOG10 LOG10|LN LN|EXP EXP|SEN SIN|COS COS|TAN TAN|ASEN ASIN|ACOS ACOS|ATAN ATAN|ATAN2 ATAN2|RADIANOS RADIANS|GRAUS DEGREES|FATORIAL FACT|COMBIN COMBIN|PERMUT PERMUT|MDC GCD|MMC LCM|PAR EVEN|ÍMPAR ODD|MULT MULTINOMIAL
+MOEDA DOLLAR|FIXO FIXED|UNICODE UNICODE|ANO.FRAÇÃO YEARFRAC|DIAS360 DAYS360|DIATRABALHO.INTL WORKDAY.INTL|DIATRABALHOTOTAL.INTL NETWORKDAYS.INTL
+PGTO PMT|VP PV|VF FV|TAXA RATE|NPER NPER|VPL NPV|TIR IRR|SLN SLN|BDSOMA DSUM|BDCONTAR DCOUNT|BDMÉDIA DAVERAGE`;
+const POR_FALTAM = new Set();
+for (const par of DO_EXCEL_FALTAM.split(/[|\n]/)) {
+  const [pt, en] = par.trim().split(/\s+/);
+  if (pt) POR_FALTAM.add(sem(pt.toUpperCase()));
+  if (en) POR_FALTAM.add(en.toUpperCase());
+}
+/** O nome é de uma função real do Excel que o EFCdocs ainda não calcula? */
+export function funcaoDoExcelQueFalta(nome) {
+  const n = String(nome).toUpperCase().replace(/^_XLFN\./, '');
+  return !acharFuncao(n) && (POR_FALTAM.has(n) || POR_FALTAM.has(sem(n)));
+}
+
+/** "Você quis dizer ...?": só quando a grafia é BEM parecida (SOMAA → SOMA). Nome curto ou função real do Excel que ainda falta não recebe sugestão. */
 export function funcaoParecida(nome) {
   const n = sem(String(nome).toUpperCase());
+  if (n.length < 5 || funcaoDoExcelQueFalta(nome)) return null;
   let melhor = null, dist = 99;
   for (const f of FUNCOES) {
     for (const cand of [f.pt, f.en]) {
-      const d = distancia(n, sem(cand));
+      const c = sem(cand);
+      if (c.length < 4) continue;
+      const d = distancia(n, c);
       if (d < dist) { dist = d; melhor = f; }
     }
   }
-  return dist <= Math.max(1, Math.floor(n.length / 3)) ? melhor : null;
+  return dist <= (n.length >= 9 ? 2 : 1) ? melhor : null;
 }
 
 /** Lista para o autocompletar: começa com o que foi digitado (pt, sem acento ou inglês). */

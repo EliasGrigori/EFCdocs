@@ -1626,7 +1626,7 @@ svg {
 .rb-g {
   display: flex;
   flex-direction: column;
-  padding: 0 10px;
+  padding: 0 7px;
   border-right: 1px solid var(--border);
   flex: none;
 }
@@ -1652,9 +1652,9 @@ svg {
   align-items: center;
   justify-content: flex-start;
   gap: 3px;
-  min-width: 54px;
-  max-width: 84px;
-  padding: 5px 6px 4px;
+  min-width: 48px;
+  max-width: 78px;
+  padding: 4px 4px 3px;
   border-radius: var(--r-ctl);
   font-size: 11.5px;
   font-weight: 600;
@@ -1710,14 +1710,13 @@ svg {
   color: var(--text);
 }
 .rb-lin {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  max-width: 180px;
+  display: grid;
+  grid-template-columns: repeat(4, 28px);
+  gap: 1px;
 }
 .rbi {
-  width: 30px;
-  height: 28px;
+  width: 28px;
+  height: 27px;
   display: grid;
   place-items: center;
   border-radius: var(--r-chip);
@@ -1778,6 +1777,7 @@ svg {
   height: 20px;
 }
 .app.cel .rb-lin {
+  display: flex;
   flex-wrap: nowrap;
   max-width: none;
 }
@@ -2654,3 +2654,29 @@ body.relevo .busca {
     display: none !important;
   }
 }
+
+/* v0.4.2: "Mais" da faixa e balão de dica dos botões */
+.rb-mais-area { position: relative; flex: none; margin-left: auto; padding-left: 4px; }
+.rb-mais { min-width: 52px; }
+.rb-mais-painel {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 40;
+  display: flex; flex-wrap: wrap; gap: 6px 0; padding: 8px 4px 4px; max-width: min(680px, 92vw);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .3);
+}
+.rb-mais-painel .rb-g { border-right: 0; }
+.dica-cmd {
+  position: fixed; z-index: 90; pointer-events: none;
+  background: var(--text); color: var(--surface);
+  border-radius: var(--r-ctl); padding: 7px 9px; font-size: 12.5px; line-height: 1.35;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .35);
+}
+.dica-t { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.dica-t b { font-weight: 700; }
+.dica-t kbd {
+  font: inherit; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+  background: color-mix(in srgb, var(--surface) 22%, transparent); white-space: nowrap;
+}
+.dica-d { margin-top: 3px; opacity: .88; }
+.dica-n { margin-top: 3px; color: var(--warn); font-weight: 600; }
+
+.ribbon.ajustada { overflow: visible; }

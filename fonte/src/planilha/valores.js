@@ -21,7 +21,7 @@ export const ehErro = (v) => v instanceof Erro;
 
 /* o que cada erro quer dizer, em português simples (painel da célula e dica) */
 export const ERRO_EXPLICA = {
-  '#DIV/0!': 'a conta divide por zero, ou por uma célula vazia. Confira o divisor, ou use SEERRO para mostrar outra coisa',
+  '#DIV/0!': 'a conta divide por zero, ou por uma célula vazia. Confira o divisor, ou mostre outra coisa no lugar, por exemplo =SEERRO(A1/B1;0)',
   '#N/A': 'o valor procurado não está na lista. Confira se está escrito igual (espaços contam) ou use SENÃODISP',
   '#REF!': 'a conta apontava para uma célula que não existe mais, porque a linha, a coluna ou a aba foi excluída. Refaça a referência',
   '#VALUE!': 'a conta recebeu um texto onde esperava um número. Veja se alguma célula da conta tem letras ou espaços',

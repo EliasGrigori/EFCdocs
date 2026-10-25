@@ -1,74 +1,59 @@
-"""EFCdocs — monta a página de aprovação da v0.4.1 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.4.2 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" """
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.4.1'
+VERSAO = 'v0.4.2'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-G1, G2, G3 = 'A. Prioridade máxima: nada se perde com duas abas', 'B. Correções da aprovação da v0.4.0', 'C. O que vem depois'
+G1, G2, G3 = 'A. Funções do Excel e mensagens da fórmula', 'B. Faixa de cima mais compacta, com dicas', 'C. O que vem depois'
 ITENS = [
-    ('G01', 'O mesmo arquivo aberto em duas abas do navegador', G1,
-     '<p><b>Antes:</b> as duas abas gravavam por cima uma da outra, sem aviso. O que a aba 2 digitava sumia (planilha e quadro de post-its).</p>'
-     '<p><b>Agora:</b> as abas conversam. A primeira que abriu o arquivo edita; a segunda mostra o aviso <b>"Este arquivo está aberto em outra aba"</b> e fica só para ver, recebendo na hora o que a primeira grava. '
-     'Quem quiser editar na segunda toca em <b>Editar aqui</b>: ela passa a editar e a outra fica só para ver. Fechar a aba que edita libera a outra sozinha.</p>'
-     '<p>Segunda proteção, por baixo: cada gravação leva uma marca. Se mesmo assim alguém gravar no meio (por exemplo, uma aba antiga ainda na v0.4.0, ou o computador que dormiu), a gravação <b>não acontece</b> e aparece a escolha: '
-     '<b>Ver a versão gravada</b> ou <b>Gravar a minha por cima</b>. Nada some em silêncio.</p>'
-     '<p>Vale para as abas do mesmo navegador no mesmo aparelho. Entre aparelhos diferentes, a mesma ideia vem junto com a nuvem (Firebase), no plano.</p>',
-     'O jeito serve (a segunda aba só vê, com "Editar aqui")?',
-     [('Antes (v0.4.0): a aba 2 digita e nada avisa', 'antes-duas-abas'), ('Depois: a aba 2 avisa e fica só para ver', 'depois-duas-abas'), ('Depois: gravação no meio, a escolha aparece', 'depois-conflito')], ''),
-    ('G02', 'Linha congelada: o número 1 não fica mais em cima do número da linha rolada (F01)', G2,
-     '<p>Com a linha 1 congelada e a planilha rolada, o cabeçalho da linha 1 era desenhado por cima do número da linha que passava por baixo. Agora a parte congelada e a parte que rola são desenhadas cada uma no seu espaço (nas linhas e nas colunas).</p>',
-     '', [('Antes (v0.4.0)', 'antes-congelado'), ('Depois', 'depois-congelado')], 'par'),
-    ('G03', 'Conta com data mostra data; 25:00 continua 25:00 (F04)', G2,
-     '<p><code>=A2+1</code> com A2 sendo data mostrava 45353; <code>=DATA(2024;2;29)</code> mostrava 45351. Agora a fórmula pega o formato como o Excel faz, quando a célula está em Geral:</p>'
-     '<ul><li>DATA, HOJE, DATAM, FIMMÊS, DIATRABALHO e DATA.VALOR saem como data; AGORA sai com data e hora; TEMPO e VALOR.TEMPO saem como hora.</li>'
-     '<li><code>=A2</code> copia o formato de A2; <code>=A2+1</code> com data continua data; SOMA, MÍNIMO, MÁXIMO, MÉDIA, ARRED, SE e SEERRO passam adiante o formato do que recebem (R$ continua R$).</li>'
-     '<li>Data menos data dá o número de dias (fica número, como no Excel).</li></ul>'
-     '<p><b>25:00</b> virava 01:00. Agora hora acima de 24 é guardada como horas somadas (formato <code>[h]:mm</code>), igual ao Excel: 25:00 continua 25:00, e 123:15 também funciona (bom para somar horas de turno).</p>',
-     '', [('Antes (v0.4.0)', 'antes-datas'), ('Depois', 'depois-datas')], 'par'),
-    ('G04', 'A dica do SE continua com o cursor no fim da fórmula (F07)', G2,
-     '<p>Ao fechar o último parêntese, a dica sumia. Agora, com o cursor logo depois do ")", a dica da função que acabou de fechar continua, com a descrição e o exemplo (como o Grok pediu). Se o cursor está dentro de outra função ainda aberta, a dica é dela.</p>',
-     '', [('Antes (v0.4.0)', 'antes-dica-fim'), ('Depois', 'depois-dica-fim')], 'par'),
-    ('G05', 'Mensagens de erro em português mais humano (F08)', G2,
-     '<p>As mensagens agora dizem <b>o que aconteceu</b>, <b>como consertar</b> e, quando ajuda, <b>um exemplo</b>. Alguns casos:</p>'
-     '<ul><li>"Entre A2 e A3 vai ponto e vírgula (;). No Brasil a vírgula é só para casas decimais, como em 0,5."</li>'
-     '<li>"A função PROCV precisa de 3 partes separadas por ponto e vírgula. Falta: matriz_tabela, núm_índice_coluna. Exemplo: =PROCV(A2;Lotes!A:C;3;0)"</li>'
-     '<li>"Não sei o que é "OK": não é uma célula (como B2), nem uma função, nem um nome definido. Se for um texto, ele vai entre aspas."</li>'
-     '<li>Erros na célula: "#DIV/0!: a conta divide por zero, ou por uma célula vazia. Confira o divisor, ou use SEERRO para mostrar outra coisa."</li></ul>'
-     '<p><b>Atenção:</b> o texto das sugestões S02 a S09 do relatório do Grok não chegou até mim (só o pedido). Reescrevi todas as mensagens seguindo a ideia. Se puder colar aqui as S02 a S09, ajusto o que ficar diferente na v0.4.2.</p>',
-     'O tom das mensagens serve?', [('Antes (v0.4.0)', 'antes-mensagens'), ('Depois', 'depois-mensagens'), ('Depois: argumento faltando, com exemplo', 'depois-mensagens2')], ''),
-    ('G06', 'Celular: o primeiro número digitado depois dos dois toques não se perde (F14)', G2,
-     '<p>Depois dos dois toques na célula, o campo de edição recebia o foco um instante depois, e o primeiro dígito ia para lugar nenhum. Agora o campo já abre com o foco, ainda dentro do toque (o teclado do celular sobe na hora). '
-     'No teste com celular simulado, os três dígitos chegam. Vale conferir no seu celular de verdade.</p>',
-     '', [('Antes (v0.4.0): digitou 123, ficou vazio', 'antes-celular'), ('Depois: 123', 'depois-celular')], 'cel'),
-    ('G07', 'Cor da letra legível em todos os temas (F15)', G2,
-     '<p>Só muda na tela; o arquivo guarda a cor que você escolheu (vai igual para o Excel).</p>'
-     '<ul><li><b>Temas escuros:</b> letra preta, cinza escuro ou branca que some no fundo passa a usar a cor normal do texto do tema (antes ficava um cinza fraco).</li>'
-     '<li><b>Cores com matiz</b> (amarelo, laranja, azul escuro...): mantêm o matiz e só escurecem ou clareiam até ler bem. Amarelo no tema claro vira ocre; azul escuro no tema escuro vira azul claro.</li>'
-     '<li>O que já se lê fica exatamente como está (vermelho, cinza no branco).</li></ul>',
-     '', [('Antes, tema claro', 'antes-cores-claro'), ('Depois, tema claro', 'depois-cores-claro'), ('Antes, tema escuro', 'antes-cores-escuro'), ('Depois, tema escuro', 'depois-cores-escuro')], 'quatro'),
-    ('G08', 'Leitor vê o aviso "Só leitura" ao tentar digitar (F18)', G2,
-     '<p>Antes, o Leitor digitava e nada acontecia. Agora aparece o aviso: "Só leitura: seu perfil de teste (Leitor) só vê a planilha. Para editar, troque o perfil em Opções." O mesmo vale para Delete, Backspace, colar e dois cliques. O aviso aparece no máximo a cada 2,5 s, para não incomodar.</p>',
-     '', [('Antes (v0.4.0)', 'antes-leitor'), ('Depois', 'depois-leitor')], 'par'),
-    ('G09', 'Barra de fórmulas mostra o número inteiro (X08 do Grok)', G2,
-     '<p>Com 123456789012345 na célula, a barra de fórmulas mostrava 1,23457E+14. Agora mostra o número completo (até 15 dígitos, como o Excel). Na célula, em Geral, continua 1,2346E+14 quando não cabe, igual ao Excel; alargar a coluna ou pôr formato de número mostra tudo.</p>',
-     '', [('Antes (v0.4.0)', 'antes-barra-numero'), ('Depois', 'depois-barra-numero')], 'par'),
-    ('G10', 'Próxima: v0.4.2 com as ajudas que estavam na v0.4.1', G3,
-     '<p>Como a v0.4.1 virou a versão das correções, as ajudas passam para a <b>v0.4.2</b> (Opus 5.5 · alto): "Explicar esta conta" (PL11), "Por que deu erro?" (PL12), painel Problemas (PL13), a conta desenhada como fluxograma (PL15) e montar a conta respondendo uma pergunta (PL18). '
-     'O botão "Explicar conta" agora mostra "chega na v0.4.2".</p>'
-     '<p>Depois vem a <b>v0.5.0</b> (abrir e salvar Excel, PDF e imprimir a planilha). Para ela continuam faltando os 3 a 5 arquivos .xlsx reais com dados trocados.</p>',
-     'Pode seguir para a v0.4.2 depois desta?', [], ''),
+    ('H01', 'Função do Excel que o EFCdocs ainda não calcula não é mais "corrigida" para outra (E1 e N24)', G1,
+     '<p><b>Antes:</b> ao digitar <code>=CORREL(A1:A3;A1:A3)</code>, o app achava que era erro de digitação de CORRESP, oferecia "Usar CORRESP" e <b>não deixava gravar</b>. CORREL é função real do Excel; só não está implementada aqui ainda.</p>'
+     '<p><b>Agora:</b> o app conhece uma lista de funções reais do Excel que ainda faltam (CORREL, TENDÊNCIA, FREQUÊNCIA, MODO, TETO, DIST.NORM.N, TEXTOANTES e outras). Para elas, a caixa de ajuda só informa: '
+     '<i>"é uma função do Excel que o EFCdocs ainda não sabe calcular. A fórmula fica guardada como você digitou (e o Excel calcula ao abrir), mas aqui a célula mostra #NOME? até a função chegar."</i> A fórmula grava e continua visível na barra.</p>'
+     '<p>A sugestão "Usar X" só aparece quando é erro de digitação mesmo (por exemplo SOMAA vira SOMA) e fica mais rígida: nome com menos de 5 letras nunca é trocado, e a diferença permitida é de 1 letra (2 em nomes longos). Função que não existe em lugar nenhum recebe o aviso "Não conheço a função X".</p>',
+     'O comportamento serve (grava e avisa, em vez de bloquear)?',
+     [('Antes (v0.4.1): sugere CORRESP', 'antes-correl'), ('Antes: o Enter foi bloqueado', 'antes-correl-gravada'), ('Depois: só informa', 'depois-correl'), ('Depois: gravada, fórmula na barra', 'depois-correl-gravada')], ''),
+    ('H02', 'Sem prévia de erro enquanto a função está incompleta (Y06)', G1,
+     '<p>Ao digitar <code>=PROCV(A2)</code> a ajuda já explica o que falta, e ainda mostrava por baixo "Prévia: #VALOR!", repetindo o problema com um texto confuso. Agora, se a fórmula tem erro de escrita (falta parte, parêntese, nome), <b>a prévia some</b> e fica só a explicação. Assim que a conta está completa, a prévia volta (por exemplo =SOMA(A1:A3) mostra 6).</p>',
+     '', [('Antes (v0.4.1)', 'antes-procv'), ('Depois', 'depois-procv')], 'par'),
+    ('H03', 'Explicação do #DIV/0! com a saída mais prática (E2)', G1,
+     '<p>No painel de detalhes, o texto do #DIV/0! agora termina com um exemplo que dá para copiar: <i>"mostre outra coisa no lugar, por exemplo =SEERRO(A1/B1;0)"</i>.</p>',
+     '', [('Antes (v0.4.1)', 'antes-erro-painel'), ('Depois', 'depois-erro-painel')], 'par'),
+    ('H04', 'Faixa de cima mais compacta: Copiar, Colar e Recortar só com ícone (pedido do Elias)', G2,
+     '<p>Os ícones ficaram mais juntos e a faixa ocupa menos espaço. <b>Colar, Recortar, Copiar e Pincel</b> agora são ícones pequenos, sem texto; o mesmo vale para as outras linhas de comandos simples (fonte, alinhamento, número, células, edição). Os botões grandes ficam só para o que precisa de nome (AutoSoma, Destacar regra, Tabela, Filtrar, Localizar). '
+     'Em 1366 px de largura, todas as abas da planilha e do quadro de post-its cabem sem barra de rolagem (E3).</p>',
+     'O tamanho e a distância dos ícones servem?',
+     [('Antes (v0.4.1): Página Inicial', 'antes-faixa-inicio'), ('Depois: Página Inicial', 'depois-faixa-inicio'), ('Antes: Fórmulas', 'antes-faixa-formulas'), ('Depois: Fórmulas', 'depois-faixa-formulas')], ''),
+    ('H05', 'Ao parar o mouse em cima: nome, o que faz e o atalho', G2,
+     '<p>Parando o mouse sobre qualquer botão da faixa por meio segundo, aparece um quadro com o <b>nome</b>, uma frase dizendo <b>o que faz</b> e o <b>atalho</b>, quando existe (só aparecem atalhos que de fato funcionam naquele módulo: por exemplo Ctrl+N negrito na planilha, Ctrl+D duplicar no quadro). '
+     'Some ao clicar, digitar ou rolar. No celular não aparece (não tem mouse); o nome continua lido pelos leitores de tela.</p>',
+     'As frases curtas ajudam? Tem algum botão cuja frase ficou confusa?',
+     [('Negrito, com atalho', 'depois-dica-negrito'), ('Copiar, com atalho', 'depois-dica-copiar')], ''),
+    ('H06', 'Tela estreita: o que não cabe vai para o botão "Mais" (E3)', G2,
+     '<p>Em telas menores que o necessário, a faixa não rola mais de lado escondendo botões: o que não cabe passa para um botão <b>Mais</b> no fim da faixa, que abre um quadro com os grupos que sobraram. Alargando a janela, tudo volta ao lugar sozinho. O celular continua com o jeito próprio dele.</p>',
+     '', [('Antes (v0.4.1): corta e rola de lado', 'antes-faixa-estreita'), ('Depois: botão Mais', 'depois-faixa-estreita'), ('Depois: Mais aberto', 'depois-faixa-mais')], ''),
+    ('H07', 'Novo botão "Reexibir colunas" (E4 e N05)', G2,
+     '<p>Havia "Reexibir linhas", mas faltava o par das colunas. Agora, em <b>Exibir › Linhas e colunas</b>, "Reexibir colunas" mostra de novo as colunas escondidas dentro da seleção (selecione as colunas dos dois lados da escondida). Também aparece na busca (Ctrl K) por "mostrar colunas ocultas".</p>',
+     '', [('Coluna B oculta (vai de A para C)', 'depois-colunas-ocultas'), ('Depois de Reexibir colunas', 'depois-colunas-de-volta')], 'par'),
+    ('H08', 'Próximas versões e novas funções (decisão)', G3,
+     '<p><b>v0.4.3 (Opus 5.5 · alto):</b> as ajudas da fórmula que estavam planejadas — "Explicar esta conta" (PL11), "Por que deu erro?" (PL12), painel Problemas (PL13), a conta desenhada como fluxograma (PL15) e montar a conta respondendo uma pergunta (PL18) — mais o menu de botão direito nos cabeçalhos de linha e coluna (N04).</p>'
+     '<p><b>v0.4.4 (Sonnet 5.5 · alto):</b> a <b>Assinatura</b>: linha em branco com o nome completo escrito embaixo, onde você coloca a assinatura/rubrica (desenhando com mouse ou dedo, ou com uma foto). Primeiro no quadro de post-its; depois Docx e Planilha. A imagem fica só no arquivo, no seu aparelho, nunca no código nem no GitHub. Exportar para EFCquiz e EFClaudian fica com você, no outro projeto.</p>'
+     '<p>Depois vêm os menus da lista N01–N16 que você já aprovou, em blocos pequenos, antes da v0.5.0 (abrir e salvar Excel, PDF e imprimir a planilha). A v0.5.0 continua precisando de <b>3 a 5 arquivos .xlsx reais com dados trocados</b>.</p>'
+     '<p>Ainda sem decisão: as <b>funções novas N17 a N23</b> (qualidade). Sugiro aprovar primeiro N17 a N20 e N22.</p>',
+     'Pode seguir para a v0.4.3 depois desta?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
-    f'<div class="nums"><span>86/86 testes de regras</span><span>70/70 testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
+    f'<div class="nums"><span>90/90 testes de regras</span><span>77/77 testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>A <b>v0.4.0 já está no GitHub</b> (commit da64aab). Esta v0.4.1 traz só as correções pedidas na aprovação e o item novo de prioridade máxima (duas abas).</li>'
-    '<li>Testes novos: 7 de regras (formato herdado, 25:00, número inteiro, dica no fim, mensagens, cores, duas abas gravando) e 8 no navegador (duas abas na planilha e no quadro, gravação no meio, datas, dica, congelado, celular, Leitor). Cada teste novo falha na v0.4.0 e passa agora.</li>'
-    '<li>Nada vai ao GitHub antes da sua resposta.</li>'
+    '<li>A <b>v0.4.1 já está no GitHub</b> (commit 5ca553f). Esta v0.4.2 é a rodada de ajustes: tudo do relatório do Grok (E1 a E4, Y06) mais a faixa compacta com dicas que você pediu.</li>'
+    '<li>Também: a tela Início deixou de dizer que a planilha chega depois; agora diz que quadro de post-its e planilha já funcionam e que o documento chega na v0.7.0.</li>'
+    '<li>Testes novos: regras (funções que faltam, SOMAA continua virando SOMA, dicas de todos os botões) e navegador (grava CORREL, sem prévia no PROCV, faixa cabe em 1366 px em todas as abas, Mais em 1000 px, dica ao parar o mouse, Reexibir colunas).</li>'
+    '<li>Nada vai ao GitHub antes da sua resposta. Nada a configurar no Firebase.</li>'
     '</ul>'
 )
 
@@ -94,7 +79,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Correções da Planilha e duas abas')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Funções do Excel que faltam, faixa compacta e dicas')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

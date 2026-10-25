@@ -77,10 +77,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.4.1', async () => {
+await caso('abre sem erro, rodapé mostra v0.4.2', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.4.1'), 'rodapé sem v0.4.1');
+  certo((await p.locator('.foot').innerText()).includes('v0.4.2'), 'rodapé sem v0.4.2');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1193,6 +1193,131 @@ await caso('v0.4.1 celular: dois toques na célula e o primeiro número digitado
   await p.keyboard.type('123');
   await p.waitForTimeout(80);
   igual(await p.locator('.pl-banda textarea').inputValue(), '123', 'o primeiro dígito sumiu');
+});
+await ctx.close();
+
+/* ---------- v0.4.2: função desconhecida, faixa compacta e dicas ---------- */
+({ ctx, p } = await novaPagina());
+await caso('v0.4.2: função que parece outra não troca nem apaga: grava com #NOME?; só erro de digitação pede troca', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['1', '2', '3']);
+  for (const [ref, f] of [['C1', '=CORREL(A1:A3;A1:A3)'], ['C2', '=MODO(A1:A3)'], ['C3', '=TETO(A1;5)'], ['C4', '=NÃOD(A1)']]) {
+    await celula(p, ref);
+    await p.keyboard.type(f);
+    await p.waitForTimeout(100);
+    const ajuda = await p.locator('.pl-ajuda').innerText();
+    certo(!/Usar [A-Z]/.test(ajuda), 'sugeriu troca para ' + f + ': ' + ajuda);
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(100);
+    await celula(p, ref);
+    igual((await fxTexto(p)).trim(), f, 'a fórmula sumiu: ' + f);
+    igual(await celula(p, ref), '#NOME?', 'esperava #NOME? em ' + f);
+    certo((await p.evaluate(() => document.querySelector('.pl-edcel')) === null), 'ficou editando ' + f);
+  }
+  /* erro de digitação continua pedindo a troca e segura o Enter */
+  await celula(p, 'D1');
+  await p.keyboard.type('=SOMAA(A1:A3)');
+  await p.waitForTimeout(100);
+  certo((await p.locator('.pl-ajuda').innerText()).includes('Usar SOMA'), 'sem sugestão SOMA');
+  await p.locator('.pl-ajuda button:has-text("Usar SOMA")').click();
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(100);
+  await celula(p, 'D1');
+  igual((await fxTexto(p)).trim(), '=SOMA(A1:A3)');
+  igual(await celula(p, 'D1'), '6');
+});
+await caso('v0.4.2: sem prévia de #VALOR! enquanto faltam partes na função', async () => {
+  await celula(p, 'E1');
+  await p.keyboard.type('=PROCV(A1)');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-previa').count(), 0, 'prévia apareceu com a função incompleta');
+  await p.keyboard.press('Escape');
+  await celula(p, 'E2');
+  await p.keyboard.type('=SOMA(A1:A3)');
+  await p.waitForTimeout(150);
+  certo((await p.locator('.pl-previa').innerText()).includes('6'), 'prévia sumiu na conta completa');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.2: faixa não passa da tela em 1366 px, Copiar/Colar/Recortar só com ícone, Reexibir colunas', async () => {
+  for (const aba of ['Página Inicial', 'Inserir', 'Fórmulas', 'Dados', 'Revisão', 'Exibir']) {
+    await p.click(`.tabs .tab:has-text("${aba}")`);
+    await p.waitForTimeout(120);
+    const m = await p.evaluate(() => { const e = document.querySelector('.ribbon'); return [e.scrollWidth, e.clientWidth, !!document.querySelector('.rb-mais')]; });
+    certo(m[0] <= m[1] + 1 && !m[2], `faixa ${aba}: ${m}`);
+  }
+  await p.click('.tabs .tab:has-text("Página Inicial")');
+  for (const id of ['editar.colar', 'editar.copiar', 'editar.recortar']) {
+    const b = p.locator(`.ribbon [data-cmd="${id}"]`);
+    igual((await b.innerText()).trim(), '', 'texto no botão ' + id);
+    certo(!!(await b.getAttribute('aria-label')), 'sem aria-label ' + id);
+  }
+  /* ocultar a coluna B e reexibir pela faixa */
+  const vizinha = async () => { await celula(p, 'A1'); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(80); return p.locator('.pl-nome').inputValue(); };
+  await celula(p, 'B1');
+  await p.click('.tabs .tab:has-text("Exibir")');
+  await cmd(p, 'planilha.ocultarColuna');
+  await p.waitForTimeout(200);
+  igual(await vizinha(), 'C1', 'a coluna B não ficou oculta');
+  await celula(p, 'A1');
+  await p.keyboard.press('Shift+ArrowRight'); await p.keyboard.press('Shift+ArrowRight');
+  await cmd(p, 'planilha.reexibirColuna');
+  await p.waitForTimeout(200);
+  igual(await vizinha(), 'B1', 'a coluna B não voltou');
+});
+await caso('v0.4.2: dica ao parar o mouse: nome, o que faz e atalho', async () => {
+  await p.click('.tabs .tab:has-text("Página Inicial")');
+  await p.hover('.ribbon [data-cmd="formatar.negrito"]');
+  await p.waitForSelector('.dica-cmd', { timeout: 2000 });
+  const t = await p.locator('.dica-cmd').innerText();
+  certo(t.includes('Negrito') && t.includes('Ctrl+N') && t.includes('Letra em negrito'), 'dica: ' + t);
+  await print(p, '44-dica-botao');
+  await p.mouse.move(600, 400);
+  await p.waitForTimeout(150);
+  igual(await p.locator('.dica-cmd').count(), 0, 'dica não sumiu');
+  await p.hover('.ribbon [data-cmd="editar.copiar"]');
+  await p.waitForSelector('.dica-cmd', { timeout: 2000 });
+  certo((await p.locator('.dica-cmd').innerText()).includes('Ctrl+C'), 'sem atalho no copiar');
+  await p.mouse.move(600, 400);
+});
+await caso('v0.4.2: tela estreita: o que não cabe vai para "Mais" e abre', async () => {
+  await p.setViewportSize({ width: 1000, height: 700 });
+  await p.waitForTimeout(300);
+  await p.click('.tabs .tab:has-text("Página Inicial")');
+  await p.waitForSelector('.rb-mais');
+  const m = await p.evaluate(() => { const e = document.querySelector('.ribbon'); return [e.scrollWidth, e.clientWidth]; });
+  certo(m[0] <= m[1] + 1, 'faixa passa da tela: ' + m);
+  await p.click('.rb-mais');
+  await p.waitForSelector('.rb-mais-painel');
+  certo(await p.locator('.rb-mais-painel [data-cmd="formula.autosoma"]').isVisible(), 'AutoSoma não está no Mais');
+  await print(p, '45-faixa-mais');
+  await p.keyboard.press('Escape');
+  igual(await p.locator('.rb-mais-painel').count(), 0, 'Mais não fechou');
+  await p.setViewportSize({ width: 1366, height: 800 });
+  await p.waitForTimeout(300);
+  igual(await p.locator('.rb-mais').count(), 0, 'Mais não sumiu ao alargar');
+});
+await caso('v0.4.2: faixa do quadro de post-its também com dicas e sem passar da tela', async () => {
+  await p.goto(BASE + '#/postits');
+  await p.waitForSelector('[data-novo=postits]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  for (const aba of ['Página Inicial', 'Inserir', 'Organizar', 'Revisão', 'Exibir']) {
+    await p.click(`.tabs .tab:has-text("${aba}")`);
+    await p.waitForTimeout(120);
+    const m = await p.evaluate(() => { const e = document.querySelector('.ribbon'); return [e.scrollWidth, e.clientWidth]; });
+    certo(m[0] <= m[1] + 1, `faixa do quadro ${aba}: ${m}`);
+  }
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await p.hover('.ribbon [data-cmd="inserir.postit"]');
+  await p.waitForSelector('.dica-cmd', { timeout: 2000 });
+  certo((await p.locator('.dica-cmd').innerText()).includes('Cria um post-it'), 'dica do post-it');
+  await p.mouse.move(600, 500);
+});
+await caso('v0.4.2: a tela Início não diz mais que a planilha chega na v0.4.0', async () => {
+  await p.goto(BASE + '#/');
+  await p.waitForSelector('.pagina .sub');
+  const t = await p.locator('.pagina .sub').first().innerText();
+  certo(!t.includes('v0.4.0') && t.includes('planilha'), t);
 });
 await ctx.close();
 

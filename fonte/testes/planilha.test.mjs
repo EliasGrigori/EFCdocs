@@ -1,4 +1,4 @@
-/* EFCdocs v0.4.1 — testes das regras da Planilha (motor, fórmulas, formatos, entrada, operações). */
+/* EFCdocs v0.4.2 — testes das regras da Planilha (motor, fórmulas, formatos, entrada, operações). */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Motor } from '../src/planilha/motor.js';
@@ -489,4 +489,55 @@ test('v0.4.1: cor da letra se ajusta ao tema sem perder o matiz', () => {
   assert.equal(corLegivel('#808080', '#ffffff', '#1f1f1f'), '#808080');
   /* vermelho no escuro já se lê: fica */
   assert.equal(corLegivel('#ff0000', '#1e1e1e', '#e6e6e6'), '#ff0000');
+});
+
+/* ---------- v0.4.2: função inexistente, dicas dos botões ---------- */
+import { funcaoParecida, funcaoDoExcelQueFalta } from '../src/planilha/nomesFuncoes.js';
+import { DESCRICAO, ATALHOS, dicaDoComando } from '../src/nucleo/dicas.js';
+import { PorId } from '../src/nucleo/comandos.js';
+import { readFileSync } from 'node:fs';
+import { ERRO_EXPLICA } from '../src/planilha/valores.js';
+
+test('v0.4.2: só sugere troca de função quando a grafia é bem parecida (E1/N24)', () => {
+  /* os casos do relatório do Grok: nada de trocar CORREL por CORRESP etc. */
+  for (const f of ['CORREL', 'TENDÊNCIA', 'MODO', 'TETO', 'FREQUÊNCIA', 'NÃOD', 'MÉDIAA', 'DIST.NORM.N', 'TEXTOANTES']) {
+    assert.equal(funcaoParecida(f), null, f);
+    const d = diagnosticar(`${f}(A1)`);
+    assert.ok(d.every((x) => !x.troca && x.nivel !== 'erro'), f + ' deveria só avisar');
+  }
+  assert.equal(funcaoParecida('SOMAA').pt, 'SOMA');
+  assert.equal(funcaoParecida('PROCVV').pt, 'PROCV');
+  assert.equal(diagnosticar('SOMAA(A1)')[0].troca.novo, 'SOMA');
+  assert.ok(funcaoDoExcelQueFalta('CORREL') && funcaoDoExcelQueFalta('correl') && funcaoDoExcelQueFalta('TREND'));
+  assert.ok(!funcaoDoExcelQueFalta('SOMA') && !funcaoDoExcelQueFalta('XYZW'));
+  assert.match(diagnosticar('CORREL(A1:A3;B1:B3)')[0].msg, /ainda não sabe calcular/);
+  assert.match(diagnosticar('XYZW(1)')[0].msg, /Não conheço a função XYZW/);
+});
+
+test('v0.4.2: função desconhecida fica guardada e a célula mostra #NOME? (nunca some)', () => {
+  const c = planilhaVazia();
+  const id = c.ordem[0];
+  c.abas[id].cel.A1 = { f: paraGuardar('CORREL(B1:B3;C1:C3)') };
+  const m = new Motor(c);
+  assert.equal(String(m.valor(id, 0, 0)), '#NOME?');
+  assert.equal(paraMostrar(c.abas[id].cel.A1.f), 'CORREL(B1:B3;C1:C3)');
+});
+
+test('v0.4.2: #DIV/0! explica com o exemplo do SEERRO', () => {
+  assert.match(ERRO_EXPLICA['#DIV/0!'], /=SEERRO\(A1\/B1;0\)/);
+});
+
+test('v0.4.2: todo botão da faixa tem dica (o que faz) e os atalhos são os que funcionam', () => {
+  const fonte = readFileSync(new URL('../src/ui/faixa.jsx', import.meta.url), 'utf8');
+  const bloco = fonte.slice(fonte.indexOf('const FAIXAS'), fonte.indexOf('export const BARRA_CURTA'));
+  const bloco2 = fonte.slice(fonte.indexOf('export const BARRA_CURTA'), fonte.indexOf('/** Abas da faixa'));
+  const ids = new Set([...(bloco + bloco2).matchAll(/'([a-z]+\.[a-zA-Z]+)'/g)].map((m) => m[1]));
+  const sem = [...ids].filter((id) => PorId[id] && !DESCRICAO[id] && !/^exibir\.(faixa|menu|layout)/.test(id));
+  assert.deepEqual(sem, [], 'sem dica: ' + sem.join(', '));
+  for (const id of Object.keys(DESCRICAO)) assert.ok(PorId[id], 'dica de comando que não existe: ' + id);
+  for (const mod of Object.keys(ATALHOS)) for (const id of Object.keys(ATALHOS[mod])) assert.ok(PorId[id], 'atalho de comando que não existe: ' + id);
+  const neg = dicaDoComando(PorId['formatar.negrito'], 'planilha');
+  assert.equal(neg.atalho, 'Ctrl+N');
+  assert.equal(dicaDoComando(PorId['editar.copiar'], 'postits').atalho, 'Ctrl+C');
+  assert.equal(dicaDoComando(PorId['formatar.negrito'], 'postits').atalho, '');
 });
