@@ -1,11 +1,12 @@
-/* EFCdocs — modelo do quadro de post-its (v0.3.0).
+/* EFCdocs — modelo do quadro de post-its (v0.3.1).
    Tudo aqui é regra pura, sem tela: cria, move, liga, apaga, organiza em Kanban.
    As funções devolvem "mudanças" no formato { "itens.<id>": valor } (undefined apaga),
    que viram diffs no núcleo (desfazer/refazer e gravação só do que mudou).
 
    conteúdo = {
      v: 1,
-     itens:   { id: Item },      Item  = { id, tipo, x, y, w, h, z, texto, cor, cod?, fonte?, alinh?, nota?, link?, col?, ko?, src? }
+     itens:   { id: Item },      Item  = { id, tipo, x, y, w, h, z, texto, cor, cod?, fonte?, alinh?, nota?, link?, col?, ko?, src?,
+                                         resp?, prazo?, g?, u?, t? (tarefa), borda? (texto), rot? (legenda) }
      setas:   { id: Seta },      Seta  = { id, de: { id, lado? }, para: { id, lado? }, rotulo, estilo, pontas }
      colunas: [{ id, nome }],    colunas do Kanban (A fazer, Fazendo, Feito)
      seq: n                      último número usado nos códigos Q-001, Q-002...
@@ -25,15 +26,21 @@ export const CORES_FONTE = [
 /* Tipos de item: tamanho padrão, cor padrão, se recebe código Q e se entra no Kanban */
 export const TIPOS_ITEM = {
   postit: { nome: 'Post-it', w: 170, h: 130, cor: 'amarelo', codigo: true, kanban: true },
-  processo: { nome: 'Processo', w: 170, h: 74, cor: 'branco', codigo: true },
+  processo: { nome: 'Atividade', w: 170, h: 74, cor: 'branco', codigo: true },
   decisao: { nome: 'Decisão', w: 150, h: 110, cor: 'branco', codigo: true },
   inicio: { nome: 'Início/Fim', w: 160, h: 62, cor: 'branco', codigo: true },
-  dados: { nome: 'Dados', w: 170, h: 74, cor: 'branco', codigo: true },
+  dados: { nome: 'Entrada/Saída', w: 170, h: 74, cor: 'branco', codigo: true },
   texto: { nome: 'Texto', w: 200, h: 44, cor: null },
   raia: { nome: 'Raia', w: 1300, h: 200, cor: 'cinza' },
+  pagina: { nome: 'Página', w: 560, h: 380, cor: null },
+  legenda: { nome: 'Legenda', w: 340, h: 120, cor: null },
   imagem: { nome: 'Imagem', w: 240, h: 180, cor: null },
 };
 export const FORMAS = ['processo', 'decisao', 'inicio', 'dados'];
+/** Fundo do quadro: não se liga com seta, não entra na seleção em área e carrega o que está dentro quando se arrasta. */
+export const FUNDO = ['raia', 'pagina'];
+export const ehFundo = (it) => !!it && FUNDO.includes(it.tipo);
+const camada = (it) => (it.tipo === 'raia' ? 0 : it.tipo === 'pagina' ? 1 : 2);
 
 export const COLUNAS_PADRAO = [
   { id: 'c1', nome: 'A fazer' }, { id: 'c2', nome: 'Fazendo' }, { id: 'c3', nome: 'Feito' },
@@ -78,7 +85,7 @@ export function normalizarQuadro(c) {
 
 export const listaItens = (c) => Object.values(c.itens);
 export const listaSetas = (c) => Object.values(c.setas);
-export const porZ = (c) => listaItens(c).sort((a, b) => a.z - b.z || (a.id < b.id ? -1 : 1));
+export const porZ = (c) => listaItens(c).sort((a, b) => camada(a) - camada(b) || a.z - b.z || (a.id < b.id ? -1 : 1));
 export const maiorZ = (c) => listaItens(c).reduce((m, it) => Math.max(m, it.z), 0);
 export const menorZ = (c) => listaItens(c).reduce((m, it) => Math.min(m, it.z), 0);
 
@@ -87,6 +94,7 @@ export function contagem(c) {
   return {
     postits: it.filter((i) => i.tipo === 'postit').length,
     formas: it.filter((i) => FORMAS.includes(i.tipo)).length,
+    paginas: it.filter((i) => i.tipo === 'pagina').length,
     itens: it.length,
     setas: listaSetas(c).length,
   };
@@ -102,16 +110,16 @@ export function novoItem(c, tipo, campos = {}, opcoes = {}) {
     ...(t.cor ? { cor: t.cor } : {}),
     ...campos,
   };
-  if (tipo === 'raia') item.z = menorZ(c) - 1;
+  if (ehFundo(item)) item.z = menorZ(c) - 1;
   const mud = {};
   if (t.codigo && !item.cod) {
     const seq = (opcoes.seq ?? c.seq) + 1;
     item.cod = codigo(seq);
     mud.seq = seq;
   }
-  if (t.kanban && !item.col) {
-    item.col = c.colunas[0] ? c.colunas[0].id : 'c1';
-    item.ko = proximaOrdemKanban(c, item.col);
+  if (t.kanban) {
+    if (!item.col) item.col = c.colunas[0] ? c.colunas[0].id : 'c1';
+    if (item.ko === undefined) item.ko = proximaOrdemKanban(c, item.col);
   }
   mud['itens.' + id] = item;
   return { item, mudancas: mud };
@@ -120,6 +128,7 @@ export function novoItem(c, tipo, campos = {}, opcoes = {}) {
 export function novaSeta(c, deId, paraId, campos = {}, opcoes = {}) {
   if (!c.itens[deId] || !c.itens[paraId]) throw new Error('a seta precisa de dois itens');
   if (deId === paraId) throw new Error('a seta não pode ligar um item a ele mesmo');
+  for (const x of [c.itens[deId], c.itens[paraId]]) if (ehFundo(x) || x.tipo === 'legenda') throw new Error('raia, página e legenda não recebem seta');
   const id = opcoes.id || idCurto('s');
   const seta = { id, de: { id: deId }, para: { id: paraId }, rotulo: '', estilo: 'cotovelo', pontas: 'fim', ...campos };
   return { seta, mudancas: { ['setas.' + id]: seta } };
@@ -182,7 +191,7 @@ export function colar(c, clip, deslocamento = { x: 24, y: 24 }) {
     if (!t) continue;
     const id = idCurto();
     mapa[orig.id] = id;
-    const it = { ...structuredClone(orig), id, x: Math.round(orig.x + deslocamento.x), y: Math.round(orig.y + deslocamento.y), z: orig.tipo === 'raia' ? orig.z : ++z };
+    const it = { ...structuredClone(orig), id, x: Math.round(orig.x + deslocamento.x), y: Math.round(orig.y + deslocamento.y), z: ehFundo(orig) ? orig.z : ++z };
     delete it.cod;
     if (t.codigo) it.cod = codigo(++seq);
     if (t.kanban) {
@@ -212,7 +221,7 @@ export function tipoDoProximo(base) {
     Se a vaga estiver ocupada, desce até achar espaço. */
 export function proximoPasso(c, id, direcao = 'r', espaco = 70) {
   const base = c.itens[id];
-  if (!base) return null;
+  if (!base || ehFundo(base) || base.tipo === 'legenda') return null;
   const tipo = tipoDoProximo(base);
   const t = TIPOS_ITEM[tipo];
   const [dx, dy] = DIRECOES[direcao] || DIRECOES.r;
@@ -220,7 +229,7 @@ export function proximoPasso(c, id, direcao = 'r', espaco = 70) {
   const h = base.tipo === tipo ? base.h : t.h;
   let x = dx > 0 ? base.x + base.w + espaco : dx < 0 ? base.x - w - espaco : base.x + (base.w - w) / 2;
   let y = dy > 0 ? base.y + base.h + espaco : dy < 0 ? base.y - h - espaco : base.y + (base.h - h) / 2;
-  const ocupado = (px, py) => listaItens(c).some((o) => o.tipo !== 'raia' && px < o.x + o.w && px + w > o.x && py < o.y + o.h && py + h > o.y);
+  const ocupado = (px, py) => listaItens(c).some((o) => !ehFundo(o) && px < o.x + o.w && px + w > o.x && py < o.y + o.h && py + h > o.y);
   for (let i = 0; i < 20 && ocupado(x, y); i++) {
     if (dx !== 0) y += h + 30; else x += w + 30;
   }
@@ -235,7 +244,7 @@ export function proximoPasso(c, id, direcao = 'r', espaco = 70) {
 
 /** Primeira vaga livre perto do ponto (para não pôr um post-it em cima do outro). */
 export function vagaLivre(c, x, y, w, h, passo = 28) {
-  const ocupado = (px, py) => listaItens(c).some((o) => o.tipo !== 'raia' && px < o.x + o.w && px + w > o.x && py < o.y + o.h && py + h > o.y);
+  const ocupado = (px, py) => listaItens(c).some((o) => !ehFundo(o) && px < o.x + o.w && px + w > o.x && py < o.y + o.h && py + h > o.y);
   let px = Math.round(x), py = Math.round(y);
   for (let i = 0; i < 40 && ocupado(px, py); i++) { px += passo; py += passo; }
   return { x: px, y: py };
@@ -325,21 +334,70 @@ export function criarRaias(c, x, y, nomes = ['Setor 1', 'Setor 2', 'Setor 3'], l
   return mud;
 }
 
+/* ---------- Páginas ---------- */
+
+/** Página nova (moldura com título): o que estiver dentro anda junto quando ela é arrastada. */
+export function novaPagina(c, x, y, titulo) {
+  const n = listaItens(c).filter((i) => i.tipo === 'pagina').length + 1;
+  return novoItem(c, 'pagina', { x: Math.round(x), y: Math.round(y), texto: titulo || 'Página ' + n });
+}
+
+/** Itens (fora o fundo) cujo centro está dentro da página. */
+export function itensDaPagina(c, pg) {
+  return listaItens(c).filter((o) => {
+    if (ehFundo(o) || o.id === pg.id) return false;
+    const mx = o.x + o.w / 2, my = o.y + o.h / 2;
+    return mx >= pg.x && mx <= pg.x + pg.w && my >= pg.y && my <= pg.y + pg.h;
+  });
+}
+
+/** Páginas na ordem de leitura (de cima para baixo, da esquerda para a direita). */
+export function paginasEmOrdem(c) {
+  const lista = listaItens(c).filter((i) => i.tipo === 'pagina');
+  return lista.sort((a, b) => (Math.abs(a.y - b.y) > 80 ? a.y - b.y : a.x - b.x) || (a.id < b.id ? -1 : 1));
+}
+
+/** O que sai em cada folha do PDF: uma por página, mais uma com o que ficou fora de todas. */
+export function folhas(c) {
+  const pgs = paginasEmOrdem(c);
+  if (!pgs.length) return [];
+  const usados = new Set();
+  const lista = pgs.map((pg) => {
+    const dentro = itensDaPagina(c, pg);
+    dentro.forEach((o) => usados.add(o.id));
+    const ids = new Set(dentro.map((o) => o.id));
+    ids.add(pg.id);
+    return { titulo: pg.texto || 'Página', pagina: pg, ids };
+  });
+  const soltos = listaItens(c).filter((o) => !ehFundo(o) && !usados.has(o.id));
+  if (soltos.length) lista.push({ titulo: 'Fora das páginas', pagina: null, ids: new Set(soltos.map((o) => o.id)) });
+  return lista;
+}
+
+/** Conteúdo só com os itens de uma folha (e as setas entre eles). */
+export function recorte(c, ids) {
+  const itens = {};
+  for (const id of ids) if (c.itens[id]) itens[id] = c.itens[id];
+  const setas = {};
+  for (const s of listaSetas(c)) if (itens[s.de.id] && itens[s.para.id]) setas[s.id] = s;
+  return { ...c, itens, setas };
+}
+
 /* ---------- Ordem (frente/trás) ---------- */
 
 export function mudancasFrente(c, ids) {
   let z = maiorZ(c);
   const mud = {};
-  for (const id of ids) if (c.itens[id] && c.itens[id].tipo !== 'raia') mud['itens.' + id] = { ...c.itens[id], z: ++z };
+  for (const id of ids) if (c.itens[id] && !ehFundo(c.itens[id])) mud['itens.' + id] = { ...c.itens[id], z: ++z };
   return mud;
 }
 
 export function mudancasTras(c, ids) {
   /* raias continuam sempre atrás de tudo */
-  const semRaia = listaItens(c).filter((i) => i.tipo !== 'raia');
+  const semRaia = listaItens(c).filter((i) => !ehFundo(i));
   let z = semRaia.reduce((m, it) => Math.min(m, it.z), 0);
   const mud = {};
-  for (const id of [...ids].reverse()) if (c.itens[id] && c.itens[id].tipo !== 'raia') mud['itens.' + id] = { ...c.itens[id], z: --z };
+  for (const id of [...ids].reverse()) if (c.itens[id] && !ehFundo(c.itens[id])) mud['itens.' + id] = { ...c.itens[id], z: --z };
   const raias = listaItens(c).filter((i) => i.tipo === 'raia');
   for (const r of raias) if (r.z >= z) mud['itens.' + r.id] = { ...r, z: z - 1 - raias.indexOf(r) };
   return mud;

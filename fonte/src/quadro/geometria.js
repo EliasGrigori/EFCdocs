@@ -106,13 +106,15 @@ export function meioDoCaminho(pts) {
 
 export const dentro = (it, p) => p.x >= it.x && p.x <= it.x + it.w && p.y >= it.y && p.y <= it.y + it.h;
 
-/** Item de cima (maior z) no ponto; raias só se nada mais estiver ali. */
+const FUNDOS = ['raia', 'pagina'];
+
+/** Item de cima (maior z) no ponto; raias e páginas só se nada mais estiver ali. */
 export function itemNoPonto(itens, p, ignorar) {
   let achou = null;
   for (const it of itens) {
     if (it.id === ignorar || !dentro(it, p)) continue;
     if (!achou) { achou = it; continue; }
-    const raiaA = achou.tipo === 'raia', raiaB = it.tipo === 'raia';
+    const raiaA = FUNDOS.includes(achou.tipo), raiaB = FUNDOS.includes(it.tipo);
     if (raiaA && !raiaB) achou = it;
     else if (raiaA === raiaB && it.z > achou.z) achou = it;
   }
@@ -123,10 +125,10 @@ export function normalizarRet(a, b) {
   return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) };
 }
 
-/** Itens que tocam o retângulo de seleção (raias só se estiverem inteiras dentro). */
+/** Itens que tocam o retângulo de seleção (raias e páginas só se estiverem inteiras dentro). */
 export function itensNoRet(itens, r) {
   return itens.filter((it) => {
-    if (it.tipo === 'raia') return it.x >= r.x && it.y >= r.y && it.x + it.w <= r.x + r.w && it.y + it.h <= r.y + r.h;
+    if (FUNDOS.includes(it.tipo)) return it.x >= r.x && it.y >= r.y && it.x + it.w <= r.x + r.w && it.y + it.h <= r.y + r.h;
     return it.x < r.x + r.w && it.x + it.w > r.x && it.y < r.y + r.h && it.y + it.h > r.y;
   }).map((it) => it.id);
 }

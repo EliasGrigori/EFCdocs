@@ -146,4 +146,8 @@ export const ICONES = {
   "setaCima": "<path d=\"M12 19V6M7 11l5-5 5 5\"/>",
   "pontas": "<path d=\"M5 12h14M8.5 8.5L5 12l3.5 3.5M15.5 8.5L19 12l-3.5 3.5\"/>",
   "baixar": "<path d=\"M12 4v11M7.5 10.5L12 15l4.5-4.5\"/><path d=\"M5 14v5.5h14V14\"/>",
+  "pagina": "<rect x=\"4\" y=\"3.5\" width=\"16\" height=\"17\" rx=\"1.5\"/><path d=\"M4 8.5h16\"/>",
+  "legenda": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M7 9h3M12.5 9H17M7 12.5h3M12.5 12.5H17M7 16h3M12.5 16H17\"/>",
+  "lampada": "<path d=\"M9 18h6M10 21h4\"/><path d=\"M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-.6c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5z\"/>",
+  "barraLat": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M9 4.5v15M5.8 8.5h.01M5.8 12h.01M5.8 15.5h.01\"/>",
 };

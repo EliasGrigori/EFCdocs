@@ -1,9 +1,12 @@
-/* EFCdocs — peças da tela do quadro: item, setas, barra da seleção, minimapa, temporizador e janelas pequenas. */
+/* EFCdocs — peças da tela do quadro: item, setas, barra da seleção, minimapa, temporizador, ferramentas, assistente e janelas pequenas. */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icone, Janela } from '../ui/comum.jsx';
 import { CORES, COR, CORES_FONTE, TIPOS_ITEM, FORMAS } from './modelo.js';
 import { pontosSeta, caminhoSVG, meioDoCaminho, contornoForma } from './geometria.js';
+import { MODELOS } from './modelos.js';
+import { NOTA_GUT, NIVEIS_GUT, valorGut, nivelGut, prazoValido, resumoTarefa } from './tarefa.js';
+import { linhasLegenda } from './legenda.js';
 
 const estiloTexto = (it) => {
   const f = it.fonte || {};
@@ -28,17 +31,62 @@ function FormaSvg({ it }) {
   );
 }
 
-export function ItemView({ it, zi, sel, codigos, escondeTexto }) {
+/** Formas pequenas da legenda. */
+function MiniForma({ tipo }) {
+  const traco = { stroke: '#3b4552', strokeWidth: 1.4, fill: '#fff' };
+  return (
+    <svg viewBox="0 0 34 20" width="34" height="20" aria-hidden="true">
+      {tipo === 'inicio' && <rect x="1" y="1" width="32" height="18" rx="9" {...traco} />}
+      {tipo === 'processo' && <rect x="1" y="2" width="32" height="16" {...traco} />}
+      {tipo === 'decisao' && <polygon points="17,1 33,10 17,19 1,10" {...traco} />}
+      {tipo === 'dados' && <polygon points="8,1 33,1 26,19 1,19" {...traco} />}
+      {tipo === 'postit' && <rect x="7" y="1" width="20" height="18" {...traco} fill={COR.amarelo} />}
+      {tipo === 'seta' && <><path d="M1 10h28" stroke="#475467" strokeWidth="1.6" fill="none" /><path d="M33 10l-8-4v8z" fill="#475467" /></>}
+    </svg>
+  );
+}
+
+function LegendaView({ it }) {
+  const linhas = it.linhas || [];
+  return (
+    <div className="qi-leg">
+      <b>Legenda</b>
+      {linhas.length === 0 && <span className="qi-leg-vazia">Nada para explicar ainda.</span>}
+      {linhas.map((l) => (
+        <div className="qi-leg-l" key={l.tipo}>
+          <MiniForma tipo={l.tipo} />
+          <span><b>{l.nome}</b><small>{l.descr}</small></span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Rodapé do post-it de tarefa: responsável, prazo, situação e nota GUT. */
+function RodapeTarefa({ t }) {
+  return (
+    <div className="qi-tarefa">
+      <span className="qi-tar-l1"><span>Resp.: {t.resp || '—'}</span>{t.gut > 0 && <em className={'gut gut-' + t.nivel} title={'Nota GUT ' + t.gut + ' · prioridade ' + t.nivel}>GUT {t.gut}</em>}</span>
+      <span className={'qi-tar-l2' + (t.vencida ? ' venc' : '')}>{t.prazo ? (t.vencida ? 'Vencido: ' + t.prazo : 'Prazo: ' + t.prazo + ' · ' + t.status) : 'Sem prazo · ' + t.status}</span>
+    </div>
+  );
+}
+export { RodapeTarefa };
+
+export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa }) {
   const forma = FORMAS.includes(it.tipo);
   const style = { left: it.x, top: it.y, width: it.w, height: it.h, zIndex: zi };
   if (it.tipo === 'postit') style.background = COR[it.cor] || COR.amarelo;
+  const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '');
   return (
-    <div className={'qi qi-' + it.tipo + (sel ? ' sel' : '')} data-item={it.id} data-cod={it.cod || undefined} style={style}>
+    <div className={classe} data-item={it.id} data-cod={it.cod || undefined} style={style}>
       {forma && <FormaSvg it={it} />}
       {it.tipo === 'imagem' && (it.src ? <img src={it.src} alt={it.texto || 'Imagem'} draggable="false" /> : <span className="qi-semimg"><Icone n="imagem" /></span>)}
-      {it.tipo === 'raia'
-        ? <div className="qi-raia-h" style={{ background: it.cor === 'branco' ? undefined : undefined }}><span>{escondeTexto ? '' : it.texto}</span></div>
-        : it.tipo !== 'imagem' && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : it.texto}</div>}
+      {it.tipo === 'raia' && <div className="qi-raia-h"><span>{escondeTexto ? '' : it.texto}</span></div>}
+      {it.tipo === 'pagina' && <div className="qi-pg-h"><span>{escondeTexto ? '' : it.texto}</span></div>}
+      {it.tipo === 'legenda' && <LegendaView it={it} />}
+      {!['imagem', 'raia', 'pagina', 'legenda'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : it.texto}</div>}
+      {tarefa && <RodapeTarefa t={tarefa} />}
       {codigos && it.cod && <span className="qi-cod">{it.cod}</span>}
       {(it.nota || it.link) && (
         <span className="qi-marcas">
@@ -106,21 +154,21 @@ export function Alca({ it }) {
 
 /** Barra flutuante da seleção (o excluir fica no canto direito, como combinado).
     ancora: { x: centro, topo, base } em pixels da área; a barra mede o próprio tamanho e fica sempre dentro da tela. */
-export function BarraSelecao({ ancora, area, botoes, onExcluir, rotuloExcluir, fixa }) {
+export function BarraSelecao({ ancora, area, botoes, onExcluir, rotuloExcluir, fixa, folga = 64 }) {
   const ref = useRef(null);
   const [pos, setPos] = useState(null);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     /* celular: barra presa embaixo, centralizada (não cobre itens nem setas) */
-    if (fixa) { setPos({ x: Math.max(8, (area.w - el.offsetWidth) / 2), y: area.h - el.offsetHeight - 64 }); return; }
+    if (fixa) { setPos({ x: Math.max(8, (area.w - el.offsetWidth) / 2), y: area.h - el.offsetHeight - folga }); return; }
     const w = el.offsetWidth, h = el.offsetHeight;
     let y = ancora.topo - h - 30;
     if (y < 52) y = ancora.base + 30;
     const x = Math.max(8, Math.min(area.w - w - 8, ancora.x - w / 2));
     y = Math.max(52, Math.min(area.h - h - 8, y));
     setPos({ x, y });
-  }, [ancora.x, ancora.topo, ancora.base, area.w, area.h, botoes.length, fixa]);
+  }, [ancora.x, ancora.topo, ancora.base, area.w, area.h, botoes.length, fixa, folga]);
   return (
     <div ref={ref} className={'qd-barra card' + (fixa ? ' fixa' : '')} style={pos ? { left: pos.x, top: pos.y } : { left: 0, top: 0, visibility: 'hidden' }} role="toolbar" aria-label="Ações da seleção" onPointerDown={(ev) => ev.stopPropagation()}>
       {botoes.map((b, i) => b === '|' ? <span key={'s' + i} className="sep" /> : (
@@ -256,6 +304,152 @@ export function JanelaLocalizar({ achar, substituir, aoFechar }) {
         {res && <p className="qd-dica" role="status">{res}</p>}
       </div>
     </Janela>
+  );
+}
+
+/** Barra de ferramentas vertical (computador): os itens do quadro sempre à mão. */
+export const FERRAMENTAS = [
+  ['inserir.postit', 'postit', 'Post-it'], ['inserir.inicio', 'inicio', 'Início/Fim'], ['inserir.processo', 'processo', 'Atividade'],
+  ['inserir.decisao', 'decisao', 'Decisão'], ['inserir.dados', 'dados', 'Entrada/Saída'], ['inserir.texto', 'texto', 'Texto'],
+  ['inserir.pagina', 'pagina', 'Página'], ['inserir.legenda', 'legenda', 'Legenda'], ['inserir.seta', 'seta', 'Seta'],
+];
+export function Ferramentas({ aoUsar, ligada, aoFechar }) {
+  return (
+    <div className="qd-ferr card" role="toolbar" aria-label="Ferramentas do quadro" onPointerDown={(ev) => ev.stopPropagation()}>
+      <button type="button" className="qd-ferr-x" title="Esconder as ferramentas" aria-label="Esconder as ferramentas" onClick={aoFechar}><Icone n="x" /></button>
+      {FERRAMENTAS.map(([id, ic, nome]) => (
+        <button key={id} type="button" className={'qd-ferr-b' + (ligada(id) ? ' on' : '')} data-ferr={id} title={nome} aria-label={nome} aria-pressed={ligada(id) || undefined} onClick={() => aoUsar(id)}>
+          <Icone n={ic} /><span>{nome}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Celular: faixa de baixo com "Editar" e as cores à mão. */
+export function CoresCelular({ cor, aoCor, aoEditar }) {
+  return (
+    <div className="qd-cores-cel card" role="group" aria-label="Cores" onPointerDown={(ev) => ev.stopPropagation()}>
+      {aoEditar && <button type="button" className="qd-cc-editar" onClick={aoEditar}><Icone n="renomear" />Editar</button>}
+      <div className="qd-cc-lista">
+        {CORES.map(([id, hex, nome]) => (
+          <button key={id} type="button" className={'qd-cc' + (cor === id ? ' on' : '')} title={nome} aria-label={'Cor ' + nome} data-cor={id} style={{ background: hex }} onClick={() => aoCor(id)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Assistente do quadro: a lâmpada com o número de pendências e a lista de problemas. */
+export function Assistente({ lista, aberto, aoAlternar, aoIr, folga }) {
+  return (
+    <>
+      <button type="button" className={'qd-lamp card' + (lista.length ? ' tem' : '')} style={folga ? { bottom: folga } : undefined} aria-expanded={aberto} aria-label={'Assistente do quadro: ' + (lista.length ? lista.length + ' pendências' : 'nenhuma pendência')} title="Assistente do quadro" onClick={aoAlternar} onPointerDown={(ev) => ev.stopPropagation()}>
+        <Icone n="lampada" /><span>Assistente</span>{lista.length > 0 && <em>{lista.length}</em>}
+      </button>
+      {aberto && (
+        <div className="qd-assist card" style={folga ? { bottom: folga + 50 } : undefined} role="dialog" aria-label="Assistente do quadro" onPointerDown={(ev) => ev.stopPropagation()}>
+          <header><b>Assistente</b><button type="button" className="rbi" title="Fechar" aria-label="Fechar o assistente" onClick={aoAlternar}><Icone n="x" /></button></header>
+          {lista.length === 0 ? <p className="qd-assist-ok"><Icone n="check" />Tudo certo: nenhuma pendência no quadro.</p> : (
+            <ul>
+              {lista.map((p) => (
+                <li key={p.id} className={p.nivel}>
+                  <i aria-hidden="true" />
+                  <span>{p.texto}</span>
+                  {p.item && <button type="button" className="btn sm" onClick={() => aoIr(p)}>Ir</button>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Janela dos modelos de quadro da qualidade. */
+export function JanelaModelos({ aoEscolher, aoFechar }) {
+  return (
+    <Janela titulo="Modelos de quadro" aoFechar={aoFechar} classe="qd-formas">
+      <div className="janela-c">
+        <div className="qd-paleta">
+          {MODELOS.map((m) => (
+            <button key={m.id} type="button" className="qd-cor" data-modelo={m.id} onClick={() => { aoEscolher(m.id); aoFechar(); }}>
+              <Icone n={m.ic} />
+              <span><b>{m.nome}</b><small>{m.descr}</small></span>
+            </button>
+          ))}
+        </div>
+        <p className="qd-dica">O modelo entra com textos de exemplo. Se o quadro já tem itens, ele entra embaixo deles. Dá para desfazer com Ctrl+Z.</p>
+      </div>
+    </Janela>
+  );
+}
+
+/** Painel do post-it de tarefa: responsável, prazo e nota GUT. Grava ao sair do campo (não a cada tecla). */
+export function PainelTarefa({ it, c, hoje, bloqueado, aoMudar }) {
+  const [resp, setResp] = useState(it.resp || '');
+  const [prazo, setPrazo] = useState(it.prazo || '');
+  /* desfazer/refazer mudam o item por fora: o campo acompanha */
+  useEffect(() => { setResp(it.resp || ''); }, [it.resp]);
+  useEffect(() => { setPrazo(it.prazo || ''); }, [it.prazo]);
+  const r = resumoTarefa(c, it, hoje);
+  const gut = valorGut(it);
+  const nivel = nivelGut(gut);
+  const nomeNivel = nivel ? NIVEIS_GUT.find((n) => n.id === nivel).nome : '';
+  const nota = (campo, rotulo) => (
+    <label className="campo-t" key={campo}>{rotulo}
+      <select value={it[campo] || ''} disabled={bloqueado} onChange={(ev) => aoMudar({ [campo]: ev.target.value })}>
+        <option value="">—</option>
+        {NOTA_GUT.map((n) => <option key={n} value={n}>{n}</option>)}
+      </select>
+    </label>
+  );
+  return (
+    <div className="qd-tarefa-p" role="group" aria-label="Tarefa">
+      <label className="campo-t">Responsável
+        <input value={resp} maxLength={60} disabled={bloqueado} placeholder="Nome de quem faz" onChange={(ev) => setResp(ev.target.value)} onBlur={() => { if (resp.trim() !== (it.resp || '')) aoMudar({ resp }); }} onKeyDown={(ev) => { if (ev.key === 'Enter') ev.currentTarget.blur(); }} />
+      </label>
+      <label className="campo-t">Prazo
+        <input type="date" value={prazo} min="2000-01-01" max="2100-12-31" disabled={bloqueado} onChange={(ev) => setPrazo(ev.target.value)} onBlur={() => { if (prazo !== (it.prazo || '') && (prazo === '' || prazoValido(prazo))) aoMudar({ prazo }); }} />
+      </label>
+      {r && r.vencida && <p className="qd-aviso venc" role="status">Prazo vencido ({r.prazo}).</p>}
+      <div className="qd-gut-sel"><b>GUT</b>{nota('g', 'Gravidade')}{nota('u', 'Urgência')}{nota('t', 'Tendência')}</div>
+      <p className={'qd-gut-res' + (nivel ? ' gut-' + nivel : '')} role="status">
+        {gut ? <>GUT = <b>{gut}</b> · prioridade {nomeNivel.toLowerCase()}</> : 'Preencha as três notas (1 a 5) para ver a prioridade.'}
+      </p>
+    </div>
+  );
+}
+
+/** Uma linha do painel da legenda (nome e descrição). Grava ao sair do campo; acompanha desfazer/refazer. */
+function LinhaLegenda({ l, bloqueado, aoMudar }) {
+  const [n, setN] = useState(l.nome);
+  const [d, setD] = useState(l.descr);
+  useEffect(() => { setN(l.nome); }, [l.nome]);
+  useEffect(() => { setD(l.descr); }, [l.descr]);
+  const enter = (ev) => { if (ev.key === 'Enter') ev.currentTarget.blur(); };
+  return (
+    <div className="qd-leg-lin">
+      <label className="campo-t">Nome
+        <input value={n} maxLength={30} disabled={bloqueado} onChange={(ev) => setN(ev.target.value)} onBlur={() => { if (n.trim() !== l.nome) aoMudar(l.tipo, 'n', n); }} onKeyDown={enter} />
+      </label>
+      <label className="campo-t">Descrição
+        <input value={d} maxLength={90} disabled={bloqueado} onChange={(ev) => setD(ev.target.value)} onBlur={() => { if (d.trim() !== l.descr) aoMudar(l.tipo, 'd', d); }} onKeyDown={enter} />
+      </label>
+    </div>
+  );
+}
+
+/** Painel da legenda: troca o nome e a descrição de cada linha. Texto vazio volta ao padrão. */
+export function PainelLegenda({ it, c, bloqueado, aoMudar }) {
+  const linhas = linhasLegenda(c, it);
+  return (
+    <div className="qd-leg-p" role="group" aria-label="Textos da legenda">
+      {linhas.length === 0 && <p className="qd-dica">A legenda se monta sozinha quando houver formas ou setas no quadro.</p>}
+      {linhas.map((l) => <LinhaLegenda key={l.tipo} l={l} bloqueado={bloqueado} aoMudar={aoMudar} />)}
+      <p className="qd-dica">Apague o texto e saia do campo para voltar ao padrão.</p>
+    </div>
   );
 }
 

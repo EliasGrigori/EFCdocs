@@ -3,7 +3,7 @@
 Este é o código que gera o app publicado na raiz do repositório.
 
 - `src/nucleo/`: modelo de dados, diffs (desfazer/refazer), compactação, banco no aparelho, catálogo de comandos, perfis e preferências.
-- `src/quadro/`: Post-its e Quadro (regras, geometria, tela, Kanban, desenho para PNG/PDF, PDF paisagem).
+- `src/quadro/`: Post-its e Quadro (regras, geometria, tela, Kanban, desenho para PNG/PDF, PDF paisagem de várias folhas; v0.3.1: `tarefa.js` GUT, `legenda.js`, `assistente.js`, `modelos.js`).
 - `src/ui/`: menu, topo com faixa, janelas, páginas e ícones.
 - `testes/`: testes das regras (`npm test`).
 - `scripts/`: montagem (`npm run build` gera `dist/`), testes no navegador e página de aprovação.

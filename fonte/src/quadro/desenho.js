@@ -3,6 +3,11 @@
 
 import { COR, TIPOS_ITEM, porZ, listaSetas } from './modelo.js';
 import { pontosSeta, contornoForma, limites, meioDoCaminho } from './geometria.js';
+import { resumoTarefa, hojeISO } from './tarefa.js';
+import { derivar, MEDIDAS } from './legenda.js';
+
+/* cores do nível GUT: [fundo, texto] */
+export const COR_GUT = { alta: ['#fee4e2', '#b42318'], media: ['#fef0c7', '#b54708'], baixa: ['#d1fadf', '#067647'] };
 
 export const FONTE = '"DejaVu Sans", Verdana, system-ui, sans-serif';
 export const COR_TEXTO = '#1f2328';
@@ -11,6 +16,7 @@ export const COR_SETA = '#475467';
 
 /** Limites do quadro inteiro, incluindo setas. */
 export function limitesDoQuadro(c) {
+  c = derivar(c);
   const itens = porZ(c);
   const pts = listaSetas(c).map((s) => {
     const a = c.itens[s.de.id], b = c.itens[s.para.id];
@@ -50,10 +56,10 @@ export function quebrarTexto(ctx, texto, largura) {
 
 function fonteDo(it, tamanho) {
   const f = it.fonte || {};
-  return `${f.i ? 'italic ' : ''}${f.n || it.tipo === 'texto' ? '700 ' : ''}${tamanho}px ${FONTE}`;
+  return `${f.i ? 'italic ' : ''}${f.n || (it.tipo === 'texto' && !it.borda) ? '700 ' : ''}${tamanho}px ${FONTE}`;
 }
 
-export const tamanhoFonte = (it) => (it.tipo === 'texto' ? 18 : it.tipo === 'raia' ? 15 : 14);
+export const tamanhoFonte = (it) => (it.tipo === 'texto' ? (it.borda ? 14 : 18) : it.tipo === 'raia' || it.tipo === 'pagina' ? 15 : 14);
 
 function escreverTexto(ctx, it, caixa) {
   const tam = tamanhoFonte(it);
@@ -98,9 +104,111 @@ function caminhoForma(ctx, it) {
   }
 }
 
+/** Corta o texto com "…" para caber na largura. */
+function cortar(ctx, texto, largura) {
+  let t = String(texto);
+  if (ctx.measureText(t).width <= largura) return t;
+  while (t.length > 1 && ctx.measureText(t + '…').width > largura) t = t.slice(0, -1);
+  return t + '…';
+}
+
+/** Formas pequenas da legenda (mesmo desenho da tela). */
+function miniForma(ctx, tipo, x, y) {
+  const w = 34, h = 20;
+  ctx.save();
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = COR_LINHA;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  if (tipo === 'inicio') {
+    const r = h / 2;
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arc(x + w - r, y + r, r, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(x + r, y + h); ctx.arc(x + r, y + r, r, Math.PI / 2, Math.PI * 1.5); ctx.closePath();
+  } else if (tipo === 'decisao') {
+    ctx.moveTo(x + w / 2, y); ctx.lineTo(x + w, y + h / 2); ctx.lineTo(x + w / 2, y + h); ctx.lineTo(x, y + h / 2); ctx.closePath();
+  } else if (tipo === 'dados') {
+    ctx.moveTo(x + 7, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w - 7, y + h); ctx.lineTo(x, y + h); ctx.closePath();
+  } else if (tipo === 'postit') {
+    ctx.rect(x + 7, y, 20, h); ctx.fillStyle = COR.amarelo;
+  } else if (tipo === 'seta') {
+    ctx.moveTo(x, y + h / 2); ctx.lineTo(x + w - 2, y + h / 2);
+  } else ctx.rect(x, y + 1, w, h - 2);
+  if (tipo === 'seta') {
+    ctx.stroke();
+    ctx.fillStyle = COR_SETA;
+    ctx.beginPath(); ctx.moveTo(x + w, y + h / 2); ctx.lineTo(x + w - 8, y + h / 2 - 4); ctx.lineTo(x + w - 8, y + h / 2 + 4); ctx.closePath(); ctx.fill();
+  } else { ctx.fill(); ctx.stroke(); }
+  ctx.restore();
+}
+
+function desenharLegenda(ctx, it) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(16,24,40,.14)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(it.x, it.y, it.w, it.h);
+  ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = '#d0d5dd'; ctx.lineWidth = 1;
+  ctx.strokeRect(it.x + 0.5, it.y + 0.5, it.w - 1, it.h - 1);
+  ctx.fillStyle = COR_TEXTO; ctx.textAlign = 'left'; ctx.font = `700 13px ${FONTE}`;
+  ctx.fillText('Legenda', it.x + 12, it.y + 24);
+  const linhas = it.linhas || [];
+  if (!linhas.length) { ctx.font = `12px ${FONTE}`; ctx.fillStyle = '#667085'; ctx.fillText('Nada para explicar ainda.', it.x + 12, it.y + MEDIDAS.topo + 22); }
+  linhas.forEach((l, i) => {
+    const y = it.y + MEDIDAS.topo + i * MEDIDAS.linha;
+    miniForma(ctx, l.tipo, it.x + 12, y + 6);
+    ctx.fillStyle = COR_TEXTO; ctx.font = `700 12px ${FONTE}`;
+    ctx.fillText(cortar(ctx, l.nome, it.w - 66), it.x + 56, y + 16);
+    ctx.fillStyle = '#667085'; ctx.font = `10.5px ${FONTE}`;
+    ctx.fillText(cortar(ctx, l.descr, it.w - 66), it.x + 56, y + 31);
+  });
+  ctx.restore();
+}
+
+function desenharPagina(ctx, it) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(16,24,40,.18)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 3;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(it.x, it.y, it.w, it.h);
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = '#e9edf1';
+  ctx.fillRect(it.x, it.y, it.w, 34);
+  ctx.strokeStyle = '#cfd4dc'; ctx.lineWidth = 1;
+  ctx.strokeRect(it.x + 0.5, it.y + 0.5, it.w - 1, it.h - 1);
+  ctx.beginPath(); ctx.moveTo(it.x, it.y + 34.5); ctx.lineTo(it.x + it.w, it.y + 34.5); ctx.stroke();
+  escreverTexto(ctx, { ...it, alinh: 'c', fonte: { ...(it.fonte || {}), n: true } }, { x: it.x + 12, y: it.y + 2, w: it.w - 24, h: 30 });
+  ctx.restore();
+}
+
+/** Rodapé do post-it de tarefa: responsável, prazo, situação e nota GUT. */
+function desenharTarefa(ctx, it, r) {
+  const x = it.x + 8, base = it.y + it.h;
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.font = `600 11px ${FONTE}`;
+  ctx.fillStyle = 'rgba(31,35,40,.80)';
+  const gut = r.gut ? `GUT ${r.gut}` : '';
+  ctx.font = `700 10px ${FONTE}`;
+  const wg = gut ? ctx.measureText(gut).width + 12 : 0;
+  ctx.font = `600 11px ${FONTE}`;
+  ctx.fillText(cortar(ctx, 'Resp.: ' + (r.resp || '—'), it.w - 16 - wg - 4), x, base - 22);
+  ctx.fillStyle = r.vencida ? '#b42318' : 'rgba(31,35,40,.80)';
+  if (r.vencida) ctx.font = `700 11px ${FONTE}`;
+  ctx.fillText(cortar(ctx, (r.prazo ? (r.vencida ? 'Vencido: ' + r.prazo : 'Prazo: ' + r.prazo + ' · ' + r.status) : 'Sem prazo · ' + r.status), it.w - 16), x, base - 8);
+  if (gut) {
+    const [fundo, texto] = COR_GUT[r.nivel];
+    ctx.fillStyle = fundo;
+    ctx.fillRect(it.x + it.w - 8 - wg, base - 34, wg, 16);
+    ctx.fillStyle = texto; ctx.font = `700 10px ${FONTE}`; ctx.textAlign = 'center';
+    ctx.fillText(gut, it.x + it.w - 8 - wg / 2, base - 22);
+  }
+  ctx.restore();
+}
+
 function desenharItem(ctx, it, opcoes) {
   const cor = COR[it.cor] || '#ffffff';
   ctx.save();
+  if (it.tipo === 'pagina') { desenharPagina(ctx, it); ctx.restore(); return; }
+  if (it.tipo === 'legenda') { desenharLegenda(ctx, it); ctx.restore(); return; }
   if (it.tipo === 'raia') {
     ctx.fillStyle = it.cor === 'branco' ? '#fbfbfc' : '#f1f3f6';
     ctx.strokeStyle = '#cfd4dc';
@@ -141,8 +249,14 @@ function desenharItem(ctx, it, opcoes) {
     ctx.lineWidth = 1.6;
     ctx.stroke();
   }
+  if (it.tipo === 'texto' && it.borda) {
+    ctx.strokeStyle = COR_LINHA; ctx.lineWidth = 1.2;
+    ctx.strokeRect(it.x + 0.5, it.y + 0.5, it.w - 1, it.h - 1);
+  }
+  const tarefa = it.tipo === 'postit' && opcoes.c ? resumoTarefa(opcoes.c, it, opcoes.hoje || hojeISO()) : null;
   const folga = it.tipo === 'decisao' ? { x: it.w * 0.2, y: it.h * 0.22 } : it.tipo === 'dados' ? { x: 22, y: 8 } : it.tipo === 'texto' ? { x: 4, y: 2 } : { x: 12, y: it.tipo === 'postit' ? 18 : 8 };
-  escreverTexto(ctx, it, { x: it.x + folga.x, y: it.y + folga.y, w: it.w - folga.x * 2, h: it.h - folga.y * 2 });
+  escreverTexto(ctx, it, { x: it.x + folga.x, y: it.y + folga.y, w: it.w - folga.x * 2, h: it.h - folga.y * 2 - (tarefa ? 34 : 0) });
+  if (tarefa) desenharTarefa(ctx, it, tarefa);
   if (opcoes.codigos && it.cod) {
     ctx.font = `600 10px ${FONTE}`;
     ctx.fillStyle = 'rgba(31,35,40,.55)';
@@ -195,6 +309,8 @@ function desenharSeta(ctx, s, c) {
 
 /** Desenha tudo. opcoes: { escala, origem: {x,y}, fundo, codigos, imagens: Map, demo } */
 export function desenharQuadro(ctx, c, opcoes = {}) {
+  c = derivar(c);
+  opcoes = { ...opcoes, c };
   const escala = opcoes.escala || 1;
   const origem = opcoes.origem || { x: 0, y: 0 };
   const W = ctx.canvas.width, H = ctx.canvas.height;
@@ -206,7 +322,8 @@ export function desenharQuadro(ctx, c, opcoes = {}) {
   ctx.textBaseline = 'alphabetic';
   const itens = porZ(c);
   for (const it of itens.filter((i) => i.tipo === 'raia')) desenharItem(ctx, it, opcoes);
-  for (const it of itens.filter((i) => i.tipo !== 'raia')) desenharItem(ctx, it, opcoes);
+  for (const it of itens.filter((i) => i.tipo === 'pagina')) desenharItem(ctx, it, opcoes);
+  for (const it of itens.filter((i) => i.tipo !== 'raia' && i.tipo !== 'pagina')) desenharItem(ctx, it, opcoes);
   for (const s of listaSetas(c)) desenharSeta(ctx, s, c);
   ctx.restore();
   if (opcoes.demo) marcaDemo(ctx);
@@ -240,6 +357,7 @@ export async function carregarImagens(c) {
 
 /** Monta o canvas do quadro inteiro (margem em volta). Limite de 24 milhões de pixels. */
 export async function canvasDoQuadro(c, { escala = 2, margem = 40, codigos = true, demo = false } = {}) {
+  c = derivar(c);
   const lim = limitesDoQuadro(c) || { x: 0, y: 0, w: 400, h: 240 };
   let e = escala;
   const largura = lim.w + margem * 2, altura = lim.h + margem * 2;

@@ -1,5 +1,5 @@
-/* EFCdocs — editor do quadro de post-its (v0.3.0).
-   Quadro livre (post-its, formas de fluxograma, texto, imagem, raias) com setas presas,
+/* EFCdocs — editor do quadro de post-its (v0.3.1).
+   Quadro livre (post-its, formas de fluxograma, texto, imagem, raias, páginas, legenda) com setas presas,
    visão Kanban dos mesmos post-its, exportar PNG/PDF paisagem e imprimir.
    Toda mudança vira um diff: entra no desfazer/refazer e grava só o que mudou. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -9,12 +9,18 @@ import * as Q from './modelo.js';
 import { itemNoPonto, itensNoRet, normalizarRet, enquadrar, ancora, limites } from './geometria.js';
 import { limitesDoQuadro } from './desenho.js';
 import { exportarPdf, exportarPng, imprimir, quadroVazio } from './exportar.js';
-import { ItemView, CamadaSetas, PontosLigacao, Alca, BarraSelecao, Minimapa, Temporizador, JanelaCores, JanelaFormas, JanelaLocalizar, PortalPainel } from './partes.jsx';
+import { ItemView, CamadaSetas, PontosLigacao, Alca, BarraSelecao, Minimapa, Temporizador, JanelaCores, JanelaFormas, JanelaLocalizar, JanelaModelos, Ferramentas, CoresCelular, Assistente, PainelTarefa, PainelLegenda, PortalPainel } from './partes.jsx';
 import { KanbanVista } from './Kanban.jsx';
+import { derivar, mudancasLegenda, alturaLegenda } from './legenda.js';
+import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } from './tarefa.js';
+import { problemas } from './assistente.js';
+import { aplicarModelo, ModeloPorId } from './modelos.js';
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
-const COM_TEXTO = (it) => it && it.tipo !== 'imagem';
+const COM_TEXTO = (it) => it && it.tipo !== 'imagem' && it.tipo !== 'legenda';
+const COM_COR = (it) => it && ['postit', 'processo', 'decisao', 'inicio', 'dados', 'raia'].includes(it.tipo);
+const LIGAVEL = (it) => it && !Q.ehFundo(it) && it.tipo !== 'legenda';
 const NOME_TIPO = (it) => Q.TIPOS_ITEM[it.tipo].nome;
 
 /* área de transferência do quadro (vale entre quadros do mesmo aparelho) */
@@ -60,7 +66,8 @@ export function Quadro({ arquivo, cx }) {
   const [arrasto, setArrasto] = useState(null);
   const [editando, setEditando] = useState(null);
   const [modo, setModo] = useState(null);
-  const [qp, setQp] = useState(() => ({ minimapa: false, codigos: true, ortografia: true, ...ler('quadro-prefs', {}) }));
+  const [qp, setQp] = useState(() => ({ minimapa: false, codigos: true, ortografia: true, ferramentas: true, ...ler('quadro-prefs', {}) }));
+  const [assistAberto, setAssistAberto] = useState(false);
   const [timer, setTimer] = useState(false);
   const [janela, setJanela] = useState(null);
   const [area, setArea] = useState({ w: 800, h: 600 });
@@ -115,18 +122,21 @@ export function Quadro({ arquivo, cx }) {
   }, [view, ficha.id]);
 
   /* ---------- conteúdo com o arrasto em andamento ---------- */
+  const cd = useMemo(() => derivar(c), [c]); /* legendas com altura e linhas calculadas (nunca gravado) */
   const cv = useMemo(() => {
-    if (!arrasto) return c;
+    if (!arrasto) return cd;
     if (arrasto.tipo === 'mover' && (arrasto.dx || arrasto.dy)) {
-      const itens = { ...c.itens };
+      const itens = { ...cd.itens };
       for (const id of arrasto.ids) if (itens[id]) itens[id] = { ...itens[id], x: Math.round(itens[id].x + arrasto.dx), y: Math.round(itens[id].y + arrasto.dy) };
-      return { ...c, itens };
+      return { ...cd, itens };
     }
-    if (arrasto.tipo === 'tamanho' && c.itens[arrasto.id]) {
-      return { ...c, itens: { ...c.itens, [arrasto.id]: { ...c.itens[arrasto.id], w: arrasto.w, h: arrasto.h } } };
+    if (arrasto.tipo === 'tamanho' && cd.itens[arrasto.id]) {
+      return { ...cd, itens: { ...cd.itens, [arrasto.id]: { ...cd.itens[arrasto.id], w: arrasto.w, h: arrasto.h } } };
     }
-    return c;
-  }, [c, arrasto]);
+    return cd;
+  }, [cd, arrasto]);
+  const hoje = hojeISO();
+  const pendencias = useMemo(() => problemas(c, hoje), [c, hoje]);
 
   const ordenados = useMemo(() => Q.porZ(cv), [cv]);
 
@@ -161,8 +171,16 @@ export function Quadro({ arquivo, cx }) {
     if (vista === 'kanban' && tipo !== 'postit') setVista('quadro');
     const t = Q.TIPOS_ITEM[tipo];
     const ctr = centroVisivel();
-    const v = Q.vagaLivre(c, ctr.x - t.w / 2, ctr.y - t.h / 2, extra.w || t.w, extra.h || t.h);
-    const r = Q.novoItem(c, tipo, { ...v, ...extra });
+    let v = Q.vagaLivre(c, ctr.x - (extra.w || t.w) / 2, ctr.y - (extra.h || t.h) / 2, extra.w || t.w, extra.h || t.h);
+    let campos = tipo === 'pagina' ? { texto: 'Página ' + (Q.contagem(c).paginas + 1) } : {};
+    if (tipo === 'legenda') {
+      /* a legenda entra ao lado do fluxo, com a altura que as linhas pedem */
+      const miolo = Q.listaItens(c).filter((i) => !Q.ehFundo(i));
+      const lim = miolo.length ? limites(miolo) : null;
+      campos = { h: alturaLegenda(c, {}) };
+      if (lim) v = { x: Math.round(lim.x + lim.w + 60), y: Math.round(lim.y) };
+    }
+    const r = Q.novoItem(c, tipo, { ...v, ...campos, ...extra });
     aplicarQ(r.mudancas, 'Novo: ' + t.nome.toLowerCase(), 'criou item');
     setSel({ itens: [r.item.id], seta: null });
     if (COM_TEXTO(r.item) && tipo !== 'raia') setEditando({ id: r.item.id, valor: r.item.texto || '' });
@@ -217,6 +235,7 @@ export function Quadro({ arquivo, cx }) {
   }, [c, selValida, aplicarQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const proximo = useCallback((id, lado = 'r') => {
+    if (!LIGAVEL(c.itens[id])) return;
     const r = Q.proximoPasso(c, id, lado);
     if (!r) return;
     aplicarQ(r.mudancas, 'Próximo passo', 'criou item');
@@ -227,6 +246,7 @@ export function Quadro({ arquivo, cx }) {
 
   const ligar = useCallback((de, para) => {
     if (de === para) return false;
+    if (!LIGAVEL(c.itens[de]) || !LIGAVEL(c.itens[para])) { cx.avisar('Página, raia e legenda não se ligam com seta.', { ic: 'info' }); return false; }
     if (Q.setaEntre(c, de, para)) { cx.avisar('Esses dois já estão ligados por uma seta.', { ic: 'info' }); return false; }
     const r = Q.novaSeta(c, de, para);
     aplicarQ(r.mudancas, 'Ligar com seta', 'ligou');
@@ -246,6 +266,8 @@ export function Quadro({ arquivo, cx }) {
     if (!ids.length) { avisoSelecione(); return; }
     aplicarQ(Q.mudancasCampo(c, ids, campos), rotulo, 'formatou');
   };
+  const mudarTarefa = (id, campos) => mudancasTarefa(c, id, campos);
+  const mudarLegenda = (id, tipo, campo, valor) => mudancasLegenda(c, id, tipo, campo, valor);
   const mudarSeta = (campos, rotulo) => {
     const s = c.setas[selValida.seta];
     if (s) aplicarQ({ ['setas.' + s.id]: { ...s, ...campos } }, rotulo, 'mudou seta');
@@ -289,6 +311,27 @@ export function Quadro({ arquivo, cx }) {
     }
   };
 
+  const usarModelo = (id) => {
+    const m = ModeloPorId[id];
+    if (!m) return;
+    if (vista === 'kanban' && id !== 'kanban') setVista('quadro');
+    if (vista !== 'kanban' && id === 'kanban') setVista('kanban');
+    const r = aplicarModelo(c, id);
+    aplicarQ(r.mudancas, 'Modelo: ' + m.nome, 'criou modelo');
+    setSel({ itens: r.ids, seta: null });
+    if (id !== 'kanban') setTimeout(() => { const el = areaRef.current; if (el) setView(enquadrar(r.lim, el.clientWidth, el.clientHeight, 70, Z_MIN, 1.1)); }, 40);
+    cx.avisar(`Modelo "${m.nome}" inserido. Troque os textos de exemplo.`, { ic: 'quadro', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
+  };
+
+  const irParaPendencia = (p) => {
+    const it = c.itens[p.item];
+    if (!it) return;
+    setVista('quadro');
+    setSel({ itens: [it.id], seta: null });
+    setTimeout(() => mostrarItem(it), 40);
+    if (cx.cel) setAssistAberto(false);
+  };
+
   /* ---------- comandos do catálogo ---------- */
   const trata = (id) => {
     switch (id) {
@@ -298,6 +341,18 @@ export function Quadro({ arquivo, cx }) {
       case 'inserir.inicio': inserir('inicio'); return true;
       case 'inserir.dados': inserir('dados'); return true;
       case 'inserir.texto': inserir('texto', { texto: '' }); return true;
+      case 'inserir.pagina': inserir('pagina'); return true;
+      case 'inserir.legenda': inserir('legenda'); return true;
+      case 'inserir.modelo': setJanela('modelos'); return true;
+      case 'exibir.ferramentas': trocarQp('ferramentas'); return true;
+      case 'exibir.assistente': setAssistAberto(!assistAberto); return true;
+      case 'organizar.ordenarGut': {
+        if (!Q.listaItens(c).some((i) => valorGut(i) > 0)) { cx.avisar('Nenhum post-it tem a nota GUT. Dê notas de 1 a 5 em G, U e T no painel do post-it.', { ic: 'info' }); return true; }
+        const mud = mudancasOrdenarGut(c);
+        if (!Object.keys(mud).length) cx.avisar('As colunas já estão na ordem do GUT.', { ic: 'info' });
+        else { aplicarQ(mud, 'Ordenar pelo GUT', 'ordem'); cx.avisar('Cada coluna ficou do maior GUT para o menor. Post-its sem nota ficam no fim.', { ic: 'kanban', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } }); }
+        return true;
+      }
       case 'inserir.forma': setJanela('formas'); return true;
       case 'inserir.imagem': imgRef.current && imgRef.current.click(); return true;
       case 'inserir.link': pedirLink(); return true;
@@ -311,7 +366,7 @@ export function Quadro({ arquivo, cx }) {
       case 'editar.colar': colar(); return true;
       case 'editar.duplicar': duplicar(); return true;
       case 'editar.excluir': excluir(); return true;
-      case 'editar.selecionarTudo': setSel({ itens: Q.listaItens(c).filter((i) => i.tipo !== 'raia').map((i) => i.id), seta: null }); return true;
+      case 'editar.selecionarTudo': setSel({ itens: Q.listaItens(c).filter((i) => !Q.ehFundo(i)).map((i) => i.id), seta: null }); return true;
       case 'editar.comentar': pedirComentario(); return true;
       case 'editar.localizar': setJanela('localizar'); return true;
       case 'editar.pincel':
@@ -361,9 +416,12 @@ export function Quadro({ arquivo, cx }) {
       case 'organizar.kanban': return vista === 'kanban';
       case 'organizar.quadro': return vista === 'quadro';
       case 'exibir.minimapa': return qp.minimapa;
+      case 'exibir.ferramentas': return qp.ferramentas;
+      case 'exibir.assistente': return assistAberto;
       case 'exibir.codigos': return qp.codigos;
       case 'revisao.ortografia': return qp.ortografia;
       case 'organizar.temporizador': return timer;
+      case 'inserir.modelo': return janela === 'modelos';
       case 'editar.pincel': return !!(modo && modo.tipo === 'pincel');
       case 'inserir.seta': return !!(modo && modo.tipo === 'seta');
       case 'formatar.negrito': return todos((it) => it.fonte && it.fonte.n);
@@ -411,7 +469,7 @@ export function Quadro({ arquivo, cx }) {
   const aoBaixar = (ev) => {
     if (editando) return; /* o blur do campo salva */
     const el = ev.target;
-    if (el.closest('.qd-barra,.qd-mini,.qd-timer,.qd-zoom,.qd-vistas,.qd-vazio,.qd-modo')) return;
+    if (el.closest('.qd-barra,.qd-mini,.qd-timer,.qd-zoom,.qd-vistas,.qd-vazio,.qd-modo,.qd-ferr,.qd-lamp,.qd-assist,.qd-cores-cel')) return;
     toques.current.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
     if (toques.current.size === 2) {
       const [a, b] = [...toques.current.values()];
@@ -443,7 +501,7 @@ export function Quadro({ arquivo, cx }) {
       return;
     }
     if (modo && modo.tipo === 'seta') {
-      if (itemEl) {
+      if (itemEl && LIGAVEL(c.itens[itemEl.dataset.item])) {
         const id = itemEl.dataset.item;
         if (!modo.de) setModo({ tipo: 'seta', de: id });
         else if (id !== modo.de) { ligar(modo.de, id); setModo(null); }
@@ -471,12 +529,12 @@ export function Quadro({ arquivo, cx }) {
       }
       let ids = selValida.itens;
       if (!ids.includes(id)) { ids = [id]; setSel({ itens: [id], seta: null }); }
-      /* raia leva junto o que está dentro dela */
+      /* raia e página levam junto o que está dentro delas */
       const levar = new Set(ids);
       for (const rid of ids) {
         const r = c.itens[rid];
-        if (r && r.tipo === 'raia') for (const o of Q.listaItens(c)) {
-          if (o.tipo === 'raia') continue;
+        if (r && Q.ehFundo(r)) for (const o of Q.listaItens(c)) {
+          if (Q.ehFundo(o)) continue;
           const cxo = o.x + o.w / 2, cyo = o.y + o.h / 2;
           if (cxo >= r.x && cxo <= r.x + r.w && cyo >= r.y && cyo <= r.y + r.h) levar.add(o.id);
         }
@@ -518,7 +576,7 @@ export function Quadro({ arquivo, cx }) {
     else if (g.tipo === 'tamanho') setArrasto({ tipo: 'tamanho', id: g.id, w: Math.max(40, Math.round(g.w0 + dx / z)), h: Math.max(30, Math.round(g.h0 + dy / z)) });
     else if (g.tipo === 'ligar') {
       const p = paraMundo(ev.clientX, ev.clientY);
-      const alvo = itemNoPonto(Q.listaItens(c).filter((i) => i.tipo !== 'raia'), p, g.de);
+      const alvo = itemNoPonto(Q.listaItens(c).filter((i) => LIGAVEL(i)), p, g.de);
       /* a linha "gruda" no centro do item de destino; solta no vazio cria um item novo ali */
       setArrasto({ tipo: 'ligar', de: g.inicio, p: alvo ? { x: alvo.x + alvo.w / 2, y: alvo.y + alvo.h / 2 } : p, alvo: alvo ? alvo.id : null });
     } else if (g.tipo === 'area') setArrasto({ tipo: 'area', a: g.a, b: paraMundo(ev.clientX, ev.clientY) });
@@ -534,7 +592,7 @@ export function Quadro({ arquivo, cx }) {
     const cx0 = bb.x + bb.w / 2, cy0 = bb.y + bb.h / 2, tol = 7 / z;
     let mx = null, my = null;
     for (const o of Q.listaItens(c)) {
-      if (ids.includes(o.id) || o.tipo === 'raia') continue;
+      if (ids.includes(o.id) || Q.ehFundo(o)) continue;
       const ox = o.x + o.w / 2, oy = o.y + o.h / 2;
       if (Math.abs(ox - cx0) < tol && (!mx || Math.abs(ox - cx0) < Math.abs(mx.v - cx0))) mx = { v: ox, o };
       if (Math.abs(oy - cy0) < tol && (!my || Math.abs(oy - cy0) < Math.abs(my.v - cy0))) my = { v: oy, o };
@@ -578,7 +636,7 @@ export function Quadro({ arquivo, cx }) {
       }
     } else if (g.tipo === 'area') {
       if (g.moveu && a && a.tipo === 'area') {
-        const ids = itensNoRet(Q.listaItens(c), normalizarRet(a.a, a.b));
+        const ids = itensNoRet(Q.listaItens(cd), normalizarRet(a.a, a.b));
         setSel((s) => ({ itens: g.somar ? [...new Set([...s.itens, ...ids])] : ids, seta: null }));
       } else setSel({ itens: [], seta: null });
     } else if (g.tipo === 'pan' && !g.moveu) setSel({ itens: [], seta: null });
@@ -588,9 +646,12 @@ export function Quadro({ arquivo, cx }) {
     if (somenteLeitura || modo) return;
     const itemEl = ev.target.closest('[data-item]');
     const setaEl = ev.target.closest('[data-seta]');
-    if (itemEl) { comecarEdicao(c.itens[itemEl.dataset.item]); return; }
+    const alvoItem = itemEl && c.itens[itemEl.dataset.item];
+    /* raia e página: dois toques no título trocam o nome; no resto da área, criam um post-it ali */
+    const noTitulo = !!ev.target.closest('.qi-raia-h, .qi-pg-h');
+    if (alvoItem && !(Q.ehFundo(alvoItem) && !noTitulo)) { comecarEdicao(alvoItem); return; }
     if (setaEl) { const s = c.setas[setaEl.dataset.seta]; setSel({ itens: [], seta: s.id }); setEditando({ seta: s.id, valor: s.rotulo || '' }); return; }
-    if (ev.target.closest('.qd-barra,.qd-mini,.qd-timer,.qd-zoom,.qd-vistas,.qd-vazio')) return;
+    if (ev.target.closest('.qd-barra,.qd-mini,.qd-timer,.qd-zoom,.qd-vistas,.qd-vazio,.qd-ferr,.qd-lamp,.qd-assist,.qd-cores-cel')) return;
     const p = paraMundo(ev.clientX, ev.clientY);
     const t = Q.TIPOS_ITEM.postit;
     const r = Q.novoItem(c, 'postit', { x: Math.round(p.x - t.w / 2), y: Math.round(p.y - t.h / 2) });
@@ -604,7 +665,7 @@ export function Quadro({ arquivo, cx }) {
     const el = areaRef.current;
     if (!el) return undefined;
     const roda = (ev) => {
-      if (ev.target.closest('.qd-barra,.qd-timer,textarea')) return;
+      if (ev.target.closest('.qd-barra,.qd-timer,.qd-assist,textarea')) return;
       ev.preventDefault();
       const r = el.getBoundingClientRect();
       if (ev.ctrlKey || ev.metaKey) zoomEm(Math.exp(-ev.deltaY * 0.0015), ev.clientX - r.left, ev.clientY - r.top);
@@ -672,6 +733,10 @@ export function Quadro({ arquivo, cx }) {
     return () => { removeEventListener('keydown', tecla); removeEventListener('keyup', solta); removeEventListener('paste', aoColar); };
   });
 
+  /* celular: faixa de baixo com "Editar" e as cores, só quando o que está escolhido tem cor */
+  const itensSel = selValida.itens.map((id) => c.itens[id]).filter(Boolean);
+  const faixaCores = cx.cel && vista === 'quadro' && !somenteLeitura && !arrasto && !editando && !modo && itensSel.length > 0 && itensSel.some(COM_COR);
+
   /* ---------- barra da seleção ---------- */
   let barra = null;
   if (vista === 'quadro' && !arrasto && !editando && !modo && (selValida.itens.length || selValida.seta)) {
@@ -691,13 +756,13 @@ export function Quadro({ arquivo, cx }) {
     } else {
       const its = selValida.itens.map((id) => cv.itens[id]).filter(Boolean);
       caixa = limites(its);
-      const temCor = its.some((it) => it.tipo !== 'texto' && it.tipo !== 'imagem');
+      const temCor = its.some(COM_COR);
       rotuloExcluir = its.length === 1 ? 'Excluir ' + NOME_TIPO(its[0]).toLowerCase() : `Excluir ${its.length} itens`;
       if (temCor) botoes.push({ id: 'cor', cor: Q.COR[(its.find((it) => it.cor) || {}).cor] || '#fff', titulo: 'Cor', fazer: () => setJanela('cores') });
       if (its.length === 1) {
         const it = its[0];
         if (COM_TEXTO(it)) botoes.push({ id: 'editar', ic: 'renomear', titulo: 'Escrever (Enter)', fazer: () => comecarEdicao(it) });
-        if (it.tipo !== 'raia') {
+        if (LIGAVEL(it)) {
           botoes.push({ id: 'proximo', ic: 'conector', titulo: 'Próximo passo já ligado (Tab)', fazer: () => proximo(it.id) });
           botoes.push({ id: 'ligar', ic: 'seta', titulo: 'Ligar com seta: toque depois no destino', fazer: () => setModo({ tipo: 'seta', de: it.id }) });
         }
@@ -710,7 +775,7 @@ export function Quadro({ arquivo, cx }) {
     }
     if (caixa && !somenteLeitura) {
       const ancoraBarra = { x: view.x + (caixa.x + caixa.w / 2) * z, topo: view.y + caixa.y * z, base: view.y + (caixa.y + caixa.h) * z };
-      barra = <BarraSelecao ancora={ancoraBarra} area={area} botoes={botoes} onExcluir={excluir} rotuloExcluir={rotuloExcluir} fixa={cx.cel} />;
+      barra = <BarraSelecao ancora={ancoraBarra} area={area} botoes={botoes} onExcluir={excluir} rotuloExcluir={rotuloExcluir} fixa={cx.cel} folga={cx.cel && faixaCores ? 74 : 64} />;
     }
   }
 
@@ -726,13 +791,16 @@ export function Quadro({ arquivo, cx }) {
             {umItem.texto && <><dt>Texto</dt><dd>{umItem.texto}</dd></>}
             <dt>Ligações</dt><dd>{Q.setasDoItem(c, umItem.id).length}</dd>
           </dl>
-          {umItem.tipo !== 'texto' && umItem.tipo !== 'imagem' && (
+          {COM_COR(umItem) && (
             <div className="qd-cores-mini" role="group" aria-label="Cor">
               {Q.CORES.map(([id, hex, nome]) => (
                 <button key={id} type="button" disabled={somenteLeitura} className={umItem.cor === id ? 'on' : ''} title={nome} aria-label={'Cor ' + nome} style={{ background: hex }} onClick={() => mudarCampo({ cor: id }, 'Cor', [umItem.id])} />
               ))}
             </div>
           )}
+          {umItem.tipo === 'postit' && <PainelTarefa key={umItem.id} it={umItem} c={c} hoje={hoje} bloqueado={somenteLeitura} aoMudar={(campos) => aplicarQ(mudarTarefa(umItem.id, campos), 'Tarefa do post-it', 'editou tarefa')} />}
+          {umItem.tipo === 'legenda' && <PainelLegenda key={umItem.id} it={umItem} c={c} bloqueado={somenteLeitura} aoMudar={(tipo, campo, valor) => aplicarQ(mudarLegenda(umItem.id, tipo, campo, valor), 'Texto da legenda', 'editou legenda')} />}
+          {umItem.tipo === 'pagina' && <p className="qd-dica">Itens dentro desta página: {Q.itensDaPagina(c, umItem).length}. Arraste pelo título para levar tudo junto. No PDF, cada página vira uma folha.</p>}
           {umItem.tipo === 'postit' && (
             <label className="campo-t">Coluna do Kanban
               <select value={umItem.col} disabled={somenteLeitura} onChange={(ev) => aplicarQ(Q.mudancasMoverKanban(c, umItem.id, ev.target.value), 'Mudar de coluna', 'moveu')}>
@@ -769,7 +837,7 @@ export function Quadro({ arquivo, cx }) {
         <>
           <h4>{selValida.itens.length} itens</h4>
           <div className="qd-cores-mini" role="group" aria-label="Cor">
-            {Q.CORES.map(([id, hex, nome]) => <button key={id} type="button" disabled={somenteLeitura} title={nome} aria-label={'Cor ' + nome} style={{ background: hex }} onClick={() => mudarCampo({ cor: id }, 'Cor')} />)}
+            {Q.CORES.map(([id, hex, nome]) => <button key={id} type="button" disabled={somenteLeitura} title={nome} aria-label={'Cor ' + nome} style={{ background: hex }} onClick={() => mudarCampo({ cor: id }, 'Cor', selValida.itens.filter((i) => COM_COR(c.itens[i])))} />)}
           </div>
         </>
       ) : (
@@ -779,6 +847,8 @@ export function Quadro({ arquivo, cx }) {
             <dt>Post-its</dt><dd>{Q.contagem(c).postits}</dd>
             <dt>Formas</dt><dd>{Q.contagem(c).formas}</dd>
             <dt>Setas</dt><dd>{Q.contagem(c).setas}</dd>
+            {Q.contagem(c).paginas > 0 && <><dt>Páginas</dt><dd>{Q.contagem(c).paginas}</dd></>}
+            <dt>Pendências</dt><dd>{pendencias.length}</dd>
             <dt>Colunas</dt><dd>{c.colunas.map((k) => k.nome).join(' · ')}</dd>
             <dt>Próximo código</dt><dd>{Q.codigo(c.seq + 1)}</dd>
           </dl>
@@ -788,7 +858,7 @@ export function Quadro({ arquivo, cx }) {
     </div>
   );
 
-  const zi = (it, i) => (it.tipo === 'raia' ? 1 + i : 100 + i);
+  const zi = (it, i) => (Q.ehFundo(it) ? 1 + i : 100 + i);
   const ligando = arrasto && arrasto.tipo === 'ligar' ? { de: arrasto.de, p: arrasto.p } : null;
   const retArea = arrasto && arrasto.tipo === 'area' ? normalizarRet(arrasto.a, arrasto.b) : null;
   const vazio = Q.listaItens(c).length === 0;
@@ -801,11 +871,12 @@ export function Quadro({ arquivo, cx }) {
       <div className="qd-vistas" role="tablist" aria-label="Visão do quadro">
         <button type="button" role="tab" aria-selected={vista === 'quadro'} className={vista === 'quadro' ? 'on' : ''} onClick={() => setVista('quadro')}><Icone n="quadro" />Quadro</button>
         <button type="button" role="tab" aria-selected={vista === 'kanban'} className={vista === 'kanban' ? 'on' : ''} onClick={() => setVista('kanban')}><Icone n="kanban" />Kanban</button>
+        {vista === 'kanban' && !somenteLeitura && <button type="button" className="qd-gut" data-cmd="organizar.ordenarGut" title="Ordenar cada coluna pela nota GUT (maior primeiro)" onClick={() => trata('organizar.ordenarGut')}><Icone n="classificar" />GUT</button>}
       </div>
       {somenteLeitura && <div className="qd-modo leitura"><Icone n="ver" />Só leitura: seu perfil de teste não edita o quadro.</div>}
 
       {vista === 'kanban' ? (
-        <KanbanVista c={c} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} sel={selValida} setSel={setSel} cx={cx} codigos={qp.codigos} />
+        <KanbanVista c={c} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} sel={selValida} setSel={setSel} cx={cx} codigos={qp.codigos} hoje={hoje} />
       ) : (
         <div className={'qd-area' + (modo ? ' modo-' + modo.tipo : '')} ref={areaRef}
           style={{ backgroundPosition: `${view.x}px ${view.y}px`, backgroundSize: `${22 * view.z}px ${22 * view.z}px` }}
@@ -813,13 +884,13 @@ export function Quadro({ arquivo, cx }) {
           role="application" aria-label={'Quadro ' + ficha.nome}>
           <div className="qd-mundo" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}>
             {ordenados.map((it, i) => (
-              <ItemView key={it.id} it={it} zi={zi(it, i)} sel={selValida.itens.includes(it.id) || (arrasto && arrasto.tipo === 'ligar' && arrasto.alvo === it.id)} codigos={qp.codigos} escondeTexto={editItem && editItem.id === it.id} />
+              <ItemView key={it.id} it={it} zi={zi(it, i)} sel={selValida.itens.includes(it.id) || (arrasto && arrasto.tipo === 'ligar' && arrasto.alvo === it.id)} codigos={qp.codigos} escondeTexto={editItem && editItem.id === it.id} tarefa={it.tipo === 'postit' ? resumoTarefa(cv, it, hoje) : null} />
             ))}
             <CamadaSetas c={cv} selSeta={selValida.seta} ligando={ligando} editandoSeta={editSeta && editSeta.id} />
             {!somenteLeitura && umItem && !arrasto && !editando && !modo && cv.itens[umItem.id] && (
               <>
-                {umItem.tipo !== 'raia' && <PontosLigacao it={cv.itens[umItem.id]} />}
-                <Alca it={cv.itens[umItem.id]} />
+                {LIGAVEL(umItem) && <PontosLigacao it={cv.itens[umItem.id]} />}
+                {umItem.tipo !== 'legenda' && <Alca it={cv.itens[umItem.id]} />}
               </>
             )}
             {retArea && <div className="qd-ret" style={{ left: retArea.x, top: retArea.y, width: retArea.w, height: retArea.h }} />}
@@ -830,6 +901,8 @@ export function Quadro({ arquivo, cx }) {
               <textarea className={'qd-edita qd-edita-' + editItem.tipo} autoFocus spellCheck={qp.ortografia} lang="pt-BR" value={editando.valor} aria-label="Texto do item"
                 style={editItem.tipo === 'raia'
                   ? { left: editItem.x + 50, top: editItem.y + 6, width: Math.min(320, editItem.w - 60), height: 40 }
+                  : editItem.tipo === 'pagina'
+                    ? { left: editItem.x + 12, top: editItem.y + 2, width: Math.min(420, editItem.w - 24), height: 30, textAlign: 'center' }
                   : { left: editItem.x, top: editItem.y, width: editItem.w, height: editItem.h, textAlign: { e: 'left', d: 'right', c: 'center' }[editItem.alinh || (editItem.tipo === 'texto' ? 'e' : 'c')], background: editItem.tipo === 'postit' ? Q.COR[editItem.cor] : undefined }}
                 onChange={(ev) => setEditando({ ...editando, valor: ev.target.value })}
                 onPointerDown={(ev) => ev.stopPropagation()}
@@ -855,6 +928,13 @@ export function Quadro({ arquivo, cx }) {
 
           {barra}
 
+          {!cx.cel && !somenteLeitura && qp.ferramentas && <Ferramentas aoUsar={(id) => trata(id)} ligada={ligado} aoFechar={() => trocarQp('ferramentas')} />}
+          {faixaCores && (
+            <CoresCelular cor={(itensSel.find(COM_COR) || {}).cor}
+              aoCor={(id) => mudarCampo({ cor: id }, 'Cor', selValida.itens.filter((i) => COM_COR(c.itens[i])))}
+              aoEditar={itensSel.length === 1 && COM_TEXTO(itensSel[0]) ? () => comecarEdicao(itensSel[0]) : null} />
+          )}
+
           {modo && (
             <div className="qd-modo" role="status">
               <Icone n={modo.tipo === 'seta' ? 'seta' : 'pincel'} />
@@ -871,6 +951,7 @@ export function Quadro({ arquivo, cx }) {
                 <button type="button" className="chipb" onClick={() => inserir('postit')}><Icone n="postit" />Post-it</button>
                 <button type="button" className="chipb" onClick={() => inserir('inicio', { texto: 'Início' })}><Icone n="inicio" />Fluxograma</button>
                 <button type="button" className="chipb" onClick={() => setVista('kanban')}><Icone n="kanban" />Kanban</button>
+                <button type="button" className="chipb" data-cmd="inserir.modelo" onClick={() => setJanela('modelos')}><Icone n="modelo" />Modelos</button>
               </div>
             </div>
           )}
@@ -886,15 +967,18 @@ export function Quadro({ arquivo, cx }) {
         </div>
       )}
 
+      <Assistente lista={pendencias} aberto={assistAberto} aoAlternar={() => setAssistAberto(!assistAberto)} aoIr={irParaPendencia}
+        folga={cx.cel ? undefined : vista === 'kanban' ? 14 : qp.minimapa ? 150 : 10} />
       {timer && <Temporizador fechar={() => setTimer(false)} avisar={cx.avisar} />}
       <PortalPainel alvo={cx.alvoPainel}>{secaoPainel}</PortalPainel>
 
-      {janela === 'cores' && <JanelaCores titulo="Cor" aoEscolher={(id) => mudarCampo({ cor: id }, 'Cor', selValida.itens.filter((i) => c.itens[i] && c.itens[i].tipo !== 'texto' && c.itens[i].tipo !== 'imagem'))} aoFechar={() => setJanela(null)} />}
+      {janela === 'cores' && <JanelaCores titulo="Cor" aoEscolher={(id) => mudarCampo({ cor: id }, 'Cor', selValida.itens.filter((i) => COM_COR(c.itens[i])))} aoFechar={() => setJanela(null)} />}
       {janela === 'corFonte' && <JanelaCores titulo="Cor da fonte" fonte aoEscolher={(hex) => {
         const mud = {};
         for (const id of selValida.itens) { const it = c.itens[id]; if (COM_TEXTO(it)) mud['itens.' + id] = { ...it, fonte: { ...(it.fonte || {}), cor: hex === '#1f2328' ? undefined : hex } }; }
         aplicarQ(mud, 'Cor da fonte', 'formatou');
       }} aoFechar={() => setJanela(null)} />}
+      {janela === 'modelos' && <JanelaModelos aoEscolher={usarModelo} aoFechar={() => setJanela(null)} />}
       {janela === 'formas' && <JanelaFormas aoEscolher={(t) => inserir(t, t === 'inicio' ? { texto: 'Início' } : {})} aoFechar={() => setJanela(null)} />}
       {janela === 'localizar' && (
         <JanelaLocalizar aoFechar={() => setJanela(null)}

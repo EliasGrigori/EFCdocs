@@ -376,7 +376,7 @@ export function App() {
                   {ficha.tipo === 'postits' && (
                     <>
                       {st.sel ? <span className="some-cel"><b>{st.sel}</b> {st.sel === 1 ? 'selecionado' : 'selecionados'}</span> : null}
-                      <span data-status="contagem"><b>{st.postits || 0}</b> {st.postits === 1 ? 'post-it' : 'post-its'} · <b>{st.formas || 0}</b> {st.formas === 1 ? 'forma' : 'formas'} · <b>{st.setas || 0}</b> {st.setas === 1 ? 'seta' : 'setas'}</span>
+                      <span data-status="contagem"><b>{st.postits || 0}</b> {st.postits === 1 ? 'post-it' : 'post-its'} · <b>{st.formas || 0}</b> {st.formas === 1 ? 'forma' : 'formas'} · <b>{st.setas || 0}</b> {st.setas === 1 ? 'seta' : 'setas'}{st.paginas > 0 && <> · <b>{st.paginas}</b> {st.paginas === 1 ? 'página' : 'páginas'}</>}</span>
                       {st.zoom ? <span className="some-cel">Zoom <b>{Math.round(st.zoom * 100)}%</b></span> : null}
                     </>
                   )}

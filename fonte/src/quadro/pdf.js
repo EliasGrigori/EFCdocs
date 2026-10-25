@@ -39,39 +39,53 @@ function bytesLatin1(s) {
   return b;
 }
 
-/** jpeg: { bytes: Uint8Array, w, h } em pixels. Devolve Uint8Array do PDF. */
+/** Uma folha só. jpeg: { bytes: Uint8Array, w, h } em pixels. Devolve Uint8Array do PDF. */
 export function montarPdfPaisagem({ titulo = '', direita = '', rodape = '', jpeg, noTopo = false }) {
+  return montarPdfFolhas({ titulo, rodape, folhas: [{ jpeg, noTopo, direita }] });
+}
+
+/** Várias folhas A4 paisagem, cada uma com a sua imagem. folhas: [{ jpeg, noTopo, direita }].
+    O rodapé ganha "folha 2 de 3" quando há mais de uma. */
+export function montarPdfFolhas({ titulo = '', rodape = '', folhas }) {
   const M = 28, topo = 46, baixo = 30;
   const areaW = A4.w - M * 2, areaH = A4.h - topo - baixo;
-  const esc = Math.min(areaW / jpeg.w, areaH / jpeg.h);
-  const iw = jpeg.w * esc, ih = jpeg.h * esc;
-  const ix = M + (areaW - iw) / 2, iy = noTopo ? baixo + areaH - ih : baixo + (areaH - ih) / 2;
-
-  let tit = String(titulo);
-  const maxTit = areaW - larguraTexto(direita, 9) - 24;
-  while (tit.length > 4 && larguraTexto(tit, 13) > maxTit) tit = tit.slice(0, -2);
-  if (tit !== String(titulo)) tit = tit.slice(0, -1) + '…';
-
-  const conteudo = [
-    'q 0.12 0.15 0.18 rg',
-    `BT /F2 13 Tf ${M} ${A4.h - 30} Td ${textoPdf(tit)} Tj ET`,
-    `BT /F1 9 Tf ${(A4.w - M - larguraTexto(direita, 9)).toFixed(1)} ${A4.h - 29} Td ${textoPdf(direita)} Tj ET`,
-    'Q',
-    `q 0.82 0.84 0.87 RG 0.6 w ${M} ${A4.h - 38} m ${A4.w - M} ${A4.h - 38} l S Q`,
-    `q ${iw.toFixed(2)} 0 0 ${ih.toFixed(2)} ${ix.toFixed(2)} ${iy.toFixed(2)} cm /Im1 Do Q`,
-    `q 0.45 0.48 0.52 rg BT /F1 8 Tf ${M} 14 Td ${textoPdf(rodape)} Tj ET Q`,
-  ].join('\n');
+  const n = folhas.length;
 
   const objetos = [];
   const add = (corpo) => { objetos.push(corpo); return objetos.length; };
+  const filhas = folhas.map((_, i) => 5 + i * 3);
   add('<< /Type /Catalog /Pages 2 0 R >>');
-  add('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-  add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4.w} ${A4.h}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> /XObject << /Im1 6 0 R >> >> /Contents 7 0 R >>`);
+  add(`<< /Type /Pages /Kids [${filhas.map((k) => k + ' 0 R').join(' ')}] /Count ${n} >>`);
   add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
   add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
-  add({ dict: `<< /Type /XObject /Subtype /Image /Width ${jpeg.w} /Height ${jpeg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.bytes.length} >>`, stream: jpeg.bytes });
-  const cb = bytesLatin1(conteudo);
-  add({ dict: `<< /Length ${cb.length} >>`, stream: cb });
+
+  folhas.forEach((f, i) => {
+    const { jpeg, noTopo = false, direita = '' } = f;
+    const esc = Math.min(areaW / jpeg.w, areaH / jpeg.h);
+    const iw = jpeg.w * esc, ih = jpeg.h * esc;
+    const ix = M + (areaW - iw) / 2, iy = noTopo ? baixo + areaH - ih : baixo + (areaH - ih) / 2;
+
+    let tit = String(titulo);
+    const maxTit = areaW - larguraTexto(direita, 9) - 24;
+    while (tit.length > 4 && larguraTexto(tit, 13) > maxTit) tit = tit.slice(0, -2);
+    if (tit !== String(titulo)) tit = tit.slice(0, -1) + '…';
+    const pe = n > 1 ? `${rodape} · folha ${i + 1} de ${n}` : rodape;
+
+    const conteudo = [
+      'q 0.12 0.15 0.18 rg',
+      `BT /F2 13 Tf ${M} ${A4.h - 30} Td ${textoPdf(tit)} Tj ET`,
+      `BT /F1 9 Tf ${(A4.w - M - larguraTexto(direita, 9)).toFixed(1)} ${A4.h - 29} Td ${textoPdf(direita)} Tj ET`,
+      'Q',
+      `q 0.82 0.84 0.87 RG 0.6 w ${M} ${A4.h - 38} m ${A4.w - M} ${A4.h - 38} l S Q`,
+      `q ${iw.toFixed(2)} 0 0 ${ih.toFixed(2)} ${ix.toFixed(2)} ${iy.toFixed(2)} cm /Im1 Do Q`,
+      `q 0.45 0.48 0.52 rg BT /F1 8 Tf ${M} 14 Td ${textoPdf(pe)} Tj ET Q`,
+    ].join('\n');
+    const base = 5 + i * 3;
+    add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4.w} ${A4.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << /Im1 ${base + 2} 0 R >> >> /Contents ${base + 1} 0 R >>`);
+    const cb = bytesLatin1(conteudo);
+    add({ dict: `<< /Length ${cb.length} >>`, stream: cb });
+    add({ dict: `<< /Type /XObject /Subtype /Image /Width ${jpeg.w} /Height ${jpeg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.bytes.length} >>`, stream: jpeg.bytes });
+  });
   add(`<< /Title ${textoInfo(titulo)} /Producer (EFCdocs) /Creator (EFCdocs) >>`);
 
   const partes = [];

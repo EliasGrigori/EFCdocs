@@ -2,9 +2,11 @@
    Arrastar um cartão muda a coluna (e a ordem); o post-it continua no mesmo lugar no quadro livre. */
 import { useRef, useState } from 'react';
 import { Icone } from '../ui/comum.jsx';
+import { RodapeTarefa } from './partes.jsx';
+import { resumoTarefa } from './tarefa.js';
 import { COR, porColuna, mudancasMoverKanban, adicionarColuna, renomearColuna, removerColuna, moverColuna, novoItem, vagaKanban, mudancasCampo } from './modelo.js';
 
-export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codigos }) {
+export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codigos, hoje }) {
   const grupos = porColuna(c);
   const [arrasto, setArrasto] = useState(null); /* { id, x, y, dx, dy, w, alvo: { col, indice } } */
   const [editando, setEditando] = useState(null);
@@ -122,6 +124,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
                         onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); terminarEdicao(false); } if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) terminarEdicao(true); }}
                         onBlur={() => terminarEdicao(true)} />
                     ) : <p style={{ fontWeight: it.fonte && it.fonte.n ? 700 : undefined, fontStyle: it.fonte && it.fonte.i ? 'italic' : undefined, color: it.fonte && it.fonte.cor }}>{it.texto || <span className="kb-vazio">Sem texto. Toque duas vezes para escrever.</span>}</p>}
+                    {(() => { const r = resumoTarefa(c, it, hoje); return r && <RodapeTarefa t={r} />; })()}
                     {it.nota && <span className="kb-nota" title={'Comentário: ' + it.nota}><Icone n="comentario" /></span>}
                   </article>
                 </div>

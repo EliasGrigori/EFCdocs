@@ -72,10 +72,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.3.0', async () => {
+await caso('abre sem erro, rodapé mostra v0.3.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.3.0'), 'rodapé sem v0.3.0');
+  certo((await p.locator('.foot').innerText()).includes('v0.3.1'), 'rodapé sem v0.3.1');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -329,7 +329,7 @@ await ctx.close();
 
 /* ---------- 2. compatibilidade com quadro criado na v0.2.0 ---------- */
 ({ ctx, p } = await novaPagina());
-await caso('quadro criado na v0.2.0 abre e edita na v0.3.0', async () => {
+await caso('quadro criado na v0.2.0 abre e edita na v0.3.1', async () => {
   await p.goto(BASE + 'v020/');
   await p.waitForSelector('[data-novo=postits]');
   await p.click('[data-novo=postits]');
@@ -393,6 +393,166 @@ await caso('celular: Kanban com alça de arrastar', async () => {
   await p.locator('.qd-vistas button:has-text("Kanban")').tap();
   await p.waitForSelector('.kb-col');
   await print(p, '15-celular-kanban');
+});
+await ctx.close();
+
+/* ---------- 5. v0.3.1: ferramentas, tarefa/GUT, modelos, páginas, legenda, assistente ---------- */
+({ ctx, p } = await novaPagina());
+await caso('v0.3.1: barra de ferramentas vertical cria forma e esconde', async () => {
+  await p.goto(BASE);
+  await p.waitForSelector('.foot');
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await p.waitForSelector('.qd-ferr');
+  igual(await p.locator('.qd-ferr [data-ferr]').count(), 9);
+  await p.locator('.qd-ferr [data-ferr="inserir.processo"]').click();
+  await escreverNoItem(p, 'Receber o lote');
+  igual((await contar(p)).formas, 1);
+  certo((await p.locator('.qi-processo').first().innerText()).includes('Receber o lote'));
+  await print(p, '16-ferramentas-vertical');
+  await p.locator('.qd-ferr-x').click();
+  igual(await p.locator('.qd-ferr').count(), 0, 'barra não escondeu');
+  await cmd(p, 'exibir.ferramentas').catch(async () => { await p.click('.tab:has-text("Exibir")'); await cmd(p, 'exibir.ferramentas'); });
+  await p.waitForSelector('.qd-ferr');
+});
+await caso('v0.3.1: post-it de tarefa mostra responsável, prazo vencido e GUT; Assistente avisa', async () => {
+  await p.locator('.qd-ferr [data-ferr="inserir.postit"]').click();
+  await escreverNoItem(p, 'Trocar o filtro');
+  await escolher(p, '.qi-postit');
+  await p.locator('.qd-barra [data-acao=detalhes]').click();
+  await p.waitForSelector('.qd-tarefa-p');
+  const painel = p.locator('.qd-tarefa-p');
+  await painel.locator('input[type=text], input:not([type])').first().fill('Ana');
+  await painel.locator('input[type=date]').fill('2020-01-15');
+  await painel.locator('input[type=date]').blur();
+  await painel.locator('select').nth(0).selectOption('5');
+  await painel.locator('select').nth(1).selectOption('4');
+  await painel.locator('select').nth(2).selectOption('4');
+  await p.waitForTimeout(200);
+  const rod = await p.locator('.qi-postit .qi-tarefa').innerText();
+  certo(rod.includes('Resp.: Ana'), rod);
+  certo(rod.includes('15/01/2020') && rod.includes('Vencido'), rod);
+  certo(rod.includes('GUT 80'), rod);
+  certo((await painel.innerText()).includes('GUT = 80'), 'resumo do painel');
+  certo((await p.locator('.qd-lamp').getAttribute('aria-label')).includes('pendência'), 'lâmpada');
+  await p.locator('.qd-lamp').click();
+  const t = await p.locator('.qd-assist').innerText();
+  certo(t.includes('prazo vencido'), t);
+  await print(p, '17-tarefa-gut-assistente');
+  await p.keyboard.press('Escape');
+  await p.locator('.qd-assist li button:has-text("Ir")').click();
+  await p.waitForTimeout(250);
+  igual(await p.locator('.qi.sel[data-cod="Q-002"]').count(), 1, 'Ir não escolheu o item');
+  await p.locator('.qd-assist [aria-label="Fechar o assistente"]').click();
+});
+await caso('v0.3.1: Kanban mostra a tarefa e Ordenar GUT põe a maior nota no topo', async () => {
+  await p.locator('.side [aria-label="Fechar o painel"]').click().catch(() => {});
+  await p.locator('.qd-ferr [data-ferr="inserir.postit"]').click();
+  await escreverNoItem(p, 'Revisar o POP');
+  await p.locator('.qd-barra [data-acao=detalhes]').click();
+  await p.waitForSelector('.qd-tarefa-p');
+  for (let i = 0; i < 3; i++) await p.locator('.qd-tarefa-p select').nth(i).selectOption('5');
+  await p.waitForTimeout(150);
+  await p.locator('.qd-vistas button:has-text("Kanban")').click();
+  await p.waitForSelector('.kb-col');
+  certo((await p.locator('.kb-card .qi-tarefa').first().innerText()).includes('Ana'), 'tarefa no cartão');
+  await p.locator('.qd-gut').click();
+  await p.waitForTimeout(150);
+  const primeiro = await p.locator('.kb-col').first().locator('.kb-card').first().innerText();
+  certo(primeiro.includes('Revisar o POP') && primeiro.includes('GUT 125'), 'primeiro cartão: ' + primeiro);
+  await print(p, '18-kanban-gut');
+  await p.locator('.qd-vistas button:has-text("Quadro")').click();
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina({ acceptDownloads: true }));
+await caso('v0.3.1: página leva os itens de dentro e dois toques dentro dela criam post-it', async () => {
+  await p.goto(BASE);
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await p.locator('.qd-ferr [data-ferr="inserir.pagina"]').click();
+  await escreverNoItem(p, 'Registro');
+  await p.keyboard.press('Escape');
+  const pg = await caixa(p, '.qi-pagina');
+  await p.mouse.dblclick(pg.x + 150, pg.y + 150);
+  await escreverNoItem(p, 'Dentro');
+  igual((await contar(p)).postits, 1);
+  const antes = await caixa(p, '.qi-postit');
+  await p.keyboard.press('Escape');
+  const h = await caixa(p, '.qi-pg-h');
+  await arrastar(p, { x: h.x + 60, y: h.y + 12 }, { x: h.x + 160, y: h.y + 112 });
+  const depois = await caixa(p, '.qi-postit');
+  certo(Math.abs(depois.x - antes.x - 100) < 3 && Math.abs(depois.y - antes.y - 100) < 3, 'o post-it não acompanhou a página');
+  const h2 = await caixa(p, '.qi-pg-h');
+  await p.mouse.dblclick(h2.x + 60, h2.y + 12);
+  certo(await p.locator('textarea.qd-edita').count() === 1, 'dois toques no título não abrem a escrita');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.3.1: modelo RNC entra inteiro, sem erro no Assistente, e Ctrl+Z desfaz tudo', async () => {
+  await p.goto(BASE);
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await p.locator('.qd-vazio .chipb:has-text("Modelos")').click();
+  await p.locator('[data-modelo="rnc"]').click();
+  await p.waitForSelector('.qi-decisao');
+  const n = await contar(p);
+  igual(n.formas, 9);
+  igual(n.setas, 10);
+  certo((await p.locator('.qd-lamp').getAttribute('aria-label')).includes('nenhuma'), 'RNC com pendência');
+  await print(p, '19-modelo-rnc');
+  await p.keyboard.press('Escape');
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(200);
+  igual((await contar(p)).formas, 0, 'desfazer não tirou o modelo inteiro');
+  await p.keyboard.press('Control+y');
+  await p.waitForTimeout(200);
+  igual((await contar(p)).formas, 9);
+});
+await caso('v0.3.1: páginas e legenda; PDF sai com uma folha por página', async () => {
+  await p.click('.tab:has-text("Inserir")');
+  await cmd(p, 'inserir.pagina');
+  await p.waitForTimeout(200);
+  await p.keyboard.press('Escape');
+  await cmd(p, 'inserir.legenda');
+  await p.waitForSelector('.qi-legenda .qi-leg-l');
+  certo((await p.locator('.qi-legenda').innerText()).includes('Decisão'), 'legenda sem Decisão');
+  certo((await p.locator('.qi-legenda').innerText()).includes('Atividade'), 'legenda sem Atividade');
+  certo((await status(p)).includes('1 página'), await status(p));
+  await print(p, '20-pagina-legenda');
+  await p.click('.tab:has-text("Arquivo")');
+  const [d] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarPDF')]);
+  const bytes = Buffer.concat(await (await d.createReadStream()).toArray());
+  const paginas = (bytes.toString('latin1').match(/\/Type \/Page[^s]/g) || []).length;
+  certo(paginas >= 2, 'PDF com ' + paginas + ' folha(s); esperado página + fora das páginas');
+  if (PRINTS) writeFileSync(`${PRINTS}/exemplo-quadro-paginas.pdf`, bytes);
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }));
+await caso('v0.3.1 celular: faixa de cores à mão, sem barra vertical, Assistente sem rolagem lateral', async () => {
+  await p.goto(BASE);
+  await p.waitForSelector('.navcel');
+  await p.waitForTimeout(900);
+  await p.locator('.navcel a:has-text("Post-its")').tap();
+  await p.locator('[data-novo=postits]').tap();
+  await p.waitForSelector('.qd-vazio');
+  igual(await p.locator('.qd-ferr').count(), 0, 'barra vertical no celular');
+  await p.locator('.qd-vazio .chipb:has-text("Fluxograma")').tap();
+  await escreverNoItem(p, 'Início');
+  await escolher(p, '.qi-inicio', true);
+  await p.waitForSelector('.qd-cores-cel');
+  await p.locator('.qd-cores-cel [data-cor="verde"]').tap();
+  await p.waitForTimeout(150);
+  const fundo = await p.locator('.qi-inicio').first().evaluate((e) => { const f = e.querySelector('svg rect, svg polygon'); return f ? getComputedStyle(f).fill : getComputedStyle(e).backgroundColor; });
+  igual(fundo, 'rgb(187, 247, 208)', 'cor pelo toque');
+  await p.locator('.qd-lamp').tap();
+  await p.waitForSelector('.qd-assist');
+  const larg = await p.evaluate(() => document.documentElement.scrollWidth);
+  certo(larg <= 390, 'rolagem lateral: ' + larg);
+  await print(p, '21-celular-cores-assistente');
 });
 await ctx.close();
 

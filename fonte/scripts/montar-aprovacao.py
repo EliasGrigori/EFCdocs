@@ -1,76 +1,81 @@
-"""EFCdocs — monta a página de aprovação da v0.3.0 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.3.1 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" """
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
+VERSAO = 'v0.3.1'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
 ITENS = [
-    ('C01', 'Quadro livre com post-its, formas e setas presas', 'Post-its e Quadro (v0.3.0)',
-     '<p>Post-it, quatro formas de fluxograma (Processo, Decisão, Início/Fim, Dados), texto solto e imagem. '
-     'As setas ficam <b>presas</b>: arrastou o item, a seta vai junto. Seta reta ou em cotovelo, texto na seta (ex.: Sim/Não), inverter, uma ou duas pontas.</p>'
-     '<p>Dois toques no vazio criam um post-it. Arrastar no vazio (mouse) seleciona vários; no celular, um dedo arrasta o quadro e dois dedos dão zoom.</p>',
-     '', [('Antes (v0.2.0)', 'antes-quadro-novo'), ('Depois', 'depois-fluxograma')], ''),
-    ('C02', 'Código automático Q-001 em cada item', 'Post-its e Quadro (v0.3.0)',
-     '<p>Cada post-it e cada forma recebe um código na ordem de criação: Q-001, Q-002... O número de um item apagado não volta. '
-     'O código aparece no canto do item, no Kanban, no PDF e na busca ("Localizar" acha por Q-007). Dá para esconder em Exibir › Códigos Q.</p>',
-     'No plano estava só "Q-001". Entendi como esse código automático por item. É isso? Se era outra coisa, descreva no comentário.', [], ''),
-    ('C03', 'Próximo passo e ligar com as setinhas', 'Post-its e Quadro (v0.3.0)',
-     '<p>Com um item escolhido aparecem quatro setinhas em volta. <b>Tocar</b> numa cria o próximo passo daquele lado, já ligado. '
-     '<b>Arrastar</b> até outro item liga os dois; soltar no vazio cria um item novo ali. Depois de Início ou Decisão, o próximo é um Processo.</p>'
-     '<p>No computador: Tab cria o próximo passo à direita (Shift+Tab, abaixo), Enter escreve, Delete apaga, setas do teclado movem.</p>',
-     '', [('Item escolhido (computador)', 'depois-selecao')], 'um'),
-    ('C04', 'Alinhamento automático ao arrastar', 'Post-its e Quadro (v0.3.0)',
-     '<p>Ao arrastar, se o centro do item chega perto do centro de outro, ele encaixa e aparece uma linha guia. É isso que deixa as setas retas no fluxograma (veja o C01). Segurar Alt desliga o encaixe.</p>',
-     '', [], ''),
-    ('C05', 'Barra da seleção com a lixeira no canto direito', 'Post-its e Quadro (v0.3.0)',
-     '<p>No computador a barra flutua perto do item. No celular fica <b>presa embaixo</b>, para não cobrir itens nem setas. '
-     'Ordem: cor, escrever, próximo passo, ligar, comentário, duplicar, detalhes e, separada no canto direito, a lixeira. '
-     'Apagar mostra "Desfazer" no aviso.</p>',
-     '', [('Celular', 'depois-celular-quadro')], 'cel'),
-    ('C06', 'Kanban com os mesmos post-its', 'Post-its e Quadro (v0.3.0)',
-     '<p>O Kanban é outra visão do mesmo quadro: cada post-it fica numa coluna (A fazer, Fazendo, Feito). Arrastar o cartão muda a coluna; o post-it continua no mesmo lugar no quadro livre. '
-     'Colunas: criar, renomear, mover para os lados e tirar (só vazia). No celular, o cartão arrasta pela alça (mãozinha), para o dedo ainda rolar a coluna.</p>'
-     '<p>Formas de fluxograma não entram no Kanban, só post-its.</p>',
-     '', [('Computador', 'depois-kanban'), ('Celular', 'depois-celular-kanban')], ''),
-    ('C07', 'Raias por setor, temporizador, minimapa, zoom e localizar', 'Post-its e Quadro (v0.3.0)',
-     '<p>Raias: três faixas (Setor 1, 2, 3) atrás de tudo; arrastar a raia leva junto o que está dentro. Temporizador de reunião (5, 10, 15, 30 min) com aviso e vibração no fim. '
-     'Minimapa e zoom (botões, Ctrl+roda, dois dedos). Localizar e substituir no quadro.</p>'
-     '<p>Painel lateral (Detalhes) mostra o item escolhido: código, cor, coluna do Kanban, comentário e link.</p>',
-     '', [('Painel, temporizador e minimapa', 'depois-painel-temporizador')], 'um'),
-    ('C08', 'Exportar PDF paisagem, PNG e imprimir', 'Post-its e Quadro (v0.3.0)',
-     '<p>PDF A4 paisagem com o nome do quadro e data no topo e a origem no rodapé. Na visão Kanban, exporta as colunas; no quadro, o quadro inteiro. '
-     'PNG em alta resolução. Imprimir já sai em paisagem. No modo demonstração sai a marca "DEMO · EFC".</p>',
-     '', [('Página do PDF gerado', 'pdf-1')], 'um'),
-    ('C09', 'Perfil Operador também edita o quadro', 'Post-its e Quadro (v0.3.0)',
-     '<p>Entrou na tabela de perfis a linha "mexer no quadro": Admin, Editor e Operador podem; Leitor só vê (aparece "Só leitura"). '
-     'O motivo: quadro é ferramenta de reunião, todo mundo da equipe põe post-it. Texto de POP e formulário continua só para Admin e Editor.</p>',
-     'Operador (Secundário) pode mexer no quadro?', [], ''),
-    ('C10', 'Etiqueta "em breve" no menu (achado 3 do Grok)', 'Achados do Grok',
-     '<p>Antes aparecia "v0.8.0" sem explicação. Agora aparece "em breve"; parar o mouse mostra "chega na v0.8.0", e a página abre com um aviso amarelo explicando.</p>',
-     '', [('Antes (v0.2.0)', 'antes-inicio'), ('Depois', 'depois-inicio')], ''),
-    ('C11', 'Tema Petróleo como tema padrão (achado 2 do Grok)', 'Achados do Grok',
-     '<p>Criei o tema <b>Petróleo</b> com as cores do ícone e da abertura (petróleo e âmbar). Ele já está nas Opções como 17º tema. '
-     'O padrão continua Claro (ou Escuro, se o aparelho estiver no escuro), como na v0.2.0.</p>',
-     'Aprovado = o Petróleo vira o tema padrão de quem abre pela primeira vez. Reprovado = fica só como opção.', [('Antes: Opções (v0.2.0)', 'antes-opcoes'), ('Depois: tema Petróleo', 'depois-petroleo-inicio')], ''),
-    ('C12', 'Barra de módulos no celular (achado 4 do Grok)', 'Achados do Grok',
-     '<p>No celular, fora de um arquivo, aparece embaixo uma barra com Início, Planilhas, Documentos, Post-its e Mais (pastas, externos e lixeira). Dentro de um arquivo ela some, para sobrar espaço.</p>',
-     '', [('Antes (v0.2.0)', 'antes-celular'), ('Depois', 'depois-celular')], 'cel'),
-    ('C13', 'Cor de fundo do app instalado igual à abertura (achado 5 do Grok)', 'Achados do Grok',
-     '<p>A cor de fundo do app instalado passou de #0e2d37 para #143c47, o tom do meio da abertura. Assim o app não pisca outro tom ao abrir. Só aparece no app instalado (conferir no celular).</p>',
-     '', [], ''),
-    ('C14', 'Aviso "chega na" diz de qual módulo é', 'Correções',
-     '<p>O aviso do seu print ("Exportar PDF chega na v0.5.0") estava certo para a planilha, mas sem dizer isso. Agora fica: "Exportar PDF" da planilha chega na v0.5.0. No quadro, o PDF já funciona.</p>',
-     '', [('Depois', 'depois-aviso-pdf')], 'um'),
-    ('C15', 'A página não recarrega mais sozinha na primeira visita', 'Correções',
-     '<p>Defeito que vinha da v0.2.0: na primeira vez que alguém abria o app, a página recarregava sozinha cerca de 1 segundo depois. Se a pessoa já estivesse tocando em algo, perdia o toque. Agora só recarrega quando há versão nova de verdade (e com o seu toque em "Versão nova pronta").</p>',
-     '', [], ''),
-    ('C16', 'Código-fonte guardado no GitHub (pasta fonte/)', 'Organização',
-     '<p>Para não perder o código de novo, o repositório passa a ter a pasta <b>fonte/</b> com o código, os testes e o script que monta o app. O app publicado continua na raiz, igual. '
-     'Também vai na entrega o zip "fonte-EFCdocs-v0.3.0". O repositório é público; não há senha, chave nem dado real no código.</p>',
+    ('D01', 'Páginas dentro do quadro (PQ01)', 'Post-its e Quadro (v0.3.1)',
+     '<p>Nova peça <b>Página</b> (Inserir › Página): uma moldura tracejada com título, que fica atrás de tudo. Você pode ter várias no mesmo quadro, mudar o tamanho e o título. '
+     'Arrastar a página pelo título <b>leva junto tudo o que está dentro</b>. Pertence à página o que tem o centro dentro dela.</p>'
+     '<p>No <b>PDF</b> e na <b>impressão</b> cada página vira uma folha A4 paisagem; o que ficou fora de todas as páginas sai numa última folha "Fora das páginas". '
+     'O PNG continua sendo o quadro inteiro. O rodapé do app mostra quantas páginas o quadro tem.</p>',
+     'O fluxograma grande da RNC cabe melhor em uma folha ou em várias? Dá para ajustar o tamanho padrão da página (hoje 560 × 380).',
+     [('Página em volta dos 3 primeiros passos, legenda ao lado', 'depois-paginas-legenda')], 'um'),
+    ('D02', 'Legenda automática do fluxograma (PQ02)', 'Post-its e Quadro (v0.3.1)',
+     '<p>Inserir › Legenda cria uma caixa que mostra <b>só as formas que o quadro usa</b> (Início/Fim, Atividade, Decisão, Entrada/Saída, Post-it, Seta) e se atualiza sozinha quando você acrescenta ou tira formas. '
+     'Para trocar o texto de uma linha: escolha a legenda e abra Detalhes. Apagar o texto volta ao padrão.</p>'
+     '<p>A legenda também sai no PDF, no PNG e na impressão.</p>',
+     '', [('Folha 2 do PDF: fluxograma com a legenda', 'pdf-2')], 'um'),
+    ('D03', 'Post-it de tarefa: responsável, prazo e GUT (PQ03)', 'Post-its e Quadro (v0.3.1)',
+     '<p>Em Detalhes, todo post-it ganha <b>Responsável</b>, <b>Prazo</b> e as notas <b>G, U e T</b> (1 a 5). O rodapé do post-it mostra "Resp.", o prazo e a etiqueta GUT colorida. '
+     'GUT = G × U × T. Prioridade <b>Alta</b> de 64 a 125, <b>Média</b> de 27 a 63, <b>Baixa</b> de 1 a 26.</p>'
+     '<p>Prazo vencido fica em vermelho ("Vencido: data"), exceto se o post-it já está na <b>última coluna</b> do Kanban (concluído). '
+     'A data só aceita data de verdade: não deixa 30/02 nem "2O26" com a letra O. Post-it sem nada preenchido continua sendo um post-it comum.</p>',
+     'As faixas do GUT (64 e 27) servem para a sua rotina? Se usa outras, diga no comentário.',
+     [('Post-its com tarefa e painel de Detalhes', 'depois-tarefa-assistente')], 'um'),
+    ('D04', 'Kanban mostra a tarefa e ordena pelo GUT', 'Post-its e Quadro (v0.3.1)',
+     '<p>No Kanban, o cartão mostra responsável, prazo e GUT. O botão <b>GUT</b> ao lado de Quadro/Kanban (ou Organizar › Ordenar GUT) ordena <b>cada coluna</b> da maior nota para a menor; '
+     'quem não tem nota fica no fim, na ordem de antes. Dá para desfazer com Ctrl+Z.</p>',
+     '', [('Kanban depois de ordenar pelo GUT', 'depois-kanban-gut')], 'um'),
+    ('D05', 'Barra de ferramentas vertical no computador (PQ06)', 'Post-its e Quadro (v0.3.1)',
+     '<p>No computador aparece, à esquerda do quadro, uma barra com as peças sempre à mão: Post-it, Início/Fim, Atividade, Decisão, Entrada/Saída, Texto, Página, Legenda e Seta. '
+     'Um clique cria a peça no meio da tela; Seta liga dois itens. Dá para esconder no X ou em Exibir › Ferramentas. No celular ela <b>não aparece</b>, porque não há espaço.</p>',
+     '', [('Antes (v0.3.0)', 'antes-fluxo'), ('Depois', 'depois-rnc')], ''),
+    ('D06', 'Cores à mão no celular (PQ07)', 'Post-its e Quadro (v0.3.1)',
+     '<p>No celular, ao escolher um item aparece embaixo uma faixa com <b>Editar</b> e todas as cores em círculos. Um toque troca a cor, sem abrir janela. '
+     'A barra da seleção (lixeira, ligar, duplicar) continua acima da faixa.</p>',
+     '', [('Antes (v0.3.0)', 'antes-celular-selecao'), ('Depois', 'depois-celular-selecao')], 'cel'),
+    ('D07', 'Assistente do quadro (PQ08)', 'Post-its e Quadro (v0.3.1)',
+     '<p>A lâmpada (embaixo à direita; no celular, no alto) mostra quantas pendências o quadro tem e abre a lista; <b>Ir</b> leva até o item. Ele só avisa, nunca muda nada. Regras:</p>'
+     '<ul><li><b>Erro</b>: decisão sem duas saídas; tarefa com prazo vencido.</li>'
+     '<li><b>Aviso</b>: saída de decisão sem Sim/Não; passo solto ou sem entrada; falta Início ou Fim do fluxo; tarefa com prazo ou GUT sem responsável.</li></ul>'
+     '<p>As regras do fluxo só valem quando há formas de fluxograma; um quadro só de post-its não recebe aviso de "passo solto".</p>',
+     'Falta alguma regra que você conferiria no fluxograma da qualidade (por exemplo, "toda ação precisa de responsável")?',
+     [('Computador: aviso de prazo vencido', 'depois-tarefa-assistente'), ('Celular', 'depois-celular-assistente')], ''),
+    ('D08', 'Modelos de quadro da qualidade (PQ05)', 'Post-its e Quadro (v0.3.1)',
+     '<p>Inserir › Modelos (ou o botão "Modelos" do quadro vazio): <b>Fluxograma de RNC</b>, <b>Ishikawa 6M</b>, <b>5W2H</b>, <b>Matriz GUT</b>, <b>PDCA</b>, <b>Kanban</b>, <b>Mapa mental</b> e <b>Linha do tempo</b>. '
+     'Entram com textos de exemplo para você trocar, com códigos Q em ordem, e já vêm com as setas ligadas. Se o quadro já tem itens, o modelo entra <b>embaixo</b> deles. '
+     'Desfazer (Ctrl+Z) tira o modelo inteiro de uma vez. Nenhum modelo tem nome de pessoa, setor ou dado da fazenda.</p>',
+     'Algum modelo que você usa e que não está na lista (8D, A3, FMEA, 5 porquês)? Diga quais entram na próxima rodada.',
+     [('Janela de modelos', 'depois-modelos'), ('Fluxograma de RNC inserido', 'depois-rnc')], ''),
+    ('D09', 'PDF e impressão com uma folha por página', 'Post-its e Quadro (v0.3.1)',
+     '<p>Com páginas no quadro, o PDF sai com <b>uma folha por página</b>, cada uma com título, data e "folha 1 de 2" no rodapé. O Kanban também mostra responsável, prazo e GUT nos cartões do PDF. '
+     'Sem páginas, tudo continua igual à v0.3.0 (uma folha com o quadro inteiro).</p>',
+     '', [('Folha 1: a página', 'pdf-1'), ('Folha 2: fora das páginas', 'pdf-2')], ''),
+    ('D10', 'Nomes das formas: Atividade e Entrada/Saída', 'Ajustes',
+     '<p>Na faixa, na busca e na legenda: <b>Processo</b> virou <b>Atividade</b> e <b>Dados</b> virou <b>Entrada/Saída</b>, que é como o fluxograma da qualidade costuma chamar. '
+     'Quem digitar "processo" ou "dados" na busca (Ctrl+K) ainda acha as duas formas. Quadros antigos abrem normalmente.</p>',
+     '', [('Antes (v0.3.0)', 'antes-inserir'), ('Depois', 'depois-paginas-legenda')], ''),
+    ('D11', 'Correções pequenas', 'Ajustes',
+     '<p>Raia, página e legenda <b>não recebem seta</b> (nem pelo "próximo passo"): são fundo ou explicação, não etapa do fluxo. '
+     'Dois toques <b>dentro</b> de uma página ou de uma raia (fora do título) criam um post-it ali; dois toques no <b>título</b> trocam o nome. '
+     'Post-it criado dentro do Kanban agora já nasce com a posição certa na coluna, e a ordem do cartão não se perde ao ordenar pelo GUT.</p>',
      '', [], ''),
 ]
+
+n = len(ITENS)
+resumo = (
+    f'<div class="nums"><span>53/53 testes de regras</span><span>37/37 testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
+    '<ul>'
+    '<li>Sai o que você aprovou na Proposta 03 como <b>PQ10 · A</b>: os ajustes do quadro de post-its <b>antes</b> de começar a Planilha (v0.4.0). A Planilha só começa quando você disser "pode iniciar".</li>'
+    '<li>Entram páginas, legenda automática, post-it de tarefa com GUT, barra vertical, cores no celular, Assistente e 8 modelos. Ficam para depois: gráfico ligado à planilha (v0.6.0) e arquivar com motivo (v0.8.0).</li>'
+    '<li>Quadros da v0.3.0 abrem sem mudança: nada que já existia foi renomeado dentro do arquivo, só o que aparece na tela.</li>'
+    '</ul>'
+)
 
 partes = []
 grupo = None
@@ -93,7 +98,9 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 </article>''')
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
-saida_html = modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{TAMANHO}}', html.escape(tamanho))
-assert saida_html.count('class="item"') == 16
+saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Post-its: páginas, tarefa e modelos')
+              .replace('{{N}}', str(n)))
+assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)
 print('página de aprovação:', saida, round(len(saida_html) / 1024), 'KB')

@@ -68,16 +68,17 @@ const FAIXAS = {
       { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita']]] },
       { nome: 'Cor', itens: [['g', 'formatar.preenchimento']] }] },
     { id: 'inserir', nome: 'Inserir', grupos: [
-      { nome: 'Quadro', itens: [['g', 'inserir.postit'], ['g', 'inserir.seta'], ['g', 'inserir.proximo'], ['g', 'inserir.texto']] },
-      { nome: 'Fluxograma', itens: [['g', 'inserir.forma'], ['col', ['inserir.processo', 'inserir.decisao', 'inserir.inicio']], ['col', ['inserir.dados']]] },
+      { nome: 'Quadro', itens: [['g', 'inserir.postit'], ['g', 'inserir.seta'], ['g', 'inserir.proximo'], ['g', 'inserir.texto'], ['g', 'inserir.pagina'], ['g', 'inserir.legenda']] },
+      { nome: 'Fluxograma', itens: [['g', 'inserir.forma'], ['col', ['inserir.processo', 'inserir.decisao', 'inserir.inicio']], ['col', ['inserir.dados']], ['g', 'inserir.modelo']] },
       { nome: 'Objetos', itens: [['g', 'inserir.imagem'], ['g', 'inserir.link'], ['g', 'inserir.grafico']] }] },
     { id: 'organizar', nome: 'Organizar', grupos: [
       { nome: 'Visões', itens: [['g', 'organizar.quadro'], ['g', 'organizar.kanban'], ['g', 'organizar.raias']] },
       { nome: 'Ordem', itens: [['col', ['organizar.frente', 'organizar.tras']]] },
+      { nome: 'Prioridade', itens: [['g', 'organizar.ordenarGut']] },
       { nome: 'Reunião', itens: [['g', 'organizar.temporizador']] }] },
     { id: 'revisao', nome: 'Revisão', grupos: [
       { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar']] }] },
-    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Quadro', itens: [['g', 'exibir.ajustar'], ['g', 'exibir.zoom'], ['g', 'exibir.minimapa'], ['g', 'exibir.codigos']] }, ...GRUPOS_EXIBIR] },
+    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Quadro', itens: [['g', 'exibir.ajustar'], ['g', 'exibir.zoom'], ['g', 'exibir.minimapa'], ['g', 'exibir.codigos'], ['g', 'exibir.ferramentas'], ['g', 'exibir.assistente']] }, ...GRUPOS_EXIBIR] },
   ],
 };
 
@@ -114,8 +115,8 @@ export const ROTULO_CURTO = {
   'revisao.concluir': 'Concluir revisão', 'pagina.cabecalho': 'Cabeçalho do POP', 'pagina.orientacao': 'Orientação',
   'exibir.congelar': 'Congelar', 'exibir.grade': 'Linhas de grade', 'exibir.leitura': 'Modo leitura',
   'exibir.relevo': 'Relevo', 'exibir.telaCheia': 'Tela cheia', 'formatar.titulo': 'Título', 'inserir.campo': 'Campo',
-  'editar.colar': 'Colar', 'inserir.processo': 'Processo', 'inserir.decisao': 'Decisão', 'inserir.inicio': 'Início/Fim',
-  'inserir.dados': 'Dados', 'organizar.quadro': 'Quadro livre', 'organizar.frente': 'Para a frente',
+  'editar.colar': 'Colar', 'inserir.processo': 'Atividade', 'inserir.decisao': 'Decisão', 'inserir.inicio': 'Início/Fim',
+  'inserir.dados': 'Entrada/Saída', 'inserir.pagina': 'Página', 'inserir.legenda': 'Legenda', 'inserir.modelo': 'Modelos', 'organizar.ordenarGut': 'Ordenar GUT', 'exibir.ferramentas': 'Ferramentas', 'exibir.assistente': 'Assistente', 'organizar.quadro': 'Quadro livre', 'organizar.frente': 'Para a frente',
   'organizar.tras': 'Para trás', 'exibir.ajustar': 'Ajustar à tela', 'exibir.codigos': 'Códigos Q',
   'editar.excluir': 'Excluir', 'editar.selecionarTudo': 'Selecionar tudo', 'formatar.preenchimento': 'Cor',
   'editar.duplicar': 'Duplicar', 'inserir.texto': 'Texto solto',

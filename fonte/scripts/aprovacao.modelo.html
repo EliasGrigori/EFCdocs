@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Aprovação EFCdocs v0.3.0</title>
+<title>Aprovação EFCdocs {{VERSAO}}</title>
 <style>
 :root{--bg:#f4f5f7;--sup:#fff;--sup2:#f0f2f5;--borda:#d9dde3;--txt:#1d2330;--mut:#5b6474;--pri:#143c47;--amb:#c9861d;--ok:#1f7a4d;--okf:#e3f3ea;--no:#b42318;--nof:#fdecea;--warn:#8a5a00;--warnf:#fff4dc}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0c1a1f;--sup:#122a31;--sup2:#16343c;--borda:#24454f;--txt:#e9ece8;--mut:#a5b6b9;--pri:#f1a93b;--amb:#f1a93b;--ok:#6cc39c;--okf:#173a2c;--no:#ec8a7c;--nof:#3d1f1c;--warn:#f1c46b;--warnf:#3a2f14}}
@@ -53,30 +53,25 @@ dialog::backdrop{background:rgba(0,0,0,.75)}
 </head>
 <body>
 <header><div class="in">
-  <h1>EFCdocs v0.3.0 · Post-its e Quadro · página de aprovação</h1>
+  <h1>EFCdocs {{VERSAO}} · {{SUBTITULO}} · página de aprovação</h1>
   <p>25/10/2026 · nada vai ao GitHub antes da sua aprovação. Toque numa imagem para ampliar. No fim, "Copiar respostas" e cole na conversa.</p>
 </div></header>
 <main>
   <section class="resumo">
     <h2>Resumo</h2>
-    <div class="nums"><span>37/37 testes de regras</span><span>30/30 testes no navegador</span><span>console sem erros</span><span>{{TAMANHO}}</span><span>16 itens para decidir</span></div>
-    <ul>
-      <li>O código-fonte da v0.2.0 não estava em lugar nenhum (só o app montado). Ele foi <b>reconstruído a partir do app publicado</b>, com o mesmo CSS, o mesmo catálogo de comandos e o mesmo comportamento. Os prints de "antes" são da v0.2.0 de verdade.</li>
-      <li>O quadro de post-its funciona por inteiro: post-its, formas de fluxograma, setas presas, Kanban, raias, PDF paisagem, PNG, imprimir.</li>
-      <li>Entraram os 5 achados do Grok, a correção do aviso do PDF e uma correção que vinha da v0.2.0 (a página recarregava sozinha na primeira visita).</li>
-    </ul>
+    {{RESUMO}}
   </section>
   {{ITENS}}
 </main>
 <div class="barra">
-  <span class="cont" id="cont">0 de 16 respondidos</span>
+  <span class="cont" id="cont">0 de {{N}} respondidos</span>
   <button type="button" id="copiar">Copiar respostas</button>
   <span class="ok" id="copiado" hidden>Copiado. Cole na conversa.</span>
 </div>
 <dialog id="zoom"><img alt=""></dialog>
 <script>
 (function(){
-  var CHAVE='efcdocs-aprovacao-v0.3.0';
+  var CHAVE='efcdocs-aprovacao-{{VERSAO}}';
   var salvo={};
   try{salvo=JSON.parse(localStorage.getItem(CHAVE)||'{}')}catch(e){salvo={}}
   var itens=[].slice.call(document.querySelectorAll('.item'));
@@ -104,7 +99,7 @@ dialog::backdrop{background:rgba(0,0,0,.75)}
   });
   atualizar();
   document.getElementById('copiar').addEventListener('click',function(){
-    var linhas=['EFCdocs v0.3.0 · respostas da aprovação ('+new Date().toLocaleDateString('pt-BR')+')',''];
+    var linhas=['EFCdocs {{VERSAO}} · respostas da aprovação ('+new Date().toLocaleDateString('pt-BR')+')',''];
     itens.forEach(function(it){
       var c=it.dataset.cod, s=salvo[c]||{};
       linhas.push(c+' '+it.dataset.titulo+': '+(s.r||'SEM RESPOSTA'));
