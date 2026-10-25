@@ -254,3 +254,69 @@ body[data-theme=light] .tk-num, body[data-theme=campo] .tk-num, .pl.clara .pl-ed
 .faixa-aviso.trava { background: var(--crit-soft); color: var(--text); flex-wrap: wrap; border-bottom: 1px solid var(--crit); }
 .faixa-aviso.trava svg { color: var(--crit); }
 .faixa-aviso.trava .btn { min-height: 28px; }
+
+/* ---------- v0.4.3: entender a conta ---------- */
+.janela-r .sp { flex: 1; }
+.janela-r .btn svg, .pl-jexp .btn svg, .pl-origem .btn svg { width: 16px; height: 16px; }
+.pl-jexp { width: min(720px, 100%); }
+.pl-jexp .janela-c { display: grid; gap: 10px; }
+.pl-porque { border: 1px solid color-mix(in srgb, var(--crit) 45%, transparent); background: color-mix(in srgb, var(--crit) 8%, var(--surface)); border-radius: 6px; padding: 10px 12px; }
+.pl-porque-t { display: flex; align-items: center; gap: 8px; color: var(--crit); }
+.pl-porque-t svg { width: 18px; height: 18px; flex: none; }
+.pl-porque p { margin: 6px 0 8px; font-size: 13.5px; line-height: 1.45; }
+.pl-linhas { list-style: none; margin: 0; padding: 6px 0; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); font-family: 'DejaVu Sans Mono', ui-monospace, monospace; font-size: 13px; overflow-x: auto; }
+.pl-linhas li { display: grid; grid-template-columns: 34px 1fr auto; align-items: baseline; gap: 8px; padding: 2px 10px 2px 0; }
+.pl-linhas li.final { border-top: 1px dashed var(--border); margin-top: 2px; padding-top: 4px; }
+.pl-linhas li:hover { background: var(--primary-soft); }
+.pl-ln { text-align: right; color: var(--text-dim, var(--text-muted)); font-size: 11.5px; user-select: none; }
+.pl-linhas code { font: inherit; white-space: pre-wrap; word-break: break-word; }
+.pl-lv { justify-self: end; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 8px; border-radius: 4px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-weight: 600; }
+.pl-lv::before { content: '→ '; color: var(--text-muted); font-weight: 400; }
+.pl-lv.erro { color: var(--crit); }
+.pl-frase { margin: 0; font-size: 14px; line-height: 1.5; padding: 8px 12px; border-left: 3px solid var(--primary); background: var(--primary-soft); border-radius: 0 6px 6px 0; }
+.pl-linhas-ed { width: 100%; min-height: 120px; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-light); background: var(--surface-2); color: var(--text); font: 13px/1.55 'DejaVu Sans Mono', ui-monospace, monospace; resize: vertical; }
+
+.pl-jfluxo { width: min(1100px, 100%); }
+.pl-fluxo { overflow: auto; max-height: 62vh; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.pl-fluxo svg { display: block; }
+.pl-fluxo-no { cursor: pointer; }
+.pl-fluxo-no:hover rect:first-child, .pl-fluxo-no:focus rect:first-child { stroke: var(--primary); }
+.pl-fluxo-no text { font-size: 12px; fill: var(--text); }
+.pl-fluxo-no .t1 { font-weight: 700; }
+.pl-fluxo-no .t2 { fill: var(--text-muted); font-family: 'DejaVu Sans Mono', ui-monospace, monospace; font-size: 11px; }
+.pl-fluxo-no .t3 { font-weight: 600; }
+.pl-fluxo-no .t3.erro { fill: var(--crit); }
+.pl-fluxo-leg { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-muted); }
+.pl-fluxo-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 6px; }
+
+.pl-jmontar { width: min(760px, 100%); }
+.pl-montar { display: grid; grid-template-columns: 220px 1fr; gap: 14px; }
+.pl-montar-l { display: grid; gap: 2px; align-content: start; }
+.pl-montar-l button { text-align: left; padding: 7px 10px; border-radius: 6px; font-size: 13.5px; font-weight: 600; }
+.pl-montar-l button.on { background: var(--primary-soft); color: var(--primary); }
+.pl-montar-d { display: grid; gap: 8px; align-content: start; }
+.pl-montar-d .qd-dica { margin: 0 0 2px; }
+.pl-montar .campo { display: grid; grid-template-columns: 190px 1fr; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.pl-montar .campo input, .pl-montar .campo select { height: 34px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--surface-2); color: var(--text); padding: 0 8px; font: inherit; font-weight: 500; min-width: 0; }
+.pl-montar .campo input[aria-invalid="true"] { border-color: var(--crit); }
+.pl-montar-r { display: grid; gap: 4px; padding: 10px 12px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13.5px; }
+.pl-montar-r code { font-family: 'DejaVu Sans Mono', ui-monospace, monospace; font-size: 13px; word-break: break-all; }
+
+/* lâmpada dos problemas sobre a grade (o mesmo jeito do Assistente do quadro) */
+.pl-lamp { right: 22px; bottom: 20px; }
+.pl-problemas { right: 22px; bottom: 66px; width: min(460px, calc(100% - 30px)); }
+.pl-problemas li { flex-wrap: wrap; }
+.pl-problemas .pl-prob-tx { flex: 1 1 calc(100% - 20px); line-height: 1.4; }
+.pl-prob-cel { font-family: 'DejaVu Sans Mono', ui-monospace, monospace; font-size: 12px; margin-right: 2px; }
+.pl-prob-b { display: flex; gap: 6px; flex: 1 1 100% !important; justify-content: flex-end; }
+.pl-prob-b .btn { white-space: nowrap; height: 28px; padding: 0 10px; font-size: 12.5px; }
+
+@media (max-width: 760px) {
+  .pl-montar { grid-template-columns: 1fr; }
+  .pl-montar-l { grid-template-columns: 1fr 1fr; }
+  .pl-montar .campo { grid-template-columns: 1fr; }
+  .pl-linhas li { grid-template-columns: 26px 1fr; }
+  .pl-lv { grid-column: 2; justify-self: start; }
+}
+.app.cel .qd-lamp.pl-lamp { top: auto; bottom: 14px; right: 12px; }
+.app.cel .qd-assist.pl-problemas { top: auto; bottom: 62px; }

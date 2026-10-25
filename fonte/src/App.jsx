@@ -8,7 +8,7 @@ import { TIPOS, VERSAO, criarArquivo, validarNome, carimbar, ativos } from './nu
 import { criarDiff, novoHistorico, fazer, desfazer, refazer, podeDesfazer, podeRefazer, rotuloDesfazer, juntarUltimas } from './nucleo/diff.js';
 import { tamanhoLegivel } from './nucleo/compacta.js';
 import { criarBanco } from './nucleo/banco.js';
-import { PorId, chegaNa } from './nucleo/comandos.js';
+import { PorId, chegaNa, textoChega } from './nucleo/comandos.js';
 import { pode, SEM_PERMISSAO } from './nucleo/perfis.js';
 import { normalizarPrefs } from './nucleo/prefs.js';
 import { normalizarQuadro } from './quadro/modelo.js';
@@ -287,6 +287,22 @@ export function App() {
     }
   }, [banco, recarregar, avisar]);
 
+  /** Cria um arquivo já com conteúdo (ex.: a conta desenhada vira um quadro) e abre. */
+  const criarCom = useCallback(async (tipo, nome, conteudo) => {
+    try {
+      const a = criarArquivo({ tipo, nome, autor: AUTOR });
+      a.conteudo = conteudo;
+      await banco.criar(a);
+      await recarregar();
+      irPara('arq/' + a.ficha.id);
+      avisar(`"${a.ficha.nome}" foi criado. A planilha continua igual.`, { ic: 'check' });
+      return true;
+    } catch (e) {
+      avisar(e.message, { ic: 'aviso' });
+      return false;
+    }
+  }, [banco, recarregar, avisar]);
+
   const restaurar = useCallback(async (f) => {
     await banco.restaurar(f.id);
     await recarregar();
@@ -357,7 +373,7 @@ export function App() {
     if (!cmd) return;
     const chega = chegaNa(cmd, mod);
     if (chega) {
-      avisar(`"${cmd.nome}"${mod && DO_MODULO[mod] ? ' ' + DO_MODULO[mod] : ''} chega na ${chega}.`, { ic: 'info' });
+      avisar(`"${cmd.nome}"${mod && DO_MODULO[mod] ? ' ' + DO_MODULO[mod] : ''} ${textoChega(chega)}.`, { ic: 'info' });
       return;
     }
     const bloq = bloqueado(id);
@@ -437,7 +453,7 @@ export function App() {
   const cx = {
     mod, executar, bloqueado, ligado, demo,
     abrir: (id) => irPara('arq/' + id),
-    perguntarNome, lixeira: mandarLixeira, restaurar, excluirDeVez,
+    perguntarNome, lixeira: mandarLixeira, restaurar, excluirDeVez, criarCom,
     renomear: (nome) => { const a = abertoRef.current; if (a && nome !== a.arquivo.ficha.nome) renomearArquivo(a.arquivo.ficha, nome); },
     dataHora, tamanho: tamanhoLegivel,
     instalar: estadoPwa.instalar ? pedirInstalacao : null,

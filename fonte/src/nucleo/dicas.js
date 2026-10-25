@@ -115,7 +115,6 @@ export const DESCRICAO = {
   'revisao.controlar': 'Mostra o que foi mudado em relação à versão anterior.',
   'revisao.concluir': 'Fecha a revisão do documento, com o motivo.',
   'revisao.comparar': 'Compara duas revisões e mostra o que mudou.',
-  'planilha.reexibirColuna': 'Mostra de novo colunas escondidas na seleção.',
   'arquivo.renomear': 'Muda o nome do arquivo.',
   'arquivo.lixeira': 'Manda o arquivo para a lixeira. Dá para restaurar.',
   'arquivo.exportarPDF': 'Gera um PDF para imprimir ou mandar.',
@@ -126,6 +125,35 @@ export const DESCRICAO = {
   'arquivo.imprimir': 'Imprime.',
   'arquivo.versoes': 'Histórico de revisões do arquivo.',
   'app.buscar': 'Digite o que quer fazer e o app acha o comando, a célula ou o nome.',
+  'exibir.faixaTudo': 'Faixa completa: as abas e os botões de cada uma ficam sempre à mostra.',
+  'exibir.faixaAbas': 'Mostra só os nomes das abas; os botões aparecem quando você toca numa aba.',
+  'exibir.faixaOculta': 'Esconde a faixa para ganhar espaço. Um botão no topo traz de volta.',
+  'exibir.menuCompleto': 'Menu lateral completo: mostra o menu da esquerda com ícone e nome.',
+  'exibir.menuIcones': 'Menu lateral estreito: só os ícones, com mais espaço para o arquivo.',
+  'exibir.menuOculto': 'Esconde o menu da esquerda. O botão de menu no topo abre quando precisar.',
+  'exibir.layoutA': 'Faixa com abas e botões, como no Excel e no Word.',
+  'exibir.layoutB': 'Uma barra curta com os botões mais usados e o painel ao lado.',
+  'formula.problemas': 'Lista os erros e avisos da planilha inteira, cada um com o caminho até a célula.',
+  'formula.montar': 'Monta a conta respondendo uma pergunta (contar, somar quando, buscar...), sem decorar função.',
+  'formula.fluxo': 'Desenha de onde vem a conta, caixa por caixa, com setas até o resultado.',
+};
+
+/** Frases próprias de um módulo (no quadro, colar e copiar não falam de fórmula nem de Excel). */
+export const DESCRICAO_MOD = {
+  postits: {
+    'editar.colar': 'Cola aqui o post-it ou o texto que você copiou. Cada linha de texto vira um post-it.',
+    'editar.recortar': 'Tira o item do quadro e guarda para colar em outro lugar.',
+    'editar.copiar': 'Copia o item selecionado para colar neste ou em outro quadro.',
+    'editar.pincel': 'Copia a cor e a letra do item e aplica em outro.',
+    'editar.localizar': 'Procura um texto nos itens do quadro e, se quiser, troca por outro.',
+    'formatar.corFonte': 'Muda a cor da letra do item.',
+    'formatar.preenchimento': 'Muda a cor do post-it ou da forma selecionada.',
+    'formatar.negrito': 'Letra em negrito no item selecionado.',
+    'formatar.italico': 'Letra em itálico no item selecionado.',
+    'formatar.sublinhado': 'Sublinha o texto do item selecionado.',
+    'editar.excluir': 'Apaga o item ou a seta selecionada. Dá para desfazer.',
+    'editar.selecionarTudo': 'Seleciona todos os itens do quadro.',
+  },
 };
 
 /** Atalhos que de fato funcionam em cada módulo (o resto do catálogo não tem atalho). */
@@ -133,7 +161,8 @@ const COMUNS = { 'editar.desfazer': 'Ctrl+Z', 'editar.refazer': 'Ctrl+Y', 'app.b
 export const ATALHOS = {
   planilha: {
     ...COMUNS,
-    'formatar.negrito': 'Ctrl+N', 'formatar.italico': 'Ctrl+I', 'formatar.sublinhado': 'Ctrl+S',
+    /* Ctrl+N é do navegador (abre janela nova) e o site não consegue impedir: na planilha vale Ctrl+B */
+    'formatar.negrito': 'Ctrl+B', 'formatar.italico': 'Ctrl+I', 'formatar.sublinhado': 'Ctrl+S',
     'formatar.formatoNumero': 'Ctrl+1', 'formatar.moeda': 'Ctrl+Shift+$', 'formatar.porcentagem': 'Ctrl+Shift+%',
     'editar.preencherBaixo': 'Ctrl+D', 'editar.preencherDireita': 'Ctrl+R', 'editar.localizar': 'Ctrl+L',
     'formula.autosoma': 'Alt+=', 'planilha.limparConteudo': 'Delete',
@@ -141,6 +170,7 @@ export const ATALHOS = {
   postits: {
     ...COMUNS,
     'editar.duplicar': 'Ctrl+D', 'editar.excluir': 'Delete', 'inserir.proximo': 'Tab',
+    'formatar.negrito': 'Ctrl+B', 'formatar.italico': 'Ctrl+I', 'formatar.sublinhado': 'Ctrl+U',
   },
   docx: { ...COMUNS },
 };
@@ -149,7 +179,7 @@ export const ATALHOS = {
 export function dicaDoComando(cmd, mod) {
   return {
     nome: cmd.nome,
-    desc: DESCRICAO[cmd.id] || '',
+    desc: (DESCRICAO_MOD[mod] && DESCRICAO_MOD[mod][cmd.id]) || DESCRICAO[cmd.id] || '',
     atalho: (ATALHOS[mod] && ATALHOS[mod][cmd.id]) || (cmd.id === 'exibir.faixaAbas' ? 'Ctrl+F1' : ''),
   };
 }

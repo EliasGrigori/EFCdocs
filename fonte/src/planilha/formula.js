@@ -209,8 +209,16 @@ export function ler(texto, loc = 'pt') {
     if (t && t.t === 'op' && (t.v === '-' || t.v === '+')) { p++; return { t: 'un', o: t.v, a: unario() }; }
     return intervalo();
   }
+  /** LAMBDA(x;x*2)(4): a função devolvida é chamada com os valores entre os parênteses seguintes. */
+  function chamadas(a) {
+    while ((a.t === 'fn' || a.t === 'paren' || a.t === 'chamada') && olha() && olha().t === 'abre') {
+      p++;
+      a = { t: 'chamada', f: a, args: argumentos() };
+    }
+    return a;
+  }
   function intervalo() {
-    let a = primario();
+    let a = chamadas(primario());
     while (olha() && olha().t === 'op' && olha().v === ':') { p++; a = { t: 'bin', o: ':', a, b: primario() }; }
     return a;
   }
@@ -330,6 +338,7 @@ export function escrever(n, loc = 'en') {
       return nome + '(' + n.args.map(w).join(L.sep) + ')';
     }
     case 'paren': return '(' + w(n.a) + ')';
+    case 'chamada': return w(n.f) + '(' + n.args.map(w).join(L.sep) + ')';
     case 'bin': return w(n.a) + n.o + w(n.b);
     case 'un': return n.o + w(n.a);
     case 'pct': return w(n.a) + '%';
@@ -367,6 +376,7 @@ export function mapearRefs(n, fnRef, fnNome) {
     case 'ref': case 'area': return fnRef(n);
     case 'nome': return fnNome ? fnNome(n) : n;
     case 'fn': return { ...n, args: n.args.map(m) };
+    case 'chamada': return { ...n, f: m(n.f), args: n.args.map(m) };
     case 'paren': case 'un': case 'pct': return { ...n, a: m(n.a) };
     case 'bin': return { ...n, a: m(n.a), b: m(n.b) };
     default: return n;
@@ -462,6 +472,7 @@ export function dependencias(arv) {
         if (f && f.vol) volatil = true;
         n.args.forEach(vai); break;
       }
+      case 'chamada': vai(n.f); n.args.forEach(vai); break;
       case 'paren': case 'un': case 'pct': vai(n.a); break;
       case 'bin': vai(n.a); vai(n.b); break;
       default:

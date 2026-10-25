@@ -345,6 +345,7 @@ export class Motor {
         return f(n.args, ctx);
       }
       case 'paren': return this.avaliar(n.a, ctx);
+      case 'chamada': return E.NOME; // LAMBDA chamada na hora: ainda não calculada aqui
       case 'un': {
         const v = this.avaliar(n.a, ctx);
         if (n.o === '+') return v;

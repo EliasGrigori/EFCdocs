@@ -39,6 +39,7 @@ export function DicasComandos({ mod }) {
     addEventListener('mousedown', esconder, true);
     addEventListener('keydown', esconder, true);
     addEventListener('scroll', esconder, true);
+    addEventListener('wheel', esconder, { capture: true, passive: true }); // roda do mouse em cima da faixa (sem rolar nada)
     return () => {
       clearTimeout(tempo.current);
       document.removeEventListener('mouseover', entrou);
@@ -46,6 +47,7 @@ export function DicasComandos({ mod }) {
       removeEventListener('mousedown', esconder, true);
       removeEventListener('keydown', esconder, true);
       removeEventListener('scroll', esconder, true);
+      removeEventListener('wheel', esconder, { capture: true });
     };
   }, [mod]);
   if (!dica) return null;

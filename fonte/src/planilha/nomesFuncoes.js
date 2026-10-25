@@ -186,7 +186,7 @@ export function acharFuncao(nome) {
   return null;
 }
 
-/** Distância de edição (para sugerir "Você quis dizer PROCV?") */
+/** Distância de edição (para sugerir "Você quis dizer PROCV?"); letras trocadas de lugar contam 1. */
 export function distancia(a, b) {
   const m = a.length, n = b.length;
   const d = Array.from({ length: m + 1 }, (_, i) => [i, ...new Array(n).fill(0)]);
@@ -194,6 +194,8 @@ export function distancia(a, b) {
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
       d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      /* duas letras trocadas de lugar (PROVC → PROCV) contam como um erro só */
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
     }
   }
   return d[m][n];
@@ -209,7 +211,8 @@ TEXTOANTES TEXTBEFORE|TEXTODEPOIS TEXTAFTER|DIVIDIRTEXTO TEXTSPLIT|EMPILHARV VST
 HIPERLINK HYPERLINK|PROC LOOKUP|ÁREAS AREAS|ENDEREÇO ADDRESS|CÉL CELL|TIPO TYPE|T T|N N|ÉPAR ISEVEN|ÉIMPAR ISODD|ÉREF ISREF|ÉFÓRMULA ISFORMULA|ÉNÃOTEXTO ISNONTEXT
 LOG LOG|LOG10 LOG10|LN LN|EXP EXP|SEN SIN|COS COS|TAN TAN|ASEN ASIN|ACOS ACOS|ATAN ATAN|ATAN2 ATAN2|RADIANOS RADIANS|GRAUS DEGREES|FATORIAL FACT|COMBIN COMBIN|PERMUT PERMUT|MDC GCD|MMC LCM|PAR EVEN|ÍMPAR ODD|MULT MULTINOMIAL
 MOEDA DOLLAR|FIXO FIXED|UNICODE UNICODE|ANO.FRAÇÃO YEARFRAC|DIAS360 DAYS360|DIATRABALHO.INTL WORKDAY.INTL|DIATRABALHOTOTAL.INTL NETWORKDAYS.INTL
-PGTO PMT|VP PV|VF FV|TAXA RATE|NPER NPER|VPL NPV|TIR IRR|SLN SLN|BDSOMA DSUM|BDCONTAR DCOUNT|BDMÉDIA DAVERAGE`;
+PGTO PMT|VP PV|VF FV|TAXA RATE|NPER NPER|VPL NPV|TIR IRR|SLN SLN|BDSOMA DSUM|BDCONTAR DCOUNT|BDMÉDIA DAVERAGE
+LAMBDA LAMBDA|DIST.NORM NORMDIST|INV.NORM NORMINV|INT.CONFIANÇA.T CONFIDENCE.T|DIST.T.BC T.DIST.2T|ARRUMARINTERVALO TRIMRANGE`;
 const POR_FALTAM = new Set();
 for (const par of DO_EXCEL_FALTAM.split(/[|\n]/)) {
   const [pt, en] = par.trim().split(/\s+/);

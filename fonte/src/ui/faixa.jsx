@@ -1,6 +1,6 @@
 /* EFCdocs — topo: nome do arquivo, busca, faixa tipo Excel (opção A) e barra curta (opção B). */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { PorId, chegaNa, valeNoModulo } from '../nucleo/comandos.js';
+import { PorId, chegaNa, valeNoModulo, textoChega } from '../nucleo/comandos.js';
 import { ROTULOS } from '../nucleo/prefs.js';
 import { validarNome } from '../nucleo/modelo.js';
 import { Icone } from './comum.jsx';
@@ -38,7 +38,8 @@ const FAIXAS = {
     { id: 'formulas', nome: 'Fórmulas', grupos: [
       { nome: 'Funções', itens: [['g', 'formula.inserir'], ['g', 'formula.autosoma']] },
       { nome: 'Nomes', itens: [['g', 'formula.nome'], ['g', 'formula.nomes'], ['g', 'planilha.cabecalho']] },
-      { nome: 'Entender a conta', itens: [['g', 'formula.origem'], ['g', 'formula.explicar']] }] },
+      { nome: 'Entender a conta', itens: [['g', 'formula.explicar'], ['g', 'formula.origem'], ['g', 'formula.fluxo'], ['g', 'formula.problemas']] },
+      { nome: 'Para o leigo', itens: [['g', 'formula.montar']] }] },
     { id: 'dados', nome: 'Dados', grupos: [
       { nome: 'Classificar e filtrar', itens: [['g', 'dados.classificar'], ['g', 'dados.filtrar']] },
       { nome: 'Ferramentas', itens: [['g', 'dados.validacao'], ['g', 'dados.duplicados'], ['g', 'dados.dinamica']] },
@@ -67,10 +68,9 @@ const FAIXAS = {
   ],
   postits: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
-      { nome: 'Editar', itens: [['g', 'editar.duplicar'], ['g', 'editar.excluir'], ['col', ['editar.selecionarTudo', 'editar.localizar', 'editar.historico']]] },
-      { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.corFonte']]] },
-      { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita']]] },
-      { nome: 'Cor', itens: [['g', 'formatar.preenchimento']] }] },
+      { nome: 'Editar', itens: [['lin', ['editar.duplicar', 'editar.excluir', 'editar.selecionarTudo', 'editar.localizar', 'editar.historico'], 3]] },
+      { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.corFonte', 'formatar.preenchimento'], 3]] },
+      { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita']]] }] },
     { id: 'inserir', nome: 'Inserir', grupos: [
       { nome: 'Quadro', itens: [['g', 'inserir.postit'], ['g', 'inserir.seta'], ['g', 'inserir.proximo'], ['g', 'inserir.texto'], ['g', 'inserir.pagina'], ['g', 'inserir.legenda']] },
       { nome: 'Fluxograma', itens: [['g', 'inserir.forma'], ['col', ['inserir.processo', 'inserir.decisao', 'inserir.inicio']], ['col', ['inserir.dados']], ['g', 'inserir.modelo']] },
@@ -111,7 +111,7 @@ export const ROTULO_CURTO = {
   'exibir.menuCompleto': 'Completo', 'exibir.menuIcones': 'Só ícones', 'exibir.menuOculto': 'Esconder',
   'exibir.layoutA': 'Faixa tipo Excel', 'exibir.layoutB': 'Barra e painel', 'exibir.painel': 'Painel lateral',
   'arquivo.lixeira': 'Lixeira', 'arquivo.versoes': 'Versões', 'arquivo.cancelar': 'Cancelar',
-  'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'inserir.botao': 'Botão de aba',
+  'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Problemas', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
   'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
   'dados.validacao': 'Validação', 'formatar.condicional': 'Destacar regra', 'editar.localizar': 'Localizar',
   'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
@@ -139,7 +139,7 @@ export function BotaoCmd({ id, tipo = 'g', cx, rotulo }) {
   const bloq = cx.bloqueado(id);
   const ligado = cx.ligado(id);
   const info = dicaDoComando(cmd, cx.mod);
-  const nota = [chega ? `Chega na ${chega}.` : '', bloq || ''].filter(Boolean).join(' ');
+  const nota = [chega ? textoChega(chega).replace(/^c/, 'C') + '.' : '', bloq || ''].filter(Boolean).join(' ');
   const titulo = cmd.nome + (info.atalho ? ` (${info.atalho})` : '') + (nota ? ` — ${nota}` : '');
   const classe = { g: 'rbb', s: 'rbs', i: 'rbi', t: 'tlab' }[tipo] + (ligado ? ' on' : '') + (chega ? ' futuro' : '');
   return (
@@ -177,10 +177,20 @@ function Faixa({ aba, cx, flutua, cel }) {
   const [larg, setLarg] = useState(0);
   const [est, setEst] = useState({ corte: null, medir: true });
   const [maisAberto, setMaisAberto] = useState(false);
+  /* tela estreita (celular ou janela pequena): a faixa rola de lado; setas mostram que tem mais */
+  const [lados, setLados] = useState({ esq: false, dir: false });
+  const medirLados = () => {
+    const el = ref.current;
+    if (!el || !cel) { setLados((x) => (x.esq || x.dir ? { esq: false, dir: false } : x)); return; }
+    const esq = el.scrollLeft > 4, dir = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    setLados((x) => (x.esq === esq && x.dir === dir ? x : { esq, dir }));
+  };
+  useEffect(() => { medirLados(); }); // eslint-disable-line react-hooks/exhaustive-deps
+  const rolar = (d) => { const el = ref.current; if (el) el.scrollBy({ left: d * Math.max(160, el.clientWidth * 0.6), behavior: 'smooth' }); };
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver(() => setLarg(el.clientWidth));
+    const ro = new ResizeObserver(() => { setLarg(el.clientWidth); medirLados(); });
     ro.observe(el);
     return () => ro.disconnect();
   }, [flutua]);
@@ -211,8 +221,10 @@ function Faixa({ aba, cx, flutua, cel }) {
   const naFaixa = corte == null ? atual.grupos : atual.grupos.slice(0, corte);
   const noMais = corte == null ? [] : atual.grupos.slice(corte);
   return (
-    <div className={'ribbon' + (flutua ? ' flutua' : '') + (cel ? '' : ' ajustada')} role="toolbar" aria-label={'Faixa ' + atual.nome} data-aba={atual.id} ref={ref}>
+    <div className={'ribbon' + (flutua ? ' flutua' : '') + (cel ? '' : ' ajustada')} role="toolbar" aria-label={'Faixa ' + atual.nome} data-aba={atual.id} ref={ref} onScroll={cel ? medirLados : undefined}>
+      {cel && lados.esq && <button type="button" className="rb-rolar esq" aria-label="Ver os botões anteriores" onClick={() => rolar(-1)}><Icone n="setaEsq" /></button>}
       {naFaixa.map((g, i) => <GrupoFaixa g={g} cx={cx} key={atual.id + i} />)}
+      {cel && lados.dir && <button type="button" className="rb-rolar dir" aria-label="Tem mais botões: ver os próximos" data-dica="Tem mais|Arraste a faixa para o lado ou toque aqui para ver os outros botões." onClick={() => rolar(1)}><Icone n="setaDir" /></button>}
       {noMais.length > 0 && (
         <div className="rb-mais-area">
           <button type="button" className="rbb rb-mais" aria-expanded={maisAberto} aria-label="Mais comandos" data-dica="Mais comandos|Os grupos que não cabem na largura da tela ficam aqui." onClick={() => setMaisAberto(!maisAberto)}>

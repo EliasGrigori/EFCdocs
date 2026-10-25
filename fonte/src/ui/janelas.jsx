@@ -1,6 +1,6 @@
 /* EFCdocs — busca "O que você quer fazer?", Opções e painel lateral do arquivo. */
 import { useEffect, useMemo, useState } from 'react';
-import { buscarComandos, chegaNa, PorId } from '../nucleo/comandos.js';
+import { buscarComandos, chegaNa, PorId, textoChega } from '../nucleo/comandos.js';
 import { TEMAS, AMOSTRAS, ROTULOS } from '../nucleo/prefs.js';
 import { PERFIS } from '../nucleo/perfis.js';
 import { TIPOS } from '../nucleo/modelo.js';
@@ -43,7 +43,7 @@ export function Paleta({ mod, cx, aoFechar }) {
             return (
               <li key={c.id} role="option" id={'pl-' + i} aria-selected={i === sel}>
                 <button type="button" className={i === sel ? 'sel' : ''} onMouseEnter={() => setSel(i)} onClick={() => rodar(c)} data-cmd={c.editor ? undefined : c.id}>
-                  <Icone n={c.ic} /><span>{c.nome}</span><span className="dir">{c.editor ? c.dir : chega ? 'chega na ' + chega : c.atalho || ''}</span>
+                  <Icone n={c.ic} /><span>{c.nome}</span><span className="dir">{c.editor ? c.dir : chega ? textoChega(chega) : c.atalho || ''}</span>
                 </button>
               </li>
             );
@@ -147,7 +147,7 @@ export function Painel({ aberto, cx, fechar, extra }) {
             const chega = chegaNa(c, f.tipo);
             const bloq = cx.bloqueado(id);
             return (
-              <button key={id} type="button" className="chipb" disabled={!!bloq} title={bloq || (chega ? `Chega na ${chega}` : c.nome)} onClick={() => cx.executar(id)}>
+              <button key={id} type="button" className="chipb" disabled={!!bloq} title={bloq || (chega ? textoChega(chega).replace(/^c/, 'C') : c.nome)} onClick={() => cx.executar(id)}>
                 <Icone n={c.ic} />{ROTULO_CURTO[id] || c.nome}{chega ? ` · ${chega}` : ''}
               </button>
             );

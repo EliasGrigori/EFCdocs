@@ -1,4 +1,4 @@
-/* EFCdocs v0.4.2 — testes das regras da Planilha (motor, fórmulas, formatos, entrada, operações). */
+/* EFCdocs v0.4.3 — testes das regras da Planilha (motor, fórmulas, formatos, entrada, operações). */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Motor } from '../src/planilha/motor.js';
@@ -532,12 +532,160 @@ test('v0.4.2: todo botão da faixa tem dica (o que faz) e os atalhos são os que
   const bloco = fonte.slice(fonte.indexOf('const FAIXAS'), fonte.indexOf('export const BARRA_CURTA'));
   const bloco2 = fonte.slice(fonte.indexOf('export const BARRA_CURTA'), fonte.indexOf('/** Abas da faixa'));
   const ids = new Set([...(bloco + bloco2).matchAll(/'([a-z]+\.[a-zA-Z]+)'/g)].map((m) => m[1]));
-  const sem = [...ids].filter((id) => PorId[id] && !DESCRICAO[id] && !/^exibir\.(faixa|menu|layout)/.test(id));
+  const sem = [...ids].filter((id) => PorId[id] && !DESCRICAO[id]);
   assert.deepEqual(sem, [], 'sem dica: ' + sem.join(', '));
   for (const id of Object.keys(DESCRICAO)) assert.ok(PorId[id], 'dica de comando que não existe: ' + id);
   for (const mod of Object.keys(ATALHOS)) for (const id of Object.keys(ATALHOS[mod])) assert.ok(PorId[id], 'atalho de comando que não existe: ' + id);
   const neg = dicaDoComando(PorId['formatar.negrito'], 'planilha');
-  assert.equal(neg.atalho, 'Ctrl+N');
+  assert.equal(neg.atalho, 'Ctrl+B');
   assert.equal(dicaDoComando(PorId['editar.copiar'], 'postits').atalho, 'Ctrl+C');
-  assert.equal(dicaDoComando(PorId['formatar.negrito'], 'postits').atalho, '');
+  assert.equal(dicaDoComando(PorId['formatar.negrito'], 'postits').atalho, 'Ctrl+B');
+});
+
+/* ---------- v0.4.3: entender a conta e correções do Grok ---------- */
+import * as X from '../src/planilha/explicar.js';
+import { RECEITAS, criterio, valorNaFormula } from '../src/planilha/receitas.js';
+import { DESCRICAO_MOD } from '../src/nucleo/dicas.js';
+import { textoChega } from '../src/nucleo/comandos.js';
+
+const TIT = { B: 'Cloro livre', D: 'Qtd. amostras', E: 'Conformes', F: '% conformes' };
+const titulo = (id, l, c) => (l > 0 ? TIT[letraCol(c)] || null : null);
+const exemplo = () => montar({
+  A1: 'Lote', B1: 'Cloro livre', C1: 'Situação', D1: 'Qtd. amostras', E1: 'Conformes', F1: '% conformes', G1: 'Meta', H1: 'Total',
+  A2: 'L-012', B2: 1.2, C2: '=SE(E(B2>=0,5;B2<=2);"OK";"Ajustar")', D2: 10, E2: 9, F2: '=E2/D2', G2: '=F2*1,15', H2: '=SOMA(F2:F5)',
+  A3: 'L-013', B3: 0.3, C3: '=SE(E(B3>=0,5;B3<=2);"OK";"Ajustar")', E3: 4, F3: '=E3/D3', G3: '=F3*1,15',
+  A4: 'L-014', B4: '1,4', C4: '=SE(E(B4>=0,5;B4<=2);"OK";"Ajustar")', D4: 5, E4: 5, F4: '=E4/D5',
+  A5: 'L-015', B5: 2, C5: '=SE(E(B5>=0,5;B5<=2);"OK";"Ajustar")', D5: 4, E5: 4, F5: '=E5/D5',
+  J2: '=PROCV("l-012 ";A2:C5;3;0)', K2: '=CORREL(B2:B5;D2:D5)', L2: '=B4*2',
+});
+const pos = (k) => { const p = /^([A-Z]+)(\d+)$/.exec(k); return [+p[2] - 1, numCol(p[1])]; };
+
+test('v0.4.3: LAMBDA chamada na hora grava, não trava o Enter e mostra #NOME?', () => {
+  assert.equal(paraGuardar('LAMBDA(x;x*2)(4)'), 'LAMBDA(x,x*2)(4)');
+  assert.equal(paraMostrar('LAMBDA(x,x*2)(4)'), 'LAMBDA(x;x*2)(4)');
+  assert.ok(diagnosticar('LAMBDA(x;x*2)(4)').every((p) => p.nivel !== 'erro'), 'x é parâmetro do LAMBDA, não erro');
+  assert.ok(diagnosticar('LAMBDA(x;y;x+y)(1;2)').every((p) => p.nivel !== 'erro'));
+  assert.ok(diagnosticar('LET(a;2;b;3;a+b)').every((p) => p.nivel !== 'erro'));
+  assert.equal(calc('LAMBDA(x;x*2)(4)').cod, '#NAME?');
+  /* a referência dentro da chamada anda junto ao copiar */
+  assert.equal(escrever(deslocar(lerGuardada('LAMBDA(x,x*2)(A1)'), 1, 0), 'en'), 'LAMBDA(x,x*2)(A2)');
+});
+
+test('v0.4.3: duas letras trocadas também sugerem a troca (PROVC → PROCV)', () => {
+  assert.equal(funcaoParecida('PROVC').pt, 'PROCV');
+  assert.equal(funcaoParecida('SOMSE').pt, 'SOMASE');
+  assert.equal(funcaoParecida('CORREL'), null);
+  const d = diagnosticar('PROVC(A1;B1:C9;2;0)');
+  assert.ok(d.some((p) => p.rotulo === 'Usar PROCV'));
+});
+
+test('v0.4.3: PL11 a conta em linhas, o valor de cada pedaço e a frase com o nome da coluna', () => {
+  const c = exemplo(); const m = new Motor(c);
+  const e = X.explicarConta(m, c, 'a1', 1, 2, titulo);
+  assert.deepEqual(e.linhas.map((x) => x.texto), ['=SE(', 'E(B2>=0,5;B2<=2);', '"OK";', '"Ajustar"', ')']);
+  assert.equal(e.linhas[1].valor, 'VERDADEIRO');
+  assert.equal(e.linhas[4].valor, '"OK"');
+  assert.match(e.frase, /Se o Cloro livre \(B2 = 1,2\) estiver entre 0,5 e 2, mostra "OK"; se não, mostra "Ajustar"\. Agora mostra "OK"\./);
+  /* editar em linhas: as quebras são ignoradas e a fórmula volta a uma linha só */
+  assert.equal(paraGuardar(X.textoEmLinhas(e.linhas).slice(1)), c.abas.a1.cel.C2.f);
+  assert.equal(X.explicarConta(m, c, 'a1', 0, 0, titulo), null, 'sem fórmula, nada a explicar');
+  assert.match(X.explicarConta(m, c, 'a1', 1, 9, titulo).frase, /^Procura "l-012 " na primeira coluna de A2:C5/);
+});
+
+test('v0.4.3: PL12 o erro é seguido até onde começa, com o motivo e o conserto', () => {
+  const c = exemplo(); const m = new Motor(c);
+  const h2 = X.causaDoErro(m, c, 'a1', ...pos('H2'), titulo);
+  assert.equal(h2.cod, '#DIV/0!');
+  assert.deepEqual([h2.origem.l, h2.origem.c], pos('F3'));
+  assert.match(h2.msg, /H2 mostra #DIV\/0! porque usa F3\. O erro começa em F3\. A conta é =E3\/D3, e D3 ‹Qtd\. amostras› está vazio/);
+  assert.deepEqual(h2.acoes.map((a) => a.rotulo), ['Ir para F3', 'Ir para D3', 'Usar SEERRO em F3']);
+  const j2 = X.causaDoErro(m, c, 'a1', ...pos('J2'), titulo);
+  assert.equal(j2.cod, '#N/A');
+  assert.match(j2.msg, /PROCV não achou "l-012 " na primeira coluna de A2:C5\. Existe "L-012" em A2/);
+  assert.equal(X.causaDoErro(m, c, 'a1', ...pos('C2'), titulo), null, 'sem erro, sem causa');
+  /* texto que entra em conta de número */
+  const c2 = montar({ A1: 'abc', B1: '=A1*2', C1: '1,4 ', D1: '=C1*2' });
+  const m2 = new Motor(c2);
+  const v = X.causaDoErro(m2, c2, 'a1', 0, 1, null);
+  assert.equal(v.cod, '#VALUE!');
+  assert.match(v.msg, /A1 tem o texto "abc"/);
+  /* #DESPEJAR!: mostra quem está no caminho */
+  const c3 = montar({ A1: '=SEQUÊNCIA(3)', A3: 'x' });
+  const s = X.causaDoErro(new Motor(c3), c3, 'a1', 0, 0, null);
+  assert.equal(s.cod, '#SPILL!');
+  assert.match(s.msg, /3 × 1 células a partir de A1, e A3 já tem conteúdo/);
+});
+
+test('v0.4.3: PL13 lista de problemas da planilha (erros, texto, vizinhas, número fixo, funções que faltam)', () => {
+  const c = exemplo(); const m = new Motor(c);
+  const l = X.problemasDaPlanilha(m, c, titulo);
+  const por = (cel) => l.filter((p) => p.cel === cel);
+  assert.equal(l[0].nivel, 'erro', 'erros primeiro');
+  assert.match(por('F3')[0].texto, /#DIV\/0!.*Mais 2 células mostram este erro/);
+  assert.ok(por('F3')[0].acoes.some((a) => a.tipo === 'seerro'));
+  assert.match(por('B4')[0].texto, /Número guardado como texto \("1,4"\)/);
+  assert.equal(por('B4')[0].acoes[0].tipo, 'converter');
+  const viz = por('F4').find((p) => p.id.startsWith('vizinha'));
+  assert.ok(viz, 'F4 usa D5 e as vizinhas usam a própria linha');
+  assert.equal(viz.acoes[0].formula, 'E4/D4');
+  const fixo = l.find((p) => p.id.startsWith('fixo'));
+  assert.match(fixo.texto, /=F2\*1,15 \(e em mais 1 fórmula de G2:G3\)/);
+  assert.deepEqual(fixo.acoes[0].celulas.map((x) => x.l), [1, 2]);
+  assert.match(l.find((p) => p.id === 'falta:CORREL').texto, /CORREL é uma função que o EFCdocs ainda não calcula/);
+  assert.equal(X.trocarNumeroPorNome('F2*1.15', 1.15, 'Fator'), 'F2*Fator');
+  assert.equal(X.formulaDeCima('E3/D3'), 'E4/D4');
+  assert.equal(X.formaRelativa(lerGuardada('E2/D2'), 1, 5), X.formaRelativa(lerGuardada('E3/D3'), 2, 5));
+  /* planilha sem problemas: lista vazia */
+  const ok = montar({ A1: 'Lote', B1: 'Valor', A2: 'x', B2: 2, A3: 'y', B3: 3, B4: '=SOMA(B2:B3)' });
+  assert.deepEqual(X.problemasDaPlanilha(new Motor(ok), ok, null), []);
+});
+
+test('v0.4.3: PL15 a conta desenhada (de onde vem, faixa com a conta que dá erro, quem usa)', () => {
+  const c = exemplo(); const m = new Motor(c);
+  const g = X.grafoDaConta(m, c, 'a1', ...pos('H2'), titulo);
+  const r = (n) => g.nos.find((x) => x.rotulo === n);
+  assert.equal(r('H2').nivel, 0);
+  assert.equal(r('F2:F5').tipo, 'faixa');
+  assert.equal(r('F3').valor, '#DIV/0!', 'a conta com erro de dentro da faixa aparece');
+  assert.ok(r('D3') && r('E3'));
+  assert.ok(g.setas.some((s) => s.de === r('F2:F5').id && s.para === r('H2').id));
+  const g2 = X.grafoDaConta(m, c, 'a1', ...pos('F2'), titulo);
+  assert.ok(g2.nos.some((x) => x.rotulo === 'G2' && x.nivel === -1), 'quem usa F2 aparece à direita');
+  const lay = X.arrumarGrafo(g);
+  assert.ok(lay.pos.get(r('D3').id).x < lay.pos.get(r('F3').id).x && lay.pos.get(r('F3').id).x < lay.pos.get(r('H2').id).x);
+});
+
+test('v0.4.3: PL18 as receitas montam fórmulas válidas, só com funções que o EFCdocs calcula', () => {
+  assert.equal(valorNaFormula('0,5'), '0,5');
+  assert.equal(valorNaFormula('Ajustar'), '"Ajustar"');
+  assert.equal(criterio('maior', '5'), '">5"');
+  assert.equal(criterio('contem', 'cloro'), '"*cloro*"');
+  assert.equal(criterio('preenchido', ''), '"<>"');
+  const vals = { col: 'C2:C200', comp: 'igual', valor: 'Ajustar', soma: 'E2:E200', quando: 'C2:C200', cel: 'B2', em: 'A2:A200', traz: 'C2:C200', senao: 'Não achou', min: '0,5', max: '2', sim: 'OK', nao: 'Fora', ini: 'B2', fim: '', a: 'A2', b: 'B2', c: '', sep: ' - ' };
+  const c = exemplo(); const m = new Motor(c);
+  for (const r of RECEITAS) {
+    const v = { ...Object.fromEntries(r.campos.map((f) => [f.id, f.padrao ?? ''])), ...vals };
+    if (r.id === 'seMaior') v.comp = '>=';
+    const x = r.montar(v);
+    assert.ok(x, r.id + ' montou');
+    const arv = ler(x.texto, 'pt');
+    const fns = [];
+    (function vai(n) { if (n.t === 'fn') { fns.push(n); n.args.forEach(vai); } else if (n.t === 'bin') { vai(n.a); vai(n.b); } else if (n.a) vai(n.a); })(arv);
+    for (const f of fns) assert.ok(!f.desc && IMPL[f.n], `${r.id}: ${f.n} precisa existir`);
+    const p = m.previa(x.texto, 'a1', 9, 9);
+    assert.ok(!p.erro, r.id + ' calcula');
+  }
+  const contar = RECEITAS.find((r) => r.id === 'contar');
+  assert.equal(contar.montar({ col: 'C2:C200', comp: 'igual', valor: '' }), null, 'sem valor não monta (não conta vazias sem querer)');
+  assert.equal(m.previa(contar.montar({ col: 'C2:C200', comp: 'igual', valor: 'Ajustar' }).texto, 'a1', 9, 9).valor, 2);
+});
+
+test('v0.4.3: dicas do quadro sem "fórmula" e "Excel", atalhos B/I/U, e "chega depois da v1.0.0"', () => {
+  for (const [id, t] of Object.entries(DESCRICAO_MOD.postits)) assert.ok(!/fórmula|Excel/i.test(t), id);
+  assert.match(dicaDoComando(PorId['editar.colar'], 'postits').desc, /post-it/);
+  assert.match(dicaDoComando(PorId['editar.colar'], 'planilha').desc, /Excel/);
+  assert.equal(dicaDoComando(PorId['formatar.sublinhado'], 'postits').atalho, 'Ctrl+U');
+  assert.equal(textoChega('v0.5.0'), 'chega na v0.5.0');
+  assert.equal(textoChega('depois da v1.0.0'), 'chega depois da v1.0.0');
+  for (const id of ['exibir.faixaTudo', 'exibir.faixaAbas', 'exibir.faixaOculta', 'exibir.menuCompleto', 'exibir.menuIcones', 'exibir.menuOculto', 'exibir.layoutA', 'exibir.layoutB']) assert.ok(DESCRICAO[id], id);
 });

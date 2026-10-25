@@ -148,6 +148,8 @@ export const ICONES = {
   "baixar": "<path d=\"M12 4v11M7.5 10.5L12 15l4.5-4.5\"/><path d=\"M5 14v5.5h14V14\"/>",
   "pagina": "<rect x=\"4\" y=\"3.5\" width=\"16\" height=\"17\" rx=\"1.5\"/><path d=\"M4 8.5h16\"/>",
   "legenda": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M7 9h3M12.5 9H17M7 12.5h3M12.5 12.5H17M7 16h3M12.5 16H17\"/>",
+  "pergunta": "<path d=\"M4 5h16v10.5H10.5L6 19.5v-4H4z\"/><path d=\"M9 9h6M9 11.8h6\"/>",
+  "fluxoConta": "<rect x=\"3\" y=\"4\" width=\"6\" height=\"4.5\" rx=\".8\"/><rect x=\"3\" y=\"15.5\" width=\"6\" height=\"4.5\" rx=\".8\"/><rect x=\"15\" y=\"9.8\" width=\"6\" height=\"4.5\" rx=\".8\"/><path d=\"M9 6.2h2.5a1.5 1.5 0 0 1 1.5 1.5V12h2M9 17.8h2.5a1.5 1.5 0 0 0 1.5-1.5V12\"/>",
   "lampada": "<path d=\"M9 18h6M10 21h4\"/><path d=\"M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-.6c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5z\"/>",
   "barraLat": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M9 4.5v15M5.8 8.5h.01M5.8 12h.01M5.8 15.5h.01\"/>",
 };

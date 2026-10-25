@@ -1,58 +1,95 @@
-"""EFCdocs — monta a página de aprovação da v0.4.2 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.4.3 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" """
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.4.2'
+VERSAO = 'v0.4.3'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-G1, G2, G3 = 'A. Funções do Excel e mensagens da fórmula', 'B. Faixa de cima mais compacta, com dicas', 'C. O que vem depois'
+G1, G2, G3, G4 = 'A. Entender a conta (PL11, PL12, PL13, PL15, PL18)', 'B. Menu dos cabeçalhos (N04)', 'C. Achados do Grok na v0.4.2', 'D. Decisões'
 ITENS = [
-    ('H01', 'Função do Excel que o EFCdocs ainda não calcula não é mais "corrigida" para outra (E1 e N24)', G1,
-     '<p><b>Antes:</b> ao digitar <code>=CORREL(A1:A3;A1:A3)</code>, o app achava que era erro de digitação de CORRESP, oferecia "Usar CORRESP" e <b>não deixava gravar</b>. CORREL é função real do Excel; só não está implementada aqui ainda.</p>'
-     '<p><b>Agora:</b> o app conhece uma lista de funções reais do Excel que ainda faltam (CORREL, TENDÊNCIA, FREQUÊNCIA, MODO, TETO, DIST.NORM.N, TEXTOANTES e outras). Para elas, a caixa de ajuda só informa: '
-     '<i>"é uma função do Excel que o EFCdocs ainda não sabe calcular. A fórmula fica guardada como você digitou (e o Excel calcula ao abrir), mas aqui a célula mostra #NOME? até a função chegar."</i> A fórmula grava e continua visível na barra.</p>'
-     '<p>A sugestão "Usar X" só aparece quando é erro de digitação mesmo (por exemplo SOMAA vira SOMA) e fica mais rígida: nome com menos de 5 letras nunca é trocado, e a diferença permitida é de 1 letra (2 em nomes longos). Função que não existe em lugar nenhum recebe o aviso "Não conheço a função X".</p>',
-     'O comportamento serve (grava e avisa, em vez de bloquear)?',
-     [('Antes (v0.4.1): sugere CORRESP', 'antes-correl'), ('Antes: o Enter foi bloqueado', 'antes-correl-gravada'), ('Depois: só informa', 'depois-correl'), ('Depois: gravada, fórmula na barra', 'depois-correl-gravada')], ''),
-    ('H02', 'Sem prévia de erro enquanto a função está incompleta (Y06)', G1,
-     '<p>Ao digitar <code>=PROCV(A2)</code> a ajuda já explica o que falta, e ainda mostrava por baixo "Prévia: #VALOR!", repetindo o problema com um texto confuso. Agora, se a fórmula tem erro de escrita (falta parte, parêntese, nome), <b>a prévia some</b> e fica só a explicação. Assim que a conta está completa, a prévia volta (por exemplo =SOMA(A1:A3) mostra 6).</p>',
-     '', [('Antes (v0.4.1)', 'antes-procv'), ('Depois', 'depois-procv')], 'par'),
-    ('H03', 'Explicação do #DIV/0! com a saída mais prática (E2)', G1,
-     '<p>No painel de detalhes, o texto do #DIV/0! agora termina com um exemplo que dá para copiar: <i>"mostre outra coisa no lugar, por exemplo =SEERRO(A1/B1;0)"</i>.</p>',
-     '', [('Antes (v0.4.1)', 'antes-erro-painel'), ('Depois', 'depois-erro-painel')], 'par'),
-    ('H04', 'Faixa de cima mais compacta: Copiar, Colar e Recortar só com ícone (pedido do Elias)', G2,
-     '<p>Os ícones ficaram mais juntos e a faixa ocupa menos espaço. <b>Colar, Recortar, Copiar e Pincel</b> agora são ícones pequenos, sem texto; o mesmo vale para as outras linhas de comandos simples (fonte, alinhamento, número, células, edição). Os botões grandes ficam só para o que precisa de nome (AutoSoma, Destacar regra, Tabela, Filtrar, Localizar). '
-     'Em 1366 px de largura, todas as abas da planilha e do quadro de post-its cabem sem barra de rolagem (E3).</p>',
-     'O tamanho e a distância dos ícones servem?',
-     [('Antes (v0.4.1): Página Inicial', 'antes-faixa-inicio'), ('Depois: Página Inicial', 'depois-faixa-inicio'), ('Antes: Fórmulas', 'antes-faixa-formulas'), ('Depois: Fórmulas', 'depois-faixa-formulas')], ''),
-    ('H05', 'Ao parar o mouse em cima: nome, o que faz e o atalho', G2,
-     '<p>Parando o mouse sobre qualquer botão da faixa por meio segundo, aparece um quadro com o <b>nome</b>, uma frase dizendo <b>o que faz</b> e o <b>atalho</b>, quando existe (só aparecem atalhos que de fato funcionam naquele módulo: por exemplo Ctrl+N negrito na planilha, Ctrl+D duplicar no quadro). '
-     'Some ao clicar, digitar ou rolar. No celular não aparece (não tem mouse); o nome continua lido pelos leitores de tela.</p>',
-     'As frases curtas ajudam? Tem algum botão cuja frase ficou confusa?',
-     [('Negrito, com atalho', 'depois-dica-negrito'), ('Copiar, com atalho', 'depois-dica-copiar')], ''),
-    ('H06', 'Tela estreita: o que não cabe vai para o botão "Mais" (E3)', G2,
-     '<p>Em telas menores que o necessário, a faixa não rola mais de lado escondendo botões: o que não cabe passa para um botão <b>Mais</b> no fim da faixa, que abre um quadro com os grupos que sobraram. Alargando a janela, tudo volta ao lugar sozinho. O celular continua com o jeito próprio dele.</p>',
-     '', [('Antes (v0.4.1): corta e rola de lado', 'antes-faixa-estreita'), ('Depois: botão Mais', 'depois-faixa-estreita'), ('Depois: Mais aberto', 'depois-faixa-mais')], ''),
-    ('H07', 'Novo botão "Reexibir colunas" (E4 e N05)', G2,
-     '<p>Havia "Reexibir linhas", mas faltava o par das colunas. Agora, em <b>Exibir › Linhas e colunas</b>, "Reexibir colunas" mostra de novo as colunas escondidas dentro da seleção (selecione as colunas dos dois lados da escondida). Também aparece na busca (Ctrl K) por "mostrar colunas ocultas".</p>',
-     '', [('Coluna B oculta (vai de A para C)', 'depois-colunas-ocultas'), ('Depois de Reexibir colunas', 'depois-colunas-de-volta')], 'par'),
-    ('H08', 'Próximas versões e novas funções (decisão)', G3,
-     '<p><b>v0.4.3 (Opus 5.5 · alto):</b> as ajudas da fórmula que estavam planejadas — "Explicar esta conta" (PL11), "Por que deu erro?" (PL12), painel Problemas (PL13), a conta desenhada como fluxograma (PL15) e montar a conta respondendo uma pergunta (PL18) — mais o menu de botão direito nos cabeçalhos de linha e coluna (N04).</p>'
-     '<p><b>v0.4.4 (Sonnet 5.5 · alto):</b> a <b>Assinatura</b>: linha em branco com o nome completo escrito embaixo, onde você coloca a assinatura/rubrica (desenhando com mouse ou dedo, ou com uma foto). Primeiro no quadro de post-its; depois Docx e Planilha. A imagem fica só no arquivo, no seu aparelho, nunca no código nem no GitHub. Exportar para EFCquiz e EFClaudian fica com você, no outro projeto.</p>'
-     '<p>Depois vêm os menus da lista N01–N16 que você já aprovou, em blocos pequenos, antes da v0.5.0 (abrir e salvar Excel, PDF e imprimir a planilha). A v0.5.0 continua precisando de <b>3 a 5 arquivos .xlsx reais com dados trocados</b>.</p>'
-     '<p>Ainda sem decisão: as <b>funções novas N17 a N23</b> (qualidade). Sugiro aprovar primeiro N17 a N20 e N22.</p>',
-     'Pode seguir para a v0.4.3 depois desta?', [], ''),
+    ('I01', 'Explicar esta conta: a fórmula em linhas, o valor de cada pedaço e uma frase em português (PL11)', G1,
+     '<p>Em <b>Fórmulas › Explicar conta</b> (ou no botão direito da célula, ou no painel de detalhes), a fórmula aparece quebrada em linhas numeradas, com recuo, como num editor de código. '
+     'Ao lado de cada pedaço vem o valor que ele deu (o <i>E(B2&gt;=0,5;B2&lt;=2)</i> deu VERDADEIRO), e a referência mostra o nome da coluna (B2 ‹Cloro livre›).</p>'
+     '<p>Embaixo vem a frase: <i>"Se o Cloro livre (B2 = 1,2) estiver entre 0,5 e 2, mostra "OK"; se não, mostra "Ajustar". Agora mostra "OK"."</i> '
+     'As frases conhecem SE, E/OU, SOMA, MÉDIA, CONT.SE, SOMASE, PROCV, PROCX, SEERRO e as contas de + − × ÷; as outras funções recebem uma frase geral.</p>'
+     '<p><b>Editar em linhas</b>: dá para mexer na fórmula ali mesmo, com as quebras; ao aplicar, ela volta para uma linha só (como o Excel guarda).</p>',
+     'A explicação ficou clara?',
+     [('Antes (v0.4.2): "chega na v0.4.3"', 'antes-explicar'), ('Depois', 'depois-explicar')], ''),
+    ('I02', '"Por que deu erro?" vai até onde o erro começa (PL12)', G1,
+     '<p>Numa célula com erro, a mesma janela abre com o quadro <b>Por que deu erro?</b>. O app segue a cadeia: o H2 dá #DIV/0! porque soma o F3, e o F3 divide pelo D3, que está vazio. '
+     'Diz isso em uma frase e oferece o conserto de um toque: <b>Ir para F3</b>, <b>Ir para D3</b> ou <b>Usar SEERRO em F3</b> (a célula passa a mostrar vazio no lugar do erro; Ctrl+Z desfaz).</p>'
+     '<ul><li><b>#N/D</b> do PROCV/PROCX: diz o que não foi achado e onde; se existe quase igual (espaço sobrando, maiúscula, número guardado como texto), aponta a célula.</li>'
+     '<li><b>#VALOR!</b>: aponta a célula com texto que entrou na conta; se o texto parece número, oferece "Converter em número".</li>'
+     '<li><b>#DESPEJAR!</b>: diz quantas células o resultado precisa e qual delas está ocupada.</li>'
+     '<li><b>#NOME?</b>, <b>#REF!</b> e conta circular também ganham a sua frase.</li></ul>',
+     '', [('Antes (v0.4.2): só a frase geral no painel', 'antes-erro'), ('Depois', 'depois-erro')], ''),
+    ('I03', 'Painel Problemas: todos os erros e avisos da planilha numa lista (PL13)', G1,
+     '<p>No canto da grade fica a lâmpada <b>Problemas</b> com o número de pendências (o mesmo jeito do Assistente do quadro). A lista pega:</p>'
+     '<ul><li><b>erros</b>, um por origem ("mais 2 células mostram este erro por causa desta");</li>'
+     '<li><b>conta circular</b>;</li><li><b>número guardado como texto</b> (a causa nº 1 de SOMA dar errado), com <b>Converter</b>;</li>'
+     '<li><b>fórmula diferente das vizinhas</b> (ex.: F4 divide por D5 enquanto as de cima e de baixo usam a própria linha), com <b>Igualar</b>;</li>'
+     '<li><b>número fixo dentro da conta</b> (=F2*1,15 em várias linhas), com <b>Dar nome ao número</b>: o 1,15 vira um nome (ex.: Fator_Ajuste) e todas as fórmulas passam a usar o nome; para trocar o valor depois, Fórmulas › Nomes › <b>Mudar</b> (botão novo), uma vez só;</li>'
+     '<li><b>funções que o EFCdocs ainda não calcula</b> (CORREL, LAMBDA...).</li></ul>'
+     '<p>Cada linha tem <b>Ir</b>, que leva até a célula. A lista é refeita sozinha um instante depois de cada mudança.</p>',
+     'A lista ajuda? Algum aviso incomoda mais do que ajuda?',
+     [('Depois: lâmpada aberta', 'depois-problemas')], 'um'),
+    ('I04', 'A conta desenhada como fluxograma (PL15)', G1,
+     '<p>Em <b>Fórmulas › Desenhar a conta</b> (ou no "De onde vem / quem usa"), cada célula vira uma caixa com o nome da coluna, a fórmula e o valor; as setas mostram o caminho até o resultado. '
+     'Vai até 3 níveis para trás e mostra à direita quem usa o resultado. Dentro de uma faixa pequena, as contas que dão erro aparecem também (no exemplo, o F3 dentro de F2:F5). Tocar numa caixa leva até a célula.</p>'
+     '<p><b>Mandar para um quadro novo</b> cria um quadro de post-its com as mesmas caixas e setas (contas viram Atividade, valores viram Entrada/Saída), para anotar e usar em treinamento. A planilha não muda.</p>',
+     '', [('Depois: a conta do Total (H2)', 'depois-fluxo'), ('Depois: o mesmo desenho num quadro novo', 'depois-quadro')], ''),
+    ('I05', 'Montar a conta respondendo uma pergunta (PL18)', G1,
+     '<p>Em <b>Fórmulas › Montar a conta</b>, a pessoa escolhe o que quer fazer, não o nome da função: <i>Contar quantos..., Somar quando..., Média de..., Buscar um valor em outra tabela, Se for maior ou menor que mostrar..., Está dentro da faixa?, Dias entre duas datas, Porcentagem de..., Juntar textos, Tirar espaços sobrando.</i></p>'
+     '<p>As colunas aparecem pelo título (Situação, Cloro livre...), de qualquer aba. A janela mostra a fórmula montada e o resultado <b>antes</b> de pôr na célula. Se faltar o valor a comparar, o botão fica desligado (para não contar vazias sem querer). A porcentagem já entra com o formato 0,0%.</p>',
+     'As receitas cobrem o que mais se usa no laboratório? Falta alguma?',
+     [('Depois: Contar quantos "Ajustar" na Situação', 'depois-montar')], 'um'),
+    ('I06', 'Botão direito no cabeçalho (A, B, 1, 2...) (N04)', G2,
+     '<p>Antes, o botão direito no cabeçalho abria o menu da célula que estava selecionada (no print, "Excluir linha 2 / Excluir coluna H" com o clique na coluna C). '
+     'Agora ele <b>seleciona a coluna (ou a linha) clicada</b> e oferece: <b>Inserir antes</b> e <b>Inserir depois</b>, <b>Excluir</b>, <b>Ocultar</b>, <b>Reexibir</b>, <b>Largura...</b> (ou Altura...), <b>Ajustar à largura do texto</b> (ou altura padrão), Copiar e Limpar conteúdo. '
+     'Com várias colunas selecionadas, vale para todas. No celular, segurar o dedo no cabeçalho abre o mesmo menu.</p>',
+     '', [('Antes (v0.4.2)', 'antes-cabecalho'), ('Depois', 'depois-cabecalho')], 'par'),
+    ('I07', 'LAMBDA não trava mais o Enter (Grok, erro 1)', G3,
+     '<p><code>=LAMBDA(x;x*2)(4)</code> dava "Não sei o que é x" e não gravava. Agora o leitor entende a chamada logo depois da função e os nomes de parâmetro do LAMBDA (e do LET). '
+     'A fórmula grava, fica igual para o Excel e a célula mostra #NOME? até o LAMBDA ser calculado aqui.</p>',
+     '', [('Antes (v0.4.2)', 'antes-lambda'), ('Depois', 'depois-lambda')], 'par'),
+    ('I08', 'Prévia sem "Confira a grafia" quando a grafia está certa (Grok, sugestão 2)', G3,
+     '<p>Com função real do Excel que ainda falta aqui (CORREL, TETO, MODO...), a prévia dizia "#NOME? — ... Confira a grafia", o que contradizia o aviso. Agora diz: <i>"#NOME? por enquanto. Pode gravar sem medo: a fórmula fica guardada e funciona quando abrir no Excel."</i></p>'
+     '<p>E as letras trocadas de lugar passam a ter sugestão (Grok, item 8): <b>PROVC</b> sugere <b>PROCV</b>, SOMSE sugere SOMASE. ARREDOND continua sem sugestão, porque pode ser ARRED ou ARREDONDAR.PARA.CIMA/BAIXO.</p>',
+     '', [('Antes (v0.4.2)', 'antes-correl'), ('Depois', 'depois-correl'), ('Depois: PROVC sugere PROCV', 'depois-provc')], ''),
+    ('I09', 'Negrito em Ctrl+B, dicas próprias do quadro e as 7 dicas que estavam vazias (Grok, ressalvas do H05 e itens 3, 4 e 6)', G3,
+     '<ul><li>No Chrome, o Ctrl+N abre uma janela nova e o site não consegue impedir. A dica do Negrito agora mostra <b>Ctrl+B</b> (o Ctrl+N continua aceito quando o navegador deixa).</li>'
+     '<li>No quadro, Colar, Copiar, Recortar, Pincel, Localizar e Cor têm frases próprias, sem falar de fórmula nem de Excel; Negrito, Itálico e Sublinhado funcionam no post-it com <b>Ctrl+B, Ctrl+I e Ctrl+U</b> e mostram o atalho.</li>'
+     '<li>Mostrar tudo, Só as abas, Esconder, Completo, Só ícones, Faixa tipo Excel e Barra e painel ganharam frase.</li>'
+     '<li>A dica já some ao rolar a roda do mouse em cima da faixa.</li></ul>',
+     '', [('Antes: Colar no quadro', 'antes-quadro-faixa'), ('Depois: Colar no quadro', 'depois-quadro-faixa'), ('Depois: Negrito com Ctrl+B', 'depois-dica-negrito')], ''),
+    ('I10', 'Quadro com a faixa compacta e seta "tem mais" em telas estreitas (Grok, observação do H04 e falha do H06 em 800 px)', G3,
+     '<p>No quadro, Duplicar, Excluir, Selecionar tudo, Localizar, Linha do tempo e Cor viraram ícones, como na planilha (com a dica ao parar o mouse).</p>'
+     '<p>Abaixo de 900 px o app usa o jeito do celular, em que a faixa rola de lado. Agora aparece uma <b>seta no fim da faixa</b> (e outra no começo, depois de rolar) mostrando que tem mais botões; tocar nela rola a faixa. É o item N02 da lista de menus.</p>',
+     '', [('Antes: 800 px', 'antes-faixa-800'), ('Depois: 800 px, com a seta', 'depois-faixa-800')], ''),
+    ('I11', 'Textos: "Chega depois da v1.0.0" e "Abrir e salvar Excel chega na v0.5.0" (Grok, itens 5 e 7)', G3,
+     '<p>A Tabela dinâmica dizia "Chega na depois da v1.0.0"; agora diz "Chega depois da v1.0.0" (dica, busca e aviso). O cartão da planilha no Início dizia "abre e salva Excel"; agora diz "Abrir e salvar Excel chega na v0.5.0".</p>',
+     '', [('Antes', 'antes-dica-dinamica'), ('Depois', 'depois-dica-dinamica'), ('Antes: Início', 'antes-inicio'), ('Depois: Início', 'depois-inicio')], ''),
+    ('I12', 'Funções novas para a qualidade (N17 a N23): qual bloco entra primeiro?', G4,
+     '<p>O Grok listou as funções do Excel que deram #NOME? e você usa. Sugestão de ordem (a mesma do Grok):</p>'
+     '<ol><li><b>Primeiro bloco</b> (fáceis e muito usadas): TETO, ARREDMULTB, MODO, PERCENTIL, QUARTIL, ORDEM, CORREL, FREQUÊNCIA (N18, N22 e parte do N19).</li>'
+     '<li><b>Segundo bloco</b> (carta de controle e comparar lotes): DIST.NORM.N, INV.NORM.N, PADRONIZAR, INT.CONFIANÇA, CURT, DISTORÇÃO, TESTE.T, INCLINAÇÃO, PREVISÃO.LINEAR, TENDÊNCIA (N17, N19, N20).</li>'
+     '<li><b>Depois</b>: texto e listas (TEXTOANTES, DIVIDIRTEXTO, EMPILHARV, TOMAR...), HIPERLINK e LAMBDA calculado (N21, N23).</li></ol>'
+     '<p>Proposta: o primeiro bloco numa <b>v0.4.5 curta (Sonnet 5.5 · alto)</b>, depois da Assinatura.</p>',
+     'Aprova os blocos e a ordem?', [], ''),
+    ('I13', 'Próxima: v0.4.4 Assinatura', G4,
+     '<p><b>v0.4.4 (Sonnet 5.5 · alto)</b>: a Assinatura, como já decidido: linha em branco com o nome completo embaixo, onde vai a assinatura/rubrica (desenhada com mouse ou dedo, ou foto). Primeiro no quadro de post-its; depois Docx e Planilha. A imagem fica só no arquivo, no aparelho.</p>'
+     '<p>Continua faltando para a v0.5.0: 3 a 5 arquivos .xlsx reais com dados trocados.</p>',
+     'Pode seguir para a v0.4.4 depois desta?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
-    f'<div class="nums"><span>90/90 testes de regras</span><span>77/77 testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
+    f'<div class="nums"><span>98/98 testes de regras</span><span>87/87 testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>A <b>v0.4.1 já está no GitHub</b> (commit 5ca553f). Esta v0.4.2 é a rodada de ajustes: tudo do relatório do Grok (E1 a E4, Y06) mais a faixa compacta com dicas que você pediu.</li>'
-    '<li>Também: a tela Início deixou de dizer que a planilha chega depois; agora diz que quadro de post-its e planilha já funcionam e que o documento chega na v0.7.0.</li>'
-    '<li>Testes novos: regras (funções que faltam, SOMAA continua virando SOMA, dicas de todos os botões) e navegador (grava CORREL, sem prévia no PROCV, faixa cabe em 1366 px em todas as abas, Mais em 1000 px, dica ao parar o mouse, Reexibir colunas).</li>'
+    '<li>A <b>v0.4.2 já está no GitHub</b> (commit eb49e35). Esta v0.4.3 traz as cinco ajudas para entender a conta, o menu do cabeçalho (N04) e todos os achados do Grok na v0.4.2.</li>'
+    '<li>Testes novos: 8 de regras (LAMBDA, letras trocadas, explicação, causa do erro, problemas, desenho, receitas, dicas) e 10 no navegador (cada ajuda usada de verdade, consertos de um toque, quadro novo, cabeçalho, Ctrl+B, 800 px).</li>'
     '<li>Nada vai ao GitHub antes da sua resposta. Nada a configurar no Firebase.</li>'
     '</ul>'
 )
@@ -79,7 +116,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Funções do Excel que faltam, faixa compacta e dicas')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Entender a conta, menu do cabeçalho e achados do Grok')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

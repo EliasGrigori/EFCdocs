@@ -14,10 +14,12 @@ import { eixo, ALT_PADRAO, LARG_PADRAO, estiloDe, mescladas, mesclaEm, valorGuar
 import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
-import { paraMostrar, refTexto, tokenizar, ler as lerFormula, paraGuardar } from './formula.js';
-import { diagnosticar, corrigir, contextoNoCursor, sugestoes, pedacosColoridos, CORES_REF } from './ajuda.js';
+import { paraMostrar, refTexto, tokenizar, ler as lerFormula, paraGuardar, escrever } from './formula.js';
+import { explicarConta, causaDoErro, problemasDaPlanilha, grafoDaConta, trocarNumeroPorNome } from './explicar.js';
+import { JanelaExplicar, JanelaFluxo, JanelaMontar, PainelProblemas, quadroDaConta } from './entender.jsx';
+import { diagnosticar, corrigir, contextoNoCursor, sugestoes, pedacosColoridos, CORES_REF, funcoesQueFaltam } from './ajuda.js';
 import { formatoDaFormula } from './formatoAuto.js';
-import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora } from './valores.js';
+import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt, numeroGeral } from './valores.js';
 import * as O from './operacoes.js';
 import { CampoFormula, AjudaFormula } from './EditorFormula.jsx';
 import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, BarraSimbolos, ESTATS } from './partes.jsx';
@@ -136,6 +138,8 @@ export function Planilha({ arquivo, cx }) {
   const [cores, setCores] = useState(CORES_FOLHA_CLARA);
   const [selSug, setSelSug] = useState(0);
   const [semSug, setSemSug] = useState(false);
+  const [probAberto, setProbAberto] = useState(false);
+  const [listaProb, setListaProb] = useState([]);
   const voltar = useRef([]);
   const extensao = useRef({ l: 0, c: 0 });
   const raiz = useRef(null);
@@ -372,6 +376,29 @@ export function Planilha({ arquivo, cx }) {
   }, [somenteLeitura, cx, mesc, aba, c, sel, abaId, cel, mostrarCelula]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nomesDefinidos = useMemo(() => new Set(Object.keys(c.nomes || {})), [c.nomes]);
+
+  /** Nome da coluna (‹Cloro livre›) de uma célula de qualquer aba: só abaixo da linha de títulos. */
+  const cacheTitulos = useMemo(() => new Map(), [c]);
+  const tituloDe = useCallback((id, l, col) => {
+    const a = c.abas[id];
+    if (!a) return null;
+    let t = cacheTitulos.get(id);
+    if (!t) {
+      const cab = linhaCabecalho(a, motor, id);
+      const mapa = new Map();
+      if (cab >= 0) {
+        for (const k of Object.keys(a.cel)) {
+          const p = lerChave(k);
+          if (!p || p.l !== cab) continue;
+          const v = motor.valor(id, cab, p.c);
+          if (typeof v === 'string' && v.trim()) mapa.set(p.c, v.trim());
+        }
+      }
+      t = { cab, mapa };
+      cacheTitulos.set(id, t);
+    }
+    return t.cab >= 0 && l > t.cab ? t.mapa.get(col) || null : null;
+  }, [cacheTitulos, c, motor]);
   const nomesAbas = useMemo(() => new Set(c.ordem.map((id) => c.abas[id].nome.toLowerCase())), [c.ordem, c.abas]);
 
   /** Número ou data que não cabe numa coluna de largura padrão: alarga a coluna (como o Excel faz ao digitar). */
@@ -512,6 +539,8 @@ export function Planilha({ arquivo, cx }) {
     if (!ehFormula || edit.texto.length < 2) return '';
     /* conta ainda incompleta (faltam partes, parêntese aberto, texto sem aspas): não mostra prévia de erro */
     if (diagnosticar(edit.texto.slice(1), { nomes: nomesDefinidos, abas: nomesAbas }).some((p) => p.nivel === 'erro')) return '';
+    /* função real do Excel que ainda falta aqui: a grafia está certa, então não fala em "confira a grafia" */
+    if (funcoesQueFaltam(edit.texto.slice(1)).length) return '#NOME? por enquanto. Pode gravar sem medo: a fórmula fica guardada e funciona quando abrir no Excel.';
     const r = motor.previa(edit.texto.slice(1), edit.abaId, edit.l, edit.c);
     if (r.erro) return '';
     if (r.circular) return '0 (conta circular: a célula usa ela mesma)';
@@ -1000,6 +1029,175 @@ export function Planilha({ arquivo, cx }) {
     });
   };
 
+  /* ---------- entender a conta (v0.4.3): consertos de um toque e fórmula montada ---------- */
+  /* lista de problemas: refeita um instante depois de cada mudança (não atrapalha quem digita) */
+  useEffect(() => {
+    const t = setTimeout(() => { try { setListaProb(problemasDaPlanilha(motor, c, tituloDe)); } catch { setListaProb([]); } }, 250);
+    return () => clearTimeout(t);
+  }, [c]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Grava uma fórmula (texto com "=") numa célula; nf opcional (ex.: 0,0% da porcentagem). */
+  const gravarFormula = (texto, { l = sel.ativa.l, col = sel.ativa.c, id = abaId, nf = null, rotulo } = {}) => {
+    if (somenteLeitura) { avisarLeitura(); return false; }
+    const probs = diagnosticar(texto.replace(/^\s*=/, ''), { nomes: nomesDefinidos, abas: nomesAbas }).filter((p) => p.nivel === 'erro');
+    if (probs.length) { cx.avisar('A fórmula tem um problema: ' + probs[0].msg, { ic: 'aviso' }); return false; }
+    const r = lerEntrada(texto.trim(), 'General');
+    if (r.erro || r.f == null) { cx.avisar('A fórmula tem um problema: ' + (r.erro ? r.erro.message : 'não é uma conta'), { ic: 'aviso' }); return false; }
+    const k = chave(l, col);
+    const atual = c.abas[id].cel[k] || {};
+    const est = estiloDe(c, atual);
+    const lote = new O.Lote(c);
+    const nova = { ...atual };
+    delete nova.v;
+    nova.f = r.f;
+    const nfNovo = nf || formatoDaFormula(r.f, nfDaRef(id));
+    if (nfNovo && (!est.nf || /^general$/i.test(est.nf))) { const s2 = lote.estilo({ ...est, nf: nfNovo }); if (s2) nova.s = s2; }
+    lote.por(id, k, nova);
+    return aplicarLote(lote, rotulo || `Fórmula em ${k}`);
+  };
+
+  /** Consertos que vêm do "Por que deu erro?" e da lista de problemas. */
+  const fazerAcao = (a) => {
+    if (a.tipo === 'ir') { setJanela(null); irPara({ abaId: a.alvo.abaId, l: a.alvo.l, c: a.alvo.c }); return true; }
+    if (somenteLeitura) { avisarLeitura(); return false; }
+    const id = a.alvo.abaId, k = chave(a.alvo.l, a.alvo.c);
+    const atual = c.abas[id] && c.abas[id].cel[k];
+    if (a.tipo === 'seerro') {
+      if (!atual || atual.f == null) return false;
+      const ok = mudar({ [`conteudo.abas.${id}.cel.${k}`]: { ...atual, f: `IFERROR(${atual.f},"")` } }, `SEERRO em ${k}`);
+      if (ok) { setJanela(null); cx.avisar(`${k} agora mostra vazio no lugar do erro: =SEERRO(...;""). Ctrl+Z desfaz.`, { ic: 'check' }); }
+      return ok;
+    }
+    if (a.tipo === 'converter') {
+      const lote = new O.Lote(c);
+      let n = 0;
+      for (const x of a.celulas || [a.alvo]) {
+        const kk = chave(x.l, x.c);
+        const cel0 = c.abas[x.abaId] && c.abas[x.abaId].cel[kk];
+        const num = cel0 && typeof cel0.v === 'string' ? lerNumeroPt(cel0.v.trim()) : null;
+        if (num == null) continue;
+        lote.por(x.abaId, kk, { ...cel0, v: num });
+        n++;
+      }
+      const ok = aplicarLote(lote, `Converter ${n} ${n === 1 ? 'texto' : 'textos'} em número`);
+      if (ok) { setJanela(null); cx.avisar(`${n} ${n === 1 ? 'célula virou número' : 'células viraram número'}. As contas já contam ${n === 1 ? 'ela' : 'elas'}.`, { ic: 'check' }); }
+      return ok;
+    }
+    if (a.tipo === 'igualar') {
+      if (!atual) return false;
+      return mudar({ [`conteudo.abas.${id}.cel.${k}`]: { ...atual, f: a.formula } }, `Igualar ${k} às vizinhas`);
+    }
+    if (a.tipo === 'nomearNumero') {
+      cx.perguntar({
+        titulo: 'Dar nome ao número', texto: `O ${numeroGeral(a.v)} vira um nome nas ${a.celulas.length === 1 ? 'fórmula' : a.celulas.length + ' fórmulas'}. Quando o valor mudar, troque uma vez só em Fórmulas › Nomes e todas as contas acompanham.`,
+        campo: 'Nome (sem espaço, ex.: Fator_Ajuste)', valor: 'Fator', confirmar: 'Dar nome', validar: (t) => validarNomeDefinido(t, c),
+        aoConfirmar: (t) => {
+          const lote = new O.Lote(c);
+          for (const x of a.celulas) {
+            const kk = chave(x.l, x.c);
+            const cel0 = c.abas[x.abaId] && c.abas[x.abaId].cel[kk];
+            if (cel0 && cel0.f != null) lote.por(x.abaId, kk, { ...cel0, f: trocarNumeroPorNome(cel0.f, a.v, t) });
+          }
+          if (mudar({ ...lote.mudancas(), ...O.definirNome(c, t, escrever({ t: 'num', v: a.v }, 'en')) }, `Dar o nome ${t} ao número ${numeroGeral(a.v)}`)) cx.avisar(`Pronto: ${t} vale ${numeroGeral(a.v)}. Para mudar, Fórmulas › Nomes.`, { ic: 'check' });
+        },
+      });
+      return true;
+    }
+    return false;
+  };
+
+  /** Colunas com título de todas as abas (para as receitas do "Montar a conta"). */
+  const colunasComTitulo = () => {
+    const out = [];
+    for (const id of c.ordem) {
+      const a = c.abas[id];
+      if (a.oculta) continue;
+      const cab = linhaCabecalho(a, motor, id);
+      if (cab < 0) continue;
+      const ult = Math.max(200, motor.usado(id).lMax + 51);
+      const pref = id !== abaId ? nomeAbaNaFormula(a.nome) + '!' : '';
+      const cols = [];
+      for (const k of Object.keys(a.cel)) { const p = lerChave(k); if (p && p.l === cab) cols.push(p.c); }
+      cols.sort((x, y) => x - y);
+      for (const col of cols) {
+        const t = motor.valor(id, cab, col);
+        if (typeof t !== 'string' || !t.trim()) continue;
+        out.push({ id: id + '|' + col, rotulo: `${t.trim()} (${letraCol(col)})${id !== abaId ? ' · ' + a.nome : ''}`, faixa: `${pref}${letraCol(col)}${cab + 2}:${letraCol(col)}${ult}` });
+      }
+    }
+    return out;
+  };
+
+  /** N04: botão direito no cabeçalho (A, B, 1, 2...): seleciona e oferece inserir, excluir, ocultar, largura. */
+  const abrirMenuCabecalho = (x, y, o) => {
+    const ehCol = o.tipo === 'col';
+    const f = normalFaixa(faixa);
+    const inteira = ehCol ? f.l1 === 0 && f.l2 === MAX_LIN - 1 : f.c1 === 0 && f.c2 === MAX_COL - 1;
+    const dentro = ehCol ? o.c >= f.c1 && o.c <= f.c2 : o.l >= f.l1 && o.l <= f.l2;
+    const i = inteira && dentro ? (ehCol ? f.c1 : f.l1) : (ehCol ? o.c : o.l);
+    const n = inteira && dentro ? (ehCol ? f.c2 - f.c1 + 1 : f.l2 - f.l1 + 1) : 1;
+    if (!(inteira && dentro)) {
+      setSel(ehCol
+        ? { ativa: { l: Math.max(cl, G.l0), c: o.c }, faixas: [{ l1: 0, l2: MAX_LIN - 1, c1: o.c, c2: o.c }] }
+        : { ativa: { l: o.l, c: Math.max(cc0, G.c0) }, faixas: [{ c1: 0, c2: MAX_COL - 1, l1: o.l, l2: o.l }] });
+    }
+    const eixoX = ehCol ? 'c' : 'l';
+    const nome = (k) => (ehCol ? letraCol(k) : String(k + 1));
+    const quais = n === 1 ? (ehCol ? `coluna ${nome(i)}` : `linha ${nome(i)}`) : (ehCol ? `${n} colunas` : `${n} linhas`);
+    const plural = n === 1 ? '' : 's';
+    const inserir = (onde) => {
+      if (n > (ehCol ? 500 : 5000)) { cx.avisar(`Selecione até ${ehCol ? 500 : 5000} ${ehCol ? 'colunas' : 'linhas'} para inserir.`, { ic: 'aviso' }); return; }
+      const em = onde === 'antes' ? i : i + n;
+      mudar(O.estrutura(c, abaId, eixoX, em, n), `Inserir ${n === 1 ? (ehCol ? 'coluna ' + nome(em) : 'linha ' + nome(em)) : n + (ehCol ? ' colunas' : ' linhas')}`);
+    };
+    const excluir = () => { const antes = contarRefErros(); if (mudar(O.estrutura(c, abaId, eixoX, i, -n), `Excluir ${quais}`)) avisarRefs(antes); };
+    const mapa = ehCol ? 'ocC' : 'ocL';
+    const ocultas = Object.keys(aba[mapa] || {}).map(Number);
+    const reexibir = () => {
+      const atual = { ...(aba[mapa] || {}) };
+      for (const k of Object.keys(atual)) if (+k >= i - 1 && +k <= i + n) delete atual[k];
+      mudar({ [`conteudo.abas.${abaId}.${mapa}`]: atual }, ehCol ? 'Reexibir colunas' : 'Reexibir linhas');
+    };
+    const ocultarEssas = () => { const atual = { ...(aba[mapa] || {}) }; for (let k = i; k < i + Math.min(n, 100000); k++) atual[k] = 1; mudar({ [`conteudo.abas.${abaId}.${mapa}`]: atual }, `Ocultar ${quais}`); };
+    const tamanho = () => cx.perguntar({
+      titulo: ehCol ? `Largura da ${quais}` : `Altura da ${quais}`, campo: ehCol ? 'Largura em pixels (padrão 80)' : 'Altura em pixels (padrão 22)',
+      valor: String(ehCol ? colunas.tam(i) || LARG_PADRAO : linhas.tam(i) || ALT_PADRAO), confirmar: 'Aplicar', modo: 'numeric',
+      validar: (t) => (/^\d{1,3}$/.test(t.trim()) && +t >= (ehCol ? 4 : 6) && +t <= (ehCol ? 600 : 400) ? '' : (ehCol ? 'Use um número de 4 a 600.' : 'Use um número de 6 a 400.')),
+      aoConfirmar: (t) => {
+        const mud = {};
+        for (let k = i; k < i + Math.min(n, 2000); k++) mud[`conteudo.abas.${abaId}.${ehCol ? 'larg' : 'alt'}.${k}`] = +t;
+        mudar(mud, `${ehCol ? 'Largura' : 'Altura'} da ${quais}`);
+      },
+    });
+    const ajustar = () => {
+      if (ehCol) { for (let k = i; k < i + Math.min(n, 60); k++) autoAjustar(k); return; }
+      const mud = {};
+      for (let k = i; k < i + Math.min(n, 2000); k++) mud[`conteudo.abas.${abaId}.alt.${k}`] = undefined;
+      mudar(mud, `Altura padrão da ${quais}`);
+    };
+    const ro = somenteLeitura;
+    setMenu({
+      x, y,
+      itens: ro ? [
+        { nome: 'Copiar', ic: 'copiar', atalho: 'Ctrl+C', fazer: () => copiarPorBotao(false) },
+        { nome: 'Seu perfil só permite ver', ic: 'ver', fazer: () => {}, desligado: 'Só leitura' },
+      ] : [
+        { nome: ehCol ? `Inserir ${n === 1 ? 'coluna' : n + ' colunas'} antes (à esquerda)` : `Inserir ${n === 1 ? 'linha' : n + ' linhas'} antes (acima)`, ic: 'inserir', fazer: () => inserir('antes') },
+        { nome: ehCol ? `Inserir ${n === 1 ? 'coluna' : n + ' colunas'} depois (à direita)` : `Inserir ${n === 1 ? 'linha' : n + ' linhas'} depois (abaixo)`, ic: 'inserir', fazer: () => inserir('depois') },
+        { nome: `Excluir ${quais}`, ic: 'lixeira', perigo: true, fazer: excluir },
+        '-',
+        { nome: `Ocultar ${quais}`, ic: 'ver', fazer: ocultarEssas },
+        { nome: ehCol ? 'Reexibir colunas' : 'Reexibir linhas', ic: 'ver', fazer: reexibir, desligado: ocultas.some((k) => k >= i - 1 && k <= i + n) ? '' : `Nenhuma ${ehCol ? 'coluna' : 'linha'} oculta ao lado. Selecione as ${ehCol ? 'colunas' : 'linhas'} dos dois lados da escondida.` },
+        '-',
+        { nome: ehCol ? `Largura da${plural ? 's' : ''} coluna${plural}...` : `Altura da${plural ? 's' : ''} linha${plural}...`, ic: ehCol ? 'setaDir' : 'setaBaixo', fazer: tamanho },
+        { nome: ehCol ? 'Ajustar à largura do texto' : 'Voltar à altura padrão', ic: 'ajustar', fazer: ajustar },
+        '-',
+        { nome: 'Copiar', ic: 'copiar', atalho: 'Ctrl+C', fazer: () => setTimeout(() => copiarPorBotao(false), 0) },
+        { nome: 'Limpar conteúdo', ic: 'x', atalho: 'Delete', fazer: () => setTimeout(apagar, 0) },
+      ],
+    });
+  };
+
   /* ---------- comandos da faixa ---------- */
   const trata = (id) => {
     const ed = (fn) => { if (somenteLeitura) { cx.avisar('Seu perfil não permite esta ação.', { ic: 'aviso' }); return true; } fn(); return true; };
@@ -1054,6 +1252,10 @@ export function Planilha({ arquivo, cx }) {
       case 'formula.inserir': return ed(() => setJanela({ tipo: 'funcoes' }));
       case 'formula.autosoma': return ed(() => autoSoma('SOMA'));
       case 'formula.origem': setJanela({ tipo: 'origem' }); return true;
+      case 'formula.explicar': setJanela({ tipo: 'explicar' }); return true;
+      case 'formula.fluxo': setJanela({ tipo: 'fluxo' }); return true;
+      case 'formula.problemas': setProbAberto((x) => !x); return true;
+      case 'formula.montar': return ed(() => setJanela({ tipo: 'montar' }));
       case 'formula.nome': return ed(darNome);
       case 'formula.nomes': setJanela({ tipo: 'nomes' }); return true;
       case 'exibir.congelar': setJanela({ tipo: 'congelar' }); return true;
@@ -1079,6 +1281,7 @@ export function Planilha({ arquivo, cx }) {
       case 'exibir.folhaClara': return !!prefs.folhaClara;
       case 'exibir.congelar': return !!(cong && (cong.l || cong.c));
       case 'editar.pincel': return !!pincel;
+      case 'formula.problemas': return probAberto;
       default: return false;
     }
   };
@@ -1252,6 +1455,7 @@ export function Planilha({ arquivo, cx }) {
     const detalhe = u && agora - u.t < 400 && Math.abs(u.x - p.x) < 6 && Math.abs(u.y - p.y) < 6 ? 2 : 1;
     ultimoClique.current = detalhe === 2 ? null : { t: agora, x: p.x, y: p.y };
     if (ev.button === 2) {
+      if (o.tipo === 'col' || o.tipo === 'lin') return; /* o menu do cabeçalho seleciona a coluna/linha */
       if (o.tipo === 'cel' && !sel.faixas.some((f) => O.normalFaixa(f).l1 <= o.l && o.l <= O.normalFaixa(f).l2 && O.normalFaixa(f).c1 <= o.c && o.c <= O.normalFaixa(f).c2)) selecionar(o.l, o.c, { semRolar: true });
       return;
     }
@@ -1412,6 +1616,7 @@ export function Planilha({ arquivo, cx }) {
   };
 
   const abrirMenuCelula = (x, y, o) => {
+    if (o && (o.tipo === 'col' || o.tipo === 'lin')) { abrirMenuCabecalho(x, y, o); return; }
     if (o && o.tipo === 'cel' && !sel.faixas.some((f) => { const n = normalFaixa(f); return n.l1 <= o.l && o.l <= n.l2 && n.c1 <= o.c && o.c <= n.c2; })) selecionar(o.l, o.c, { semRolar: true });
     const quemUsa = motor.dependentes(abaId, sel.ativa.l, sel.ativa.c).length;
     const ro = somenteLeitura;
@@ -1437,6 +1642,7 @@ export function Planilha({ arquivo, cx }) {
         '-',
         !ro && { nome: 'Formato de número...', ic: 'formatar', atalho: 'Ctrl+1', fazer: () => setJanela({ tipo: 'formato' }) },
         !ro && { nome: 'Dar nome...', ic: 'renomear', fazer: darNome },
+        motor.formula(abaId, sel.ativa.l, sel.ativa.c) && { nome: ehErro(motor.valor(abaId, sel.ativa.l, sel.ativa.c)) ? 'Por que deu erro?' : 'Explicar esta conta', ic: 'explicar', fazer: () => setJanela({ tipo: 'explicar' }) },
         { nome: `De onde vem / quem usa${quemUsa ? ` (${quemUsa})` : ''}`, ic: 'origem', fazer: () => setJanela({ tipo: 'origem' }) },
         !ro && { nome: `Linha ${sel.ativa.l + 1} é o cabeçalho`, ic: 'titulo', fazer: () => trata('planilha.cabecalho'), dica: 'Os títulos desta linha aparecem junto das referências nas fórmulas' },
       ],
@@ -1511,6 +1717,7 @@ export function Planilha({ arquivo, cx }) {
         <dt>Usada por</dt><dd>{usadaPor ? <button type="button" className="lnk" onClick={() => setJanela({ tipo: 'origem' })}>{usadaPor} {usadaPor === 1 ? 'fórmula' : 'fórmulas'}</button> : 'nenhuma fórmula'}</dd>
         {fmAtiva && fmAtiva.desc.length > 0 && <><dt>Aviso</dt><dd>O EFCdocs ainda não calcula {fmAtiva.desc.join(', ')}. Mostra o último valor do Excel.</dd></>}
         {ehErro(valorAtivo) && <><dt>Erro</dt><dd>{valorAtivo.toString()}: {ERRO_EXPLICA[valorAtivo.cod]}</dd></>}
+        {fmAtiva && <><dt>Entender</dt><dd><button type="button" className="lnk" onClick={() => setJanela({ tipo: 'explicar' })}>{ehErro(valorAtivo) ? 'Por que deu erro?' : 'Explicar esta conta'}</button></dd></>}
         {motor.circulares().some((x) => x.abaId === abaId && x.l === sel.ativa.l && x.c === sel.ativa.c) && <><dt>Aviso</dt><dd>Conta circular: esta célula depende dela mesma. Fica 0 até corrigir.</dd></>}
       </dl>
     </div>
@@ -1676,6 +1883,8 @@ export function Planilha({ arquivo, cx }) {
         )}
         {!cel && ajuda && <div className="pl-ajuda-ancora">{ajuda}</div>}
         {cel && !edit && !somenteLeitura && (<>{alcaCel('a')}{alcaCel('b')}</>)}
+        {!cel || !edit ? <PainelProblemas lista={listaProb} aberto={probAberto} aoAlternar={() => setProbAberto(!probAberto)} somenteLeitura={somenteLeitura}
+          aoIr={(p) => { irPara({ abaId: p.abaId, l: p.l, c: p.c }); }} aoAcao={fazerAcao} /> : null}
         {pincel && <div className="qd-modo pl-modo"><Icone n="pincel" />Toque onde vai o formato.<button type="button" className="btn sm" onClick={() => setPincel(null)}>Cancelar</button></div>}
       </div>
 
@@ -1725,7 +1934,13 @@ export function Planilha({ arquivo, cx }) {
       {janela && janela.tipo === 'nomes' && (
         <JanelaNomes c={c} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoNovo={darNome}
           aoIr={(n) => { const r = motor.refDeTexto(n.n, abaId); if (r) irPara({ abaId: r.abaId, l1: r.l1, c1: r.c1, l2: r.l2, c2: r.c2 }); }}
-          aoRenomear={renomearNomeDef} aoExcluir={(n) => cx.perguntar({ titulo: 'Excluir o nome?', texto: `As fórmulas que usam ${n.n} passam a mostrar #NOME?.`, confirmar: 'Excluir', perigo: true, aoConfirmar: () => mudar(O.excluirNome(c, n.n), `Excluir nome ${n.n}`) })} />
+          aoRenomear={renomearNomeDef}
+          aoMudar={(n) => cx.perguntar({
+            titulo: 'Mudar ' + n.n, campo: 'Vale (um número, uma célula ou uma faixa, ex.: 1,15 ou Metas!B3)', valor: paraMostrar(n.ref), confirmar: 'Mudar',
+            validar: (t) => { try { paraGuardar(t.trim().replace(/^=/, '')); return ''; } catch (e) { return e.message; } },
+            aoConfirmar: (t) => { if (mudar(O.definirNome(c, n.n, paraGuardar(t.trim().replace(/^=/, ''))), `Mudar ${n.n}`)) cx.avisar(`${n.n} agora vale ${t.trim()}. Todas as fórmulas que usam o nome acompanham.`, { ic: 'check' }); },
+          })}
+          aoExcluir={(n) => cx.perguntar({ titulo: 'Excluir o nome?', texto: `As fórmulas que usam ${n.n} passam a mostrar #NOME?.`, confirmar: 'Excluir', perigo: true, aoConfirmar: () => mudar(O.excluirNome(c, n.n), `Excluir nome ${n.n}`) })} />
       )}
       {janela && janela.tipo === 'origem' && (() => {
         const nomeAba = (id) => (c.abas[id] ? c.abas[id].nome : '?');
@@ -1739,7 +1954,42 @@ export function Planilha({ arquivo, cx }) {
           const fm = motor.formula(d.abaId, d.l, d.c);
           return { abaId: d.abaId, l: d.l, c: d.c, rotulo: (d.abaId !== abaId ? nomeAba(d.abaId) + '!' : '') + chave(d.l, d.c), detalhe: fm ? '=' + paraMostrar(fm.f) : '' };
         });
-        return <JanelaOrigem titulo={'De onde vem / quem usa · ' + chave(sel.ativa.l, sel.ativa.c)} nomeCel={chave(sel.ativa.l, sel.ativa.c)} de={de} para={para} aoIr={(x) => irPara(x)} aoFechar={() => setJanela(null)} />;
+        return <JanelaOrigem titulo={'De onde vem / quem usa · ' + chave(sel.ativa.l, sel.ativa.c)} nomeCel={chave(sel.ativa.l, sel.ativa.c)} de={de} para={para} aoIr={(x) => irPara(x)} aoFluxo={() => setJanela({ tipo: 'fluxo' })} aoFechar={() => setJanela(null)} />;
+      })()}
+      {janela && janela.tipo === 'explicar' && (() => {
+        const k = chave(sel.ativa.l, sel.ativa.c);
+        const dados = explicarConta(motor, c, abaId, sel.ativa.l, sel.ativa.c, tituloDe);
+        const causa = dados && dados.erro ? causaDoErro(motor, c, abaId, sel.ativa.l, sel.ativa.c, tituloDe) : null;
+        return (
+          <JanelaExplicar key={abaId + k + (dados ? dados.formula : '')} nomeCel={k} dados={dados} causa={causa} somenteLeitura={somenteLeitura}
+            titulo={(v) => (v.aba == null ? tituloDe(abaId, v.l, v.c) : null)} aoAcao={fazerAcao}
+            aoAplicar={(t) => gravarFormula(t, { rotulo: `Editar a fórmula de ${k}` })}
+            aoFluxo={() => setJanela({ tipo: 'fluxo' })} aoMontar={() => setJanela({ tipo: 'montar' })} aoFechar={() => setJanela(null)} />
+        );
+      })()}
+      {janela && janela.tipo === 'fluxo' && (() => {
+        const k = chave(sel.ativa.l, sel.ativa.c);
+        const grafo = grafoDaConta(motor, c, abaId, sel.ativa.l, sel.ativa.c, tituloDe);
+        return (
+          <JanelaFluxo nomeCel={k} grafo={grafo} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)}
+            aoIr={(n) => { setJanela(null); irPara({ abaId: n.abaId, l1: n.l1, c1: n.c1, l2: n.l2, c2: n.c2 }); }}
+            aoQuadro={() => { setJanela(null); cx.criarCom && cx.criarCom('postits', `Conta de ${k} - ${ficha.nome}`.slice(0, 120), quadroDaConta(grafo, k, ficha.nome)); }} />
+        );
+      })()}
+      {janela && janela.tipo === 'montar' && (() => {
+        const k = chave(sel.ativa.l, sel.ativa.c);
+        const x = aba.cel[k];
+        return (
+          <JanelaMontar nomeCel={k} ocupada={!!(x && (x.v !== undefined || x.f != null))} colunas={colunasComTitulo()}
+            celulaPadrao={chave(Math.max(sel.ativa.l, tituloCols.cab + 1, 1), Math.max(0, sel.ativa.c - 1))}
+            previa={(t, nf) => {
+              const r = motor.previa(t, abaId, sel.ativa.l, sel.ativa.c);
+              if (r.erro) return 'a conta ainda não está completa';
+              if (r.circular) return '0 (conta circular: a célula usaria ela mesma)';
+              return (formatar(r.valor, nf || 'General').t || '(vazio)') + (r.matriz ? ` · derrama em ${r.matriz.linhas} × ${r.matriz.colunas} células` : '');
+            }}
+            aoPor={(t, nf) => gravarFormula(t, { nf, rotulo: `Montar a conta em ${k}` })} aoFechar={() => setJanela(null)} />
+        );
       })()}
       {janela && janela.tipo === 'localizar' && (
         <JanelaLocalizar somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)}

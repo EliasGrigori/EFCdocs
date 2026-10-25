@@ -5,7 +5,7 @@ import { Icone, dataHora } from './comum.jsx';
 
 const CMD_NOVO = { planilha: 'arquivo.novaPlanilha', docx: 'arquivo.novoDocumento', postits: 'arquivo.novoQuadro' };
 const DESCRICAO = {
-  planilha: 'Fórmulas em português, abre e salva Excel.',
+  planilha: 'Fórmulas em português. Abrir e salvar Excel chega na v0.5.0.',
   docx: 'POP, formulários e documentos internos.',
   postits: 'Quadro, Kanban e fluxograma com setas.',
 };

@@ -2680,3 +2680,12 @@ body.relevo .busca {
 .dica-n { margin-top: 3px; color: var(--warn); font-weight: 600; }
 
 .ribbon.ajustada { overflow: visible; }
+
+/* v0.4.3: tela estreita — setas no fim da faixa mostram que dá para rolar (N02) */
+.rb-rolar {
+  position: sticky; z-index: 3; flex: none; align-self: stretch; width: 30px; margin: -6px 0 -4px; padding: 0;
+  display: grid; place-items: center; border: 0; color: var(--text); cursor: pointer;
+}
+.rb-rolar svg { width: 18px; height: 18px; }
+.rb-rolar.dir { right: -8px; margin-left: -30px; background: linear-gradient(to right, transparent, var(--surface) 55%); }
+.rb-rolar.esq { left: -8px; margin-right: -30px; background: linear-gradient(to left, transparent, var(--surface) 55%); }

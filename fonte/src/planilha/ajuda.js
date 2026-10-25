@@ -177,22 +177,37 @@ export function diagnosticar(texto, { nomes = new Set(), abas = new Set() } = {}
 
 const trecho = (texto, t) => { const s = texto.slice(t.i, t.f); return s.length > 14 ? s.slice(0, 12) + '…' : s; };
 
+/** Nomes criados dentro da própria fórmula: LET(nome; valor; ...; conta) e os parâmetros de LAMBDA(x; y; conta). */
 function nomesDoLET(tk) {
   const s = new Set();
   for (let k = 0; k < tk.length; k++) {
-    if (tk[k].t === 'fn' && acharFuncao(tk[k].v) && acharFuncao(tk[k].v).f.en === 'LET') {
-      /* LET(nome; valor; nome; valor; conta): nomes nas posições pares */
-      let prof = 0, arg = 0;
-      for (let j = k + 1; j < tk.length; j++) {
-        const t = tk[j];
-        if (t.t === 'abre') { prof++; continue; }
-        if (t.t === 'fecha') { prof--; if (prof === 0) break; continue; }
-        if (prof === 1 && t.t === 'sep') { arg++; continue; }
-        if (prof === 1 && arg % 2 === 0 && t.t === 'nome') s.add(t.v.toLowerCase());
-      }
+    if (tk[k].t !== 'fn') continue;
+    const nome = tk[k].v.toUpperCase();
+    const a = acharFuncao(tk[k].v);
+    const ehLet = a && a.f.en === 'LET';
+    const ehLambda = nome === 'LAMBDA';
+    if (!ehLet && !ehLambda) continue;
+    /* LET: nomes nas posições pares (menos a última, que é a conta); LAMBDA: todas menos a última */
+    let prof = 0, arg = 0;
+    const achados = [];
+    for (let j = k + 1; j < tk.length; j++) {
+      const t = tk[j];
+      if (t.t === 'abre') { prof++; continue; }
+      if (t.t === 'fecha') { prof--; if (prof === 0) break; continue; }
+      if (prof === 1 && t.t === 'sep') { arg++; continue; }
+      if (prof === 1 && t.t === 'nome') achados.push({ arg, v: t.v.toLowerCase() });
+    }
+    for (const x of achados) {
+      if (ehLet && x.arg % 2 === 0) s.add(x.v);
+      if (ehLambda && x.arg < arg) s.add(x.v);
     }
   }
   return s;
+}
+
+/** A fórmula usa função real do Excel que o EFCdocs ainda não calcula? (devolve os nomes) */
+export function funcoesQueFaltam(texto) {
+  return [...new Set(tokenizar(texto, 'pt').filter((t) => t.t === 'fn' && !acharFuncao(t.v) && funcaoDoExcelQueFalta(t.v)).map((t) => t.v.toUpperCase()))];
 }
 
 /** Aplica os consertos (do fim para o começo, para as posições não andarem). */

@@ -255,7 +255,7 @@ export function JanelaFuncoes({ aoEscolher, aoFechar }) {
 }
 
 /* ---------- nomes (PL16) ---------- */
-export function JanelaNomes({ c, aoIr, aoRenomear, aoExcluir, aoNovo, aoFechar, somenteLeitura }) {
+export function JanelaNomes({ c, aoIr, aoRenomear, aoExcluir, aoNovo, aoFechar, aoMudar, somenteLeitura }) {
   const lista = Object.values(c.nomes || {}).sort((a, b) => a.n.localeCompare(b.n));
   return (
     <Janela titulo="Nomes da planilha" aoFechar={aoFechar} rodape={!somenteLeitura && <button type="button" className="btn primary" onClick={() => { aoFechar(); aoNovo(); }}><Icone n="plus" />Dar nome à seleção</button>}>
@@ -269,6 +269,7 @@ export function JanelaNomes({ c, aoIr, aoRenomear, aoExcluir, aoNovo, aoFechar, 
                   <td><b>{n.n}</b></td>
                   <td><button type="button" className="lnk" onClick={() => { aoIr(n); aoFechar(); }}>{paraMostrar(n.ref)}</button></td>
                   <td className="acoes">
+                    {!somenteLeitura && aoMudar && <button type="button" className="iconbtn" title="Mudar o valor ou para onde aponta (todas as fórmulas acompanham)" aria-label={'Mudar ' + n.n} onClick={() => aoMudar(n)}><Icone n="formatar" /></button>}
                     {!somenteLeitura && <button type="button" className="iconbtn" title="Renomear (troca em todas as fórmulas)" aria-label={'Renomear ' + n.n} onClick={() => aoRenomear(n)}><Icone n="renomear" /></button>}
                     {!somenteLeitura && <button type="button" className="iconbtn" title="Excluir o nome" aria-label={'Excluir ' + n.n} onClick={() => aoExcluir(n)}><Icone n="lixeira" /></button>}
                   </td>
@@ -283,7 +284,7 @@ export function JanelaNomes({ c, aoIr, aoRenomear, aoExcluir, aoNovo, aoFechar, 
 }
 
 /* ---------- de onde vem / quem usa (PL14) ---------- */
-export function JanelaOrigem({ titulo, de, para, aoIr, aoFechar, nomeCel }) {
+export function JanelaOrigem({ titulo, de, para, aoIr, aoFechar, aoFluxo, nomeCel }) {
   const linha = (x, i) => (
     <li key={i}><button type="button" className="lnk" onClick={() => { aoIr(x); aoFechar(); }}>{x.rotulo}</button>{x.detalhe && <span>{x.detalhe}</span>}</li>
   );
@@ -294,7 +295,8 @@ export function JanelaOrigem({ titulo, de, para, aoIr, aoFechar, nomeCel }) {
         {de.length ? <ul>{de.map(linha)}</ul> : <p>Esta célula não tem fórmula.</p>}
         <h4>Quem usa esta célula <small>(fórmulas de qualquer aba que dependem de {nomeCel})</small></h4>
         {para.length ? <ul>{para.map(linha)}</ul> : <p>Nenhuma fórmula usa esta célula. Dá para apagar sem quebrar conta.</p>}
-        <p className="qd-dica">O desenho da conta como fluxograma chega na v0.4.1. Alt+← volta para onde você estava.</p>
+        <p className="qd-dica">Alt+← volta para onde você estava.</p>
+        {aoFluxo && (de.length > 0 || para.length > 0) && <button type="button" className="btn sm" onClick={aoFluxo}><Icone n="fluxoConta" />Desenhar a conta</button>}
       </div>
     </Janela>
   );

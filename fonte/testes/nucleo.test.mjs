@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.4.2', () => assert.equal(VERSAO, 'v0.4.2'));
+test('versão é v0.4.3', () => assert.equal(VERSAO, 'v0.4.3'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -136,7 +136,7 @@ test('comandos: ids únicos e ícone em todos', () => {
 test('comandos da planilha chegam na v0.4.0 (menos os das próximas versões)', () => {
   for (const id of ['editar.colar', 'formatar.negrito', 'formatar.moeda', 'formatar.bordas', 'formula.inserir', 'formula.autosoma', 'formula.origem', 'exibir.congelar', 'exibir.grade', 'exibir.zoom'])
     assert.equal(chegaNa(PorId[id], 'planilha'), null, id);
-  assert.equal(chegaNa(PorId['formula.explicar'], 'planilha'), 'v0.4.3');
+  for (const id of ['formula.explicar', 'formula.fluxo', 'formula.problemas', 'formula.montar']) assert.equal(chegaNa(PorId[id], 'planilha'), null, id + ' já funciona na v0.4.3');
   assert.equal(chegaNa(PorId['formatar.condicional'], 'planilha'), 'v0.6.0');
   assert.equal(chegaNa(PorId['arquivo.exportarExcel'], 'planilha'), 'v0.5.0');
 });
