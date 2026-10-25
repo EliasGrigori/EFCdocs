@@ -11,7 +11,9 @@ if (PRINTS) mkdirSync(PRINTS, { recursive: true });
 
 const resultados = [];
 let atual = '';
+const FILTRO = process.env.FILTRO || '';
 async function caso(nome, fn) {
+  if (FILTRO && !nome.includes(FILTRO)) return;
   atual = nome;
   try {
     await fn();
@@ -19,6 +21,7 @@ async function caso(nome, fn) {
     console.log('  ok   ' + nome);
   } catch (e) {
     resultados.push({ nome, ok: false, erro: e.message.split('\n').slice(0, 4).join(' | ') });
+    if (PRINTS && paginaAtual) { try { await paginaAtual.screenshot({ path: `${PRINTS}/falha-${resultados.length}.png`, timeout: 5000 }); } catch { /* sem print */ } }
     console.log('  FALHA ' + nome + ' — ' + e.message.split('\n').slice(0, 4).join(' | '));
   }
 }
@@ -28,9 +31,11 @@ const igual = (a, b, msg) => { if (a !== b) throw new Error(`${msg || ''} espera
 /* UTF-8 para os nomes de arquivo com acento (ex.: "Quadro sem título.pdf") saírem certos */
 const navegador = await chromium.launch({ executablePath: CHROME, env: { ...process.env, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' } });
 const errosConsole = [];
+let paginaAtual = null;
 async function novaPagina(opcoes = {}) {
   const ctx = await navegador.newContext({ viewport: { width: 1366, height: 800 }, acceptDownloads: true, ...opcoes });
   const p = await ctx.newPage();
+  paginaAtual = p;
   p.on('console', (m) => { if (m.type() === 'error') errosConsole.push(`[${atual}] ${m.text()}`); });
   p.on('pageerror', (e) => errosConsole.push(`[${atual}] erro de página: ${e.message}`));
   return { ctx, p };
@@ -72,10 +77,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.3.2', async () => {
+await caso('abre sem erro, rodapé mostra v0.4.0', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.3.2'), 'rodapé sem v0.3.2');
+  certo((await p.locator('.foot').innerText()).includes('v0.4.0'), 'rodapé sem v0.4.0');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -95,7 +100,7 @@ await caso('início com os três botões de novo', async () => {
 });
 await caso('planilha: aviso do PDF diz de qual módulo é', async () => {
   await p.click('[data-novo=planilha]');
-  await p.waitForSelector('.sup-planilha');
+  await p.waitForSelector('.sup-planilha .pl-cv');
   await p.click('.tab:has-text("Arquivo")');
   await cmd(p, 'arquivo.exportarPDF');
   const t = await p.locator('.toast').last().innerText();
@@ -664,6 +669,369 @@ await caso('v0.3.1 celular: faixa de cores à mão, sem barra vertical, Assisten
   const larg = await p.evaluate(() => document.documentElement.scrollWidth);
   certo(larg <= 390, 'rolagem lateral: ' + larg);
   await print(p, '21-celular-cores-assistente');
+});
+await ctx.close();
+
+/* ---------- v0.4.0: Planilha ---------- */
+async function novaPlanilha(p) {
+  await p.goto(BASE + '#/planilha');
+  await p.waitForSelector('[data-novo=planilha]');
+  await p.click('[data-novo=planilha]');
+  await p.waitForSelector('.pl-cv');
+  await p.waitForTimeout(250);
+}
+/** Vai até a célula pela caixa de nome e devolve o que ela mostra (lido do campo que recebe o teclado). */
+async function celula(p, ref) {
+  await p.locator('.pl-nome').click();
+  await p.locator('.pl-nome').fill(ref);
+  await p.locator('.pl-nome').press('Enter');
+  await p.waitForTimeout(60);
+  const r = await p.locator('.pl-cap').getAttribute('aria-label');
+  return r.replace(/^Célula [A-Z]+\d+: /, '').replace(/^vazia$/, '');
+}
+async function digitarEm(p, ref, linhas) {
+  await celula(p, ref);
+  for (const t of linhas) { await p.keyboard.type(t); await p.keyboard.press('Enter'); }
+  await p.waitForTimeout(80);
+}
+const fxTexto = (p) => p.locator('.pl-fx-campo').innerText();
+async function colarTexto(p, texto, html) {
+  await p.evaluate(([t, h]) => {
+    const dt = new DataTransfer();
+    dt.setData('text/plain', t);
+    if (h) dt.setData('text/html', h);
+    document.querySelector('.pl-cap').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, [texto, html || '']);
+  await p.waitForTimeout(150);
+}
+/** Ponto na tela do meio de uma célula (usa a geometria da grade a 100%). */
+async function pontoCelula(p, ref) {
+  const cv = await p.locator('.pl-cv').boundingBox();
+  const m = /^([A-Z])(\d+)$/.exec(ref);
+  const c = m[1].charCodeAt(0) - 65, l = +m[2] - 1;
+  return { x: cv.x + 46 + c * 80 + 40, y: cv.y + 24 + l * 22 + 11 };
+}
+
+({ ctx, p } = await novaPagina());
+await caso('v0.4.0: planilha abre com grade, barra de fórmula e abas; digitar e fórmula SE em pt-BR', async () => {
+  await novaPlanilha(p);
+  certo(await p.locator('.pl-fx .pl-nome').isVisible(), 'sem caixa de nome');
+  igual(await p.locator('.pl-aba').count(), 1);
+  await digitarEm(p, 'A1', ['Lote', 'L-012', 'L-013', 'L-014']);
+  await digitarEm(p, 'B1', ['Cloro livre', '1,2', '0,3', '2,5']);
+  await digitarEm(p, 'C1', ['Situação']);
+  await p.keyboard.type('=SE(E(B2>=0,5;B2<=2);"OK";"Ajustar")');
+  await p.waitForTimeout(150);
+  const ajuda = await p.locator('.pl-ajuda').innerText();
+  certo(ajuda.includes('‹Cloro livre›'), 'sem o nome da coluna: ' + ajuda);
+  certo(ajuda.includes('Prévia: OK'), 'sem prévia: ' + ajuda);
+  await print(p, '30-planilha-formula-ajuda');
+  await p.keyboard.press('Enter');
+  igual(await celula(p, 'C2'), 'OK');
+  igual(await fxTexto(p), '=SE(E(B2‹Cloro livre›>=0,5;B2‹Cloro livre›<=2);"OK";"Ajustar")');
+});
+await caso('v0.4.0: alça de preenchimento leva a fórmula e continua códigos (L-015...)', async () => {
+  await celula(p, 'C2');
+  const a = await pontoCelula(p, 'C2');
+  const b = await pontoCelula(p, 'C4');
+  await arrastar(p, { x: a.x + 39, y: a.y + 10 }, { x: b.x + 10, y: b.y + 5 });
+  igual(await celula(p, 'C3'), 'Ajustar');
+  igual(await celula(p, 'C4'), 'Ajustar');
+  igual(await fxTexto(p), '=SE(E(B4‹Cloro livre›>=0,5;B4‹Cloro livre›<=2);"OK";"Ajustar")');
+  await celula(p, 'A4');
+  const c = await pontoCelula(p, 'A4');
+  const d = await pontoCelula(p, 'A6');
+  await arrastar(p, { x: c.x + 39, y: c.y + 10 }, { x: d.x, y: d.y });
+  igual(await celula(p, 'A6'), 'L-016');
+});
+await caso('v0.4.0: barra de status com Soma, Média e Contagem; "Pôr a conta embaixo" escreve =SOMA', async () => {
+  await celula(p, 'B2');
+  await p.keyboard.press('Shift+ArrowDown');
+  await p.keyboard.press('Shift+ArrowDown');
+  await p.waitForTimeout(100);
+  const st = await p.locator('.foot').innerText();
+  certo(st.includes('Soma: 4') && st.includes('Média: 1,333333333') && st.includes('Contagem: 3'), 'status: ' + st);
+  await p.locator('.pl-st[data-est=soma]').click();
+  await p.locator('.pl-menu button:has-text("Pôr a conta embaixo")').click();
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'B5'), '4');
+  igual(await fxTexto(p), '=SOMA(B2:B4)');
+  await print(p, '31-planilha-status');
+});
+await caso('v0.4.0: erro avisado antes do Enter e "Corrigir os dois"', async () => {
+  await celula(p, 'D2');
+  await p.keyboard.type('=SE(B2>=0,5;"OK","Ajustar"');
+  await p.waitForTimeout(120);
+  const ajuda = await p.locator('.pl-ajuda').innerText();
+  certo(ajuda.includes('use ponto e vírgula') && ajuda.includes('Falta fechar o parêntese do SE'), 'ajuda: ' + ajuda);
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(100);
+  certo(await p.locator('.pl-edcel').isVisible(), 'deixou gravar fórmula com erro');
+  await print(p, '32-planilha-erro-antes');
+  await p.locator('.pl-ajuda button:has-text("Corrigir os dois")').click();
+  await p.keyboard.press('Enter');
+  igual(await celula(p, 'D2'), 'OK');
+});
+await caso('v0.4.0: VLOOKUP vira PROCV, autocompletar completa com Tab, F4 põe o $', async () => {
+  await celula(p, 'E2');
+  await p.keyboard.type('=VLOOKUP("L-013";A2:B4;2;0)');
+  await p.waitForTimeout(100);
+  certo((await p.locator('.pl-ajuda').innerText()).includes('VLOOKUP é PROCV em português'));
+  await p.keyboard.press('Enter');
+  igual(await celula(p, 'E2'), '0,3');
+  igual(await fxTexto(p), '=PROCV("L-013";A2:B4;2;0)');
+  await celula(p, 'E3');
+  await p.keyboard.type('=SO');
+  await p.waitForTimeout(100);
+  certo((await p.locator('.pl-sug').innerText()).includes('SOMA'), 'sem sugestão SOMA');
+  await p.keyboard.press('Tab');
+  await p.keyboard.type('B2');
+  await p.keyboard.press('F4');
+  await p.keyboard.type(':B4)');
+  await p.keyboard.press('Enter');
+  await celula(p, 'E3');
+  igual(await fxTexto(p), '=SOMA($B$2:B4)');
+});
+await caso('v0.4.0: clicar nas células durante a fórmula insere a referência (modo apontar)', async () => {
+  await celula(p, 'F2');
+  await p.keyboard.type('=');
+  await p.mouse.click(...Object.values(await pontoCelula(p, 'B2')));
+  await p.keyboard.type('*2');
+  await p.keyboard.press('Enter');
+  igual(await celula(p, 'F2'), '2,4');
+  igual(await fxTexto(p), '=B2‹Cloro livre›*2');
+});
+await caso('v0.4.0: ao digitar texto, sugere o que já existe na coluna (Enter aceita)', async () => {
+  await celula(p, 'C10');
+  await p.keyboard.type('aju');
+  await p.waitForTimeout(80);
+  igual(await p.locator('.pl-edcel .ef-fantasma').innerText(), 'star');
+  await p.keyboard.press('Enter');
+  igual(await celula(p, 'C10'), 'ajustar');
+  await p.keyboard.press('Delete');
+});
+await caso('v0.4.0: inserir e excluir linha ajusta as fórmulas; desfazer volta', async () => {
+  await celula(p, 'A3');
+  await p.click('.tab:has-text("Página Inicial")');
+  await cmd(p, 'planilha.inserirLinha');
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'C4'), 'Ajustar');
+  igual(await fxTexto(p), '=SE(E(B4‹Cloro livre›>=0,5;B4‹Cloro livre›<=2);"OK";"Ajustar")');
+  await celula(p, 'B6');
+  igual(await fxTexto(p), '=SOMA(B2:B5)');
+  await celula(p, 'A3');
+  await cmd(p, 'planilha.excluirLinha');
+  await p.waitForTimeout(150);
+  await celula(p, 'B5');
+  igual(await fxTexto(p), '=SOMA(B2:B4)');
+  await p.keyboard.press('Control+z');
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(150);
+  await celula(p, 'B5');
+  igual(await fxTexto(p), '=SOMA(B2:B4)');
+});
+await caso('v0.4.0: formatos do Excel (R$, %, data com a letra O corrigida) e casas decimais', async () => {
+  await digitarEm(p, 'G1', ['R$ 10,5', '12,5%', '1O/1O/2026', '31/02/2026']);
+  await p.waitForTimeout(100);
+  igual(await celula(p, 'G1'), 'R$ 10,50');
+  igual(await celula(p, 'G2'), '12,50%');
+  igual(await celula(p, 'G3'), '10/10/2026');
+  igual(await celula(p, 'G4'), '31/02/2026');
+  await celula(p, 'G1');
+  await cmd(p, 'formatar.maisCasas');
+  igual(await celula(p, 'G1'), 'R$ 10,500');
+  await p.keyboard.press('Control+1');
+  await p.waitForSelector('.pl-jform');
+  certo((await p.locator('.pl-jform input').inputValue()).includes('#.##0,000'), 'código em pt-BR');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.0: abas: nova, renomear (a fórmula acompanha) e referência entre abas', async () => {
+  await p.locator('.pl-aba-nova').click();
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-aba').count(), 2);
+  await digitarEm(p, 'A1', ['=Planilha1!B2*10']);
+  igual(await celula(p, 'A1'), '12');
+  await p.locator('.pl-aba.on').dblclick();
+  await p.locator('.janela input').fill('Resumo');
+  await p.locator('.janela .btn.primary').click();
+  await p.locator('.pl-aba:has-text("Planilha1")').click();
+  await p.locator('.pl-aba:has-text("Planilha1")').dblclick();
+  await p.locator('.janela input').fill('Lotes 2026');
+  await p.locator('.janela .btn.primary').click();
+  await p.locator('.pl-aba:has-text("Resumo")').click();
+  await celula(p, 'A1');
+  igual(await fxTexto(p), "='Lotes 2026'!B2*10");
+  await print(p, '33-planilha-abas');
+  await p.locator('.pl-aba:has-text("Lotes 2026")').click();
+});
+await caso('v0.4.0: nome fácil (Meta_Cloro) e Ctrl+K acha célula, nome e coluna', async () => {
+  await digitarEm(p, 'J1', ['0,5']);
+  await celula(p, 'J1');
+  await p.locator('.pl-nome').click();
+  await p.locator('.pl-nome').fill('Meta_Cloro');
+  await p.locator('.pl-nome').press('Enter');
+  await p.waitForTimeout(100);
+  await digitarEm(p, 'H2', ['=SE(B2>=Meta_Cloro;"OK";"Baixo")']);
+  igual(await celula(p, 'H2'), 'OK');
+  await p.keyboard.press('Control+k');
+  await p.keyboard.type('cloro');
+  await p.waitForTimeout(100);
+  const lista = await p.locator('.paleta').innerText();
+  certo(lista.includes('Meta_Cloro') && lista.includes('Coluna Cloro livre (B)'), 'Ctrl+K: ' + lista);
+  await p.locator('.paleta button:has-text("Coluna Cloro livre")').click();
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-nome').inputValue(), 'B2');
+  await p.keyboard.press('Control+k');
+  await p.keyboard.type('H2');
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-nome').inputValue(), 'H2');
+});
+await caso('v0.4.0: "De onde vem / quem usa" lista as fórmulas de todas as abas', async () => {
+  await celula(p, 'B2');
+  await p.click('.tab:has-text("Fórmulas")');
+  await cmd(p, 'formula.origem');
+  const t = await p.locator('.pl-origem').innerText();
+  certo(t.includes('Resumo!A1') && t.includes('C2') && t.includes('H2'), 'quem usa: ' + t);
+  await print(p, '34-planilha-quem-usa');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.0: colar do Excel (texto com tabulação) e copiar com fórmula para o Excel', async () => {
+  await celula(p, 'A20');
+  await colarTexto(p, 'Lote\tCloro\r\nL-100\t1,1\r\nL-101\t1O/1O/2026\r\n');
+  igual(await celula(p, 'B21'), '1,1');
+  igual(await celula(p, 'B22'), '10/10/2026');
+  certo((await p.locator('.toast').last().innerText()).includes('letra O'), 'sem aviso da letra O');
+  await celula(p, 'C2');
+  const dados = await p.evaluate(() => {
+    const dt = new DataTransfer();
+    document.querySelector('.pl-cap').dispatchEvent(new ClipboardEvent('copy', { clipboardData: dt, bubbles: true, cancelable: true }));
+    return { t: dt.getData('text/plain'), h: dt.getData('text/html') };
+  });
+  igual(dados.t, 'OK\r\n');
+  certo(dados.h.includes('x:fmla="=IF(AND(B2&gt;=0.5,B2&lt;=2),&quot;OK&quot;,&quot;Ajustar&quot;)"'), 'html sem fórmula: ' + dados.h);
+});
+await caso('v0.4.0: congelar a linha de cima e Folha clara', async () => {
+  await p.click('.tab:has-text("Exibir")');
+  await cmd(p, 'exibir.congelar');
+  await p.locator('.pl-opcao:has-text("Congelar a linha de cima")').click();
+  await p.waitForTimeout(100);
+  certo(await p.locator('[data-cmd="exibir.congelar"][aria-pressed=true]').count(), 'congelar não ligou');
+  await p.locator('.pl-rol').evaluate((e) => { e.scrollTop = 600; });
+  await p.waitForTimeout(150);
+  await print(p, '35-planilha-congelada');
+  await cmd(p, 'exibir.folhaClara');
+  await p.waitForTimeout(150);
+  const px = await p.locator('.pl-cv').evaluate((cv) => { const d = cv.getContext('2d').getImageData(cv.width - 20, cv.height - 20, 1, 1).data; return [d[0], d[1], d[2]]; });
+  igual(px.join(','), '255,255,255', 'folha clara não ficou branca');
+  await cmd(p, 'exibir.folhaClara');
+  await p.locator('.pl-rol').evaluate((e) => { e.scrollTop = 0; });
+});
+await caso('v0.4.0: linha do tempo do desfazer volta vários passos de uma vez', async () => {
+  await p.locator('.topbar-row [data-cmd="editar.historico"]').click();
+  await p.waitForSelector('.lt-lista');
+  const itens = await p.locator('.lt-lista li:not(.agora):not(.inicio) button').count();
+  certo(itens >= 10, 'poucos passos: ' + itens);
+  certo((await p.locator('.lt-lista').innerText()).includes('Digitar em'), 'passos sem nome');
+  await print(p, '36-linha-do-tempo');
+  await p.locator('.lt-lista li:not(.agora):not(.inicio) button').nth(2).click();
+  await p.waitForTimeout(150);
+  certo((await p.locator('.toast').last().innerText()).includes('Voltou 3 passos'));
+  await p.keyboard.press('Control+y');
+  await p.keyboard.press('Control+y');
+  await p.keyboard.press('Control+y');
+});
+await caso('v0.4.0: Ctrl+setas pulam até o fim dos dados; Ctrl+; põe a data de hoje', async () => {
+  await celula(p, 'A1');
+  await p.keyboard.press('Control+ArrowDown');
+  igual(await p.locator('.pl-nome').inputValue(), 'A6');
+  await p.keyboard.press('Control+ArrowRight');
+  igual(await p.locator('.pl-nome').inputValue(), 'XFD6', 'linha vazia vai até a última coluna (como o Excel)');
+  await celula(p, 'A2');
+  await p.keyboard.press('Control+ArrowRight');
+  igual(await p.locator('.pl-nome').inputValue(), 'H2');
+  await celula(p, 'K1');
+  await p.keyboard.press('Control+;');
+  await p.waitForTimeout(100);
+  const hoje = new Date();
+  igual(await celula(p, 'K1'), `${String(hoje.getDate()).padStart(2, '0')}/${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`);
+});
+await caso('v0.4.0: perfil Leitor só vê a planilha', async () => {
+  await p.locator('.topbar [aria-label="Opções"]').click();
+  await p.locator('.opcoes .chipb:has-text("Leitor")').click();
+  await p.keyboard.press('Escape');
+  certo(await p.locator('.pl-leitura').isVisible(), 'sem aviso de leitura');
+  await celula(p, 'A1');
+  await p.keyboard.type('x');
+  await p.waitForTimeout(100);
+  igual(await p.locator('.pl-edcel').count(), 0, 'Leitor conseguiu editar');
+  await p.locator('.topbar [aria-label="Opções"]').click();
+  await p.locator('.opcoes .chipb:has-text("Admin")').click();
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.0: 10 mil linhas coladas: abre, rola até o fim e soma rápido', async () => {
+  await novaPlanilha(p);
+  const linhas = [];
+  for (let i = 1; i <= 10000; i++) linhas.push(`L-${i}\t${(i % 25) / 10}`.replace('.', ','));
+  const t0 = Date.now();
+  await colarTexto(p, linhas.join('\r\n'));
+  await digitarEm(p, 'C1', ['=CONT.SE(B:B;">2")', '=SOMA(B1:B10000)']);
+  const tempo = Date.now() - t0;
+  igual(await celula(p, 'C1'), '1600');
+  igual(await celula(p, 'C2'), '12000');
+  await celula(p, 'A1');
+  await p.keyboard.press('Control+ArrowDown');
+  igual(await p.locator('.pl-nome').inputValue(), 'A10000');
+  certo(tempo < 8000, 'demorou ' + tempo + ' ms');
+  await print(p, '37-planilha-10mil');
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina());
+await caso('v0.4.0: planilha criada na v0.2.0 abre e edita', async () => {
+  await p.goto(BASE + 'v020/');
+  await p.waitForSelector('[data-novo=planilha]');
+  await p.click('[data-novo=planilha]');
+  await p.waitForSelector('.sup-planilha');
+  await p.waitForTimeout(400);
+  await p.goto(BASE);
+  await p.waitForSelector('.arq');
+  await p.locator('.arq .abre').first().click();
+  await p.waitForSelector('.pl-cv');
+  await digitarEm(p, 'A1', ['5', '=A1*2']);
+  igual(await celula(p, 'A2'), '10');
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }));
+await caso('v0.4.0 celular: faixa de edição embaixo com ; ( ) e funções; próxima vazia', async () => {
+  await p.goto(BASE + '#/planilha');
+  await p.waitForSelector('[data-novo=planilha]');
+  await p.locator('[data-novo=planilha]').tap();
+  await p.waitForSelector('.pl-cv');
+  await p.waitForTimeout(300);
+  const cv = await p.locator('.pl-cv').boundingBox();
+  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+  await p.waitForTimeout(100);
+  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+  await p.waitForSelector('.pl-banda');
+  igual(await p.locator('.pl-alca-cel').count(), 0, 'alças durante a edição');
+  await p.locator('.pl-banda textarea').fill('7');
+  await p.locator('.pl-banda button:has-text("Próxima vazia")').tap();
+  await p.waitForTimeout(150);
+  await p.locator('.pl-banda textarea').fill('=');
+  await p.waitForTimeout(80);
+  certo(await p.locator('.pl-simbolos').isVisible(), 'sem barra de símbolos');
+  await p.locator('.pl-simbolos button:has-text("SOMA")').tap();
+  await p.locator('.pl-banda textarea').type('A1');
+  await p.locator('.pl-simbolos button:has-text(")")').tap();
+  await print(p, '38-celular-planilha');
+  await p.locator('.pl-banda button:has-text("OK")').tap();
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'A2'), '7');
+  const larg = await p.evaluate(() => document.documentElement.scrollWidth);
+  certo(larg <= 390, 'rolagem lateral: ' + larg);
 });
 await ctx.close();
 

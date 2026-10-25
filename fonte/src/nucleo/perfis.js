@@ -22,6 +22,8 @@ export const MATRIZ = {
   editarTexto: { admin: 1, editor: 1, operador: 0, leitor: 0 },
   /* v0.3.0: mexer no quadro (post-its, setas, colunas). Operador também mexe: quadro é de reunião. */
   'quadro.editar': { admin: 1, editor: 1, operador: 1, leitor: 0 },
+  /* v0.4.0: editar a planilha (células, formatos, abas). Igual ao quadro; travar modelo chega na v0.6.0. */
+  'planilha.editar': { admin: 1, editor: 1, operador: 1, leitor: 0 },
   'pasta.criar': { admin: 1, editor: 1, operador: 0, leitor: 0 },
   'pasta.excluir': { admin: 1, editor: 1, operador: 0, leitor: 0 },
   'pasta.arquivar': { admin: 1, editor: 1, operador: 0, leitor: 0 },

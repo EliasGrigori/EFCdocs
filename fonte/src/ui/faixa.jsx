@@ -23,18 +23,21 @@ const GRUPO_TRANSFERENCIA = { nome: 'Área de transferência', itens: [['g', 'ed
 const FAIXAS = {
   planilha: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
-      { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.bordas', 'formatar.preenchimento', 'formatar.corFonte']]] },
+      { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.bordas', 'formatar.preenchimento', 'formatar.corFonte', 'formatar.fonte']]] },
       { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita', 'formatar.quebrar', 'formatar.mesclar']]] },
-      { nome: 'Número', itens: [['lin', ['formatar.moeda', 'formatar.porcentagem']]] },
+      { nome: 'Número', itens: [['lin', ['formatar.moeda', 'formatar.porcentagem', 'formatar.milhar', 'formatar.maisCasas', 'formatar.menosCasas', 'formatar.formatoNumero']]] },
+      { nome: 'Células', itens: [['col', ['planilha.inserirLinha', 'planilha.inserirColuna']], ['col', ['planilha.excluirLinha', 'planilha.excluirColuna']]] },
       { nome: 'Estilos', itens: [['g', 'formatar.condicional'], ['g', 'inserir.tabela']] },
-      { nome: 'Edição', itens: [['g', 'formula.autosoma'], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
+      { nome: 'Edição', itens: [['g', 'formula.autosoma'], ['col', ['planilha.limparConteudo', 'formatar.limpar', 'editar.historico']], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
     { id: 'inserir', nome: 'Inserir', grupos: [
+      { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['col', ['planilha.inserirLinha', 'planilha.inserirColuna']]] },
       { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
       { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.grafico']] },
       { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
     { id: 'formulas', nome: 'Fórmulas', grupos: [
       { nome: 'Funções', itens: [['g', 'formula.inserir'], ['g', 'formula.autosoma']] },
-      { nome: 'Entender a conta', itens: [['g', 'formula.explicar'], ['g', 'formula.origem']] }] },
+      { nome: 'Nomes', itens: [['g', 'formula.nome'], ['g', 'formula.nomes'], ['g', 'planilha.cabecalho']] },
+      { nome: 'Entender a conta', itens: [['g', 'formula.origem'], ['g', 'formula.explicar']] }] },
     { id: 'dados', nome: 'Dados', grupos: [
       { nome: 'Classificar e filtrar', itens: [['g', 'dados.classificar'], ['g', 'dados.filtrar']] },
       { nome: 'Ferramentas', itens: [['g', 'dados.validacao'], ['g', 'dados.duplicados'], ['g', 'dados.dinamica']] },
@@ -42,7 +45,7 @@ const FAIXAS = {
     { id: 'revisao', nome: 'Revisão', grupos: [
       { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar'], ['g', 'arquivo.versoes']] },
       { nome: 'Proteger', itens: [['g', 'revisao.travar']] }] },
-    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['g', 'exibir.grade'], ['g', 'exibir.zoom']] }, ...GRUPOS_EXIBIR] },
+    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['g', 'exibir.grade'], ['g', 'exibir.folhaClara'], ['g', 'exibir.zoom']] }, { nome: 'Linhas e colunas', itens: [['col', ['planilha.ocultarLinha', 'planilha.ocultarColuna', 'planilha.reexibir']]] }, ...GRUPOS_EXIBIR] },
   ],
   docx: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
@@ -63,7 +66,7 @@ const FAIXAS = {
   ],
   postits: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
-      { nome: 'Editar', itens: [['g', 'editar.duplicar'], ['g', 'editar.excluir'], ['col', ['editar.selecionarTudo', 'editar.comentar', 'editar.localizar']]] },
+      { nome: 'Editar', itens: [['g', 'editar.duplicar'], ['g', 'editar.excluir'], ['col', ['editar.selecionarTudo', 'editar.localizar', 'editar.historico']]] },
       { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.corFonte']]] },
       { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita']]] },
       { nome: 'Cor', itens: [['g', 'formatar.preenchimento']] }] },
@@ -83,9 +86,9 @@ const FAIXAS = {
 };
 
 export const BARRA_CURTA = {
-  planilha: ['editar.desfazer', 'editar.refazer', '|', 'formatar.negrito', 'formatar.italico', 'formatar.preenchimento', 'formatar.moeda', '|', 'formula.autosoma', 'dados.filtrar', 'inserir.grafico'],
+  planilha: ['editar.desfazer', 'editar.refazer', 'editar.historico', '|', 'formatar.negrito', 'formatar.italico', 'formatar.preenchimento', 'formatar.moeda', 'formatar.porcentagem', '|', 'formula.inserir', 'formula.autosoma', 'exibir.congelar'],
   docx: ['editar.desfazer', 'editar.refazer', '|', 'formatar.negrito', 'formatar.italico', 'formatar.titulo', 'formatar.lista', '|', 'inserir.tabela', 'inserir.imagem', 'inserir.campo'],
-  postits: ['editar.desfazer', 'editar.refazer', '|', 'inserir.postit', 'inserir.forma', 'inserir.seta', 'inserir.proximo', '|', 'formatar.preenchimento', 'editar.excluir', '|', 'organizar.kanban', 'exibir.ajustar'],
+  postits: ['editar.desfazer', 'editar.refazer', 'editar.historico', '|', 'inserir.postit', 'inserir.forma', 'inserir.seta', 'inserir.proximo', '|', 'formatar.preenchimento', 'editar.excluir', '|', 'organizar.kanban', 'exibir.ajustar'],
 };
 
 /** Abas da faixa do módulo, só com o que vale nele. */
@@ -107,7 +110,7 @@ export const ROTULO_CURTO = {
   'exibir.menuCompleto': 'Completo', 'exibir.menuIcones': 'Só ícones', 'exibir.menuOculto': 'Esconder',
   'exibir.layoutA': 'Faixa tipo Excel', 'exibir.layoutB': 'Barra e painel', 'exibir.painel': 'Painel lateral',
   'arquivo.lixeira': 'Lixeira', 'arquivo.versoes': 'Versões', 'arquivo.cancelar': 'Cancelar',
-  'formula.origem': 'De onde vem', 'formula.explicar': 'Explicar conta', 'inserir.botao': 'Botão de aba',
+  'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'inserir.botao': 'Botão de aba',
   'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
   'dados.validacao': 'Validação', 'formatar.condicional': 'Destacar regra', 'editar.localizar': 'Localizar',
   'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
@@ -120,6 +123,11 @@ export const ROTULO_CURTO = {
   'organizar.tras': 'Para trás', 'exibir.ajustar': 'Ajustar à tela', 'exibir.codigos': 'Códigos Q',
   'editar.excluir': 'Excluir', 'editar.selecionarTudo': 'Selecionar tudo', 'formatar.preenchimento': 'Cor',
   'editar.duplicar': 'Duplicar', 'inserir.texto': 'Texto solto',
+  'editar.historico': 'Linha do tempo', 'planilha.inserirLinha': 'Inserir linha', 'planilha.inserirColuna': 'Inserir coluna',
+  'planilha.excluirLinha': 'Excluir linha', 'planilha.excluirColuna': 'Excluir coluna', 'planilha.limparConteudo': 'Limpar conteúdo',
+  'formatar.limpar': 'Limpar formatos', 'planilha.novaAba': 'Nova aba', 'formula.nome': 'Dar nome', 'formula.nomes': 'Nomes',
+  'planilha.cabecalho': 'Linha de títulos', 'exibir.folhaClara': 'Folha clara', 'planilha.ocultarLinha': 'Ocultar linhas',
+  'planilha.ocultarColuna': 'Ocultar colunas', 'planilha.reexibir': 'Reexibir', 'formula.inserir': 'Inserir função', 'formula.autosoma': 'AutoSoma',
 };
 
 /** Botão de comando. tipo: g grande · s pequeno · i só ícone · t ícone e texto */
@@ -248,6 +256,7 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
         </div>
         {temArquivo && <BotaoCmd id="editar.desfazer" tipo="i" cx={cx} />}
         {temArquivo && !cel && <BotaoCmd id="editar.refazer" tipo="i" cx={cx} />}
+        {temArquivo && !cel && <BotaoCmd id="editar.historico" tipo="i" cx={cx} />}
         <button type="button" className="busca" onClick={() => cx.executar('app.buscar')}>
           <Icone n="busca" />O que você quer fazer?<kbd>Ctrl K</kbd>
         </button>

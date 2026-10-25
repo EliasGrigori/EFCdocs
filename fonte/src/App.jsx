@@ -18,6 +18,10 @@ import { Menu, BarraCelular } from './ui/menu.jsx';
 import { Paleta, Opcoes, Painel } from './ui/janelas.jsx';
 import { Inicio, ListaDoTipo, Lixeira, EmBreve, EditorEmBreve } from './ui/paginas.jsx';
 import { Quadro } from './quadro/Quadro.jsx';
+import { Planilha } from './planilha/Planilha.jsx';
+import { normalizarPlanilha } from './planilha/modelo.js';
+import { StatusPlanilha } from './planilha/partes.jsx';
+import { LinhaDoTempo } from './ui/historico.jsx';
 
 const AUTOR = 'neste aparelho';
 const TITULOS = { '': 'Início', planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros de post-its', lixeira: 'Lixeira', pastas: 'Pastas', externos: 'Documentos externos' };
@@ -34,7 +38,7 @@ function usePwa() {
   return pwa;
 }
 
-const abrirConteudo = (ficha, conteudo) => (ficha.tipo === 'postits' ? normalizarQuadro(conteudo) : conteudo);
+const abrirConteudo = (ficha, conteudo) => (ficha.tipo === 'postits' ? normalizarQuadro(conteudo) : ficha.tipo === 'planilha' ? normalizarPlanilha(conteudo) : conteudo);
 
 export function App() {
   const demo = ehDemo();
@@ -66,6 +70,7 @@ export function App() {
   const [espaco, setEspaco] = useState('');
   const [statusEd, setStatusEd] = useState(null);
   const [alvoPainel, setAlvoPainel] = useState(null);
+  const [linhaTempo, setLinhaTempo] = useState(false);
   const editorRef = useRef(null);
 
   /* tema, relevo e cor da barra do celular */
@@ -162,6 +167,18 @@ export function App() {
     avisar((re ? 'Refeito: ' : 'Desfeito: ') + (r.diff.rotulo || 'última ação'), { ic: re ? 'refazer' : 'desfazer' });
   }, [salvar, avisar]);
 
+  /** Linha do tempo (PL17): volta ou avança até o passo escolhido, numa gravação só. */
+  const irParaPasso = useCallback((feitosAlvo) => {
+    const atual = abertoRef.current;
+    if (!atual) return;
+    let h = atual.h, estado = atual.arquivo, n = 0;
+    while (h.feitos.length > feitosAlvo && h.feitos.length) { const r = desfazer(h, estado); h = r.h; estado = r.estado; n++; }
+    while (h.feitos.length < feitosAlvo && h.desfeitos.length) { const r = refazer(h, estado); h = r.h; estado = r.estado; n--; }
+    if (!n) return;
+    salvar({ ...atual, h, arquivo: carimbar(estado, AUTOR) }, n > 0 ? 'desfez' : 'refez');
+    avisar(n > 0 ? `Voltou ${n} ${n === 1 ? 'passo' : 'passos'}.` : `Avançou ${-n} ${n === -1 ? 'passo' : 'passos'}.`, { ic: n > 0 ? 'desfazer' : 'refazer' });
+  }, [salvar, avisar]);
+
   const criarNovo = useCallback(async (tipo) => {
     try {
       const a = criarArquivo({ tipo, autor: AUTOR });
@@ -217,6 +234,8 @@ export function App() {
   const bloqueado = useCallback((id, ficha) => {
     const cmd = PorId[id];
     if (!cmd) return semPermissao(id, ficha);
+    if (id === 'editar.historico') return aberto && (podeDesfazer(aberto.h) || podeRefazer(aberto.h)) ? '' : 'Nada no histórico ainda';
+    if (mod === 'planilha' && cmd.acao === 'quadro.editar') return semPermissao('planilha.editar', ficha);
     if (id === 'editar.desfazer') return aberto && podeDesfazer(aberto.h) ? '' : 'Nada para desfazer';
     if (id === 'editar.refazer') return aberto && podeRefazer(aberto.h) ? '' : 'Nada para refazer';
     if (id === 'arquivo.novo' && !mod) return '';
@@ -256,6 +275,7 @@ export function App() {
       case 'arquivo.lixeira': if (atual) mandarLixeira(atual.arquivo.ficha); return;
       case 'editar.desfazer': desfazerOuRefazer(false); return;
       case 'editar.refazer': desfazerOuRefazer(true); return;
+      case 'editar.historico': setLinhaTempo(true); return;
       case 'exibir.faixaTudo': setPref('faixa', 'tudo'); setFaixaTemp(false); return;
       case 'exibir.faixaAbas': setPref('faixa', 'abas'); setFaixaTemp(false); return;
       case 'exibir.faixaOculta':
@@ -287,7 +307,7 @@ export function App() {
   /* atalhos do teclado que valem em qualquer tela */
   useEffect(() => {
     const tecla = (ev) => {
-      if (paleta || opcoes || pergunta) return;
+      if (paleta || opcoes || pergunta || linhaTempo) return;
       const k = ev.key.toLowerCase();
       const ctrl = ev.ctrlKey || ev.metaKey;
       const digitando = /^(input|textarea|select)$/i.test(ev.target.tagName) || ev.target.isContentEditable;
@@ -300,7 +320,7 @@ export function App() {
     };
     addEventListener('keydown', tecla);
     return () => removeEventListener('keydown', tecla);
-  }, [paleta, opcoes, pergunta, executar, desfazerOuRefazer, prefs.faixa]);
+  }, [paleta, opcoes, pergunta, linhaTempo, executar, desfazerOuRefazer, prefs.faixa]);
 
   /* faixa mostrada "por um momento": some ao tocar fora do topo */
   useEffect(() => {
@@ -323,7 +343,8 @@ export function App() {
     dataHora, tamanho: tamanhoLegivel,
     instalar: estadoPwa.instalar ? pedirInstalacao : null,
     /* para o editor */
-    aplicar, avisar, perguntar: setPergunta, temJanela: !!(paleta || opcoes || pergunta || gaveta),
+    aplicar, avisar, perguntar: setPergunta, temJanela: !!(paleta || opcoes || pergunta || gaveta || linhaTempo),
+    pode: (acao) => !semPermissao(acao), buscarNoEditor: (q) => { const ed = editorRef.current; return ed && ed.buscar ? ed.buscar(q) : []; },
     registrarEditor: (ed) => { editorRef.current = ed; }, setStatus: setStatusEd,
     alvoPainel, abrirPainel: () => setPref('painel', true), painelAberto: prefs.painel, cel,
   };
@@ -337,9 +358,12 @@ export function App() {
 
   let conteudo;
   if (aberto) {
-    conteudo = aberto.arquivo.ficha.tipo === 'postits'
+    const t = aberto.arquivo.ficha.tipo;
+    conteudo = t === 'postits'
       ? <Quadro key={aberto.arquivo.ficha.id} arquivo={aberto.arquivo} cx={cx} />
-      : <EditorEmBreve tipo={aberto.arquivo.ficha.tipo} />;
+      : t === 'planilha'
+        ? <Planilha key={aberto.arquivo.ficha.id} arquivo={aberto.arquivo} cx={cx} />
+        : <EditorEmBreve tipo={t} />;
   } else if (idRota) conteudo = <div className="pagina" aria-busy="true" />;
   else if (TIPOS[rota]) conteudo = <ListaDoTipo tipo={rota} fichas={fichas} cx={cx} demo={demo} />;
   else if (rota === 'lixeira') conteudo = <Lixeira fichas={fichas} cx={cx} />;
@@ -367,7 +391,7 @@ export function App() {
           <main className="wk-main" id="conteudo">{conteudo}</main>
           {aberto && prefs.painel && (
             <Painel aberto={aberto} cx={cx} fechar={() => setPref('painel', false)}
-              extra={ficha.tipo === 'postits' ? <div className="painel-extra" ref={setAlvoPainel} /> : null} />
+              extra={ficha.tipo === 'postits' || ficha.tipo === 'planilha' ? <div className="painel-extra" ref={setAlvoPainel} /> : null} />
           )}
         </div>
         {cel && !aberto ? (
@@ -378,9 +402,10 @@ export function App() {
               <>
                 <span><b>{TIPOS[ficha.tipo].nome}</b></span>
                 <span className="some-cel">Rascunho · Rev. {String(ficha.rev).padStart(2, '0')}</span>
-                {ultimo && <span className="some-cel">Desfazer: {ultimo}</span>}
+                {ultimo && <button type="button" className="some-cel foot-desfazer" title="Ver a linha do tempo do desfazer" onClick={() => setLinhaTempo(true)}>Desfazer: {ultimo}</button>}
                 <span className="sts">
-                  {ficha.tipo === 'planilha' && <span>Selecione células para ver <b>Soma</b>, <b>Média</b> e <b>Contagem</b></span>}
+                  {ficha.tipo === 'planilha' && <StatusPlanilha st={st.planilha} />}
+                  {ficha.tipo === 'planilha' && st.zoom && st.zoom !== 1 ? <span className="some-cel">Zoom <b>{Math.round(st.zoom * 100)}%</b></span> : null}
                   {ficha.tipo === 'docx' && <span>Página <b>1</b> de <b>1</b> · <b>0</b> palavras</span>}
                   {ficha.tipo === 'postits' && (
                     <>
@@ -413,6 +438,7 @@ export function App() {
       {paleta && <Paleta mod={mod} cx={cx} aoFechar={() => setPaleta(false)} />}
       {opcoes && <Opcoes prefs={prefs} setPref={setPref} cx={cx} aoFechar={() => setOpcoes(false)} demo={demo} versao={VERSAO} espaco={espaco} />}
       {pergunta && <Pergunta p={pergunta} aoFechar={() => setPergunta(null)} />}
+      {linhaTempo && aberto && <LinhaDoTempo h={aberto.h} aoIr={irParaPasso} aoFechar={() => setLinhaTempo(false)} />}
       <Avisos lista={avisos} tirar={tirarAviso} />
     </div>
   );

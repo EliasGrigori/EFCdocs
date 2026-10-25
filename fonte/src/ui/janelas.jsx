@@ -10,30 +10,40 @@ import { ROTULO_CURTO } from './faixa.jsx';
 export function Paleta({ mod, cx, aoFechar }) {
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
-  const lista = useMemo(() => buscarComandos(q, mod, 9), [q, mod]);
+  /* além dos comandos, o editor aberto acha células, nomes, abas e títulos de coluna (PL14) */
+  const montar = (texto) => {
+    const doEditor = cx.buscarNoEditor ? cx.buscarNoEditor(texto).map((x) => ({ ...x, editor: true })) : [];
+    return [...doEditor, ...buscarComandos(texto, mod, 9)].slice(0, 12);
+  };
+  const lista = useMemo(() => montar(q), [q, mod]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setSel(0); }, [q]);
-  const rodar = (cmd) => { aoFechar(); setTimeout(() => cx.executar(cmd.id), 0); };
+  const rodar = (item) => { aoFechar(); setTimeout(() => (item.editor ? item.fazer() : cx.executar(item.id)), 0); };
   return (
     <Janela aoFechar={aoFechar} classe="paleta" rotulo="O que você quer fazer?">
       <div className="entrada">
         <Icone n="busca" />
-        <input aria-label="O que você quer fazer?" placeholder="O que você quer fazer? Ex.: post-it, seta, kanban, tema escuro" value={q}
+        <input aria-label="O que você quer fazer?" placeholder={mod === 'planilha' ? 'O que você quer fazer? Ex.: B12, Meta_Cloro, cloro, congelar' : 'O que você quer fazer? Ex.: post-it, seta, kanban, tema escuro'} value={q}
           onChange={(ev) => setQ(ev.target.value)} role="combobox" aria-expanded="true" aria-controls="paleta-lista"
           aria-activedescendant={lista[sel] ? 'pl-' + sel : undefined}
           onKeyDown={(ev) => {
             if (ev.key === 'ArrowDown') { ev.preventDefault(); setSel((s) => Math.min(s + 1, lista.length - 1)); }
             if (ev.key === 'ArrowUp') { ev.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
-            if (ev.key === 'Enter' && lista[sel]) rodar(lista[sel]);
+            if (ev.key === 'Enter') {
+              /* usa o texto do campo agora (quem digita rápido e dá Enter não perde o que digitou) */
+              const l = ev.currentTarget.value === q ? lista : montar(ev.currentTarget.value);
+              const item = l[ev.currentTarget.value === q ? sel : 0];
+              if (item) rodar(item);
+            }
           }} />
       </div>
       {lista.length ? (
         <ul id="paleta-lista" role="listbox">
           {lista.map((c, i) => {
-            const chega = chegaNa(c, mod);
+            const chega = c.editor ? null : chegaNa(c, mod);
             return (
               <li key={c.id} role="option" id={'pl-' + i} aria-selected={i === sel}>
-                <button type="button" className={i === sel ? 'sel' : ''} onMouseEnter={() => setSel(i)} onClick={() => rodar(c)} data-cmd={c.id}>
-                  <Icone n={c.ic} /><span>{c.nome}</span><span className="dir">{chega ? 'chega na ' + chega : c.atalho || ''}</span>
+                <button type="button" className={i === sel ? 'sel' : ''} onMouseEnter={() => setSel(i)} onClick={() => rodar(c)} data-cmd={c.editor ? undefined : c.id}>
+                  <Icone n={c.ic} /><span>{c.nome}</span><span className="dir">{c.editor ? c.dir : chega ? 'chega na ' + chega : c.atalho || ''}</span>
                 </button>
               </li>
             );

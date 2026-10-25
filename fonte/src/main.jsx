@@ -4,6 +4,7 @@ import { App } from './App.jsx';
 import { iniciarPwa } from './nucleo/pwa.js';
 import './estilo-base.css';
 import './quadro/quadro.css';
+import './planilha/planilha.css';
 
 createRoot(document.getElementById('raiz')).render(<App />);
 iniciarPwa();

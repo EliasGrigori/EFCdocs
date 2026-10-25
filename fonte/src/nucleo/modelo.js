@@ -2,11 +2,12 @@
    A ficha fica sem compactar (busca e filtros precisam dela); o conteúdo vai compactado. */
 
 import { conteudoQuadroVazio } from '../quadro/modelo.js';
+import { planilhaVazia } from '../planilha/modelo.js';
 
-export const VERSAO = 'v0.3.2';
+export const VERSAO = 'v0.4.0';
 
 export const TIPOS = {
-  planilha: { nome: 'Planilha', novo: 'Nova planilha', padrao: 'Planilha sem título', chega: 'v0.4.0' },
+  planilha: { nome: 'Planilha', novo: 'Nova planilha', padrao: 'Planilha sem título', chega: null },
   docx: { nome: 'Documento', novo: 'Novo documento', padrao: 'Documento sem título', chega: 'v0.7.0' },
   postits: { nome: 'Post-its', novo: 'Novo quadro', padrao: 'Quadro sem título', chega: null },
 };
@@ -19,7 +20,7 @@ export function novoId(agora = Date.now(), aleatorio = Math.random) {
 }
 
 export function conteudoVazio(tipo) {
-  if (tipo === 'planilha') return { abas: [{ id: 'a1', nome: 'Planilha1', celulas: {} }] };
+  if (tipo === 'planilha') return planilhaVazia();
   if (tipo === 'docx') return { blocos: [] };
   return conteudoQuadroVazio();
 }
