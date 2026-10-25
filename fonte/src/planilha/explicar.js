@@ -8,7 +8,7 @@ import { POR_EN, funcaoDoExcelQueFalta } from './nomesFuncoes.js';
 import { ehErro, ERRO_EXPLICA, numeroGeral, lerNumeroPt } from './valores.js';
 import { Ref, ehRef, ehMat } from './tipos.js';
 import { chave, lerChave, letraCol, textoFaixa, MAX_COL } from './ref.js';
-import { formatar } from './formato.js';
+import { formatar, ehFormatoData } from './formato.js';
 import { estiloDe } from './modelo.js';
 
 const MAX_CEL_FAIXA = 5000; // ao procurar o erro dentro de uma faixa, olha no máximo isto
@@ -21,9 +21,20 @@ export function txtValor(v, nf = 'General') {
   if (ehErro(v)) return v.toString();
   if (typeof v === 'string') return '"' + v + '"';
   if (typeof v === 'boolean') return v ? 'VERDADEIRO' : 'FALSO';
-  if (typeof v === 'number') { try { return formatar(v, nf || 'General').t; } catch { return numeroGeral(v); } }
+  if (typeof v === 'number') {
+    let f = nf || 'General';
+    /* datas sempre como dd/mm/aaaa (a hora só aparece se o formato tem hora) */
+    if (ehFormatoData(f) && /[dmy]/i.test(f) && !/[hs]/i.test(f.replace(/\[[^\]]*\]/g, ''))) f = 'dd/mm/yyyy';
+    try { return formatar(v, f).t; } catch { return numeroGeral(v); }
+  }
   return String(v);
 }
+
+/** Data (e hora, se tiver) como a pessoa lê: 25/10/2026 ou 25/10/2026 14:30. */
+export const txtData = (v) => { try { return formatar(v, Number.isInteger(v) ? 'dd/mm/yyyy' : 'dd/mm/yyyy hh:mm').t; } catch { return numeroGeral(v); } };
+
+/* funções que devolvem uma data: o número delas é mostrado como data */
+const FN_DATA = new Set(['TODAY', 'NOW', 'DATE', 'DATEVALUE', 'EDATE', 'EOMONTH', 'WORKDAY', 'WORKDAY.INTL']);
 
 /** Nome da aba pelo id (ou o id, se sumiu). */
 const nomeAba = (c, id) => (c.abas[id] ? c.abas[id].nome : id);
@@ -34,6 +45,13 @@ function criarCtx(motor, c, abaId, l, col, titulo) {
   const ctx = { motor, c, abaId, l, col, titulo: titulo || (() => null) };
   ctx.idAba = (n) => (n.aba == null ? abaId : motor.abaId(n.aba, abaId));
   ctx.avaliar = (n) => motor.avaliarNo(n, abaId, l, col);
+  /** O pedaço é uma data? (célula em formato de data, ou HOJE(), DATA(...) etc.) */
+  ctx.ehData = (n) => {
+    if (n.t === 'paren') return ctx.ehData(n.a);
+    if (n.t === 'fn') return FN_DATA.has(n.n);
+    if (n.t === 'ref') { const nf = nfDe(c, ctx.idAba(n) || abaId, n.l, n.c); return !!nf && ehFormatoData(nf); }
+    return false;
+  };
   /** Texto do valor de um nó: célula com o formato dela; faixa vira "24 valores". */
   ctx.valorTxt = (n) => {
     const v = ctx.avaliar(n);
@@ -44,6 +62,7 @@ function criarCtx(motor, c, abaId, l, col, titulo) {
       return n2 === 1 ? '1 valor' : `${n2} valores`;
     }
     if (ehMat(v)) return `${v.linhas} × ${v.colunas} valores`;
+    if (typeof v === 'number' && ctx.ehData(n)) return txtData(v);
     return txtValor(v, n.t === 'ref' ? nfDe(c, ctx.idAba(n) || abaId, n.l, n.c) : 'General');
   };
   /** "B2 ‹Cloro livre›" (o título só para célula da mesma aba, abaixo do cabeçalho). */
@@ -100,11 +119,23 @@ export const textoEmLinhas = (linhas) => linhas.map((x) => '  '.repeat(x.recuo) 
 
 /* ---------------- PL11: a frase em português ---------------- */
 
-const OP_FRASE = { '>=': 'for maior ou igual a', '<=': 'for menor ou igual a', '>': 'for maior que', '<': 'for menor que', '=': 'for igual a', '<>': 'for diferente de' };
-const ehComparacao = (n) => n.t === 'bin' && OP_FRASE[n.o];
+const OP_SUBJ = { '>=': 'for maior ou igual a', '<=': 'for menor ou igual a', '>': 'for maior que', '<': 'for menor que', '=': 'for igual a', '<>': 'for diferente de' };
+const OP_IND = { '>=': 'é maior ou igual a', '<=': 'é menor ou igual a', '>': 'é maior que', '<': 'é menor que', '=': 'é igual a', '<>': 'é diferente de' };
+const ehComparacao = (n) => n.t === 'bin' && OP_SUBJ[n.o];
 const mesmaRef = (a, b) => a && b && a.t === 'ref' && b.t === 'ref' && a.l === b.l && a.c === b.c && String(a.aba || '') === String(b.aba || '');
 
+/** "de" + "o Cloro livre (...)" = "do Cloro livre (...)": a preposição se junta ao artigo (de, em, por, a). */
+const CONTRAI = { de: { o: 'do', a: 'da' }, em: { o: 'no', a: 'na' }, por: { o: 'pelo', a: 'pela' }, a: { o: 'ao', a: 'à' } };
+export function com(prep, texto) {
+  const m = /^(o|a) (\S[\s\S]*)$/.exec(texto);
+  return m && CONTRAI[prep] ? `${CONTRAI[prep][m[1]]} ${m[2]}` : `${prep} ${texto}`;
+}
+
 function frases(ctx) {
+  /** valor de um pedaço, sem parêntese dentro de parêntese: célula vazia vira "vazio" */
+  const vt = (n) => { const t = ctx.valorTxt(n); return t === '(vazio)' ? 'vazio' : t; };
+  const mostra = (n) => (n && n.t === 'str' && n.v === '' ? 'deixa a célula vazia' : `mostra ${d(n)}`);
+  const naAba = (n, id) => (n.aba != null ? ` da aba ${nomeAba(ctx.c, id)}` : '');
   /** Como um pedaço aparece na frase: B2 vira "o Cloro livre (B2 = 1,2)". */
   const d = (n) => {
     switch (n.t) {
@@ -115,98 +146,141 @@ function frases(ctx) {
       case 'ref': {
         const id = ctx.idAba(n);
         const t = id ? ctx.titulo(id, n.l, n.c) : null;
-        const end = (n.aba != null ? nomeAba(ctx.c, id) + '!' : '') + chave(n.l, n.c);
-        return t ? `o ${t} (${end} = ${ctx.valorTxt(n)})` : `${end} (${ctx.valorTxt(n)})`;
+        const end = chave(n.l, n.c) + naAba(n, id);
+        return t ? `a coluna ${t} (${end} = ${vt(n)})` : `${end} (${vt(n)})`;
       }
       case 'area': {
         const id = ctx.idAba(n);
         const t = id && n.c1 === n.c2 ? ctx.titulo(id, n.l1 + 1, n.c1) : null;
-        const end = (n.aba != null ? nomeAba(ctx.c, id) + '!' : '') + textoFaixaRef(n);
+        const end = textoFaixaRef(n) + naAba(n, id);
         return t ? `a coluna ${t} (${end})` : end;
       }
       case 'nome': return n.n;
       case 'paren': return d(n.a);
+      case 'fn':
+        if (n.n === 'TODAY' && !n.args.length) return 'hoje';
+        if (n.n === 'NOW' && !n.args.length) return 'agora';
+      // eslint-disable-next-line no-fallthrough
       default: {
         const tx = escrever(n, 'pt');
-        return (tx.length > 28 ? tx.slice(0, 26) + '…' : tx) + ` (= ${ctx.valorTxt(n)})`;
+        return (tx.length > 28 ? tx.slice(0, 26) + '…' : tx) + ` (= ${vt(n)})`;
       }
     }
   };
-  const cond = (n) => {
-    if (n.t === 'paren') return cond(n.a);
-    if (ehComparacao(n)) return `${d(n.a)} ${OP_FRASE[n.o]} ${d(n.b)}`;
+  /** Condição em frase. ind = verbo no presente ("confere se está entre"); sem ind, depois de "se" ("se estiver entre"). */
+  const cond = (n, ind = false) => {
+    if (n.t === 'paren') return cond(n.a, ind);
+    const OP = ind ? OP_IND : OP_SUBJ;
+    if (ehComparacao(n)) return `${d(n.a)} ${OP[n.o]} ${d(n.b)}`;
     if (n.t === 'fn' && (n.n === 'AND' || n.n === 'OR') && n.args.length) {
       const [a, b] = n.args;
       /* E(B2>=0,5; B2<=2): "estiver entre 0,5 e 2" */
       if (n.n === 'AND' && n.args.length === 2 && ehComparacao(a) && ehComparacao(b) && mesmaRef(a.a, b.a) && /^>/.test(a.o) && /^</.test(b.o)) {
-        return `${d(a.a)} estiver entre ${d(a.b)} e ${d(b.b)}`;
+        return `${d(a.a)} ${ind ? 'está' : 'estiver'} entre ${d(a.b)} e ${d(b.b)}`;
       }
-      return n.args.map(cond).join(n.n === 'AND' ? ' e ' : ' ou ');
+      return n.args.map((x) => cond(x, ind)).join(n.n === 'AND' ? ' e ' : ' ou ');
     }
-    if (n.t === 'fn' && n.n === 'NOT' && n.args[0]) return `não for verdade que ${cond(n.args[0])}`;
-    return `${d(n)} der VERDADEIRO`;
+    if (n.t === 'fn' && n.n === 'NOT' && n.args[0]) return `${ind ? 'não é' : 'não for'} verdade que ${cond(n.args[0], ind)}`;
+    return `${d(n)} ${ind ? 'dá' : 'der'} VERDADEIRO`;
   };
-  const crit = (n) => {
+  /** O critério do CONT.SE/SOMASE: no plural ("são iguais a") ou no singular ("é igual a"). */
+  const crit = (n, sing = false) => {
+    const P = sing
+      ? { '>=': 'maior ou igual a', '<=': 'menor ou igual a', '<>': 'diferente de', '>': 'maior que', '<': 'menor que', '=': 'igual a' }
+      : { '>=': 'maiores ou iguais a', '<=': 'menores ou iguais a', '<>': 'diferentes de', '>': 'maiores que', '<': 'menores que', '=': 'iguais a' };
     if (n.t === 'str') {
       const m = /^(>=|<=|<>|>|<|=)(.*)$/.exec(n.v);
-      if (m) return `${{ '>=': 'maiores ou iguais a', '<=': 'menores ou iguais a', '<>': 'diferentes de', '>': 'maiores que', '<': 'menores que', '=': 'iguais a' }[m[1]]} ${m[2]}`;
-      if (/[*?]/.test(n.v)) return `parecidas com "${n.v}" (* vale qualquer texto)`;
-      return `iguais a "${n.v}"`;
+      if (m) return `${P[m[1]]} ${m[2]}`;
+      if (/[*?]/.test(n.v)) return `${sing ? 'parecida' : 'parecidas'} com "${n.v}" (* vale qualquer texto)`;
+      return `${P['=']} "${n.v}"`;
     }
-    return `iguais a ${d(n)}`;
+    return `${P['=']} ${d(n)}`;
   };
-  const faixas = (args) => args.filter((a) => a.t !== 'vazio').map(d).join(', ');
+  /** Vários pedaços em lista: "a coluna X, B3 e D5" (com prep: "da coluna X, de B3 e de D5"). */
+  const lista = (args, prep) => {
+    const it = args.filter((a) => a.t !== 'vazio').map((x) => (prep ? com(prep, d(x)) : d(x)));
+    return it.length > 1 ? it.slice(0, -1).join(', ') + ' e ' + it[it.length - 1] : it[0] || 'nada';
+  };
+  /** Uma data na frase: hoje, 01/10/2026 (E2) ou o que a conta der. */
+  const dData = (n) => {
+    if (n.t === 'paren') return dData(n.a);
+    if (n.t === 'fn' && n.n === 'TODAY' && !n.args.length) return 'hoje';
+    if (n.t === 'fn' && n.n === 'NOW' && !n.args.length) return 'agora';
+    if (n.t === 'ref') return `${vt(n)} (${chave(n.l, n.c)}${naAba(n, ctx.idAba(n))})`;
+    return d(n);
+  };
+  const ehIf = (n) => n && n.t === 'fn' && n.n === 'IF';
   /** Frase de uma conta (uma oração, sem ponto final). */
   const f = (n) => {
     if (n.t === 'paren') return f(n.a);
     if (n.t === 'bin') {
-      const nome = { '+': 'soma', '-': 'subtrai', '*': 'multiplica', '/': 'divide', '^': 'eleva', '&': 'junta' }[n.o];
-      if (n.o === '-') return `subtrai ${d(n.b)} de ${d(n.a)}`;
-      if (n.o === '/') return `divide ${d(n.a)} por ${d(n.b)}`;
-      if (n.o === '*') return `multiplica ${d(n.a)} por ${d(n.b)}`;
+      /* datas: "conta os dias de 01/10/2026 até hoje" */
+      if (n.o === '-' && ctx.ehData(n.a) && ctx.ehData(n.b)) return `conta os dias de ${dData(n.b)} até ${dData(n.a)}`;
+      if ((n.o === '+' || n.o === '-') && ctx.ehData(n.a) && !ctx.ehData(n.b)) return `${n.o === '+' ? 'soma' : 'tira'} ${d(n.b)} dias ${n.o === '+' ? 'à' : 'da'} data ${dData(n.a)}`;
+      /* MÁXIMO(x) - MÍNIMO(x): a amplitude */
+      if (n.o === '-' && n.a.t === 'fn' && n.b.t === 'fn' && n.a.n === 'MAX' && n.b.n === 'MIN' && n.a.args.length === 1 && n.b.args.length === 1 && escrever(n.a.args[0], 'pt') === escrever(n.b.args[0], 'pt')) {
+        return `tira o menor valor (${vt(n.b)}) do maior (${vt(n.a)}) ${com('de', d(n.a.args[0]))}`;
+      }
+      if (n.o === '-') return `subtrai ${d(n.b)} ${com('de', d(n.a))}`;
+      if (n.o === '/') return `divide ${d(n.a)} ${com('por', d(n.b))}`;
+      if (n.o === '*') return `multiplica ${d(n.a)} ${com('por', d(n.b))}`;
       if (n.o === '^') return `eleva ${d(n.a)} à potência ${d(n.b)}`;
-      if (n.o === '&') return `junta o texto de ${d(n.a)} com ${d(n.b)}`;
-      if (OP_FRASE[n.o]) return `confere se ${cond(n)}`;
-      return `${nome} ${d(n.a)} com ${d(n.b)}`;
+      if (n.o === '&') return `junta o texto ${com('de', d(n.a))} com ${d(n.b)}`;
+      if (OP_SUBJ[n.o]) return `confere se ${cond(n, true)}`;
+      return `soma ${d(n.a)} com ${d(n.b)}`;
     }
-    if (n.t !== 'fn') return `mostra ${d(n)}`;
+    if (n.t !== 'fn') return mostra(n);
     const a = n.args;
     switch (n.n) {
-      case 'IF': return `se ${cond(a[0])}, mostra ${d(a[1] || { t: 'bool', v: true })}; se não, mostra ${a[2] ? d(a[2]) : 'FALSO'}`;
-      case 'IFERROR': return `${f(a[0])}; se der erro, mostra ${d(a[1])}`;
-      case 'IFNA': return `${f(a[0])}; se não achar (#N/D), mostra ${d(a[1])}`;
-      case 'SUM': return `soma ${faixas(a)}`;
-      case 'AVERAGE': return `calcula a média de ${faixas(a)}`;
-      case 'MAX': return `pega o maior valor de ${faixas(a)}`;
-      case 'MIN': return `pega o menor valor de ${faixas(a)}`;
-      case 'COUNT': return `conta quantos números há em ${faixas(a)}`;
-      case 'COUNTA': return `conta quantas células preenchidas há em ${faixas(a)}`;
-      case 'COUNTBLANK': return `conta quantas células vazias há em ${faixas(a)}`;
-      case 'COUNTIF': return `conta quantas células de ${d(a[0])} são ${crit(a[1])}`;
-      case 'SUMIF': return `soma ${d(a[2] || a[0])} nas linhas em que ${d(a[0])} são ${crit(a[1])}`;
-      case 'AVERAGEIF': return `calcula a média de ${d(a[2] || a[0])} nas linhas em que ${d(a[0])} são ${crit(a[1])}`;
+      case 'IF': {
+        const sim = a[1] || { t: 'bool', v: true };
+        const parteSim = ehIf(sim) ? `olha de novo (${f(sim)})` : mostra(sim);
+        const parteNao = !a[2] ? 'mostra FALSO' : ehIf(a[2]) ? `olha de novo: ${f(a[2])}` : mostra(a[2]);
+        return `se ${cond(a[0])}, ${parteSim}; se não, ${parteNao}`;
+      }
+      case 'IFERROR': return `${f(a[0])}; se der erro, ${mostra(a[1])}`;
+      case 'IFNA': return `${f(a[0])}; se não achar (#N/D), ${mostra(a[1])}`;
+      case 'SUM': return `soma ${lista(a)}`;
+      case 'AVERAGE': return `calcula a média ${lista(a, 'de')}`;
+      case 'MAX': return `pega o maior valor ${lista(a, 'de')}`;
+      case 'MIN': return `pega o menor valor ${lista(a, 'de')}`;
+      case 'COUNT': return `conta quantos números há ${lista(a, 'em')}`;
+      case 'COUNTA': return `conta quantas células preenchidas há ${lista(a, 'em')}`;
+      case 'COUNTBLANK': return `conta quantas células vazias há ${lista(a, 'em')}`;
+      case 'COUNTIF': return `conta quantas células ${com('de', d(a[0]))} são ${crit(a[1])}`;
+      case 'SUMIF': return `soma ${d(a[2] || a[0])} nas linhas em que ${d(a[0])} é ${crit(a[1], true)}`;
+      case 'AVERAGEIF': return `calcula a média ${com('de', d(a[2] || a[0]))} nas linhas em que ${d(a[0])} é ${crit(a[1], true)}`;
       case 'COUNTIFS': case 'SUMIFS': case 'AVERAGEIFS': {
         const ini = n.n === 'COUNTIFS' ? 0 : 1;
         const conds = [];
-        for (let i = ini; i + 1 < a.length; i += 2) conds.push(`${d(a[i])} são ${crit(a[i + 1])}`);
-        const oQue = n.n === 'COUNTIFS' ? 'conta as linhas' : n.n === 'SUMIFS' ? `soma ${d(a[0])} nas linhas` : `calcula a média de ${d(a[0])} nas linhas`;
+        for (let i = ini; i + 1 < a.length; i += 2) conds.push(`${d(a[i])} é ${crit(a[i + 1], true)}`);
+        const oQue = n.n === 'COUNTIFS' ? 'conta as linhas' : n.n === 'SUMIFS' ? `soma ${d(a[0])} nas linhas` : `calcula a média ${com('de', d(a[0]))} nas linhas`;
         return `${oQue} em que ${conds.join(' e ')}`;
       }
-      case 'VLOOKUP': return `procura ${d(a[0])} na primeira coluna de ${d(a[1])} e traz o valor da coluna ${a[2] ? d(a[2]) : '?'} da mesma linha${a[3] && a[3].t !== 'vazio' && (a[3].v === 0 || a[3].v === false) ? ' (só se achar igualzinho)' : ''}`;
-      case 'XLOOKUP': return `procura ${d(a[0])} em ${d(a[1])} e traz o valor da mesma posição em ${d(a[2])}${a[3] && a[3].t !== 'vazio' ? `; se não achar, mostra ${d(a[3])}` : ''}`;
-      case 'MATCH': return `diz em que posição ${d(a[0])} aparece em ${d(a[1])}`;
-      case 'INDEX': return `pega, dentro de ${d(a[0])}, o valor da linha ${a[1] ? d(a[1]) : '?'}${a[2] ? ` e da coluna ${d(a[2])}` : ''}`;
+      case 'VLOOKUP': return `procura ${d(a[0])} na primeira coluna ${com('de', d(a[1]))} e traz o valor da coluna ${!a[2] ? '?' : a[2].t === 'num' ? d(a[2]) : 'indicada por ' + d(a[2])} da mesma linha${a[3] && a[3].t !== 'vazio' && (a[3].v === 0 || a[3].v === false) ? ' (só se achar igualzinho)' : ''}`;
+      case 'XLOOKUP': return `procura ${d(a[0])} ${com('em', d(a[1]))} e traz o valor da mesma posição ${com('em', d(a[2]))}${a[3] && a[3].t !== 'vazio' ? `; se não achar, ${mostra(a[3])}` : ''}`;
+      case 'MATCH': return `diz em que posição ${d(a[0])} aparece ${com('em', d(a[1]))}`;
+      case 'INDEX':
+        /* ÍNDICE(coluna; CORRESP(x; outra coluna; 0)): "acha x na coluna A e traz o valor da mesma linha da coluna B" */
+        if (a[1] && a[1].t === 'fn' && a[1].n === 'MATCH' && a[1].args.length >= 2 && !a[2]) {
+          const m = a[1].args;
+          return `acha ${d(m[0])} ${com('em', d(m[1]))} e traz o valor da mesma linha ${com('de', d(a[0]))}`;
+        }
+        return `pega, dentro ${com('de', d(a[0]))}, o valor da linha ${a[1] ? d(a[1]) : '?'}${a[2] ? ` e da coluna ${d(a[2])}` : ''}`;
+      case 'FILTER': return `mostra só as linhas ${com('de', d(a[0]))} em que ${a[1] ? cond(a[1], true) : '?'}${a[2] && a[2].t !== 'vazio' ? `; se nenhuma servir, ${mostra(a[2])}` : ''}`;
+      case 'NETWORKDAYS': return `conta os dias úteis de ${dData(a[0])} até ${dData(a[1])}`;
       case 'ROUND': return `arredonda ${d(a[0])} para ${a[1] ? d(a[1]) : '0'} casas`;
       case 'TODAY': return 'mostra a data de hoje';
       case 'NOW': return 'mostra a data e a hora de agora';
-      case 'AND': return `confere se ${cond(n)}`;
-      case 'OR': return `confere se ${cond(n)}`;
-      case 'CONCAT': case 'CONCATENATE': case 'TEXTJOIN': return `junta os textos de ${faixas(n.n === 'TEXTJOIN' ? a.slice(2) : a)}`;
-      case 'TRIM': return `tira os espaços sobrando de ${d(a[0])}`;
+      case 'AND': case 'OR': return `confere se ${cond(n, true)}`;
+      case 'CONCAT': case 'CONCATENATE': case 'TEXTJOIN': return `junta os textos ${lista(n.n === 'TEXTJOIN' ? a.slice(2) : a, 'de')}`;
+      case 'TRIM': return `tira os espaços sobrando ${com('de', d(a[0]))}`;
       default: {
         const meta = !n.desc && POR_EN[n.n];
         if (!meta) return `usa ${n.n}, que o EFCdocs ainda não calcula (no Excel funciona)`;
-        return `usa ${meta.pt} (${meta.desc.replace(/\.$/, '').toLowerCase()}) com ${faixas(a) || 'nada'}`;
+        /* a explicação da função vai em outra oração: sem parêntese dentro de parêntese */
+        const desc = meta.desc.replace(/\.$/, '');
+        return `usa ${meta.pt} com ${a.length ? lista(a) : 'nada'}. ${meta.pt}: ${desc.charAt(0).toLowerCase() + desc.slice(1)}`;
       }
     }
   };
@@ -410,6 +484,55 @@ export function causaDoErro(motor, c, abaId, l, col, titulo) {
   return { cod: o.cod, erroPt: o.erro.toString(), origem, caminho: o.caminho, titulo: `${o.erro.toString()} em ${nomeCel(origem)}`, msg: veio + motivo, motivo, acoes: unicas.slice(0, 3) };
 }
 
+/* ---------------- conta circular ---------------- */
+
+/** As contas que dependem umas das outras e a célula está no meio (null se a célula não é circular). */
+export function grupoCircular(motor, abaId, l, col) {
+  motor.valor(abaId, l, col);
+  const todas = motor.circulares();
+  const K = (x) => x.abaId + '|' + chave(x.l, x.c);
+  const emS = new Map(todas.map((x) => [K(x), x]));
+  const ini = abaId + '|' + chave(l, col);
+  if (!emS.has(ini)) return null;
+  const vizinhos = new Map();
+  const liga = (a, b) => { if (!vizinhos.has(a)) vizinhos.set(a, new Set()); vizinhos.get(a).add(b); };
+  for (const x of todas) {
+    const fm = motor.formula(x.abaId, x.l, x.c);
+    if (!fm || fm.erro) continue;
+    for (const u of celulasUsadas(motor, fm)) {
+      const ku = K(u);
+      if (emS.has(ku)) { liga(K(x), ku); liga(ku, K(x)); }
+    }
+  }
+  const vistos = new Set([ini]);
+  const fila = [ini];
+  while (fila.length) for (const v of vizinhos.get(fila.shift()) || []) if (!vistos.has(v)) { vistos.add(v); fila.push(v); }
+  return [...vistos].map((k) => emS.get(k)).sort((a, b) => a.abaId.localeCompare(b.abaId) || a.l - b.l || a.c - b.c);
+}
+
+/** Um aviso só para o grupo: "N3 e N4 dependem uma da outra, então as duas ficam 0. Apague uma das contas." */
+export function causaCircular(motor, c, abaId, l, col) {
+  const g = grupoCircular(motor, abaId, l, col);
+  if (!g) return null;
+  /* se o grupo passa por mais de uma aba, todas as células levam o nome da aba (A1 e Planilha2!A1 confunde) */
+  const entreAbas = g.some((x) => x.abaId !== g[0].abaId);
+  const nomeCel = (x) => (entreAbas || x.abaId !== abaId ? nomeAba(c, x.abaId) + '!' : '') + chave(x.l, x.c);
+  const nomes = g.map(nomeCel);
+  const juntar = (v) => (v.length > 1 ? v.slice(0, -1).join(', ') + ' e ' + v[v.length - 1] : v[0]);
+  const msg = g.length === 1
+    ? `${nomes[0]} depende dela mesma, então fica 0. Apague a conta ou tire a própria célula dela.`
+    : g.length === 2
+      ? `${nomes[0]} e ${nomes[1]} dependem uma da outra, então as duas ficam 0. Apague uma das contas.`
+      : `${juntar(nomes)} dependem umas das outras, então todas ficam 0. Apague uma das contas.`;
+  const acoes = g.filter((x) => !(x.abaId === abaId && x.l === l && x.c === col)).slice(0, 3).map((x) => ({ tipo: 'ir', rotulo: 'Ir para ' + nomeCel(x), alvo: x }));
+  return { cod: 'circular', circular: true, erroPt: 'Conta circular', origem: g[0], caminho: g, grupo: g, nomes, titulo: 'Conta circular em ' + juntar(nomes), msg, motivo: msg, acoes };
+}
+
+/** O que a caixa "Por que deu erro?" mostra para a célula: erro de verdade ou conta circular (ou nada). */
+export function causaDaConta(motor, c, abaId, l, col, titulo) {
+  return causaDoErro(motor, c, abaId, l, col, titulo) || causaCircular(motor, c, abaId, l, col);
+}
+
 /* ---------------- PL13: problemas da planilha ---------------- */
 
 /** A forma da fórmula sem as posições (para comparar com as vizinhas): A2*1,15 na linha 2 = A3*1,15 na linha 3. */
@@ -486,10 +609,15 @@ export function problemasDaPlanilha(motor, c, titulo, { max = 200 } = {}) {
     });
   }
 
-  /* 2. conta circular */
+  /* 2. conta circular: um aviso para cada grupo de contas que dependem umas das outras */
+  const jaCirc = new Set();
   for (const x of motor.circulares()) {
-    const fm = motor.formula(x.abaId, x.l, x.c);
-    add({ id: 'circ:' + x.abaId + chave(x.l, x.c), nivel: 'erro', abaId: x.abaId, l: x.l, c: x.c, texto: `Conta circular: ${chave(x.l, x.c)} depende dela mesma${fm && fm.arv ? ` (=${escrever(fm.arv, 'pt')})` : ''}. Fica 0 até corrigir.`, acoes: [] });
+    const k0 = x.abaId + '|' + chave(x.l, x.c);
+    if (jaCirc.has(k0)) continue;
+    const g = causaCircular(motor, c, x.abaId, x.l, x.c);
+    if (!g) continue;
+    for (const y of g.grupo) jaCirc.add(y.abaId + '|' + chave(y.l, y.c));
+    add({ id: 'circ:' + k0, nivel: 'erro', abaId: g.origem.abaId, l: g.origem.l, c: g.origem.c, texto: g.msg, acoes: [] });
   }
 
   /* 3. número guardado como texto (agrupado por coluna) */

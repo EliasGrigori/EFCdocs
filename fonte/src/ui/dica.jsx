@@ -40,6 +40,7 @@ export function DicasComandos({ mod }) {
     addEventListener('keydown', esconder, true);
     addEventListener('scroll', esconder, true);
     addEventListener('wheel', esconder, { capture: true, passive: true }); // roda do mouse em cima da faixa (sem rolar nada)
+    addEventListener('hashchange', esconder); // trocou de página: o botão da dica sumiu
     return () => {
       clearTimeout(tempo.current);
       document.removeEventListener('mouseover', entrou);
@@ -48,6 +49,8 @@ export function DicasComandos({ mod }) {
       removeEventListener('keydown', esconder, true);
       removeEventListener('scroll', esconder, true);
       removeEventListener('wheel', esconder, { capture: true });
+      removeEventListener('hashchange', esconder);
+      setDica(null);
     };
   }, [mod]);
   if (!dica) return null;

@@ -39,7 +39,8 @@ export function lerEntrada(texto, formatoAtual = 'General') {
     if (n != null) return { v: (m[1] || m[2] ? -1 : 1) * n, nf: FORMATO_MOEDA };
   }
   const n = lerNumeroPt(s);
-  if (n != null) return { v: n };
+  /* 001, 0042: só dígitos, começa com zero e tem outro dígito depois (00 e 000 não perguntam). O número perde o zero; quem decide é a pessoa (zeroNaFrente) */
+  if (n != null) return /^0\d*[1-9]\d*$/.test(s) ? { v: n, zeroNaFrente: s } : { v: n };
 
   /* data com a letra O no lugar do zero (1O/1O/2026) */
   const pareceData = /^[\dOo]{1,2}[/-][\dOo]{1,2}([/-][\dOo]{2,4})?$/.test(s) && /[Oo]/.test(s);

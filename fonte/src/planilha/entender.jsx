@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Icone, Janela } from '../ui/comum.jsx';
 import { tokenizar } from './formula.js';
 import { textoEmLinhas, arrumarGrafo } from './explicar.js';
-import { RECEITAS, COMPARACOES, COMPARA_CEL, faltaValor } from './receitas.js';
+import { RECEITAS, COMPARACOES, COMPARA_CEL, faltaValor, dataNaFormula } from './receitas.js';
 import { CORES_REF } from './ajuda.js';
 import { chave, lerEndereco } from './ref.js';
 import { conteudoQuadroVazio, novoItem, novaSeta } from '../quadro/modelo.js';
@@ -120,7 +120,7 @@ export function PainelProblemas({ lista, aberto, aoAlternar, aoIr, aoAcao, somen
         <Icone n="lampada" /><span>Problemas</span>{lista.length > 0 && <em>{lista.length}</em>}
       </button>
       {aberto && (
-        <div className="qd-assist card pl-problemas" role="dialog" aria-label="Problemas da planilha" onPointerDown={(ev) => ev.stopPropagation()}>
+        <div className="qd-assist card pl-problemas" role="dialog" aria-label="Problemas da planilha" onPointerDown={(ev) => ev.stopPropagation()} onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); aoAlternar(); } }}>
           <header><b>Problemas · {resumo}</b><button type="button" className="rbi" title="Fechar" aria-label="Fechar a lista de problemas" onClick={aoAlternar}><Icone n="x" /></button></header>
           {lista.length === 0 ? <p className="qd-assist-ok"><Icone n="check" />Tudo certo: nenhum erro nem aviso na planilha.</p> : (
             <ul>
@@ -225,20 +225,39 @@ export function quadroDaConta(grafo, nomeCel, nomeArquivo) {
 /* ---------------- PL18: montar a conta respondendo uma pergunta ---------------- */
 
 /**
- * colunas: [{ id, rotulo, faixa }] (todas as abas, com título); celulaPadrao: 'B2'; previa(texto) → texto do resultado;
- * aoPor(texto, nf) grava na célula ativa.
+ * colunas: [{ id, rotulo, faixa }] (todas as abas, com título); amostras: exemplos tirados da própria planilha
+ * ({ texto, numero, data, chave, outra }); valorCel('B2') → valor da célula (null se vazia); previa(texto) → texto do resultado;
+ * aoPor(texto, nf) grava na célula ativa. Tudo começa vazio: a pessoa escolhe a coluna ou a célula.
  */
-export function JanelaMontar({ nomeCel, ocupada, colunas, celulaPadrao, previa, aoPor, aoFechar }) {
+export function JanelaMontar({ nomeCel, ocupada, colunas, amostras = {}, valorCel = () => undefined, previa, aoPor, aoFechar }) {
   const [rid, setRid] = useState(RECEITAS[0].id);
   const r = RECEITAS.find((x) => x.id === rid);
-  const padroes = (rr) => Object.fromEntries(rr.campos.map((f) => [f.id, f.padrao != null ? f.padrao : f.tipo === 'coluna' ? (f.opcional ? '' : (colunas[0] ? colunas[0].faixa : '')) : f.tipo === 'celula' ? (f.opcional ? '' : celulaPadrao) : '']));
+  const padroes = (rr) => Object.fromEntries(rr.campos.map((f) => [f.id, f.padrao != null ? f.padrao : '']));
   const [vals, setVals] = useState(() => padroes(r));
   const trocar = (id) => { const rr = RECEITAS.find((x) => x.id === id); setRid(id); setVals(padroes(rr)); };
   const celOk = (t) => !t || !!lerEndereco(t);
-  const invalidas = r.campos.filter((f) => f.tipo === 'celula' && vals[f.id] && !celOk(vals[f.id]));
+  const dataOk = (t) => !t || !!dataNaFormula(t);
+  const invalidas = r.campos.filter((f) => (f.tipo === 'celula' && vals[f.id] && !celOk(vals[f.id])) || (f.tipo === 'data' && vals[f.id] && !dataOk(vals[f.id])));
   const semValor = r.campos.some((f) => f.tipo === 'comparacao') && (COMPARACOES.find((x) => x.id === vals.comp) || {}).semValor;
-  const m = invalidas.length ? null : r.montar(vals);
+  /* avisos sobre as células escolhidas: vazia, ou com texto onde se espera uma data.
+     Se a célula devia ter uma data e não tem, a conta não aparece (nada de 46320) e o botão fica desligado. */
+  const avisos = [];
+  let semData = false;
+  for (const f of r.campos) {
+    const t = String(vals[f.id] ?? '').trim();
+    const cel = (f.tipo === 'celula' && t && celOk(t)) ? t : (f.tipo === 'data' && t && /^[A-Za-z]+\d+$/.test(t)) ? t : null;
+    if (!cel) continue;
+    const v = valorCel(cel);
+    if (v === undefined) continue;
+    const querData = f.espera === 'data' || f.tipo === 'data';
+    if (v == null || v === '') { avisos.push(`A célula ${cel} está vazia.`); if (querData) semData = true; }
+    else if (querData && typeof v !== 'number') { avisos.push(`A célula ${cel} tem texto, não uma data.`); semData = true; }
+  }
+  const m = invalidas.length || semData ? null : r.montar(vals);
   const res = m ? previa(m.texto, m.nf) : '';
+  const exemplo = typeof r.exemplo === 'function' ? r.exemplo(amostras) : r.exemplo;
+  /* o que ainda falta escolher (colunas, células e datas obrigatórias) */
+  const faltam = r.campos.filter((f) => !f.opcional && ['coluna', 'celula', 'data'].includes(f.tipo) && !String(vals[f.id] ?? '').trim());
   return (
     <Janela titulo={'Montar a conta · ' + nomeCel} aoFechar={aoFechar} classe="pl-jmontar" rodape={(
       <>
@@ -253,7 +272,7 @@ export function JanelaMontar({ nomeCel, ocupada, colunas, celulaPadrao, previa, 
           ))}
         </div>
         <div className="pl-montar-d">
-          <p className="qd-dica">{r.exemplo}</p>
+          <p className="qd-dica">{exemplo}</p>
           {r.campos.map((f) => {
             if (f.id === 'valor' && semValor) return null;
             const set = (v) => setVals({ ...vals, [f.id]: v });
@@ -262,9 +281,16 @@ export function JanelaMontar({ nomeCel, ocupada, colunas, celulaPadrao, previa, 
               return (
                 <label key={f.id} className="campo">{rot}
                   <select value={vals[f.id]} onChange={(ev) => set(ev.target.value)}>
-                    {f.opcional && <option value="">(todas as linhas)</option>}
+                    <option value="">{f.opcional ? '(todas as linhas)' : f.escolha || 'Escolha a coluna'}</option>
                     {colunas.map((cl) => <option key={cl.id} value={cl.faixa}>{cl.rotulo}</option>)}
                   </select>
+                </label>
+              );
+            }
+            if (f.tipo === 'escolha') {
+              return (
+                <label key={f.id} className="campo">{rot}
+                  <select value={vals[f.id]} onChange={(ev) => set(ev.target.value)}>{f.opcoes.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}</select>
                 </label>
               );
             }
@@ -276,20 +302,32 @@ export function JanelaMontar({ nomeCel, ocupada, colunas, celulaPadrao, previa, 
                 </label>
               );
             }
+            const ehCel = f.tipo === 'celula';
+            const ruim = (ehCel && !celOk(vals[f.id])) || (f.tipo === 'data' && !dataOk(vals[f.id]));
             return (
               <label key={f.id} className="campo">{rot}
-                <input value={vals[f.id]} spellCheck={false} placeholder={f.tipo === 'celula' ? (f.opcional ? 'opcional, ex.: C2' : 'ex.: B2') : f.id === 'valor' ? 'ex.: Ajustar ou 0,5' : ''}
-                  aria-invalid={f.tipo === 'celula' && !celOk(vals[f.id])} onChange={(ev) => set(f.tipo === 'celula' ? ev.target.value.toUpperCase() : ev.target.value)} />
+                <input value={vals[f.id]} spellCheck={false} placeholder={ehCel || f.tipo === 'data' ? (f.escolha || 'Escolha a célula') : f.id === 'valor' ? 'ex.: Ajustar ou 0,5' : ''}
+                  aria-invalid={ruim} onChange={(ev) => set(ehCel ? ev.target.value.toUpperCase() : ev.target.value)} />
               </label>
             );
           })}
           {!colunas.length && r.campos.some((f) => f.tipo === 'coluna') && <p className="qd-dica">Para escolher colunas pelo nome, a planilha precisa de uma linha de títulos (ex.: Lote, Cloro, Situação).</p>}
-          {invalidas.length > 0 && <p className="erro-t">"{vals[invalidas[0].id]}" não é uma célula. Escreva como B2 ou Lotes!B2.</p>}
-          {!m && !invalidas.length && r.campos.some((f) => f.id === 'valor') && faltaValor(vals) && <p className="qd-dica">Escreva o valor que a conta vai comparar (ex.: Ajustar, OK ou 0,5).</p>}
+          {invalidas.length > 0 && (invalidas[0].tipo === 'data'
+            ? <p className="erro-t">"{vals[invalidas[0].id]}" não é uma data. Escreva como 25/10/2026 ou use uma célula (B1).</p>
+            : <p className="erro-t">"{vals[invalidas[0].id]}" não é uma célula. Escreva como B2 ou Lotes!B2.</p>)}
+          {!m && !invalidas.length && faltam.length > 0 && <p className="qd-dica">Para ver a conta, preencha: {faltam.map((f) => (f.rotulo || f.id).replace(/\s*\(.*\)$/, '')).join(', ')}.</p>}
+          {!m && !invalidas.length && !faltam.length && r.campos.some((f) => f.id === 'valor') && faltaValor(vals) && <p className="qd-dica">Escreva o valor que a conta vai comparar (ex.: Ajustar, OK ou 0,5).</p>}
+          {semData && !invalidas.length && (
+            <div>
+              {avisos.map((t, i) => <p key={i} className="erro-t">{t}</p>)}
+              <p className="qd-dica">Escolha uma célula que tenha uma data{amostras.data ? ` (como as da coluna ${amostras.data.titulo})` : ''}.</p>
+            </div>
+          )}
           {m && (
             <div className="pl-montar-r">
               <div>Fica <code>={m.texto}</code></div>
               <div>Resultado agora: <b>{res}</b></div>
+              {avisos.map((t, i) => <div key={i} className="qd-dica">{t}</div>)}
               {ocupada && <div className="qd-dica">{nomeCel} já tem conteúdo; ele será trocado (Ctrl+Z desfaz).</div>}
             </div>
           )}

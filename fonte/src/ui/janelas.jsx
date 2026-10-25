@@ -54,58 +54,68 @@ export function Paleta({ mod, cx, aoFechar }) {
   );
 }
 
-export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco }) {
+/* Opções em seções que abrem e fecham (sanfona). Cada cabeçalho mostra o que está escolhido;
+   só abre o que a pessoa tocar. O que ficou aberto continua aberto na próxima vez. */
+let secoesAbertas = {};
+
+function Secao({ id, titulo, resumo, abertas, alternar, children }) {
+  const aberta = !!abertas[id];
+  return (
+    <div className={'op-sec' + (aberta ? ' aberta' : '')} data-sec={id}>
+      <button type="button" className="op-cab" aria-expanded={aberta} aria-controls={'op-' + id} onClick={() => alternar(id)}>
+        <b>{titulo}</b><span className="res">{resumo}</span><Icone n="chevronBaixo" />
+      </button>
+      {aberta && <div className="op-corpo" id={'op-' + id}>{children}</div>}
+    </div>
+  );
+}
+
+export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abrir }) {
+  const [abertas, setAbertas] = useState(() => (abrir && abrir !== true ? { ...secoesAbertas, [abrir]: true } : secoesAbertas));
+  const alternar = (id) => setAbertas((a) => { const n = { ...a, [id]: !a[id] }; secoesAbertas = n; return n; });
   const nomesFaixa = prefs.layout === 'B' ? ROTULOS.faixaB : ROTULOS.faixa;
   const chips = (chave, valores, nomes) => (
-    <div className="chips">
+    <div className="seg" role="group">
       {valores.map((v) => (
         <button key={v} type="button" className={'chipb' + (prefs[chave] === v ? ' on' : '')} aria-pressed={prefs[chave] === v} onClick={() => setPref(chave, v)}>{nomes[v]}</button>
       ))}
     </div>
   );
+  const nomeTema = (TEMAS.find(([id]) => id === prefs.tema) || [null, prefs.tema])[1];
+  const amostra = (id) => ({ background: `linear-gradient(135deg, ${AMOSTRAS[id][0]} 50%, ${AMOSTRAS[id][1]} 50%)` });
   return (
     <Janela titulo="Opções" aoFechar={aoFechar} classe="opcoes">
       <div className="janela-c">
-        <div className="op-g">
-          <h3>Tema</h3>
+        <Secao id="tema" titulo="Tema" abertas={abertas} alternar={alternar}
+          resumo={<><i className="amostra" style={AMOSTRAS[prefs.tema] ? amostra(prefs.tema) : undefined} />{nomeTema}{prefs.relevo ? ' · relevo' : ''}</>}>
           <div className="temas">
             {TEMAS.map(([id, nome]) => (
-              <button key={id} type="button" className={'tema-b' + (prefs.tema === id ? ' on' : '')} aria-pressed={prefs.tema === id} data-tema={id} onClick={() => setPref('tema', id)}>
-                <i style={{ background: `linear-gradient(135deg, ${AMOSTRAS[id][0]} 50%, ${AMOSTRAS[id][1]} 50%)` }} />{nome}
+              <button key={id} type="button" className={'tema-b' + (prefs.tema === id ? ' on' : '')} aria-pressed={prefs.tema === id} data-tema={id} title={nome} onClick={() => setPref('tema', id)}>
+                <i style={amostra(id)} /><span>{nome}</span>
               </button>
             ))}
           </div>
-          <label className="chave"><input type="checkbox" checked={prefs.relevo} onChange={(ev) => setPref('relevo', ev.target.checked)} />Relevo nas barras (menu, topo, faixa e rodapé)</label>
-        </div>
-        <div className="op-g"><h3>Layout</h3>{chips('layout', ['A', 'B'], ROTULOS.layout)}</div>
-        <div className="op-g">
-          <h3>{prefs.layout === 'B' ? 'Barra curta' : 'Faixa'}</h3>
-          {chips('faixa', ['tudo', 'abas', 'oculta'], nomesFaixa)}
-          <p>Atalho: Ctrl+F1 alterna entre mostrar tudo e só as abas.</p>
-        </div>
-        <div className="op-g">
-          <h3>Menu lateral</h3>
-          {chips('menu', ['completo', 'icones', 'oculto'], ROTULOS.menu)}
-          <p>No celular, os módulos ficam na barra de baixo e o resto no botão de três linhas.</p>
-        </div>
-        <div className="op-g">
-          <h3>Painel lateral</h3>
-          <label className="chave"><input type="checkbox" checked={prefs.painel} onChange={(ev) => setPref('painel', ev.target.checked)} />Mostrar o painel de detalhes ao abrir um arquivo</label>
-        </div>
-        <div className="op-g">
-          <h3>Perfil de teste</h3>
-          <div className="chips">
-            {Object.entries(PERFIS).map(([id, p]) => (
-              <button key={id} type="button" className={'chipb' + (prefs.perfil === id ? ' on' : '')} aria-pressed={prefs.perfil === id} onClick={() => setPref('perfil', id)}>{p.nome} ({p.cadastro})</button>
+          <label className="chave"><input type="checkbox" checked={prefs.relevo} onChange={(ev) => setPref('relevo', ev.target.checked)} />Relevo nas barras</label>
+        </Secao>
+        <Secao id="tela" titulo="Tela" abertas={abertas} alternar={alternar}
+          resumo={`${ROTULOS.layout[prefs.layout]} · ${nomesFaixa[prefs.faixa]} · menu ${ROTULOS.menu[prefs.menu].toLowerCase()}`}>
+          <div className="op-linha"><span>Layout</span>{chips('layout', ['A', 'B'], ROTULOS.layout)}</div>
+          <div className="op-linha"><span title="Ctrl+F1 alterna entre mostrar tudo e só as abas">{prefs.layout === 'B' ? 'Barra curta' : 'Faixa'}</span>{chips('faixa', ['tudo', 'abas', 'oculta'], nomesFaixa)}</div>
+          <div className="op-linha"><span>Menu lateral</span>{chips('menu', ['completo', 'icones', 'oculto'], ROTULOS.menu)}</div>
+          <label className="chave"><input type="checkbox" checked={prefs.painel} onChange={(ev) => setPref('painel', ev.target.checked)} />Abrir o painel de detalhes junto com o arquivo</label>
+        </Secao>
+        <Secao id="perfil" titulo="Perfil de teste" abertas={abertas} alternar={alternar} resumo={PERFIS[prefs.perfil].nome}>
+          <div className="seg">
+            {Object.entries(PERFIS).map(([id, pf]) => (
+              <button key={id} type="button" className={'chipb' + (prefs.perfil === id ? ' on' : '')} aria-pressed={prefs.perfil === id} title={pf.cadastro} onClick={() => setPref('perfil', id)}>{pf.nome}</button>
             ))}
           </div>
-          <p>Só para testar o que cada perfil pode fazer. O perfil de verdade vem do cadastro do EFClaudian quando o login chegar (v0.9.0).</p>
-        </div>
-        <div className="op-g">
-          <h3>Sobre</h3>
-          <p>EFCdocs {versao} · {demo ? 'modo demonstração (até 3 arquivos, banco separado)' : 'neste aparelho'}{espaco ? ` · espaço usado pelo app: ${espaco}` : ''}</p>
+          <p>Só para testar. O perfil de verdade vem do login (v0.9.0).</p>
+        </Secao>
+        <Secao id="sobre" titulo="Sobre" abertas={abertas} alternar={alternar} resumo={`EFCdocs ${versao}`}>
+          <p>{demo ? 'Modo demonstração (até 3 arquivos, banco separado).' : 'Tudo fica neste aparelho.'}{espaco ? ` Espaço usado: ${espaco}.` : ''}</p>
           {cx.instalar && <button type="button" className="btn sm" onClick={cx.instalar}><Icone n="instalar" />Instalar o EFCdocs</button>}
-        </div>
+        </Secao>
       </div>
     </Janela>
   );

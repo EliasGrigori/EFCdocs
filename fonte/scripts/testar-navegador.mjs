@@ -40,6 +40,8 @@ async function novaPagina(opcoes = {}) {
   p.on('pageerror', (e) => errosConsole.push(`[${atual}] erro de página: ${e.message}`));
   return { ctx, p };
 }
+/* v0.4.4: Opções em sanfona: abre a seção se estiver fechada */
+const abrirSecao = async (p, id) => { if (!(await p.locator(`.op-sec[data-sec=${id}].aberta`).count())) await p.locator(`.op-sec[data-sec=${id}] .op-cab`).click(); };
 const print = async (p, nome) => { if (PRINTS) await p.screenshot({ path: `${PRINTS}/${nome}.png` }); };
 const status = (p) => p.locator('[data-status=contagem]').innerText();
 const contar = async (p) => {
@@ -77,10 +79,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.4.3', async () => {
+await caso('abre sem erro, rodapé mostra v0.4.4', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.4.3'), 'rodapé sem v0.4.3');
+  certo((await p.locator('.foot').innerText()).includes('v0.4.4'), 'rodapé sem v0.4.4');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -310,17 +312,20 @@ await caso('temporizador e minimapa abrem', async () => {
 });
 await caso('perfil Leitor: quadro só de leitura', async () => {
   await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'perfil');
   await p.locator('.opcoes .chipb:has-text("Leitor")').click();
   await p.keyboard.press('Escape');
   certo(await p.locator('.qd-modo.leitura').isVisible(), 'sem aviso de leitura');
   await p.click('.tab:has-text("Inserir")');
   certo(await p.locator('[data-cmd="inserir.postit"]').isDisabled(), 'botão não travou');
   await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'perfil');
   await p.locator('.opcoes .chipb:has-text("Admin")').click();
   await p.keyboard.press('Escape');
 });
 await caso('17 temas sem erro (16 do EFClaudian + Petróleo)', async () => {
   await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'tema');
   const temas = await p.locator('.tema-b').count();
   igual(temas, 17);
   for (let i = 0; i < temas; i++) await p.locator('.tema-b').nth(i).click();
@@ -328,6 +333,7 @@ await caso('17 temas sem erro (16 do EFClaudian + Petróleo)', async () => {
   await p.keyboard.press('Escape');
   await print(p, '11-tema-petroleo');
   await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'tema');
   await p.locator('.tema-b[data-tema=light]').click();
   await p.keyboard.press('Escape');
 });
@@ -959,6 +965,7 @@ await caso('v0.4.0: Ctrl+setas pulam até o fim dos dados; Ctrl+; põe a data de
 });
 await caso('v0.4.0: perfil Leitor só vê a planilha', async () => {
   await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'perfil');
   await p.locator('.opcoes .chipb:has-text("Leitor")').click();
   await p.keyboard.press('Escape');
   certo(await p.locator('.pl-leitura').isVisible(), 'sem aviso de leitura');
@@ -969,6 +976,7 @@ await caso('v0.4.0: perfil Leitor só vê a planilha', async () => {
   /* v0.4.1: o Leitor vê o aviso ao tentar digitar */
   certo((await p.locator('.toasts').innerText()).includes('Só leitura'), 'sem aviso Só leitura ao digitar');
   await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'perfil');
   await p.locator('.opcoes .chipb:has-text("Admin")').click();
   await p.keyboard.press('Escape');
 });
@@ -1014,10 +1022,11 @@ await caso('v0.4.0 celular: faixa de edição embaixo com ; ( ) e funções; pr�
   await p.waitForSelector('.pl-cv');
   await p.waitForTimeout(300);
   const cv = await p.locator('.pl-cv').boundingBox();
-  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
-  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
-  await p.waitForTimeout(100);
-  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+  /* a faixa e as abas de cima saem de cena ao editar, então a grade muda de lugar: toca até a faixa aparecer */
+  for (let i = 0; i < 4 && !(await p.locator('.pl-banda').count()); i++) {
+    await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+    await p.waitForTimeout(120);
+  }
   await p.waitForSelector('.pl-banda');
   igual(await p.locator('.pl-alca-cel').count(), 0, 'alças durante a edição');
   await p.locator('.pl-banda textarea').fill('7');
@@ -1035,6 +1044,49 @@ await caso('v0.4.0 celular: faixa de edição embaixo com ; ( ) e funções; pr�
   igual(await celula(p, 'A2'), '7');
   const larg = await p.evaluate(() => document.documentElement.scrollWidth);
   certo(larg <= 390, 'rolagem lateral: ' + larg);
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }));
+await caso('v0.4.3.1 celular: com o teclado aberto a célula digitada continua à vista e a página não sobe', async () => {
+  await p.goto(BASE + '#/planilha');
+  await p.waitForSelector('[data-novo=planilha]');
+  await p.locator('[data-novo=planilha]').tap();
+  await p.waitForSelector('.pl-cv');
+  await p.waitForTimeout(300);
+  await celula(p, 'B30');
+  await p.locator('.pl-fx-campo').click();
+  await p.waitForSelector('.pl-banda');
+  await p.setViewportSize({ width: 390, height: 520 }); // o teclado ocupa o resto da tela
+  await p.waitForTimeout(500);
+  const r = await p.evaluate(() => {
+    const rol = document.querySelector('.pl-rol');
+    return { y: window.scrollY, topo: document.querySelector('.app').getBoundingClientRect().top, st: rol.scrollTop, ch: rol.clientHeight, banda: document.querySelector('.pl-banda').getBoundingClientRect().bottom, ih: innerHeight };
+  });
+  igual(r.y, 0, 'a página subiu');
+  igual(await p.locator('.app .ribbon').isVisible(), false, 'a faixa devia sair de cena enquanto digita');
+  certo(r.ch > 140, 'a grade ficou pequena demais: ' + r.ch);
+  certo(r.topo >= 0, 'topo do app fora da tela: ' + r.topo);
+  certo(r.banda <= r.ih + 1, 'a faixa de edição ficou atrás do teclado');
+  certo(r.st <= 29 * 22 && 30 * 22 <= r.st + r.ch - 22, `B30 fora da área visível (rolagem ${r.st}, altura ${r.ch})`);
+});
+await caso('v0.4.3.1 celular: "Ir para" de Problemas fecha a lista e deixa a célula no meio da grade, longe das abas', async () => {
+  await p.setViewportSize({ width: 390, height: 844 });
+  await p.goto(BASE + '#/planilha');
+  await p.waitForSelector('[data-novo=planilha]');
+  await p.locator('[data-novo=planilha]').tap();
+  await p.waitForSelector('.pl-cv');
+  await p.waitForTimeout(300);
+  await digitarEm(p, 'C60', ['=C61', '=C60']);
+  await celula(p, 'A1');
+  await p.locator('.pl-lamp').tap();
+  await p.waitForSelector('.pl-problemas');
+  await p.locator('.pl-problemas button:has-text("Ir")').first().tap();
+  await p.waitForTimeout(500);
+  igual(await p.locator('.pl-problemas').count(), 0, 'a lista devia fechar no celular');
+  const r = await p.evaluate(() => { const rol = document.querySelector('.pl-rol'); return { st: rol.scrollTop, ch: rol.clientHeight }; });
+  const topo = 59 * 22 - r.st, base = topo + 22;
+  certo(topo > 22 * 2 && base < r.ch - 22 * 2, `C60 colada na borda (topo ${topo}, base ${base}, altura ${r.ch})`);
 });
 await ctx.close();
 
@@ -1315,9 +1367,9 @@ await caso('v0.4.2: faixa do quadro de post-its também com dicas e sem passar d
 });
 await caso('v0.4.2: a tela Início não diz mais que a planilha chega na v0.4.0', async () => {
   await p.goto(BASE + '#/');
-  await p.waitForSelector('.pagina .sub');
-  const t = await p.locator('.pagina .sub').first().innerText();
-  certo(!t.includes('v0.4.0') && t.includes('planilha'), t);
+  await p.waitForSelector('.pagina [data-novo]');
+  const t = await p.locator('.pagina').innerText();
+  certo(!t.includes('v0.4.0'), t);
 });
 await ctx.close();
 
@@ -1456,7 +1508,7 @@ await caso('v0.4.3: PL18 Montar a conta: Contar quantos "Ajustar" na Situação'
   await p.waitForTimeout(120);
   const r = await p.locator('.pl-montar-r').innerText();
   /* B4 virou número no teste dos problemas: só C3 fica "Ajustar" */
-  certo(r.includes('=CONT.SE(C2:C200;"Ajustar")') && /Resultado agora: 1/.test(r), r);
+  certo(r.includes('=CONT.SE(C2:C1048576;"Ajustar")') && /Resultado agora: 1/.test(r), r);
   await print(p, '51-montar-conta');
   await p.click('.pl-jmontar button.primary');
   await p.waitForTimeout(200);
@@ -1499,7 +1551,7 @@ await caso('v0.4.3: Ctrl+B põe negrito; dica mostra Ctrl+B; Início e "chega de
   igual(await p.locator('.ribbon [data-cmd="dados.dinamica"]').getAttribute('data-nota'), 'Chega depois da v1.0.0.');
   await p.goto(BASE + '#/');
   await p.waitForSelector('.pagina');
-  certo((await p.locator('.pagina').innerText()).includes('Abrir e salvar Excel chega na v0.5.0'), 'texto do Início');
+  certo((await p.locator('[data-novo=planilha]').getAttribute('data-dica')).includes('Abrir e salvar Excel chega na v0.5.0'), 'dica do Início');
 });
 await ctx.close();
 
@@ -1538,6 +1590,342 @@ await caso('v0.4.3: em 800 px a faixa mostra a seta "tem mais" e rola com ela', 
   certo(depois > antes, 'não rolou');
   certo(await p.locator('.rb-rolar.esq').count() === 1, 'sem a seta de voltar');
   await print(p, '53-faixa-800');
+});
+await ctx.close();
+
+/* ---------- v0.4.3.1: correções da aprovação da v0.4.3 ---------- */
+({ ctx, p } = await novaPagina());
+async function frasesDe(p, ref) {
+  await celula(p, ref);
+  await p.click('.tabs .tab:has-text("Fórmulas")');
+  await cmd(p, 'formula.explicar');
+  await p.waitForSelector('.pl-jexp');
+  const t = await p.locator('.pl-frase').innerText();
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(80);
+  return t;
+}
+await caso('v0.4.3.1: Explicar com português certo (pelo, da, é igual a, está entre, datas, SE dentro de SE, aba, sem parêntese dentro de parêntese)', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['Lote', 'L-012', 'L-013']);
+  await digitarEm(p, 'B1', ['Cloro livre', '1,2', '3']);
+  await digitarEm(p, 'C1', ['Qtd', '10', '5']);
+  await digitarEm(p, 'D1', ['Conformes', '9', '5']);
+  await digitarEm(p, 'E1', ['Data', '01/10/2026', '02/10/2026']);
+  await digitarEm(p, 'F2', ['=D2/C2']);
+  await digitarEm(p, 'G2', ['=MÉDIA(B2:B3)']);
+  await digitarEm(p, 'H2', ['=SE(E(B2>=0,5;B2<=2);"OK";"Ajustar")']);
+  await digitarEm(p, 'I2', ['=SE(B2>2;"Alto";SE(B2>1;"Médio";"OK"))']);
+  await digitarEm(p, 'J2', ['=HOJE()-E2']);
+  await digitarEm(p, 'K2', ['=CONT.SE(A2:A3;"L-012")']);
+  await digitarEm(p, 'L2', ['=SOMASE(A2:A3;"L-012";C2:C3)']);
+  await digitarEm(p, 'M2', ['=SEQUÊNCIA(3)']);
+  await digitarEm(p, 'N2', ['=E(B2>1;C2<20)']);
+  const f = {};
+  for (const r of ['F2', 'G2', 'H2', 'I2', 'J2', 'K2', 'L2', 'M2', 'N2']) f[r] = await frasesDe(p, r);
+  certo(/Divide a coluna Conformes \(D2 = 9\) pela coluna Qtd \(C2 = 10\)/.test(f.F2), f.F2);
+  certo(/média da coluna Cloro livre \(B2:B3\)/.test(f.G2) && !/de a coluna/.test(f.G2), f.G2);
+  certo(/estiver entre 0,5 e 2/.test(f.H2), f.H2);
+  certo(/se não, olha de novo: se a coluna Cloro livre \(B2 = 1,2\) for maior que 1, mostra "Médio"; se não, mostra "OK"/.test(f.I2), f.I2);
+  certo(/Conta os dias de 01\/10\/2026 \(E2\) até hoje/.test(f.J2) && !/46\d\d\d/.test(f.J2), f.J2);
+  certo(/células da coluna Lote \(A2:A3\) são iguais a "L-012"/.test(f.K2), f.K2);
+  certo(/nas linhas em que a coluna Lote \(A2:A3\) é igual a "L-012"/.test(f.L2), f.L2);
+  certo(!/\([^()]*\([^()]*\)[^()]*\)/.test(f.M2), 'parêntese dentro de parêntese: ' + f.M2);
+  certo(/Confere se .* é maior que 1 e .* é menor que 20/.test(f.N2) && !/for maior/.test(f.N2), f.N2);
+});
+await caso('v0.4.3.1: conta circular: um aviso só, no Explicar e no Problemas; Esc fecha a lista', async () => {
+  await digitarEm(p, 'P3', ['=P4+1', '=P3+1']);
+  await p.waitForTimeout(500);
+  await celula(p, 'P3');
+  await p.click('.tabs .tab:has-text("Fórmulas")');
+  await cmd(p, 'formula.explicar');
+  await p.waitForSelector('.pl-porque');
+  const t = await p.locator('.pl-porque').innerText();
+  certo(t.includes('P3 e P4 dependem uma da outra, então as duas ficam 0. Apague uma das contas.'), t);
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(100);
+  await p.click('.pl-lamp');
+  await p.waitForSelector('.pl-problemas');
+  const itens = await p.locator('.pl-problemas li').allInnerTexts();
+  const circ = itens.filter((x) => /dependem uma da outra/.test(x));
+  igual(circ.length, 1, 'um aviso só para as duas células: ' + itens.join(' | '));
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-problemas').count(), 0, 'o Esc não fechou a lista de Problemas');
+});
+await caso('v0.4.3.1: R1=R2 e R2=R1, e três células em círculo, não deixam a tela em branco nem dão #CALC!', async () => {
+  const erros0 = errosConsole.length;
+  await digitarEm(p, 'R1', ['=R2', '=R1']);
+  await digitarEm(p, 'T10', ['=T11', '=T12', '=T10']);
+  await p.waitForTimeout(600);
+  certo(await p.locator('.pl-cv').isVisible(), 'a planilha sumiu (tela em branco)');
+  igual(await celula(p, 'R1'), '0');
+  igual(await celula(p, 'T10'), '0');
+  igual(await celula(p, 'T11'), '0');
+  igual(await celula(p, 'T12'), '0');
+  igual(errosConsole.length, erros0, 'erro no console: ' + errosConsole.slice(erros0).join(' | '));
+  await p.click('.pl-lamp');
+  await p.waitForSelector('.pl-problemas');
+  const itens = (await p.locator('.pl-problemas li').allInnerTexts()).join(' | ');
+  certo(itens.includes('R1 e R2 dependem uma da outra'), itens);
+  certo(itens.includes('T10, T11 e T12 dependem umas das outras'), itens);
+  certo(!/depende dela mesma/.test(itens), 'ainda diz "depende dela mesma": ' + itens);
+  await p.keyboard.press('Escape');
+  await celula(p, 'T11');
+  await p.click('.tabs .tab:has-text("Fórmulas")');
+  await cmd(p, 'formula.explicar');
+  await p.waitForSelector('.pl-porque');
+  certo((await p.locator('.pl-porque').innerText()).includes('T10, T11 e T12 dependem umas das outras, então todas ficam 0'), await p.locator('.pl-porque').innerText());
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.3.1: a caixa de nome mostra C:C com a coluna inteira e 3:3 com a linha inteira; digitar C:C seleciona a coluna', async () => {
+  await p.locator('.pl-nome').click();
+  await p.locator('.pl-nome').fill('C:C');
+  await p.locator('.pl-nome').press('Enter');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-nome').inputValue(), 'C:C');
+  const cv = await p.locator('.pl-cv').boundingBox();
+  await p.mouse.click(cv.x + 20, cv.y + 24 + 22 * 2 + 10);
+  await p.waitForTimeout(120);
+  igual(await p.locator('.pl-nome').inputValue(), '3:3');
+  await p.locator('.pl-nome').click();
+  await p.locator('.pl-nome').fill('B:D');
+  await p.locator('.pl-nome').press('Enter');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-nome').inputValue(), 'B:D');
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina());
+await caso('v0.4.3.1: Montar a conta começa vazio, com exemplos da planilha, prévia com 4 casas e as receitas novas', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['Lote', 'L-001', 'L-002', 'L-003']);
+  await digitarEm(p, 'B1', ['Situação', 'OK', 'Ajustar', 'OK']);
+  await digitarEm(p, 'C1', ['Valor', '1', '2', '2']);
+  await digitarEm(p, 'D1', ['Data', '01/10/2026', '15/10/2026', '30/10/2026']);
+  await celula(p, 'F1');
+  await p.click('.tabs .tab:has-text("Fórmulas")');
+  await cmd(p, 'formula.montar');
+  await p.waitForSelector('.pl-jmontar');
+  igual(await p.locator('.pl-jmontar select').first().inputValue(), '', 'a coluna devia começar vazia');
+  certo((await p.locator('.pl-jmontar select').first().innerText()).includes('Escolha a coluna'), 'sem "Escolha a coluna"');
+  certo((await p.locator('.pl-montar-d .qd-dica').first().innerText()).includes('Quantas linhas de Situação estão como "OK"'), await p.locator('.pl-montar-d .qd-dica').first().innerText());
+  igual(await p.locator('.pl-montar-r').count(), 0, 'não devia mostrar conta antes de escolher');
+  /* média: 5/3 com no máximo 4 casas */
+  await p.click('.pl-montar-l button:has-text("Média de")');
+  await p.locator('.pl-jmontar select').first().selectOption({ label: 'Valor (C)' });
+  await p.waitForTimeout(120);
+  const r = await p.locator('.pl-montar-r').innerText();
+  certo(/Resultado agora: 1,6667\b/.test(r), r);
+  /* dias: começa vazio, avisa da célula vazia, nunca mostra 46320 */
+  await p.click('.pl-montar-l button:has-text("Dias entre")');
+  igual(await p.locator('.pl-jmontar input').first().inputValue(), '', 'a célula devia começar vazia');
+  certo((await p.locator('.pl-jmontar input').first().getAttribute('placeholder')).includes('Escolha a célula da data'), 'placeholder');
+  igual(await p.locator('.pl-montar-r').count(), 0);
+  await p.locator('.pl-jmontar input').first().fill('H1');
+  await p.waitForTimeout(100);
+  const dm = await p.locator('.pl-montar-d').innerText();
+  certo(dm.includes('A célula H1 está vazia') && dm.includes('Escolha uma célula que tenha uma data'), dm);
+  certo(!/46\d{3}|Resultado agora/.test(dm), 'não devia mostrar resultado (46320): ' + dm);
+  igual(await p.locator('.pl-jmontar .btn.primary').isDisabled(), true, 'o botão Pôr devia ficar desligado');
+  /* contar entre duas datas */
+  await p.click('.pl-montar-l button:has-text("Contar entre duas datas")');
+  await p.locator('.pl-jmontar select').first().selectOption({ label: 'Data (D)' });
+  const ins = p.locator('.pl-jmontar input');
+  await ins.nth(0).fill('01/10/2026');
+  await ins.nth(1).fill('20/10/2026');
+  await p.waitForTimeout(120);
+  const r2 = await p.locator('.pl-montar-r').innerText();
+  certo(/CONT\.SES\(D2:D1048576;">="&DATA\(2026;10;1\);D2:D1048576;"<="&DATA\(2026;10;20\)\)/.test(r2) && /Resultado agora: 2/.test(r2), r2);
+  /* desvio padrão */
+  await p.click('.pl-montar-l button:has-text("Desvio padrão")');
+  await p.locator('.pl-jmontar select').first().selectOption({ label: 'Valor (C)' });
+  await p.waitForTimeout(120);
+  const r3 = await p.locator('.pl-montar-r').innerText();
+  certo(/DESVPAD\.A\(C2:C1048576\)/.test(r3) && /Resultado agora: 0,5774/.test(r3), r3);
+  await print(p, '54-montar-vazio');
+  await p.keyboard.press('Escape');
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina());
+await caso('v0.4.3.1: código com zero na frente: pergunta, lembra a escolha da coluna e vale também na colagem', async () => {
+  await novaPlanilha(p);
+  await celula(p, 'A2');
+  await p.keyboard.type('001');
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('.pl-jzeros');
+  certo((await p.locator('.pl-jzeros').innerText()).includes('001'), 'a janela não cita o código');
+  await print(p, '55-zero-pergunta');
+  await p.click('.pl-jzeros button:has-text("Manter como texto")');
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'A2'), '001');
+  /* a coluna lembra: sem pergunta */
+  await digitarEm(p, 'A3', ['002']);
+  igual(await p.locator('.pl-jzeros').count(), 0, 'perguntou de novo');
+  igual(await celula(p, 'A3'), '002');
+  igual(await celula(p, 'A4'), '', 'o Enter devia ter descido uma linha');
+  /* outra coluna: pergunta; Virar número */
+  await celula(p, 'B2');
+  await p.keyboard.type('007');
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('.pl-jzeros');
+  await p.click('.pl-jzeros button:has-text("Virar número")');
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'B2'), '7');
+  /* cancelar: continua editando e não grava */
+  await celula(p, 'C2');
+  await p.keyboard.type('003');
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('.pl-jzeros');
+  await p.click('.pl-jzeros button:has-text("Cancelar")');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-jzeros').count(), 0);
+  await p.keyboard.press('Escape');
+  igual(await celula(p, 'C2'), '', 'cancelar não devia gravar');
+  /* 0, 00 e 000 não perguntam (não é código com zero na frente) */
+  await celula(p, 'E2');
+  await p.keyboard.type('000');
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-jzeros').count(), 0, 'perguntou para 000');
+  igual(await celula(p, 'E2'), '0');
+  /* colagem */
+  await celula(p, 'D1');
+  await colarTexto(p, '001\n002\n0,5');
+  await p.waitForSelector('.pl-jzeros');
+  certo((await p.locator('.pl-jzeros').innerText()).includes('2 códigos'), await p.locator('.pl-jzeros').innerText());
+  await p.click('.pl-jzeros button:has-text("Manter como texto")');
+  await p.waitForTimeout(200);
+  igual(await celula(p, 'D1'), '001');
+  igual(await celula(p, 'D2'), '002');
+  igual(await celula(p, 'D3'), '0,5');
+  /* o menu do cabeçalho deixa desfazer a escolha da coluna */
+  const cv = await p.locator('.pl-cv').boundingBox();
+  await p.mouse.click(cv.x + 46 + 40, cv.y + 10, { button: 'right' });
+  await p.waitForSelector('.pl-menu');
+  certo((await p.locator('.pl-menu').innerText()).includes('Zeros à esquerda: perguntar de novo (hoje: texto)'), await p.locator('.pl-menu').innerText());
+  await p.click('.pl-menu button:has-text("Zeros à esquerda")');
+  await p.waitForTimeout(150);
+  await digitarEm(p, 'A6', ['004']);
+  await p.waitForSelector('.pl-jzeros');
+  await p.keyboard.press('Escape');
+});
+await ctx.close();
+
+/* ---------- v0.4.4: revisão de layout ---------- */
+({ ctx, p } = await novaPagina());
+await caso('v0.4.4: Início sem título repetido nem parágrafo; Novo compacto; filtro único recolhível acha pelo nome, tipo e ordem', async () => {
+  await p.goto(BASE + '#/');
+  await p.waitForSelector('[data-novo]');
+  igual(await p.locator('.pagina > h2').count(), 0, 'título repetido');
+  igual(await p.locator('.pagina > p.sub').count(), 0, 'parágrafo de texto');
+  /* cria uma planilha "Cloro" e um quadro */
+  await p.click('[data-novo=planilha]');
+  await p.waitForSelector('.pl-cv');
+  await p.goto(BASE + '#/');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await p.goto(BASE + '#/');
+  await p.waitForSelector('.arq');
+  igual(await p.locator('.arq').count(), 2);
+  const altNovo = (await p.locator('[data-novo=planilha]').boundingBox()).height;
+  certo(altNovo <= 52, 'botão Novo alto demais: ' + altNovo);
+  igual(await p.locator('.filtro-p').count(), 0, 'o painel do filtro devia começar fechado');
+  certo((await p.locator('.filtro-b').innerText()).includes('Mais recentes'), await p.locator('.filtro-b').innerText());
+  await p.click('.filtro-b');
+  await p.waitForSelector('.filtro-p');
+  await p.locator('.filtro-p select').first().selectOption('postits');
+  await p.waitForTimeout(100);
+  igual(await p.locator('.arq').count(), 1);
+  certo((await p.locator('.secao .cont').innerText()).includes('1 de 2'), await p.locator('.secao .cont').innerText());
+  certo((await p.locator('.filtro-b').innerText()).includes('Post-its'), 'resumo sem o tipo: ' + await p.locator('.filtro-b').innerText());
+  await p.locator('.filtro-p input').fill('nada disso');
+  await p.waitForTimeout(100);
+  igual(await p.locator('.arq').count(), 0);
+  certo((await p.locator('.vazio-lista').innerText()).includes('Nenhum arquivo com esse filtro'));
+  await p.click('.filtro-p button:has-text("Limpar")');
+  await p.waitForTimeout(100);
+  igual(await p.locator('.arq').count(), 2);
+  await p.locator('.filtro-p select').nth(1).selectOption('nome');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(100);
+  igual(await p.locator('.filtro-p').count(), 0, 'Esc devia fechar o painel do filtro');
+  /* o filtro continua igual ao voltar para a página */
+  await p.click('.rail a[href="#/planilha"]');
+  await p.click('.rail a[href="#/"]');
+  await p.waitForSelector('.filtro-b');
+  certo((await p.locator('.filtro-b').innerText()).includes('Nome (A a Z)'), await p.locator('.filtro-b').innerText());
+  await print(p, '60-inicio-compacto');
+});
+await caso('v0.4.4: lista de Planilhas com um botão Nova planilha e o filtro; Documentos com o aviso numa linha só', async () => {
+  await p.click('.rail a[href="#/planilha"]');
+  await p.waitForSelector('[data-novo=planilha]');
+  igual(await p.locator('[data-novo]').count(), 1);
+  certo((await p.locator('[data-novo=planilha]').innerText()).includes('Nova planilha'));
+  igual(await p.locator('.arq').count(), 1);
+  await p.click('.rail a[href="#/docx"]');
+  await p.waitForSelector('[data-novo=docx]');
+  const t = await p.locator('.pagina').innerText();
+  igual((t.match(/v0\.7\.0/g) || []).length, 2, 'a versão do editor aparece demais: ' + t); // aviso + selo do botão
+});
+await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o que está escolhido; "Tema" abre direto na seção', async () => {
+  await p.goto(BASE + '#/');
+  await p.locator('.topbar [aria-label="Opções"]').click();
+  await p.waitForSelector('.opcoes');
+  for (const id of ['tema', 'tela', 'perfil', 'sobre']) if (await p.locator(`.op-sec[data-sec=${id}].aberta`).count()) await p.locator(`.op-sec[data-sec=${id}] .op-cab`).click();
+  igual(await p.locator('.tema-b').count(), 0, 'os temas deviam ficar escondidos');
+  const alt = (await p.locator('.opcoes').boundingBox()).height;
+  certo(alt < 320, 'Opções alta demais fechada: ' + alt);
+  certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.4'));
+  await p.locator('.op-sec[data-sec=tema] .op-cab').click();
+  igual(await p.locator('.tema-b').count(), 17);
+  await p.locator('.tema-b[data-tema=campo]').click();
+  certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).includes('Campo'));
+  await p.locator('.tema-b[data-tema=petroleo]').click();
+  await p.locator('.op-sec[data-sec=tema] .op-cab').click();
+  igual(await p.locator('.tema-b').count(), 0);
+  await p.keyboard.press('Escape');
+  await p.keyboard.press('Control+k');
+  await p.keyboard.type('tema');
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('.opcoes');
+  igual(await p.locator('.tema-b').count(), 17, 'o comando Tema devia abrir já na seção Tema');
+  await print(p, '61-opcoes-sanfona');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.4: abas da faixa sem pílula (cantos retos), a ativa sublinhada', async () => {
+  await p.goto(BASE + '#/planilha');
+  await p.click('[data-novo=planilha]');
+  await p.waitForSelector('.tab.active');
+  const r = await p.locator('.tab.active').evaluate((el) => { const c = getComputedStyle(el); return { raio: c.borderTopLeftRadius, borda: c.borderBottomWidth, fundo: c.backgroundColor }; });
+  igual(r.raio, '0px');
+  igual(r.borda, '2px');
+  const raioBtn = await p.locator('.topbar .iconbtn').first().evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
+  certo(raioBtn <= 4, 'botão arredondado: ' + raioBtn);
+});
+await ctx.close();
+({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }));
+await caso('v0.4.4 celular: Novo em três botões numa linha; planilha sem a barra "Planilha" embaixo (só aparece com Soma/Média)', async () => {
+  await p.goto(BASE + '#/');
+  await p.waitForSelector('[data-novo]');
+  const ys = [];
+  for (const t of ['planilha', 'docx', 'postits']) ys.push(Math.round((await p.locator(`[data-novo=${t}]`).boundingBox()).y));
+  certo(ys[0] === ys[1] && ys[1] === ys[2], 'os três botões deviam ficar na mesma linha: ' + ys);
+  await print(p, '62-celular-inicio');
+  await p.locator('[data-novo=planilha]').tap();
+  await p.waitForSelector('.pl-cv');
+  await p.waitForTimeout(300);
+  igual(await p.locator('.foot').isVisible(), false, 'a barra de baixo devia sumir sem conta');
+  await digitarEm(p, 'A1', ['1', '2']);
+  await celula(p, 'A1');
+  await p.locator('.pl-nome').click();
+  await p.locator('.pl-nome').fill('A1:A2');
+  await p.locator('.pl-nome').press('Enter');
+  await p.waitForTimeout(300);
+  certo(await p.locator('.foot').isVisible(), 'com A1:A2 selecionado a barra devia mostrar a Soma');
+  certo((await p.locator('.foot').innerText()).includes('3'), await p.locator('.foot').innerText());
 });
 await ctx.close();
 

@@ -201,11 +201,17 @@ export class Motor {
       for (const x of p.slice(p.indexOf(fm.fk))) this.circ.add(x);
       return 0;
     }
+    /* a célula fica na pilha até o fim de finalizar: =C2 só devolve uma referência, e é o finalizar que
+       vai buscar o valor de C2 (se C2 for =C1, sem isso a conta circular nunca era vista e a pilha estourava) */
     this.pilha.add(fm.fk);
     let r;
-    try { r = this.calcular(fm); } catch (e) { r = e instanceof RangeError ? E.CALC : E.VALOR; }
-    this.pilha.delete(fm.fk);
-    r = this.circ.has(fm.fk) ? 0 : this.finalizar(fm, r);
+    try {
+      try { r = this.calcular(fm); } catch (e) { r = e instanceof RangeError ? E.CALC : E.VALOR; }
+      if (!this.circ.has(fm.fk)) {
+        try { r = this.finalizar(fm, r); } catch (e) { r = e instanceof RangeError ? E.CALC : E.VALOR; }
+      }
+    } finally { this.pilha.delete(fm.fk); }
+    if (this.circ.has(fm.fk)) { this.limparSpill(fm.abaId, fm.k); r = 0; }
     vals.set(fm.k, r);
     return r;
   }

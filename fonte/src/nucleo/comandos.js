@@ -169,10 +169,10 @@ export const PorId = Object.fromEntries(COMANDOS.map((c) => [c.id, c]));
 
 /** Compara versões "v0.3.0". Texto que não é versão (ex.: "depois da v1.0.0") conta como futuro. */
 export function versaoMaior(a, b) {
-  const p = (v) => (/^v(\d+)\.(\d+)\.(\d+)$/.exec(v) || []).slice(1).map(Number);
+  const p = (v) => { const m = /^v(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?$/.exec(v); return m ? [m[1], m[2], m[3], m[4] || 0].map(Number) : []; };
   const x = p(a), y = p(b);
-  if (x.length !== 3) return true;
-  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
+  if (x.length !== 4) return true;
+  for (let i = 0; i < 4; i++) if (x[i] !== y[i]) return x[i] > y[i];
   return false;
 }
 

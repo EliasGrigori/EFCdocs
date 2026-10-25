@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.4.3', () => assert.equal(VERSAO, 'v0.4.3'));
+test('versão é v0.4.4', () => assert.equal(VERSAO, 'v0.4.4'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -148,6 +148,7 @@ test('comandos do quadro continuam funcionando', () => {
   assert.equal(chegaNa(PorId['inserir.grafico'], 'postits'), 'v0.6.0');
   assert.equal(chegaNa(PorId['dados.dinamica'], 'planilha'), 'depois da v1.0.0');
   assert.ok(versaoMaior('v0.10.0', 'v0.9.0'));
+  assert.ok(!versaoMaior('v0.4.3', 'v0.4.3.1') && versaoMaior('v0.4.4', 'v0.4.3.1') && versaoMaior('v0.4.3.2', 'v0.4.3.1'), 'versões com 4 números');
   assert.equal(versaoMaior('v0.3.2', 'v0.3.2'), false);
 });
 

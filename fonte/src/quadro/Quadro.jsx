@@ -75,6 +75,7 @@ export function Quadro({ arquivo, cx }) {
   const imgRef = useRef(null);
   const gesto = useRef(null);
   const toques = useRef(new Map());
+  const descidas = useRef([0, 0]); // hora dos dois últimos toques no quadro (para os dois cliques)
   const espaco = useRef(false);
 
   useEffect(() => { gravar('quadro-prefs', qp); }, [qp]);
@@ -493,6 +494,7 @@ export function Quadro({ arquivo, cx }) {
     if (editando) return; /* o blur do campo salva */
     const el = ev.target;
     if (el.closest('.qd-barra,.qd-mini,.qd-timer,.qd-zoom,.qd-vistas,.qd-vazio,.qd-modo,.qd-ferr,.qd-lamp,.qd-assist,.qd-cores-cel')) return;
+    descidas.current = [descidas.current[1], ev.timeStamp];
     toques.current.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
     if (toques.current.size === 2) {
       const [a, b] = [...toques.current.values()];
@@ -665,8 +667,11 @@ export function Quadro({ arquivo, cx }) {
     } else if (g.tipo === 'pan' && !g.moveu) setSel({ itens: [], seta: null });
   };
 
+  /* dois cliques só valem se os dois toques foram no quadro (um toque no "Fluxograma" do quadro vazio
+     seguido de um toque na forma nova, no mesmo lugar, não abre a edição) */
   const aoDuploClique = (ev) => {
     if (somenteLeitura || modo) return;
+    if (ev.timeStamp - descidas.current[0] > 700) return;
     const itemEl = ev.target.closest('[data-item]');
     const setaEl = ev.target.closest('[data-seta]');
     const alvoItem = itemEl && c.itens[itemEl.dataset.item];
@@ -980,8 +985,7 @@ export function Quadro({ arquivo, cx }) {
 
           {vazio && !somenteLeitura && (
             <div className="qd-vazio card">
-              <b>Quadro vazio</b>
-              <span>Toque duas vezes no quadro para criar um post-it, ou comece por aqui:</span>
+              <span>Dois toques no quadro criam um post-it. Ou comece por:</span>
               <div className="chips">
                 <button type="button" className="chipb" onClick={() => inserir('postit')}><Icone n="postit" />Post-it</button>
                 <button type="button" className="chipb" onClick={() => inserir('inicio', { texto: 'Início' })}><Icone n="inicio" />Fluxograma</button>

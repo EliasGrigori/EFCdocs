@@ -1074,10 +1074,11 @@ body[data-theme=sunset]:before {
   }
 }
 :root {
-  --r-chip:6px;
-  --r-ctl:8px;
-  --r-card:12px;
-  --r-pill:999px;
+  /* v0.4.4: cantos quase retos (o Elias não gosta de formas arredondadas) */
+  --r-chip:2px;
+  --r-ctl:3px;
+  --r-card:4px;
+  --r-pill:3px;
   --crit:#e07b7b;
   --info:#5fb0c9;
   --rail:212px;
@@ -1132,7 +1133,7 @@ svg {
   flex: none;
 }
 #raiz {
-  height: 100%;
+  height: var(--vvh, 100%);
 }
 .sr {
   position: absolute;
@@ -1746,6 +1747,10 @@ svg {
 .rbs.futuro:after {
   top: 9px;
   right: -2px;
+}
+.editando-cel .app.cel .tabs,
+.editando-cel .app.cel .ribbon {
+  display: none;
 }
 .app.cel .ribbon {
   min-height: 0;
@@ -2689,3 +2694,109 @@ body.relevo .busca {
 .rb-rolar svg { width: 18px; height: 18px; }
 .rb-rolar.dir { right: -8px; margin-left: -30px; background: linear-gradient(to right, transparent, var(--surface) 55%); }
 .rb-rolar.esq { left: -8px; margin-right: -30px; background: linear-gradient(to left, transparent, var(--surface) 55%); }
+
+/* ================= v0.4.4 — revisão de layout: menos texto, mais função, cantos retos ================= */
+
+/* abas da faixa: planas, a ativa sublinhada (sem pílula) */
+.tabs { gap: 0; padding-bottom: 0; border-bottom: 1px solid var(--border); }
+body[data-theme] .tabs .tab {
+  background: none; border-radius: 0; box-shadow: none; min-height: 34px; padding: 0 12px;
+  color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+body[data-theme] .tabs .tab:hover { color: var(--text); background: var(--row-hover); }
+body[data-theme] .tabs .tab.active { background: none; color: var(--primary); border-bottom-color: var(--primary); box-shadow: none; text-shadow: none; }
+.app.cel .tabs { padding: 0 4px; }
+.app.cel .tabs .tab { padding: 0 10px; min-height: 32px; }
+
+/* páginas: o título já está na barra de cima; sem repetir */
+.pagina > .secao.topo { margin-top: 0; }
+.pagina > .aviso-breve { margin-bottom: 12px; }
+.secao { flex-wrap: wrap; margin: 18px 0 8px; }
+
+/* botões de Novo compactos, numa linha */
+.novos { display: flex; flex-wrap: wrap; gap: 8px; }
+.novo {
+  position: relative; display: inline-flex; align-items: center; gap: 10px;
+  min-height: 44px; padding: 6px 14px 6px 8px; border-radius: var(--r-ctl); flex: 0 0 auto;
+}
+.novo .ri { width: 32px; height: 32px; position: relative; }
+.novo .ri svg { width: 19px; height: 19px; }
+.novo .ri .mais {
+  position: absolute; right: -4px; bottom: -4px; width: 15px; height: 15px; display: grid; place-items: center;
+  background: var(--primary); color: var(--on-primary); border-radius: var(--r-chip);
+}
+.novo .ri .mais svg { width: 11px; height: 11px; stroke-width: 3; }
+.novo b { font-size: 14px; }
+.novo .em { font-size: 10.5px; font-weight: 700; color: var(--warn); border: 1px solid currentColor; border-radius: var(--r-chip); padding: 0 4px; }
+.app.cel .novos:not(.um) { display: grid; grid-template-columns: repeat(3, 1fr); }
+.app.cel .novos:not(.um) .novo { flex-direction: column; gap: 6px; padding: 10px 4px; min-height: 0; }
+.app.cel .novos:not(.um) .novo .em { position: absolute; top: 4px; right: 4px; }
+.secao.topo .novos.um { flex: 0 0 auto; }
+
+/* filtro único recolhível: botão com o resumo; o painel abre embaixo */
+.filtro-b {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 30px; max-width: 60%;
+  padding: 0 8px; border: 1px solid var(--border-light); border-radius: var(--r-ctl); background: var(--surface-2);
+  color: var(--text-muted); font-size: 12.5px; font-weight: 600;
+}
+.filtro-b svg { width: 15px; height: 15px; flex: none; }
+.filtro-b .res { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filtro-b.on { border-color: var(--primary); color: var(--primary); }
+.filtro-b.aberto svg:last-child { transform: rotate(180deg); }
+.filtro-p {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 10px; margin: 0 0 10px;
+  border: 1px solid var(--border-light); border-radius: var(--r-card); background: var(--surface);
+}
+.filtro-p .campo { display: grid; gap: 3px; font-size: 12px; font-weight: 600; color: var(--text-muted); flex: 1 1 140px; }
+.filtro-p .campo:first-child { flex: 2 1 200px; }
+.filtro-p input, .filtro-p select {
+  height: 34px; border: 1px solid var(--border-light); border-radius: var(--r-ctl); background: var(--surface-2);
+  color: var(--text); padding: 0 8px; font: inherit; font-size: 13.5px; font-weight: 500;
+}
+.filtro-p input:focus, .filtro-p select:focus { border-color: var(--primary); outline: none; }
+
+/* linhas de arquivo mais baixas */
+.lista { gap: 6px; }
+.arq { padding: 6px 6px 6px 8px; }
+.arq .ri { width: 32px; height: 32px; }
+.arq .ri svg { width: 19px; height: 19px; }
+.btn.instalar { margin-top: 18px; }
+.vazio-lista { padding: 18px 14px; }
+
+/* Opções em sanfona */
+.opcoes .janela-c { padding-top: 4px; }
+.op-sec { border-top: 1px solid var(--border); }
+.op-sec:first-child { border-top: 0; }
+.op-cab {
+  width: 100%; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 2px; text-align: left;
+  font-size: 14px; color: var(--text);
+}
+.op-cab b { flex: none; }
+.op-cab .res {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis; color: var(--text-muted); font-size: 12.5px; font-weight: 600;
+}
+.op-cab > svg { width: 16px; height: 16px; flex: none; color: var(--text-dim); transition: transform .15s; }
+.op-sec.aberta .op-cab > svg { transform: rotate(180deg); }
+.op-cab .amostra { width: 14px; height: 14px; border-radius: var(--r-chip); border: 1px solid rgba(0,0,0,.15); flex: none; }
+.op-corpo { display: grid; gap: 10px; padding: 2px 2px 14px; }
+.op-corpo p { margin: 0; font-size: 12.5px; color: var(--text-muted); }
+.op-linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.op-linha > span { width: 92px; flex: none; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.seg { display: inline-flex; flex-wrap: wrap; }
+.seg .chipb { border-radius: 0; margin-left: -1px; min-height: 30px; }
+.seg .chipb:first-child { border-radius: var(--r-ctl) 0 0 var(--r-ctl); margin-left: 0; }
+.seg .chipb:last-child { border-radius: 0 var(--r-ctl) var(--r-ctl) 0; }
+.seg .chipb.on { position: relative; z-index: 1; }
+.temas { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
+.tema-b { min-height: 30px; gap: 6px; padding: 0 6px; font-size: 12px; }
+.tema-b span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tema-b i { width: 14px; height: 14px; border-radius: var(--r-chip); }
+.app.cel .temas, .opcoes .temas { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+
+/* celular: a barra de status da planilha só aparece quando há conta (Soma, Média...) para mostrar */
+.app.cel .foot.sem-conta { display: none; }
+
+/* quadro vazio: uma linha de texto */
+.qd-vazio > span { font-size: 13px; }
+.tema-b span { white-space: normal; line-height: 1.1; }

@@ -293,6 +293,18 @@ function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
   /* número que não cabe: #### (como o Excel) */
   /* número em "Geral" que não cabe: vira notação científica antes de virar #### (como o Excel) */
   if (tx.num && largura > w - 2 * pad && (!e.nf || /^general$/i.test(e.nf)) && typeof tx.v === 'number') {
+    /* primeiro tira casas depois da vírgula (0,947368 e não 9,4737E-01), como o Excel; só números muito pequenos ou grandes vão para a científica */
+    if (Number.isFinite(tx.v) && Math.abs(tx.v) >= 1e-3 && Math.abs(tx.v) < 1e15) {
+      for (let casas = 9; casas >= 0; casas--) {
+        let t = tx.v.toFixed(casas);
+        if (t.includes('.')) t = t.replace(/0+$/, '').replace(/\.$/, '');
+        t = t.replace('.', ',');
+        const lt = ctx.measureText(t).width;
+        if (lt <= w - 2 * pad && Number(t.replace(',', '.')) !== 0) { texto = t; largura = lt; break; }
+      }
+    }
+  }
+  if (tx.num && largura > w - 2 * pad && (!e.nf || /^general$/i.test(e.nf)) && typeof tx.v === 'number') {
     for (let casas = 5; casas >= 0 && largura > w - 2 * pad; casas--) {
       const [m, ex] = tx.v.toExponential(casas).split('e');
       texto = m.replace('.', ',') + 'E' + (+ex < 0 ? '-' : '+') + String(Math.abs(+ex)).padStart(2, '0');

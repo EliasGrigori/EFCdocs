@@ -9,20 +9,20 @@ import { ler, gravar } from '../nucleo/armazem.js';
 import { Icone, Janela } from '../ui/comum.jsx';
 import { PortalPainel } from '../quadro/partes.jsx';
 import { Motor } from './motor.js';
-import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, normalFaixa, lerEndereco, nomeAbaNaFormula } from './ref.js';
+import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, textoFaixaCaixa, normalFaixa, lerEndereco, lerEnderecoCaixa, nomeAbaNaFormula } from './ref.js';
 import { eixo, ALT_PADRAO, LARG_PADRAO, estiloDe, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
 import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
 import { paraMostrar, refTexto, tokenizar, ler as lerFormula, paraGuardar, escrever } from './formula.js';
-import { explicarConta, causaDoErro, problemasDaPlanilha, grafoDaConta, trocarNumeroPorNome } from './explicar.js';
+import { explicarConta, causaDaConta, causaCircular, problemasDaPlanilha, grafoDaConta, trocarNumeroPorNome } from './explicar.js';
 import { JanelaExplicar, JanelaFluxo, JanelaMontar, PainelProblemas, quadroDaConta } from './entender.jsx';
 import { diagnosticar, corrigir, contextoNoCursor, sugestoes, pedacosColoridos, CORES_REF, funcoesQueFaltam } from './ajuda.js';
 import { formatoDaFormula } from './formatoAuto.js';
 import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt, numeroGeral } from './valores.js';
 import * as O from './operacoes.js';
 import { CampoFormula, AjudaFormula } from './EditorFormula.jsx';
-import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, BarraSimbolos, ESTATS } from './partes.jsx';
+import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, JanelaZeros, BarraSimbolos, ESTATS } from './partes.jsx';
 
 const Z_MIN = 0.5, Z_MAX = 2;
 const CORES_FOLHA_CLARA = {
@@ -216,7 +216,7 @@ export function Planilha({ arquivo, cx }) {
   };
 
   /** Rola para a célula aparecer (respeitando os painéis congelados). */
-  const mostrarCelula = useCallback((l, col) => {
+  const mostrarCelula = useCallback((l, col, { centro = false } = {}) => {
     const el = rolRef.current;
     if (!el) return;
     const Gx = geometria({ linhas, colunas, z, sx: rol.x, sy: rol.y, cong, W: el.clientWidth, H: el.clientHeight });
@@ -224,13 +224,18 @@ export function Planilha({ arquivo, cx }) {
     if (l >= cl) {
       const topo = linhas.pos(l) - linhas.pos(cl), alt = linhas.tam(l);
       const visivel = (el.clientHeight - Gx.hh - Gx.fy) / z;
-      if (topo < y) y = topo;
+      /* "Ir para": a célula vai para o meio da tela se estiver perto da borda (não fica colada nas abas) */
+      const margem = centro ? Math.min(alt * 2, visivel / 4) : 0;
+      if (centro && (topo < y + margem || topo + alt > y + visivel - margem)) y = Math.max(0, topo - (visivel - alt) / 2);
+      else if (topo < y) y = topo;
       else if (topo + alt > y + visivel) y = topo + alt - visivel;
     }
     if (col >= cc0) {
       const esq = colunas.pos(col) - colunas.pos(cc0), lar = colunas.tam(col);
       const visivel = (el.clientWidth - Gx.hw - Gx.fx) / z;
-      if (esq < x) x = esq;
+      const margemX = centro ? Math.min(lar, visivel / 6) : 0;
+      if (centro && (esq < x + margemX || esq + lar > x + visivel - margemX)) x = Math.max(0, Math.min(esq, esq - (visivel - lar) / 2));
+      else if (esq < x) x = esq;
       else if (esq + lar > x + visivel) x = Math.min(esq, esq + lar - visivel);
     }
     if (x !== rol.x || y !== rol.y) {
@@ -301,7 +306,7 @@ export function Planilha({ arquivo, cx }) {
     setTimeout(() => {
       setSelEstado(s);
       selPorAba.current[id] = s;
-      mostrarCelula(f.l1, f.c1);
+      mostrarCelula(f.l1, f.c1, { centro: true });
     }, 0);
     setTimeout(() => capRef.current && capRef.current.focus(), 30);
   }, [abaId, sel, trocarAba, mostrarCelula]);
@@ -375,6 +380,29 @@ export function Planilha({ arquivo, cx }) {
     mostrarCelula(l, col);
   }, [somenteLeitura, cx, mesc, aba, c, sel, abaId, cel, mostrarCelula]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* Esc fecha a lista de Problemas (também quando o foco está no botão da lâmpada) */
+  useEffect(() => {
+    if (!probAberto) return undefined;
+    const tecla = (ev) => {
+      if (ev.key !== 'Escape' || editRef.current || document.querySelector('.fundo')) return;
+      setProbAberto(false);
+      setTimeout(voltarFocoGrade, 0);
+    };
+    addEventListener('keydown', tecla);
+    return () => removeEventListener('keydown', tecla);
+  }, [probAberto]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* celular: o teclado encolhe a grade; a célula que está sendo digitada tem de continuar à vista */
+  useEffect(() => {
+    if (cel && edit) mostrarCelula(edit.l, edit.c);
+  }, [tam.H, cel, edit && edit.l, edit && edit.c]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* celular: enquanto digita, a faixa e as abas dela saem de cena para a grade ter espaço (volta ao confirmar) */
+  useEffect(() => {
+    const ligado = !!(cel && edit);
+    document.body.classList.toggle('editando-cel', ligado);
+    return () => document.body.classList.remove('editando-cel');
+  }, [cel, !!edit]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const nomesDefinidos = useMemo(() => new Set(Object.keys(c.nomes || {})), [c.nomes]);
 
   /** Nome da coluna (‹Cloro livre›) de uma célula de qualquer aba: só abaixo da linha de títulos. */
@@ -429,7 +457,7 @@ export function Planilha({ arquivo, cx }) {
   };
 
   /** Grava o que foi digitado. mover: [dl, dc] ou null. Devolve false se a fórmula tem erro. */
-  const confirmar = (mover, { preencherTudo = false } = {}) => {
+  const confirmar = (mover, { preencherTudo = false, zero = null, lembrar = false } = {}) => {
     let e = editRef.current;
     if (!e) return true;
     if (autoTextoRef.current && autoTextoRef.current.toLowerCase().startsWith(e.texto.toLowerCase())) e = { ...e, texto: autoTextoRef.current };
@@ -454,11 +482,27 @@ export function Planilha({ arquivo, cx }) {
     const k = chave(e.l, e.c);
     const atual = abaE.cel[k] || {};
     const est = estiloDe(c, atual);
-    const r = lerEntrada(texto, est.nf || 'General');
+    let r = lerEntrada(texto, est.nf || 'General');
     if (r.erro) {
       setEdit({ ...e, mostrarErros: true });
       cx.avisar('A fórmula tem um problema: ' + r.erro.message, { ic: 'aviso' });
       return false;
+    }
+    /* código com zero na frente (001): a pessoa decide se fica como texto; a escolha pode ficar lembrada na coluna */
+    let memoZero = null;
+    if (r.zeroNaFrente) {
+      const lembrada = (abaE.zeros || {})[e.c];
+      const esc = zero || lembrada;
+      if (!esc) {
+        setJanela({
+          tipo: 'zero', codigos: [r.zeroNaFrente], colunas: [e.c],
+          aoEscolher: (ec, lemb) => { setJanela(null); confirmarRef.current(mover, { preencherTudo, zero: ec, lembrar: lemb }); },
+          aoFechar: () => { setJanela(null); setTimeout(() => { const f = (editRef.current && editRef.current.onde === 'barra' ? campoBarra : campoCel).current; if (f) f.focar(); }, 0); },
+        });
+        return false;
+      }
+      if (esc === 't') r = { v: r.zeroNaFrente, texto: true };
+      if (zero && lembrar) memoZero = { ...(abaE.zeros || {}), [e.c]: zero };
     }
     const lote = new O.Lote(c);
     const nova = { ...atual };
@@ -470,8 +514,12 @@ export function Planilha({ arquivo, cx }) {
     /* grava e devolve o teclado para a grade na mesma hora (quem digita rápido não perde letra) */
     flushSync(() => {
       setEdit(null);
-      if (preencherTudo && sel.faixas.length) aplicarLote(O.preencherSelecao(c, e.abaId, sel.faixas, { ...nova }, e.l, e.c), `Preencher ${contaCelulas(sel.faixas)} células`);
-      else {
+      if (preencherTudo && sel.faixas.length) {
+        const lt = O.preencherSelecao(c, e.abaId, sel.faixas, { ...nova }, e.l, e.c);
+        if (memoZero) lt.outras[`conteudo.abas.${e.abaId}.zeros`] = memoZero;
+        aplicarLote(lt, `Preencher ${contaCelulas(sel.faixas)} células`);
+      } else {
+        if (memoZero) lote.outras[`conteudo.abas.${e.abaId}.zeros`] = memoZero;
         lote.por(e.abaId, k, nova);
         if (nova.v !== undefined) alargar(lote, e.abaId, [{ col: e.c, v: nova.v, est: estiloDe({ estilos: lote.estilos }, nova) }]);
         aplicarLote(lote, r.vazio ? `Apagar ${chave(e.l, e.c)}` : `Digitar em ${chave(e.l, e.c)}`);
@@ -692,7 +740,7 @@ export function Planilha({ arquivo, cx }) {
     if (k === 'F2') { ev.preventDefault(); comecarEdicao({ modo: 'editar' }); return; }
     if (k === 'Delete') { ev.preventDefault(); if (somenteLeitura) avisarLeitura(); else apagar(); return; }
     if (k === 'Backspace') { ev.preventDefault(); if (somenteLeitura) avisarLeitura(); else comecarEdicao({ texto: '', modo: 'entrar' }); return; }
-    if (k === 'Escape') { setCopia(null); setPincel(null); return; }
+    if (k === 'Escape') { if (probAberto) { setProbAberto(false); return; } setCopia(null); setPincel(null); return; }
     if (k === 'F4' && !ctrl) { return; }
     if (ev.key === ' ' && ev.shiftKey && !ctrl) { ev.preventDefault(); setSel({ ativa: sel.ativa, faixas: [{ l1: faixa.l1, c1: 0, l2: faixa.l2, c2: MAX_COL - 1 }] }); return; }
     if (ev.key === ' ' && ctrl) { ev.preventDefault(); setSel({ ativa: sel.ativa, faixas: [{ l1: 0, c1: faixa.c1, l2: MAX_LIN - 1, c2: faixa.c2 }] }); return; }
@@ -790,7 +838,7 @@ export function Planilha({ arquivo, cx }) {
     return { tsv, html, lim };
   };
 
-  const colarDados = ({ html, texto, modo = 'tudo' }) => {
+  const colarDados = ({ html, texto, modo = 'tudo', zero = null, lembrar = false }) => {
     if (somenteLeitura) { cx.avisar('Seu perfil não permite esta ação.', { ic: 'aviso' }); return; }
     const marca = html && /data-efc="([^"]+)"/.exec(html);
     const destino = normalFaixa(faixa);
@@ -810,6 +858,28 @@ export function Planilha({ arquivo, cx }) {
     if (!linhasTx || !linhasTx.length) return;
     const total = linhasTx.reduce((n, l) => n + l.length, 0);
     if (total > 200000) { cx.avisar('Colagem grande demais (mais de 200 mil células). Divida em partes.', { ic: 'aviso' }); return; }
+    /* códigos com zero na frente (001, 0042): pergunta uma vez se ficam como texto */
+    if (!zero) {
+      const cods = [];
+      const cols = new Set();
+      linhasTx.forEach((lin, i) => lin.forEach((x, j) => {
+        if (x.formula && modo !== 'valores') return;
+        const col = destino.c1 + j, t = String(x.texto ?? '').trim();
+        if (!/^0\d*[1-9]\d*$/.test(t) || (aba.zeros || {})[col]) return;
+        const nf = estiloDe(c, aba.cel[chave(destino.l1 + i, col)]).nf;
+        if (nf && !/^general$/i.test(nf)) return;
+        cods.push(t); cols.add(col);
+      }));
+      if (cods.length) {
+        setJanela({
+          tipo: 'zero', codigos: cods, colunas: [...cols].sort((x, y) => x - y), colar: true,
+          aoEscolher: (ec, lemb) => { setJanela(null); colarDados({ html, texto, modo, zero: ec, lembrar: lemb }); },
+          aoFechar: () => setJanela(null),
+        });
+        return;
+      }
+    }
+    const memoNovo = {};
     const lote = new O.Lote(c);
     let corrigidas = 0, invalidas = 0, maxC = 0;
     linhasTx.forEach((lin, i) => {
@@ -825,7 +895,12 @@ export function Planilha({ arquivo, cx }) {
         if (x.formula && modo !== 'valores') {
           try { lerFormula(x.formula.replace(/^=/, ''), 'en'); nova.f = x.formula.replace(/^=/, ''); } catch { nova.v = x.texto; }
         } else {
-          const r = lerEntrada(x.texto, est.nf || 'General');
+          let r = lerEntrada(x.texto, est.nf || 'General');
+          if (r.zeroNaFrente) {
+            const esc = (aba.zeros || {})[col] || zero;
+            if (esc === 't') r = { v: r.zeroNaFrente, texto: true };
+            if (zero && lembrar && !(aba.zeros || {})[col]) memoNovo[col] = zero;
+          }
           if (r.f != null) nova.f = r.f;
           else if (!r.vazio && !r.erro) nova.v = paraGuardarValor(r.v);
           else if (r.erro) nova.v = x.texto;
@@ -846,6 +921,7 @@ export function Planilha({ arquivo, cx }) {
       }
       alargar(lote, abaId, itens);
     }
+    if (Object.keys(memoNovo).length) lote.outras[`conteudo.abas.${abaId}.zeros`] = { ...(aba.zeros || {}), ...memoNovo };
     aplicarLote(lote, `Colar ${total} ${total === 1 ? 'célula' : 'células'}`);
     setSel({ ativa: { l: area.l1, c: area.c1 }, faixas: [area] });
     const avisos = [];
@@ -1114,7 +1190,6 @@ export function Planilha({ arquivo, cx }) {
       if (a.oculta) continue;
       const cab = linhaCabecalho(a, motor, id);
       if (cab < 0) continue;
-      const ult = Math.max(200, motor.usado(id).lMax + 51);
       const pref = id !== abaId ? nomeAbaNaFormula(a.nome) + '!' : '';
       const cols = [];
       for (const k of Object.keys(a.cel)) { const p = lerChave(k); if (p && p.l === cab) cols.push(p.c); }
@@ -1122,10 +1197,59 @@ export function Planilha({ arquivo, cx }) {
       for (const col of cols) {
         const t = motor.valor(id, cab, col);
         if (typeof t !== 'string' || !t.trim()) continue;
-        out.push({ id: id + '|' + col, rotulo: `${t.trim()} (${letraCol(col)})${id !== abaId ? ' · ' + a.nome : ''}`, faixa: `${pref}${letraCol(col)}${cab + 2}:${letraCol(col)}${ult}` });
+        out.push({ id: id + '|' + col, rotulo: `${t.trim()} (${letraCol(col)})${id !== abaId ? ' · ' + a.nome : ''}`, faixa: `${pref}${letraCol(col)}${cab + 2}:${letraCol(col)}${MAX_LIN}` }); /* a coluna inteira, não só até a linha 200 */
       }
     }
     return out;
+  };
+
+  /** Exemplos tirados da própria planilha (colunas e valores de verdade) para as receitas do Montar a conta. */
+  const amostrasDaPlanilha = () => {
+    const out = {};
+    const cab = linhaCabecalho(aba, motor, abaId);
+    if (cab < 0) return out;
+    const cols = [];
+    for (const k of Object.keys(aba.cel)) { const p = lerChave(k); if (p && p.l === cab) cols.push(p.c); }
+    cols.sort((x, y) => x - y);
+    const textos = [];
+    const titulos = [];
+    for (const col of cols) {
+      const t = motor.valor(abaId, cab, col);
+      if (typeof t !== 'string' || !t.trim()) continue;
+      const titulo = t.trim();
+      const vals = [];
+      for (let l = cab + 1; l <= Math.min(cab + 60, usado.lMax); l++) { const v = motor.valor(abaId, l, col); if (v != null && v !== '') vals.push({ v, l }); }
+      if (!vals.length) continue;
+      titulos.push(titulo);
+      const nums = vals.filter((x) => typeof x.v === 'number');
+      if (nums.length >= vals.length * 0.8) {
+        const nf = estiloDe(c, aba.cel[chave(vals[0].l, col)]).nf;
+        if (nf && ehFormatoData(nf)) { if (!out.data) out.data = { titulo }; } else if (!out.numero) out.numero = { titulo };
+      } else {
+        const strs = vals.filter((x) => typeof x.v === 'string').map((x) => x.v.trim()).filter(Boolean);
+        if (strs.length) textos.push({ titulo, valores: strs, distintos: new Set(strs) });
+      }
+    }
+    const categoria = textos.find((t) => t.distintos.size < t.valores.length);
+    const chaveCol = textos.find((t) => t.distintos.size === t.valores.length) || textos[0];
+    if (categoria) {
+      const cont = new Map();
+      for (const v of categoria.valores) cont.set(v, (cont.get(v) || 0) + 1);
+      out.texto = { titulo: categoria.titulo, valor: [...cont.entries()].sort((a, b) => b[1] - a[1])[0][0] };
+    } else if (chaveCol) out.texto = { titulo: chaveCol.titulo, valor: chaveCol.valores[0] };
+    if (chaveCol) out.chave = { titulo: chaveCol.titulo, valor: chaveCol.valores[0] };
+    const outra = titulos.find((t) => !out.chave || t !== out.chave.titulo);
+    if (outra) out.outra = { titulo: outra };
+    return out;
+  };
+  /** Valor de uma célula escrita como B2 ou Aba!B2 (null se vazia; undefined se o endereço não existe). */
+  const valorDoEndereco = (t) => {
+    const e = lerEndereco(t);
+    if (!e) return undefined;
+    const id = e.aba ? c.ordem.find((x) => c.abas[x].nome.toLowerCase() === String(e.aba).toLowerCase()) : abaId;
+    if (!id) return undefined;
+    const v = motor.valor(id, e.l1, e.c1);
+    return v == null ? null : v;
   };
 
   /** N04: botão direito no cabeçalho (A, B, 1, 2...): seleciona e oferece inserir, excluir, ocultar, largura. */
@@ -1189,6 +1313,14 @@ export function Planilha({ arquivo, cx }) {
         { nome: `Ocultar ${quais}`, ic: 'ver', fazer: ocultarEssas },
         { nome: ehCol ? 'Reexibir colunas' : 'Reexibir linhas', ic: 'ver', fazer: reexibir, desligado: ocultas.some((k) => k >= i - 1 && k <= i + n) ? '' : `Nenhuma ${ehCol ? 'coluna' : 'linha'} oculta ao lado. Selecione as ${ehCol ? 'colunas' : 'linhas'} dos dois lados da escondida.` },
         '-',
+        ...(ehCol && n === 1 ? [{
+          nome: (aba.zeros || {})[i] ? `Zeros à esquerda: perguntar de novo (hoje: ${aba.zeros[i] === 't' ? 'texto' : 'número'})` : 'Zeros à esquerda: sempre texto nesta coluna', ic: 'renomear',
+          fazer: () => {
+            const z = { ...(aba.zeros || {}) };
+            if (z[i]) delete z[i]; else z[i] = 't';
+            mudar({ [`conteudo.abas.${abaId}.zeros`]: Object.keys(z).length ? z : undefined }, z[i] ? `Coluna ${letraCol(i)}: zeros à esquerda como texto` : `Coluna ${letraCol(i)}: perguntar sobre zeros à esquerda`);
+          },
+        }] : []),
         { nome: ehCol ? `Largura da${plural ? 's' : ''} coluna${plural}...` : `Altura da${plural ? 's' : ''} linha${plural}...`, ic: ehCol ? 'setaDir' : 'setaBaixo', fazer: tamanho },
         { nome: ehCol ? 'Ajustar à largura do texto' : 'Voltar à altura padrão', ic: 'ajustar', fazer: ajustar },
         '-',
@@ -1718,7 +1850,7 @@ export function Planilha({ arquivo, cx }) {
         {fmAtiva && fmAtiva.desc.length > 0 && <><dt>Aviso</dt><dd>O EFCdocs ainda não calcula {fmAtiva.desc.join(', ')}. Mostra o último valor do Excel.</dd></>}
         {ehErro(valorAtivo) && <><dt>Erro</dt><dd>{valorAtivo.toString()}: {ERRO_EXPLICA[valorAtivo.cod]}</dd></>}
         {fmAtiva && <><dt>Entender</dt><dd><button type="button" className="lnk" onClick={() => setJanela({ tipo: 'explicar' })}>{ehErro(valorAtivo) ? 'Por que deu erro?' : 'Explicar esta conta'}</button></dd></>}
-        {motor.circulares().some((x) => x.abaId === abaId && x.l === sel.ativa.l && x.c === sel.ativa.c) && <><dt>Aviso</dt><dd>Conta circular: esta célula depende dela mesma. Fica 0 até corrigir.</dd></>}
+        {motor.circulares().some((x) => x.abaId === abaId && x.l === sel.ativa.l && x.c === sel.ativa.c) && <><dt>Aviso</dt><dd>{(causaCircular(motor, c, abaId, sel.ativa.l, sel.ativa.c) || {}).msg}</dd></>}
       </dl>
     </div>
   );
@@ -1727,10 +1859,14 @@ export function Planilha({ arquivo, cx }) {
   const circAvisado = useRef('');
   useEffect(() => {
     const lista = motor.circulares();
-    const k = lista.map((x) => x.abaId + chave(x.l, x.c)).join(',');
+    const chaves = lista.map((x) => x.abaId + chave(x.l, x.c));
+    const k = chaves.join(',');
     if (k && k !== circAvisado.current) {
-      const x = lista[0];
-      cx.avisar(`Conta circular em ${c.abas[x.abaId] ? c.abas[x.abaId].nome + '!' : ''}${chave(x.l, x.c)}: a célula depende dela mesma. Fica 0 até corrigir (como no Excel).`, { ic: 'aviso' });
+      /* avisa do círculo que apareceu agora (não repete o que já foi avisado) */
+      const antes = new Set(circAvisado.current.split(',').filter(Boolean));
+      const x = lista.find((y, i) => !antes.has(chaves[i]));
+      const cc = x && causaCircular(motor, c, x.abaId, x.l, x.c);
+      if (x) cx.avisar('Conta circular: ' + (cc ? cc.msg : 'uma célula usa ela mesma e fica 0.'), { ic: 'aviso' });
     }
     circAvisado.current = k;
   }, [c]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1790,14 +1926,14 @@ export function Planilha({ arquivo, cx }) {
 
   const caixaNome = edit ? chave(edit.l, edit.c) : (arrasto && arrasto.tipo === 'sel' && (faixa.l1 !== faixa.l2 || faixa.c1 !== faixa.c2)
     ? `${Math.abs(faixa.l2 - faixa.l1) + 1}L × ${Math.abs(faixa.c2 - faixa.c1) + 1}C`
-    : (Object.values(c.nomes || {}).find((n) => { const r = motor.refDeTexto(n.n, abaId); const f = normalFaixa(faixa); return r && r.abaId === abaId && r.l1 === f.l1 && r.c1 === f.c1 && r.l2 === f.l2 && r.c2 === f.c2; }) || {}).n || chave(sel.ativa.l, sel.ativa.c));
+    : (Object.values(c.nomes || {}).find((n) => { const r = motor.refDeTexto(n.n, abaId); const f = normalFaixa(faixa); return r && r.abaId === abaId && r.l1 === f.l1 && r.c1 === f.c1 && r.l2 === f.l2 && r.c2 === f.c2; }) || {}).n || (() => { const fn = normalFaixa(faixa); const inteira = sel.faixas.length === 1 && ((fn.l1 === 0 && fn.l2 === MAX_LIN - 1) || (fn.c1 === 0 && fn.c2 === MAX_COL - 1)); return inteira ? textoFaixaCaixa(fn) : chave(sel.ativa.l, sel.ativa.c); })());
   const [caixaTexto, setCaixaTexto] = useState(null);
 
   const irPelaCaixa = (t) => {
     setCaixaTexto(null);
     const s = t.trim();
     if (!s) return;
-    const end = lerEndereco(s);
+    const end = lerEnderecoCaixa(s);
     if (end) {
       const id = end.aba ? c.ordem.find((x) => c.abas[x].nome.toLowerCase() === end.aba.toLowerCase()) : abaId;
       if (!id) { cx.avisar(`Não existe aba chamada "${end.aba}".`, { ic: 'aviso' }); return; }
@@ -1883,8 +2019,8 @@ export function Planilha({ arquivo, cx }) {
         )}
         {!cel && ajuda && <div className="pl-ajuda-ancora">{ajuda}</div>}
         {cel && !edit && !somenteLeitura && (<>{alcaCel('a')}{alcaCel('b')}</>)}
-        {!cel || !edit ? <PainelProblemas lista={listaProb} aberto={probAberto} aoAlternar={() => setProbAberto(!probAberto)} somenteLeitura={somenteLeitura}
-          aoIr={(p) => { irPara({ abaId: p.abaId, l: p.l, c: p.c }); }} aoAcao={fazerAcao} /> : null}
+        {!cel || !edit ? <PainelProblemas lista={listaProb} aberto={probAberto} aoAlternar={() => { if (probAberto) setTimeout(voltarFocoGrade, 0); setProbAberto(!probAberto); }} somenteLeitura={somenteLeitura}
+          aoIr={(p) => { if (cel) setProbAberto(false); /* no celular a lista cobre a grade */ irPara({ abaId: p.abaId, l: p.l, c: p.c }); }} aoAcao={fazerAcao} /> : null}
         {pincel && <div className="qd-modo pl-modo"><Icone n="pincel" />Toque onde vai o formato.<button type="button" className="btn sm" onClick={() => setPincel(null)}>Cancelar</button></div>}
       </div>
 
@@ -1931,6 +2067,7 @@ export function Planilha({ arquivo, cx }) {
       {janela && janela.tipo === 'fonte' && <JanelaFonte estilo={estiloAtivo} aoAplicar={(x) => formatarSel((e) => ({ ...e, ...x }), 'Fonte')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'congelar' && <JanelaCongelar ativa={sel.ativa} cong={cong} aoEscolher={(v) => mudar({ [`conteudo.abas.${abaId}.cong`]: v && (v.l || v.c) ? v : undefined }, v ? 'Congelar painéis' : 'Descongelar painéis')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'funcoes' && <JanelaFuncoes aoEscolher={(f) => { if (editRef.current && editRef.current.texto.startsWith('=')) inserirNoCursor(f.pt + '('); else comecarEdicao({ texto: '=' + f.pt + '(', modo: 'entrar' }); }} aoFechar={() => setJanela(null)} />}
+      {janela && janela.tipo === 'zero' && <JanelaZeros codigos={janela.codigos} colunas={janela.colunas} colar={!!janela.colar} aoEscolher={janela.aoEscolher} aoFechar={janela.aoFechar} />}
       {janela && janela.tipo === 'nomes' && (
         <JanelaNomes c={c} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoNovo={darNome}
           aoIr={(n) => { const r = motor.refDeTexto(n.n, abaId); if (r) irPara({ abaId: r.abaId, l1: r.l1, c1: r.c1, l2: r.l2, c2: r.c2 }); }}
@@ -1959,7 +2096,7 @@ export function Planilha({ arquivo, cx }) {
       {janela && janela.tipo === 'explicar' && (() => {
         const k = chave(sel.ativa.l, sel.ativa.c);
         const dados = explicarConta(motor, c, abaId, sel.ativa.l, sel.ativa.c, tituloDe);
-        const causa = dados && dados.erro ? causaDoErro(motor, c, abaId, sel.ativa.l, sel.ativa.c, tituloDe) : null;
+        const causa = dados ? causaDaConta(motor, c, abaId, sel.ativa.l, sel.ativa.c, tituloDe) : null;
         return (
           <JanelaExplicar key={abaId + k + (dados ? dados.formula : '')} nomeCel={k} dados={dados} causa={causa} somenteLeitura={somenteLeitura}
             titulo={(v) => (v.aba == null ? tituloDe(abaId, v.l, v.c) : null)} aoAcao={fazerAcao}
@@ -1981,12 +2118,15 @@ export function Planilha({ arquivo, cx }) {
         const x = aba.cel[k];
         return (
           <JanelaMontar nomeCel={k} ocupada={!!(x && (x.v !== undefined || x.f != null))} colunas={colunasComTitulo()}
-            celulaPadrao={chave(Math.max(sel.ativa.l, tituloCols.cab + 1, 1), Math.max(0, sel.ativa.c - 1))}
+            amostras={amostrasDaPlanilha()} valorCel={valorDoEndereco}
             previa={(t, nf) => {
               const r = motor.previa(t, abaId, sel.ativa.l, sel.ativa.c);
               if (r.erro) return 'a conta ainda não está completa';
               if (r.circular) return '0 (conta circular: a célula usaria ela mesma)';
-              return (formatar(r.valor, nf || 'General').t || '(vazio)') + (r.matriz ? ` · derrama em ${r.matriz.linhas} × ${r.matriz.colunas} células` : '');
+              /* no máximo 4 casas depois da vírgula na prévia (1,1667 e não 1,166666667) */
+              let v = r.valor;
+              if (typeof v === 'number' && Number.isFinite(v) && !Number.isInteger(v) && (!nf || /^general$/i.test(nf))) v = Math.round(v * 1e4) / 1e4;
+              return (formatar(v, nf || 'General').t || '(vazio)') + (r.matriz ? ` · derrama em ${r.matriz.linhas} × ${r.matriz.colunas} células` : '');
             }}
             aoPor={(t, nf) => gravarFormula(t, { nf, rotulo: `Montar a conta em ${k}` })} aoFechar={() => setJanela(null)} />
         );

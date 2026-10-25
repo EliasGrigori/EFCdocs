@@ -1,6 +1,6 @@
 {
   "name": "efcdocs",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "private": true,
   "description": "EFCdocs: Planilha, Documento e Post-its (PWA). Código-fonte; o app publicado fica na raiz do repositório.",
   "type": "module",

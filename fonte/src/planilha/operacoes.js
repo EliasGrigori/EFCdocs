@@ -350,6 +350,7 @@ export function estrutura(c, abaId, eixo, i, n) {
   } else {
     if (aba.larg) mud[`conteudo.abas.${abaId}.larg`] = mapaIdx(aba.larg);
     if (aba.ocC) mud[`conteudo.abas.${abaId}.ocC`] = mapaIdx(aba.ocC);
+    if (aba.zeros) mud[`conteudo.abas.${abaId}.zeros`] = mapaIdx(aba.zeros);
   }
   if (aba.mesc && aba.mesc.length) {
     const nova = [];

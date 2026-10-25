@@ -585,7 +585,7 @@ test('v0.4.3: PL11 a conta em linhas, o valor de cada pedaço e a frase com o no
   assert.deepEqual(e.linhas.map((x) => x.texto), ['=SE(', 'E(B2>=0,5;B2<=2);', '"OK";', '"Ajustar"', ')']);
   assert.equal(e.linhas[1].valor, 'VERDADEIRO');
   assert.equal(e.linhas[4].valor, '"OK"');
-  assert.match(e.frase, /Se o Cloro livre \(B2 = 1,2\) estiver entre 0,5 e 2, mostra "OK"; se não, mostra "Ajustar"\. Agora mostra "OK"\./);
+  assert.match(e.frase, /Se a coluna Cloro livre \(B2 = 1,2\) estiver entre 0,5 e 2, mostra "OK"; se não, mostra "Ajustar"\. Agora mostra "OK"\./);
   /* editar em linhas: as quebras são ignoradas e a fórmula volta a uma linha só */
   assert.equal(paraGuardar(X.textoEmLinhas(e.linhas).slice(1)), c.abas.a1.cel.C2.f);
   assert.equal(X.explicarConta(m, c, 'a1', 0, 0, titulo), null, 'sem fórmula, nada a explicar');
@@ -661,7 +661,7 @@ test('v0.4.3: PL18 as receitas montam fórmulas válidas, só com funções que 
   assert.equal(criterio('maior', '5'), '">5"');
   assert.equal(criterio('contem', 'cloro'), '"*cloro*"');
   assert.equal(criterio('preenchido', ''), '"<>"');
-  const vals = { col: 'C2:C200', comp: 'igual', valor: 'Ajustar', soma: 'E2:E200', quando: 'C2:C200', cel: 'B2', em: 'A2:A200', traz: 'C2:C200', senao: 'Não achou', min: '0,5', max: '2', sim: 'OK', nao: 'Fora', ini: 'B2', fim: '', a: 'A2', b: 'B2', c: '', sep: ' - ' };
+  const vals = { col: 'C2:C200', comp: 'igual', valor: 'Ajustar', soma: 'E2:E200', quando: 'C2:C200', cel: 'B2', em: 'A2:A200', traz: 'C2:C200', senao: 'Não achou', min: '0,5', max: '2', sim: 'OK', nao: 'Fora', ini: 'B2', fim: '', a: 'A2', b: 'B2', c: '', sep: ' - ', de: '01/10/2026', ate: '31/10/2026' };
   const c = exemplo(); const m = new Motor(c);
   for (const r of RECEITAS) {
     const v = { ...Object.fromEntries(r.campos.map((f) => [f.id, f.padrao ?? ''])), ...vals };
@@ -688,4 +688,172 @@ test('v0.4.3: dicas do quadro sem "fórmula" e "Excel", atalhos B/I/U, e "chega 
   assert.equal(textoChega('v0.5.0'), 'chega na v0.5.0');
   assert.equal(textoChega('depois da v1.0.0'), 'chega depois da v1.0.0');
   for (const id of ['exibir.faixaTudo', 'exibir.faixaAbas', 'exibir.faixaOculta', 'exibir.menuCompleto', 'exibir.menuIcones', 'exibir.menuOculto', 'exibir.layoutA', 'exibir.layoutB']) assert.ok(DESCRICAO[id], id);
+});
+
+/* ---------------- v0.4.3.1: correções da aprovação da v0.4.3 ---------------- */
+import { textoFaixaCaixa, lerEnderecoCaixa } from '../src/planilha/ref.js';
+import { dataNaFormula } from '../src/planilha/receitas.js';
+
+test('v0.4.3.1: frase do Explicar de cada função sem erro de português (de a, em o, por o, for/estiver depois de "confere se")', () => {
+  const dia = serialDe(2026, 10, 1);
+  const c = montar({
+    A1: 'Lote', B1: 'Cloro', C1: 'Qtd', D1: 'Data',
+    A2: 'L-012', B2: 1.2, C2: 10, D2: dia, A3: 'L-013', B3: 3, C3: 5, D3: dia + 1,
+  }, { Planilha2: { A1: 1, A2: 2, A3: 3 } });
+  const est = indiceEstilo(c.estilos, { nf: 'dd/mm/yyyy' });
+  c.estilos = est.estilos; c.abas.a1.cel.D2.s = est.s; c.abas.a1.cel.D3.s = est.s;
+  const tit = (id, l, col) => (id === 'a1' && l > 0 ? { A: 'Lote', B: 'Cloro', C: 'Qtd', D: 'Data' }[letraCol(col)] || null : null);
+  const formulas = [
+    'B2*C2', 'B2/C2', 'B2-C2', 'B2+C2', 'B2^2', 'A2&B2', 'B2>C2',
+    'SE(B2>1;"A";"B")', 'SE(E(B2>=0,5;B2<=2);"OK";"X")', 'SE(OU(B2>1;C2<3);1;2)', 'SE(B2>2;"Alto";SE(B2>1;"Médio";"OK"))', 'SE(SE(B2>1;1;0)=1;"a";"b")',
+    'SEERRO(B2/0;0)', 'SOMA(B2:B3)', 'SOMA(Planilha2!A1:A3)', 'MÉDIA(B2:B3)', 'MÁXIMO(B2:B3)', 'MÍNIMO(B2:B3)', 'CONT.NÚM(B2:B3)', 'CONT.VALORES(A2:A3)', 'CONTAR.VAZIO(A2:A3)',
+    'CONT.SE(A2:A3;"L-012")', 'CONT.SE(B2:B3;">1")', 'SOMASE(A2:A3;"L-012";C2:C3)', 'MÉDIASE(A2:A3;"L-012";B2:B3)',
+    'CONT.SES(A2:A3;"L-012";B2:B3;">1")', 'SOMASES(C2:C3;A2:A3;"L-012";B2:B3;">1")', 'MÉDIASES(B2:B3;A2:A3;"L-012")',
+    'PROCV("L-012";A2:C3;3;0)', 'PROCX("L-012";A2:A3;C2:C3;"não")', 'CORRESP("L-012";A2:A3;0)', 'ÍNDICE(C2:C3;1)', 'ARRED(B2;1)', 'HOJE()-D2', 'D2+30', 'D3-D2',
+    'MÁXIMO(B2:B3)-MÍNIMO(B2:B3)', 'ÍNDICE(C2:C3;CORRESP("L-012";A2:A3;0))', 'SE(B2>1;"";"x")', 'SEERRO(B2/0;"")', 'A5', 'SE(A5="";"";1)', 'FILTRO(A2:C3;C2:C3>5;"nada")', 'DIATRABALHOTOTAL(D2;D3)',
+    'UNIRTEXTO("-";VERDADEIRO;A2;A3)', 'ARRUMAR(A2)', 'SEQUÊNCIA(3)', 'MEDIANA(B2:B3)', 'E(B2>1;C2<20)', 'NÃO(B2>1)',
+  ];
+  const ruins = [/ de [oa] /, / em [oa] /, / por [oa] /, / a [oa] /, /\bde a\b/, /confere se[^.;]*(for|estiver|der )/, /\([^()]*\([^()]*\)[^()]*\)/, /\(\(/, /\b4\d{4}\b/];
+  for (const f of formulas) {
+    const cc = JSON.parse(JSON.stringify(c));
+    cc.abas.a1.cel.F2 = { f: paraGuardar(f) };
+    const mm = new Motor(cc);
+    const r = X.explicarConta(mm, cc, 'a1', 1, numCol('F'), tit);
+    assert.ok(r && r.frase, f + ' sem frase');
+    const sem = r.frase.replace(/ Agora mostra.*$/, '').replace(/"[^"]*"/g, '""');
+    for (const rx of ruins) {
+      if (/^(D2\+30|HOJE\(\)-D2|D3-D2)$/.test(f) && rx.source === '\\b4\\d{4}\\b') { assert.ok(!rx.test(sem), f + ': data como número: ' + r.frase); continue; }
+      assert.ok(!rx.test(sem), `${f}: "${r.frase}" casou ${rx}`);
+    }
+  }
+  /* alguns textos exatos */
+  const ex = (f) => { const cc = JSON.parse(JSON.stringify(c)); cc.abas.a1.cel.F2 = { f: paraGuardar(f) }; return X.explicarConta(new Motor(cc), cc, 'a1', 1, 5, tit).frase; };
+  assert.match(ex('B2/C2'), /^Divide a coluna Cloro \(B2 = 1,2\) pela coluna Qtd \(C2 = 10\)\./);
+  assert.match(ex('HOJE()-D2'), /^Conta os dias de 01\/10\/2026 \(D2\) até hoje\./);
+  assert.match(ex('SE(B2>2;"Alto";SE(B2>1;"Médio";"OK"))'), /se não, olha de novo: se a coluna Cloro \(B2 = 1,2\) for maior que 1, mostra "Médio"; se não, mostra "OK"/);
+  assert.match(ex('SOMA(Planilha2!A1:A3)'), /^Soma/);
+  assert.match(ex('MÁXIMO(B2:B3)-MÍNIMO(B2:B3)'), /^Tira o menor valor \(1,2\) do maior \(3\) da coluna Cloro \(B2:B3\)\./);
+  assert.match(ex('ÍNDICE(C2:C3;CORRESP("L-012";A2:A3;0))'), /^Acha "L-012" na coluna Lote \(A2:A3\) e traz o valor da mesma linha da coluna Qtd \(C2:C3\)\./);
+  assert.match(ex('SE(B2>1;"";"x")'), /mostra "x"|deixa a célula vazia/);
+  assert.match(ex('SE(B2>1;"";"x")'), /^Se a coluna Cloro \(B2 = 1,2\) for maior que 1, deixa a célula vazia; se não, mostra "x"\./);
+  assert.match(ex('A5'), /^Mostra a coluna Lote \(A5 = vazio\)\./);
+  assert.match(ex('FILTRO(A2:C3;C2:C3>5;"nada")'), /^Mostra só as linhas .* em que a coluna Qtd \(C2:C3\) é maior que 5/);
+  assert.match(ex('DIATRABALHOTOTAL(D2;D3)'), /^Conta os dias úteis de 01\/10\/2026 \(D2\) até 02\/10\/2026 \(D3\)\./);
+});
+
+test('v0.4.3.1: conta circular não trava o motor (C1=C2, grupo de 3, entre abas) e dá um aviso só', () => {
+  const tit = () => null;
+  /* uma fórmula que só aponta para outra célula: antes estourava a pilha e a tela ficava em branco */
+  const a = montar({ C1: '=C2', C2: '=C1' });
+  const ma = new Motor(a);
+  assert.equal(ma.valor('a1', 0, 2), 0);
+  assert.equal(ma.valor('a1', 1, 2), 0);
+  assert.equal(ma.circulares().length, 2);
+  const pa = X.problemasDaPlanilha(ma, a, tit, {}).filter((x) => /circ/.test(x.id));
+  assert.equal(pa.length, 1);
+  assert.equal(pa[0].texto, 'C1 e C2 dependem uma da outra, então as duas ficam 0. Apague uma das contas.');
+  assert.equal(X.causaDaConta(ma, a, 'a1', 0, 2, tit).acoes.length, 1);
+  X.explicarConta(ma, a, 'a1', 0, 2, tit); X.grafoDaConta(ma, a, 'a1', 0, 2, tit);
+  /* três células: nunca #CALC! */
+  const b = montar({ A10: '=A11', A11: '=A12', A12: '=A10' });
+  const mb = new Motor(b);
+  for (const l of [9, 10, 11]) assert.equal(mb.valor('a1', l, 0), 0);
+  assert.equal(mb.circulares().length, 3);
+  assert.equal(X.causaCircular(mb, b, 'a1', 9, 0).msg, 'A10, A11 e A12 dependem umas das outras, então todas ficam 0. Apague uma das contas.');
+  /* ordem de cálculo diferente (começa pela do meio) dá o mesmo */
+  const b2 = new Motor(JSON.parse(JSON.stringify(b)));
+  assert.equal(b2.valor('a1', 10, 0), 0);
+  assert.equal(b2.circulares().length, 3);
+  /* entre abas: as duas células levam o nome da aba */
+  const d = montar({ A1: '=Planilha2!A1' }, { Planilha2: { A1: 1 } });
+  d.abas.a2.cel.A1 = { f: paraGuardar('Planilha1!A1') };
+  const md = new Motor(d);
+  assert.equal(md.valor('a1', 0, 0), 0);
+  assert.match(X.causaCircular(md, d, 'a1', 0, 0).msg, /^Planilha1!A1 e Planilha2!A1 dependem uma da outra/);
+  /* a célula que usa o resultado de uma circular não trava */
+  const e = montar({ C1: '=C2', C2: '=C1', D1: '=C1+1' });
+  assert.equal(new Motor(e).valor('a1', 0, 3), 1);
+  /* o que não é circular continua certo (encadeado e derramado) */
+  const f = montar({ A1: 5, B1: '=A1', C1: '=B1', D1: '=C1*2', E1: '=SEQUÊNCIA(2)' });
+  const mf = new Motor(f);
+  assert.equal(mf.valor('a1', 0, 3), 10);
+  assert.equal(mf.valor('a1', 1, 4), 2);
+  assert.equal(mf.circulares().length, 0);
+});
+
+test('v0.4.3.1: soma de outra aba diz "A1:A3 da aba Planilha2"', () => {
+  const c = montar({ F2: '=SOMA(Planilha2!A1:A3)' }, { Planilha2: { A1: 1, A2: 2, A3: 3 } });
+  const r = X.explicarConta(new Motor(c), c, 'a1', 1, 5, null);
+  assert.match(r.frase, /^Soma A1:A3 da aba Planilha2\./);
+});
+
+test('v0.4.3.1: conta circular: um aviso só para o grupo, no Explicar e no Problemas', () => {
+  const c = montar({ N3: '=N4+1', N4: '=N3+1', A1: '=A1+1', B1: 1 });
+  const m = new Motor(c);
+  const pos2 = (k) => pos(k);
+  const g = X.causaCircular(m, c, 'a1', ...pos2('N3'));
+  assert.equal(g.msg, 'N3 e N4 dependem uma da outra, então as duas ficam 0. Apague uma das contas.');
+  assert.deepEqual(g.acoes.map((a) => a.rotulo), ['Ir para N4']);
+  assert.equal(X.causaDaConta(m, c, 'a1', ...pos2('N4')).cod, 'circular');
+  assert.equal(X.causaCircular(m, c, 'a1', ...pos2('B1')), null, 'célula normal não é circular');
+  const a1 = X.causaCircular(m, c, 'a1', ...pos2('A1'));
+  assert.equal(a1.msg, 'A1 depende dela mesma, então fica 0. Apague a conta ou tire a própria célula dela.');
+  const l = X.problemasDaPlanilha(m, c, null).filter((p) => /depend/.test(p.texto));
+  assert.equal(l.length, 2, 'um aviso para N3/N4 e um para A1');
+  assert.ok(l.some((p) => p.texto.startsWith('N3 e N4 dependem uma da outra')));
+});
+
+test('v0.4.3.1: caixa de nome: C:C, B:D, 3:3 (mostrar e ler)', () => {
+  assert.equal(textoFaixaCaixa({ l1: 0, l2: MAX_LIN - 1, c1: 2, c2: 2 }), 'C:C');
+  assert.equal(textoFaixaCaixa({ l1: 0, l2: MAX_LIN - 1, c1: 1, c2: 3 }), 'B:D');
+  assert.equal(textoFaixaCaixa({ l1: 2, l2: 2, c1: 0, c2: MAX_COL - 1 }), '3:3');
+  assert.equal(textoFaixaCaixa({ l1: 0, l2: 1, c1: 0, c2: 1 }), 'A1:B2');
+  assert.deepEqual(lerEnderecoCaixa('c:c'), { aba: null, l1: 0, c1: 2, l2: MAX_LIN - 1, c2: 2 });
+  assert.deepEqual(lerEnderecoCaixa('2:4'), { aba: null, l1: 1, c1: 0, l2: 3, c2: MAX_COL - 1 });
+  assert.deepEqual(lerEnderecoCaixa('Planilha2!B:C'), { aba: 'Planilha2', l1: 0, c1: 1, l2: MAX_LIN - 1, c2: 2 });
+  assert.equal(lerEnderecoCaixa('B2:C3').l2, 2);
+  assert.equal(lerEnderecoCaixa('abc'), null);
+});
+
+test('v0.4.3.1: receitas: começam vazias, não montam sem escolher, datas e receitas novas', () => {
+  for (const r of RECEITAS) {
+    const v = Object.fromEntries(r.campos.map((f) => [f.id, f.padrao ?? '']));
+    assert.equal(r.montar(v), null, r.id + ' não devia montar vazia');
+    const ex = typeof r.exemplo === 'function' ? r.exemplo({}) : r.exemplo;
+    assert.ok(ex && !/Packing|aba Lotes|L-012/.test(ex), r.id + ' exemplo inventado: ' + ex);
+    assert.ok(!/46\d{3}/.test(ex));
+  }
+  assert.ok(RECEITAS.find((r) => r.id === 'contarEntre') && RECEITAS.find((r) => r.id === 'desvio'));
+  assert.equal(dataNaFormula('01/10/2026'), 'DATA(2026;10;1)');
+  assert.equal(dataNaFormula('b1'), 'B1');
+  assert.equal(dataNaFormula('31/02/2026'), null);
+  assert.equal(dataNaFormula(''), null);
+  const ex = RECEITAS.find((r) => r.id === 'contar').exemplo({ texto: { titulo: 'Situação', valor: 'Ajustar' } });
+  assert.equal(ex, 'Quantas linhas de Situação estão como "Ajustar"?');
+  /* contar entre duas datas calcula */
+  const dia = serialDe(2026, 10, 1);
+  const c = montar({ A1: 'Data', A2: dia, A3: dia + 9, A4: dia + 40 });
+  const t = RECEITAS.find((r) => r.id === 'contarEntre').montar({ col: 'A2:A200', de: '01/10/2026', ate: '31/10/2026' }).texto;
+  assert.equal(new Motor(c).previa(t, 'a1', 9, 9).valor, 2);
+  const d = RECEITAS.find((r) => r.id === 'desvio').montar({ col: 'A2:A200', tipo: 'amostra' }).texto;
+  assert.equal(d, 'DESVPAD.A(A2:A200)');
+  assert.ok(!new Motor(montar({ A2: 1, A3: 2, A4: 3 })).previa(d, 'a1', 9, 9).erro);
+});
+
+test('v0.4.3.1: código com zero na frente é avisado só quando só tem dígitos e começa com zero', () => {
+  assert.equal(lerEntrada('001').zeroNaFrente, '001');
+  assert.equal(lerEntrada('001').v, 1);
+  assert.equal(lerEntrada('0042').zeroNaFrente, '0042');
+  assert.equal(lerEntrada('0').zeroNaFrente, undefined);
+  assert.equal(lerEntrada('0,5').zeroNaFrente, undefined);
+  assert.equal(lerEntrada('10').zeroNaFrente, undefined);
+  assert.equal(lerEntrada('001', '@').zeroNaFrente, undefined, 'coluna em formato Texto já guarda como texto');
+  assert.deepEqual(lerEntrada("'001"), { v: '001', texto: true });
+});
+
+test('v0.4.3.1: inserir coluna leva junto a escolha lembrada dos zeros', () => {
+  const c = montar({ A1: 'x' });
+  c.abas.a1.zeros = { 2: 't' };
+  const mud = O.estrutura(c, 'a1', 'c', 0, 1);
+  assert.deepEqual(mud['conteudo.abas.a1.zeros'], { 3: 't' });
 });

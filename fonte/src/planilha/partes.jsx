@@ -332,3 +332,31 @@ export function BarraSimbolos({ aoInserir, funcoes }) {
     </div>
   );
 }
+
+/** Código com zero na frente (001): o número perde o zero. Pergunta se é para guardar como texto (estoque, lotes, amostras). */
+export function JanelaZeros({ codigos, colunas, colar, aoEscolher, aoFechar }) {
+  const [lembrar, setLembrar] = useState(true);
+  const unicos = [...new Set(codigos)];
+  const ex = unicos.slice(0, 3).join(', ') + (unicos.length > 3 ? '…' : '');
+  const virando = unicos[0].replace(/^0+/, '') || '0';
+  const letras = colunas.map(letraCol);
+  const ondeLembrar = letras.length === 1 ? `a coluna ${letras[0]}` : `as colunas ${letras.join(', ')}`;
+  return (
+    <Janela titulo="Código com zero na frente" aoFechar={aoFechar} classe="pl-jzeros" rodape={(
+      <>
+        <button type="button" className="btn" onClick={aoFechar}>Cancelar</button>
+        <span className="sp" />
+        <button type="button" className="btn" onClick={() => aoEscolher('n', lembrar)}>Virar número</button>
+        <button type="button" className="btn primary" onClick={() => aoEscolher('t', lembrar)}><Icone n="check" />Manter como texto</button>
+      </>
+    )}>
+      <div className="janela-c">
+        <p>{colar
+          ? <>Na colagem há {codigos.length} {codigos.length === 1 ? 'código que começa' : 'códigos que começam'} com zero ({ex}). Como número, o zero some.</>
+          : <>O código <b>{unicos[0]}</b> começa com zero. Como número, vira <b>{virando}</b> e o zero some.</>}</p>
+        <p className="qd-dica">Para estoque e para códigos de lote ou de amostra, o texto é o mais seguro: o código fica do jeito que você escreveu.</p>
+        <label className="chave"><input type="checkbox" checked={lembrar} onChange={(ev) => setLembrar(ev.target.checked)} />Lembrar a escolha para {ondeLembrar}</label>
+      </div>
+    </Janela>
+  );
+}

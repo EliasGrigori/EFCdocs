@@ -50,6 +50,13 @@ export function textoFaixa(f) {
   return f.l1 === f.l2 && f.c1 === f.c2 ? a : a + ':' + chave(f.l2, f.c2);
 }
 
+/** Coluna(s) ou linha(s) inteira(s) aparecem como C:C, B:D, 3:3 (como no Excel); o resto como A1 ou A1:B2. */
+export function textoFaixaCaixa(f) {
+  if (f.l1 === 0 && f.l2 === MAX_LIN - 1) return letraCol(f.c1) + ':' + letraCol(f.c2);
+  if (f.c1 === 0 && f.c2 === MAX_COL - 1) return (f.l1 + 1) + ':' + (f.l2 + 1);
+  return textoFaixa(f);
+}
+
 export const normalFaixa = (f) => ({
   l1: Math.min(f.l1, f.l2), c1: Math.min(f.c1, f.c2), l2: Math.max(f.l1, f.l2), c2: Math.max(f.c1, f.c2),
 });
@@ -74,4 +81,23 @@ export function lerEndereco(texto) {
   const b = p[1] ? lerChave(p[1].replace(/\$/g, '')) : a;
   if (!a || !b) return null;
   return { aba, ...normalFaixa({ l1: a.l, c1: a.c, l2: b.l, c2: b.c }) };
+}
+
+/** O que a caixa de nome aceita: tudo o de lerEndereco, mais colunas inteiras (C:C, B:D) e linhas inteiras (3:3, 2:5). */
+export function lerEnderecoCaixa(texto) {
+  const t = String(texto || '').trim();
+  const m = /^(?:'((?:[^']|'')+)'|([^!:'"]+))!(.+)$/.exec(t);
+  const aba = m ? (m[1] != null ? m[1].replace(/''/g, "'") : m[2]) : null;
+  const resto = (m ? m[3] : t).replace(/\$/g, '');
+  let r = /^([A-Za-z]{1,3}):([A-Za-z]{1,3})$/.exec(resto);
+  if (r) {
+    const a = numCol(r[1]), b = numCol(r[2]);
+    if (a >= 0 && b >= 0) return { aba, ...normalFaixa({ l1: 0, c1: a, l2: MAX_LIN - 1, c2: b }) };
+  }
+  r = /^(\d{1,7}):(\d{1,7})$/.exec(resto);
+  if (r) {
+    const a = +r[1] - 1, b = +r[2] - 1;
+    if (a >= 0 && b >= 0 && a < MAX_LIN && b < MAX_LIN) return { aba, ...normalFaixa({ l1: a, c1: 0, l2: b, c2: MAX_COL - 1 }) };
+  }
+  return lerEndereco(texto);
 }

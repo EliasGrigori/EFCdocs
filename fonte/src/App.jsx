@@ -42,6 +42,23 @@ function usePwa() {
 const abrirConteudo = (ficha, conteudo) => (ficha.tipo === 'postits' ? normalizarQuadro(conteudo) : ficha.tipo === 'planilha' ? normalizarPlanilha(conteudo) : conteudo);
 
 export function App() {
+  /* Teclado do celular: o app acompanha a parte da tela que sobra (visualViewport) e a página não sobe,
+     para a célula que está sendo digitada continuar à vista. */
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+    const ajustar = () => {
+      const r = document.documentElement;
+      const encolheu = vv.scale <= 1.01 && window.innerHeight - vv.height > 80;
+      if (encolheu) { r.style.setProperty('--vvh', Math.round(vv.height) + 'px'); if (window.scrollY || vv.offsetTop) window.scrollTo(0, 0); }
+      else r.style.removeProperty('--vvh');
+    };
+    vv.addEventListener('resize', ajustar);
+    vv.addEventListener('scroll', ajustar);
+    ajustar();
+    return () => { vv.removeEventListener('resize', ajustar); vv.removeEventListener('scroll', ajustar); document.documentElement.style.removeProperty('--vvh'); };
+  }, []);
+
   const demo = ehDemo();
   const estadoPwa = usePwa();
   const escuro = typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches;
@@ -383,7 +400,8 @@ export function App() {
     switch (id) {
       case 'app.inicio': irPara(''); return;
       case 'app.buscar': setPaleta(true); return;
-      case 'app.opcoes': case 'exibir.tema': setOpcoes(true); return;
+      case 'app.opcoes': setOpcoes(true); return;
+      case 'exibir.tema': setOpcoes('tema'); return;
       case 'arquivo.novo': criarNovo(mod || 'planilha'); return;
       case 'arquivo.novaPlanilha': case 'arquivo.novoDocumento': case 'arquivo.novoQuadro': criarNovo(NOVO_POR_CMD[id]); return;
       case 'arquivo.renomear': if (atual) perguntarNome(atual.arquivo.ficha); return;
@@ -526,10 +544,10 @@ export function App() {
         {cel && !aberto ? (
           <BarraCelular rota={rota} cont={contagem} abrirGaveta={() => setGaveta(true)} />
         ) : (
-          <footer className="foot" aria-label="Barra de status">
+          <footer className={'foot' + (aberto && ficha.tipo === 'planilha' && !(st.planilha && st.planilha.calc) ? ' sem-conta' : '')} aria-label="Barra de status">
             {aberto ? (
               <>
-                <span><b>{TIPOS[ficha.tipo].nome}</b></span>
+                <span className="some-cel"><b>{TIPOS[ficha.tipo].nome}</b></span>
                 <span className="some-cel">Rascunho · Rev. {String(ficha.rev).padStart(2, '0')}</span>
                 {ultimo && <button type="button" className="some-cel foot-desfazer" title="Ver a linha do tempo do desfazer" onClick={() => setLinhaTempo(true)}>Desfazer: {ultimo}</button>}
                 <span className="sts">
@@ -565,7 +583,7 @@ export function App() {
         </>
       )}
       {paleta && <Paleta mod={mod} cx={cx} aoFechar={() => setPaleta(false)} />}
-      {opcoes && <Opcoes prefs={prefs} setPref={setPref} cx={cx} aoFechar={() => setOpcoes(false)} demo={demo} versao={VERSAO} espaco={espaco} />}
+      {opcoes && <Opcoes prefs={prefs} setPref={setPref} cx={cx} aoFechar={() => setOpcoes(false)} demo={demo} versao={VERSAO} espaco={espaco} abrir={opcoes} />}
       {pergunta && <Pergunta p={pergunta} aoFechar={() => setPergunta(null)} />}
       {linhaTempo && aberto && <LinhaDoTempo h={aberto.h} aoIr={irParaPasso} aoFechar={() => setLinhaTempo(false)} />}
       <Avisos lista={avisos} tirar={tirarAviso} />

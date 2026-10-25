@@ -1,6 +1,6 @@
 /* EFCdocs — Planilha: o arquivo (abas, células, estilos, nomes) e as mudanças que viram desfazer.
    conteudo = { v:1, ordem:[ids], abas:{ id:{ id, nome, cor, oculta, cel:{ B12:{ v, f, s } }, larg:{col:px}, alt:{lin:px},
-                ocL:{lin:1}, ocC:{col:1}, cong:{l,c}, mesc:['A1:C1'], cab } }, estilos:[{...}], nomes:{ chave:{ n, ref } }, seq }
+                ocL:{lin:1}, ocC:{col:1}, zeros:{col:'t'|'n'} (escolha lembrada para códigos com zero na frente), cong:{l,c}, mesc:['A1:C1'], cab } }, estilos:[{...}], nomes:{ chave:{ n, ref } }, seq }
    Célula: v = valor digitado (número, texto, lógico ou { e:'#N/A' }); f = fórmula guardada como no Excel (inglês, sem "=");
    s = número do estilo em "estilos". Linhas e colunas guardadas a partir de 0. */
 import { chave, lerChave, letraCol, MAX_COL, MAX_LIN, normalFaixa } from './ref.js';
