@@ -41,6 +41,23 @@ function usePwa() {
 
 const abrirConteudo = (ficha, conteudo) => (ficha.tipo === 'postits' ? normalizarQuadro(conteudo) : ficha.tipo === 'planilha' ? normalizarPlanilha(conteudo) : conteudo);
 
+/* v0.4.9: alça do menu escondido. Fina por padrão; ao chegar o mouse (ou ao tocar) sai para fora e mostra a seta;
+   dá para puxar para a direita ou só tocar. */
+function AlcaMenu({ aoAbrir }) {
+  const [puxa, setPuxa] = useState(false);
+  const ini = useRef(null);
+  const solta = () => { ini.current = null; setPuxa(false); };
+  return (
+    <button type="button" className={'menu-alca' + (puxa ? ' puxa' : '')} data-menu-alca aria-label="Mostrar o menu lateral" title="Mostrar o menu lateral (toque ou puxe para a direita)"
+      onClick={aoAbrir}
+      onPointerDown={(ev) => { ini.current = ev.clientX; setPuxa(true); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* sem captura */ } }}
+      onPointerMove={(ev) => { if (ini.current != null && ev.clientX - ini.current > 28) { solta(); aoAbrir(); } }}
+      onPointerUp={solta} onPointerCancel={solta}>
+      <Icone n="chevronDir" />
+    </button>
+  );
+}
+
 export function App() {
   /* Teclado do celular: o app acompanha a parte da tela que sobra (visualViewport) e a página não sobe,
      para a célula que está sendo digitada continuar à vista. */
@@ -552,8 +569,7 @@ export function App() {
     <div className={'app' + (cel ? ' cel' : '')} data-menu={prefs.menu} data-layout={prefs.layout} data-faixa={prefs.faixa}>
       {!cel && prefs.menu !== 'oculto' && <Menu rota={rota} modAtual={mod} cont={contagem} prefs={prefs} cx={cx} />}
       {!cel && prefs.menu === 'oculto' && (
-        <button type="button" className="menu-alca" data-menu-alca aria-label="Mostrar o menu lateral" title="Mostrar o menu lateral"
-          onClick={() => cx.executar('exibir.menuCompleto')}><Icone n="chevronDir" /></button>
+        <AlcaMenu aoAbrir={() => cx.executar('exibir.menuCompleto')} />
       )}
       <div className="col">
         {estadoPwa.aviso && (
@@ -574,7 +590,7 @@ export function App() {
         )}
         <DicasComandos mod={mod} />
         <Topo titulo={TITULOS[rota] || 'EFCdocs'} ficha={ficha} salvo={salvo} prefs={prefs} cx={cx} cel={cel}
-          aba={aba} setAba={setAba} faixaTemp={faixaTemp} setFaixaTemp={setFaixaTemp} abrirGaveta={() => setGaveta(true)} />
+          aba={aba} setAba={setAba} faixaTemp={faixaTemp} setFaixaTemp={setFaixaTemp} abrirGaveta={() => (!cel && prefs.menu === 'oculto' ? cx.executar('exibir.menuCompleto') : setGaveta(true))} />
         <div className="work">
           <main className="wk-main" id="conteudo">{conteudo}</main>
           {aberto && prefs.painel && (

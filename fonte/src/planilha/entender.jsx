@@ -118,16 +118,16 @@ export function PainelProblemas({ lista, aberto, aoAlternar, aoIr, aoAcao, somen
   const real = erros + avisos; /* v0.4.8: "dica" (ex.: número fixo na conta) não conta como problema */
   const resumo = !lista.length ? 'nenhum problema' : [erros && `${erros} ${erros === 1 ? 'erro' : 'erros'}`, avisos && `${avisos} ${avisos === 1 ? 'aviso' : 'avisos'}`, dicas && `${dicas} ${dicas === 1 ? 'dica' : 'dicas'}`].filter(Boolean).join(' · ');
   const botao = (
-      <button type="button" className={'qd-lamp card pl-lamp' + (real ? ' tem' : '')} aria-expanded={aberto} aria-label={'Problemas da planilha: ' + resumo} title="Problemas da planilha" onClick={aoAlternar} onPointerDown={(ev) => ev.stopPropagation()}>
-        <Icone n="lampada" /><span>Verificação</span>{real > 0 && <em>{real}</em>}{real === 0 && dicas > 0 && <em className="dica">{dicas}</em>}
+      <button type="button" className={'qd-lamp card pl-lamp' + (real ? ' tem' : '')} aria-expanded={aberto} aria-label={'Verificação da planilha: ' + resumo} title="Verificação da planilha: erros, avisos e dicas" onClick={aoAlternar} onPointerDown={(ev) => ev.stopPropagation()}>
+        <Icone n="lampada" /><span>Verificação</span>{real > 0 && <em>{real}</em>}
       </button>
   );
   return (
     <>
       {alvo ? createPortal(botao, alvo) : botao}
       {aberto && (
-        <div className="qd-assist card pl-problemas" role="dialog" aria-label="Problemas da planilha" onPointerDown={(ev) => ev.stopPropagation()} onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); aoAlternar(); } }}>
-          <header><b>Problemas · {resumo}</b><button type="button" className="rbi" title="Fechar" aria-label="Fechar a lista de problemas" onClick={aoAlternar}><Icone n="x" /></button></header>
+        <div className="qd-assist card pl-problemas" role="dialog" aria-label="Verificação da planilha" onPointerDown={(ev) => ev.stopPropagation()} onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); aoAlternar(); } }}>
+          <header><b>Verificação · {resumo}</b><button type="button" className="rbi" title="Fechar" aria-label="Fechar a verificação" onClick={aoAlternar}><Icone n="x" /></button></header>
           {lista.length === 0 ? <p className="qd-assist-ok"><Icone n="check" />Tudo certo: nenhum erro nem aviso na planilha.</p> : (
             <ul>
               {lista.map((p) => (

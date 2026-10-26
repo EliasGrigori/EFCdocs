@@ -1,72 +1,65 @@
-"""EFCdocs — monta a página de aprovação da v0.4.8 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.4.9 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" """
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.4.8'
+VERSAO = 'v0.4.9'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-G1, G2, G3, G4 = 'A. Visual novo (o que você pediu no relatório do Grok)', 'B. Defeitos que o Grok achou (corrigidos nesta versão)', 'C. Suas perguntas e ideias', 'D. Decisões'
+G1, G2, G3, G4 = 'A. Defeitos que o Grok achou (corrigidos)', 'B. Pedidos da v0.4.9 (menu, aviso, Início, ícones, celular, temas)', 'C. Perguntas abertas', 'D. Decisões'
 ITENS = [
-    ('W01', 'Papel sobre a mesa: três acabamentos para você escolher', G1,
-     '<p>Você achou tudo "muito quadrado" nas barras de cima e de baixo e pediu sombreamento ou relevo, e contorno nas laterais. Pesquisei como fazem o <b>Google Docs / Drive</b> (folha branca sobre um fundo cinza, com sombra bem leve embaixo das barras), o <b>Notion</b> (quase sem sombra, só linhas finas) e o <b>Microsoft 365 novo</b> (cartões com sombra suave). A minha sugestão junta o melhor: <b>a folha parece apoiada sobre a mesa</b>. Montei os três para você ver e escolher: <b>A. Plano</b> (como era), <b>B. Relevo</b> (brilho leve nas barras e botões) e <b>C. Papel sobre a mesa</b> (relevo + sombra embaixo da barra de cima e da de baixo + contorno fino nas laterais da folha). O <b>C</b> é o padrão desta versão; os três se trocam em <b>Exibir › Aparência</b> (botões Relevo e Mesa) ou em Opções. As bordas não ficaram arredondadas, como você gosta.</p>',
-     'Qual você quer: A, B ou C? Se o C estiver forte ou fraco demais, diga ("mais sombra", "só o contorno") que eu ajusto.',
-     [('Os três acabamentos (cantos da barra de baixo e de cima)', 'depois-acabamentos'), ('Tela inteira com o C', 'depois-tela')], 'um'),
-    ('W02', 'Tema "Papel" claro como padrão, com o dourado só como marca', G1,
-     '<p>O app agora <b>abre no tema claro "Papel"</b>: fundo branco azulado, texto em <b>tinta petróleo</b> e o <b>dourado só como marcador</b> (o traço embaixo da aba ativa, a barrinha no menu e uma faixa suave no item atual), nunca como cor de letra. Foi a minha resposta à sua dúvida sobre o dourado cansar a vista: letra dourada em fundo claro tem pouco contraste e cansa; como <b>marcador</b>, o dourado dá foco sem cansar. Os 17 temas antigos continuam em Opções › Tema (o Petróleo escuro é o último da lista). <b>Atenção</b>: quem já escolheu outro tema neste aparelho continua com ele; para ver o Papel, escolha em Opções › Tema.</p>',
-     'Gostou do Papel como padrão? Prefere o dourado ainda mais discreto, ou um pouco mais presente (por exemplo, também na linha de baixo da faixa)?',
-     [('Antes (v0.4.7, escuro com letras douradas)', 'antes-canto'), ('Depois (Papel: dourado só como marca)', 'depois-canto')], 'par'),
-    ('W03', 'Menu escondido: alça e ☰ maiores e mais nítidos', G1,
-     '<p>A alça da borda esquerda virou uma <b>aba petróleo de 24 x 56 px</b> com a setinha em branco (antes era fininha). O <b>☰</b> do topo subiu para 40 px, com traço mais grosso. <b>Dúvida honesta</b>: a aba fica em cima dos números das linhas 9 a 11 (o Grok também reparou). Como o ☰ do topo já abre o menu, posso <b>tirar a alça</b> e deixar só o ☰, ou <b>subir a alça</b> para a altura da faixa.</p>',
-     'Deixo como está, tiro a alça (só ☰) ou subo a alça para a altura da faixa?',
-     [('Antes (alça fininha)', 'antes-alca'), ('Depois (aba petróleo; ☰ maior no topo)', 'depois-alca-recorte'), ('Tela com o menu escondido e a barra compacta', 'depois-maximo')], 'um'),
-    ('W04', 'Faixa temporária com sombra e dourado; divisória na barra compacta', G1,
-     '<p>Com a faixa recolhida, tocar numa aba mostra a faixa <b>por cima da barra fx</b>. Agora ela tem <b>sombra embaixo e um fio dourado</b> na borda, então se vê que é uma peça "flutuando" e não parte fixa da tela. Na barra de cima compacta também entrou uma <b>divisória fina</b> entre o nome do arquivo e as abas (antes ficavam coladas).</p>',
-     'A sombra e o fio dourado deixam claro que a faixa é temporária?',
-     [('Faixa temporária (aba Inserir com a faixa recolhida)', 'depois-faixa-temporaria')], 'um'),
-    ('W05', '"Número fixo na conta" agora é Dica, não Problema', G1,
-     '<p>O Grok reparou que avisos como "=B2*1,15" (número digitado dentro da conta) apareciam como Problema. Agora são <b>Dica</b>: aparecem por último, em tom de informação, e <b>não entram na contagem do botão</b> (só Erros e Avisos contam). O botão passa a mostrar "Verificação" com a contagem real, e a lista diz "1 dica".</p>',
-     'Está do jeito que você quer?', [('Lista com uma Dica', 'depois-verificacao')], 'um'),
-    ('W06', 'Um nome só: Quadros', G1,
-     '<p>No menu agora é <b>Quadros</b>; no botão e no título é <b>Quadro</b>; "Post-it" fica só para a peça amarela. O texto do logo diz "Planilha · Documento · Quadro". (Comentários antigos continuam funcionando; só mudou o que aparece.)</p>', '', [], ''),
-    ('W07', 'Textos sem jargão (rodapé e Opções)', G1,
-     '<p>O rodapé diz "<b>Salvo neste aparelho às 10:39</b>" (ou "Salvando…") no lugar de "Rascunho · Rev. 00", e "<b>Tamanho:</b> 273 B" no lugar de "No aparelho:". Em Opções, cada escolha ganhou uma frase curta dizendo para que serve (veja a imagem), e entrou a escolha da <b>Barra de cima</b> (completa ou compacta).</p>',
-     'Os textos ficaram claros? Alguma palavra ainda estranha?', [('Opções › Tema', 'depois-opcoes-tema')], 'um'),
-    ('W08', 'Verificação: um nome, um lugar, em todos os arquivos', G1,
-     '<p>O que era "Problemas" (planilha) e "Assistente" (quadro) agora é <b>Verificação</b>, sempre no <b>rodapé, no canto direito</b>, sem boiar em cima da grade ou do quadro. O número mostra o que precisa de atenção. No celular continua no mesmo lugar de antes.</p>',
-     'O nome "Verificação" serve? (Outras ideias: "Revisão automática", "Conferência".)', [], ''),
-    ('W09', 'Um aviso de cada vez, no canto de baixo à esquerda', G1,
-     '<p>O aviso novo <b>toma o lugar</b> do anterior (nada empilha), e fica ao lado do menu, embaixo, como no Google. Ao desfazer uma exclusão, o "Desfazer" some e fica só "Desfeito". Resolve o B01.</p>',
-     '', [('Antes (aviso no meio)', 'antes-aviso'), ('Depois (embaixo à esquerda)', 'depois-aviso')], 'par'),
-    ('B01', 'Avisos empilhados depois do Ctrl+Z', G2, '<p>Corrigido junto com W09 (um aviso de cada vez; o Desfazer não fica clicável depois de desfeito). Tem teste automático.</p>', 'Confirma que está resolvido?', [('Depois do Ctrl+Z: só "Desfeito"', 'depois-aviso-desfeito')], 'um'),
-    ('B02', 'Cópia colada depois de recarregar cai em cima de outra', G2, '<p>Corrigido: ao colar, o EFCdocs procura o <b>primeiro lugar livre ao lado</b> (as assinaturas vão para a direita; o resto desce na diagonal), mesmo depois de recarregar. Tem teste: original + 2 cópias coladas depois de recarregar ficam lado a lado.</p>', 'Confirma?', [], ''),
-    ('B03', '"Aberto em outra aba" sem outra aba aberta (3ª vez)', G2,
-     '<p>Não consegui reproduzir aqui. O que fiz: a trava de uma aba que sumiu <b>expira em 90 s</b> (antes 120 s), e o aviso já tem o botão <b>Editar aqui</b>. Minha suspeita: ao reabrir o navegador, ele <b>restaura a aba antiga junto com a nova</b> (duas abas de verdade, uma delas escondida). Para eu achar a causa, preciso que o Grok anote, quando acontecer: o navegador, se a aba antiga foi restaurada sozinha, e o tempo depois de fechar. O roteiro do Grok desta versão já pede isso.</p>',
-     'Quando você viu isso, estava com mais de uma janela do navegador ou o navegador reabriu abas sozinho?', [], ''),
-    ('D01', 'Sua ideia para os cartões do Início (L02)', G3,
-     '<p>Você sugeriu que o cartão de "Nova planilha / Novo documento / Novo quadro" seja uma <b>prévia em branco</b> do próprio arquivo, no tema claro. <b>Achei melhor que a proposta do Grok</b>: a pessoa vê o que vai abrir (grade para planilha, folha com linhas de texto para documento, fundo pontilhado com um post-it para o quadro) e o cartão parece o arquivo de verdade. Fica na <b>v0.4.9</b>, junto com os cartões grandes (L05).</p>',
-     'Pode seguir assim? Quer o cartão com sombra "Papel sobre a mesa" também?', [], ''),
-    ('D02', 'Ícone do app e prompt para o Nano Banana', G3,
-     '<p>Feito o <b>prompt para o Gemini (Nano Banana)</b>: ícone <b>minimalista</b> que continua legível pequeno (miniatura no celular e na aba), em três versões: ícone quadrado, versão com fundo transparente para a capa e variação em uma cor só. Está no arquivo <b>PROMPT-NANO-BANANA-ICONE.md</b>, com um passo a passo para escolher e testar em 48, 32 e 16 px antes de me enviar.</p>',
-     'Quando gerar, mande as imagens que eu troco o ícone do app (192/512 e maskable).', [], ''),
-    ('D03', 'Estudo: ligar OneDrive, Google Drive e Terabox', G3,
-     '<p>Está no arquivo <b>ESTUDO-NUVENS-ONEDRIVE-GDRIVE-TERABOX.md</b>: dificuldade de cada um, melhor momento (resumo: <b>Google Drive e OneDrive na v0.8.0</b>, Terabox só depois e como "importar/exportar", porque não tem API oficial aberta), como tratar a regra de que <b>documento do servidor não pode ser baixado para fora sem autorização do superior</b>, e o que preciso de você para testar com as suas 3 contas (sem senhas: só criar um app de teste e me dar o identificador).</p>',
-     'Concorda com a ordem (Drive e OneDrive primeiro, Terabox depois)?', [], ''),
-    ('V01', 'Publicação da v0.4.8', G4,
-     '<p>Depois da sua aprovação, publico a v0.4.8 no GitHub (commit só com esta versão). Nada vai antes disso.</p>', 'Pode publicar? (marque Aprovado e diga se quer algum ajuste antes, principalmente W01 e W03)', [], ''),
-    ('V02', 'Próxima versão', G4,
-     '<p><b>v0.4.9 (Sonnet 5.5 · alto)</b>: L02 (cartões do Início como prévia em branco, sua ideia), L05 (cartões grandes), L04 (menu estilo Google Drive), L06 (ícones da faixa maiores e coloridos), L07 (faixa do celular como no Excel Android) e L09 (temas claros e escuros com miniatura). Depois, a <b>v0.5.0 (Opus 5.5 · alto)</b>: abrir e salvar .xlsx com os seus 4 arquivos (Potabilidade, Coletas, Estoque e Acerola; não entram no pacote nem no GitHub).</p>',
-     'Pode ser nessa ordem?', [], ''),
+    ('X01', 'Centralizar: agora centraliza tudo e só desfaz quando todas já estão', G1,
+     '<p>O Grok viu que <b>Centralizar</b> invertia: com várias células escolhidas e só algumas já centralizadas, o botão tirava o centro das que estavam certas. Agora funciona como o Excel: <b>põe todas no centro</b>; só quando <b>todas</b> já estão no centro é que o clique tira. Vale também para Esquerda e Direita. Tem teste.</p>',
+     'Confirma que ficou certo?', [('Quatro linhas escolhidas, todas centralizadas (desfazer: "Centralizar")', 'depois-centralizar')], 'um'),
+    ('X02', 'Cópia do quadro leva a rubrica e cola sempre dentro da tela', G1,
+     '<p>Duas coisas do Grok no B02: (1) ao copiar uma assinatura e colar, <b>a rubrica sumia</b>, ainda mais depois de recarregar; agora a rubrica <b>vai junto com a cópia</b>, mesmo depois de recarregar a página (ela fica guardada só neste aparelho). (2) A terceira cópia caía <b>fora da tela</b>; agora o EFCdocs procura o primeiro lugar livre <b>dentro da parte que você está vendo</b>. Tem teste: cinco colagens seguidas, todas visíveis e sem uma em cima da outra.</p>',
+     'Confirma? (Para testar: copie uma assinatura com rubrica, recarregue e cole três vezes.)', [], ''),
+    ('X03', 'Painel "Verificação", dica sem bolinha verde e o exemplo "só um modelo"', G1,
+     '<p>O painel agora se chama <b>Verificação · 1 dica</b> (e não mais "Problemas"), e uma <b>dica sozinha não acende a bolinha</b> do botão (a bolinha só aparece com erro ou aviso). No ajuda da função, o exemplo ganhou a frase <b>"só um modelo: troque as colunas e os valores pelos da sua planilha"</b>, porque o Grok achou que o D2:D30 do SOMASE parecia fixo. A <b>cor do cursor</b> também ficou certa: o cursor não pisca mais atrás das letras.</p>',
+     'Está claro agora?', [('Painel Verificação com uma dica', 'depois-verificacao'), ('Ajuda do SOMASE com a nota', 'depois-formula')], 'um'),
+    ('W03', 'Alça do menu mais fina, que sai um pouco ao chegar o mouse ou o dedo; ☰ igual', G2,
+     '<p>Como você pediu: a alça ficou <b>bem mais fina (7 px)</b> e, ao <b>passar o mouse ou tocar</b>, ela <b>sai um pouco</b> (e fica mais escura, com a setinha) para ajudar a puxar, com animação suave. Dá para <b>puxar para o lado</b> ou clicar. O <b>☰</b> do topo agora faz exatamente o mesmo que a alça (menu fixo, não gaveta). No celular continua entrar e sair.</p>',
+     'Ficou do tamanho e do jeito que você imaginou? Mais fina ainda, ou sai mais ao chegar perto?',
+     [('Antes (v0.4.9): repouso e mouse em cima', 'alca-antes'), ('Depois (v0.4.9): repouso e mouse em cima', 'alca-depois')], 'um'),
+    ('W09', 'Aviso no canto direito, mais baixo, mais largo e levemente arredondado', G2,
+     '<p>O aviso foi para o <b>canto de baixo à direita</b>, ficou <b>mais baixo e mais largo</b> e com <b>cantos levemente arredondados</b> (5 px). Quando o painel Verificação está aberto no quadro, o aviso se desloca para não ficar por cima.</p>',
+     'Ficou como você queria?', [('Antes', 'antes-aviso'), ('Depois', 'depois-aviso')], 'par'),
+    ('L02', 'Início com cartões grandes que são uma prévia em branco (sua ideia)', G2,
+     '<p>No Início, "Nova planilha / documento / quadro" agora são <b>cartões grandes com a prévia do arquivo em branco</b>: grade para a planilha, folha com linhas de texto para o documento, fundo pontilhado com post-its para o quadro. O Documento mostra o selo dourado <b>v0.7.0</b> (ainda não abre). Se não houver arquivo, a frase é <b>"Comece criando uma planilha. Tudo fica salvo neste aparelho."</b></p>',
+     'Gostou dos cartões? Quer a prévia maior, ou com o nome do arquivo escrito por cima?', [('Antes', 'antes-inicio'), ('Depois', 'depois-inicio')], 'par'),
+    ('L04', 'Menu como o do Google Drive', G2,
+     '<p>O menu agora segue o <b>Google Drive</b>: o <b>☰</b> no topo alterna entre menu com nomes e só ícones; o botão grande <b>+ Novo</b> abre as três opções (Planilha, Documento, Quadro); depois vêm <b>Início</b>, <b>Meus arquivos</b> (Planilhas, Documentos, Quadros) e <b>Organizar</b> (Pastas, Documentos externos, ainda "em breve"); a <b>Lixeira</b> e o <b>Esconder menu</b> ficam embaixo, e o texto pequeno do logo saiu para caber o ☰.</p>',
+     'O menu está do jeito que você imaginou? Falta algo (Compartilhados comigo, Recentes)?',
+     [('Antes', 'antes-menu'), ('Depois, menu completo', 'depois-menu'), ('Botão Novo aberto', 'depois-menu-novo'), ('Depois, só ícones', 'depois-menu-icones')], 'par'),
+    ('L06', 'Ícones da faixa maiores e coloridos por família', G2,
+     '<p>Os ícones da faixa ficaram <b>maiores</b> (os grandes 26 px) e <b>coloridos por família</b>: área de transferência em azul, fonte em roxo, alinhamento em cinza-petróleo, número em azul, células em verde, edição em vermelho/rosa. A altura da faixa <b>não mudou</b>.</p>',
+     'Gostou das cores? Quer mais fortes, mais suaves, ou uma cor só (petróleo)?', [('Antes', 'antes-faixa'), ('Depois', 'depois-faixa')], 'um'),
+    ('L07', 'Celular: uma barra rápida só e botão "Abas"', G2,
+     '<p>No celular, em vez de abas + faixa + barra de baixo ocupando a tela, fica <b>uma única barra rápida</b> (negrito, itálico, sublinhado, cor, preenchimento, alinhar, moeda, soma, desfazer, refazer) e um botão <b>Abas</b> no fim. Tocando em Abas, abrem as abas e a faixa completa; tocando de novo, fecham. A planilha ganha bastante espaço.</p>',
+     'No celular de verdade, ficou fácil? Quais botões você mais usa e quer na barra rápida?',
+     [('Antes', 'antes-cel-planilha'), ('Depois (barra rápida)', 'depois-cel-planilha'), ('Depois, Abas aberto', 'depois-cel-abas'), ('Início no celular', 'depois-cel-inicio')], 'par'),
+    ('L09', 'Temas agrupados em Claros e Escuros, com miniatura e "Ver todos"', G2,
+     '<p>Em Opções › Tema, os temas aparecem em dois grupos, <b>Claros</b> (Papel, Claro, Névoa) e <b>Escuros</b> (Escuro, Ardósia, Petróleo), cada um com uma <b>miniatura</b>. O botão <b>Ver todos os 18 temas</b> mostra o resto, também separado em claros e escuros.</p>',
+     'Ficou fácil de escolher? Quer outros temas em destaque?', [('Antes', 'antes-temas'), ('Depois', 'depois-temas')], 'par'),
+    ('B03', 'Mensagem "Aberto em outra aba" sem outra aba aberta', G3,
+     '<p>Continua sem aparecer nos meus testes (o Chrome 156 reabre as abas antigas junto com a nova). Já reduzi a trava para 90 s e o aviso tem <b>Editar aqui</b>. Se você ou o Grok virem de novo, anotem: <b>navegador, se reabriu abas sozinho, e há quanto tempo fechou a anterior</b>. O roteiro do Grok pede isso.</p>',
+     'Voltou a aparecer nesta versão?', [], ''),
+    ('W06', 'Sem resposta na v0.4.9: nome "Quadros" e textos sem jargão', G3,
+     '<p>O Grok achou tudo certo; mas você ainda não respondeu. O menu diz <b>Quadros</b>, o rodapé diz <b>"Salvo neste aparelho"</b> e <b>Tamanho</b>.</p>', 'Está bom assim?', [], ''),
+    ('V01', 'Publicação da v0.4.9', G4,
+     '<p>Depois da sua aprovação, publico a v0.4.9 no GitHub (commit só com esta versão). Nada vai antes disso.</p>', 'Pode publicar? (marque Aprovado e diga se quer algum ajuste antes, principalmente W03, L04 e L07)', [], ''),
+    ('V02', 'Próxima versão: v0.5.0 com Opus 5.5 · esforço alto', G4,
+     '<p><b>v0.5.0 (Opus 5.5 · alto)</b>: abrir e salvar <b>.xlsx</b> com os seus 4 arquivos (Potabilidade, Coletas, Estoque e Acerola). Macros, tabelas dinâmicas, gráficos e controles não serão preservados nesta etapa; um <b>relatório</b> dirá o que ficou de fora. Os arquivos <b>não entram</b> no pacote nem no GitHub. Depois, v0.6.0 gráficos, v0.7.0 Docx e assinatura, v0.8.0 pastas e nuvens.</p>',
+     'Posso seguir para a v0.5.0 com o Opus 5.5 em esforço alto, depois da aprovação desta?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
     f'<div class="nums"><span>{sys.argv[4]} testes de regras</span><span>{sys.argv[5]} testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>A v0.4.8 é o <b>visual novo</b>: tema Papel claro (dourado só como marca), "papel sobre a mesa" com sombras e contorno (três acabamentos para você escolher), menu e avisos mais limpos, um nome só (Quadros) e a Verificação sempre no mesmo lugar.</li>'
-    '<li>Corrigi os 3 defeitos do Grok (B01, B02 e um passo no B03; este ainda precisa de dados).</li>'
-    '<li>Juntos vão o <b>prompt do ícone (Nano Banana)</b> e o <b>estudo de ligar OneDrive, Google Drive e Terabox</b>.</li>'
+    '<li>A v0.4.9 <b>corrige o que o Grok achou</b> (Centralizar, rubrica na cópia, colar dentro da tela, painel Verificação, cursor) e faz os seus pedidos: <b>alça menor que sai ao chegar perto, aviso à direita, cartões de prévia no Início, menu estilo Drive, ícones coloridos, barra rápida no celular e temas agrupados</b>.</li>'
+    '<li>Aprove ou reprove cada item abaixo; no fim, o botão gera as suas respostas para você colar na conversa.</li>'
     '<li>Nada foi publicado. Nada a configurar no Firebase.</li>'
     '</ul>'
 )
@@ -93,7 +86,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Visual novo: Papel sobre a mesa')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Menu, avisos, Início, ícones, celular e temas')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

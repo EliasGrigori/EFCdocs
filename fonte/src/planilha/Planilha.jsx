@@ -1062,6 +1062,13 @@ export function Planilha({ arquivo, cx }) {
     const lote = O.mudarEstilo(c, abaId, sel.faixas, fn);
     aplicarLote(lote, rotulo);
   };
+  /* Alinhar: se todas as células escolhidas já estão nesse alinhamento, desfaz; senão põe em todas
+     (antes cada célula alternava sozinha e o cabeçalho que estava certo saía do lugar). */
+  const alinharSel = (valor, rotulo) => {
+    let todas = true;
+    O.mudarEstilo(c, abaId, sel.faixas, (e) => { if (e.al !== valor) todas = false; return e; });
+    formatarSel((e) => ({ ...e, al: todas ? undefined : valor }), rotulo);
+  };
   const alternarEstilo = (campo, rotulo) => {
     const ligado = !!estiloAtivo[campo];
     formatarSel((e) => { const n = { ...e }; if (ligado) delete n[campo]; else n[campo] = 1; return n; }, rotulo);
@@ -1451,9 +1458,9 @@ export function Planilha({ arquivo, cx }) {
       case 'formatar.corFonte': return ed(() => setJanela({ tipo: 'corFonte' }));
       case 'formatar.preenchimento': return ed(() => setJanela({ tipo: 'fundo' }));
       case 'formatar.bordas': return ed(() => abrirMenuBordas());
-      case 'formatar.esquerda': return ed(() => formatarSel((e) => ({ ...e, al: e.al === 'e' ? undefined : 'e' }), 'Alinhar à esquerda'));
-      case 'formatar.centro': return ed(() => formatarSel((e) => ({ ...e, al: e.al === 'c' ? undefined : 'c' }), 'Centralizar'));
-      case 'formatar.direita': return ed(() => formatarSel((e) => ({ ...e, al: e.al === 'd' ? undefined : 'd' }), 'Alinhar à direita'));
+      case 'formatar.esquerda': return ed(() => alinharSel('e', 'Alinhar à esquerda'));
+      case 'formatar.centro': return ed(() => alinharSel('c', 'Centralizar'));
+      case 'formatar.direita': return ed(() => alinharSel('d', 'Alinhar à direita'));
       case 'formatar.quebrar': return ed(() => alternarEstilo('qb', 'Quebrar texto'));
       case 'formatar.mesclar': return ed(() => alternarMescla());
       case 'formatar.moeda': return ed(() => formatarSel((e) => ({ ...e, nf: FORMATO_MOEDA }), 'Formato moeda'));

@@ -1,95 +1,86 @@
-/* EFCdocs — prints de antes (v0.4.7 em /v047/) e depois (v0.4.8) para a página de aprovação.
+/* EFCdocs — prints de antes (v0.4.8 em /v048/) e depois (v0.4.9) para a página de aprovação.
    Uso: node scripts/prints-aprovacao.mjs <endereço> <pasta> */
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 const BASE = process.argv[2], OUT = process.argv[3];
 mkdirSync(OUT, { recursive: true });
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome', env: { ...process.env, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' } });
 const PC = { viewport: { width: 1366, height: 800 } };
+const CEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 const espera = (p, ms = 150) => p.waitForTimeout(ms);
-const medidas = {};
-const DADOS = [['Ponto', 'Cloro (mg/L)', 'pH', 'Turbidez'], ['Entrada', '1,2', '7,1', '0,8'], ['Reservatório', '1,0', '7,3', '0,5'], ['Rede 1', '0,8', '7,2', '0,6'], ['Rede 2', '0,7', '7,4', '0,9']];
+const DADOS = [['Ponto', 'Cloro (mg/L)', 'pH', 'Turbidez'], ['Entrada', '1,2', '7,1', '0,8'], ['Reservatório', '1,0', '7,3', '0,5'], ['Rede 1', '0,8', '7,2', '0,6']];
 const irPara = async (p, ref) => { await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill(ref); await p.locator('.pl-nome').press('Enter'); await espera(p, 120); };
-async function planilha(raiz, extra = '') {
-  const ctx = await b.newContext(PC); const p = await ctx.newPage();
-  await p.goto(raiz + '#/planilha'); await espera(p, 600);
-  await p.click('[data-novo=planilha]'); await p.waitForSelector('.pl-cv'); await espera(p, 400);
+async function nova(raiz, opc = PC, abas = false) {
+  const ctx = await b.newContext(opc);
+  if (abas) await ctx.addInitScript(() => { globalThis.EFC_CEL_ABAS = true; });
+  const p = await ctx.newPage();
+  await p.goto(raiz + '#/'); await espera(p, 700);
+  return p;
+}
+async function planilha(p, cel = false) {
+  await p.goto(p.url().split('#')[0] + '#/planilha'); await espera(p, 400);
+  if (cel) await p.locator('[data-novo=planilha]').first().tap(); else await p.click('[data-novo=planilha]');
+  await p.waitForSelector('.pl-cv'); await espera(p, 400);
   for (let i = 0; i < DADOS.length; i++) {
     await irPara(p, 'A' + (i + 1));
     for (const c of DADOS[i]) { await p.keyboard.type(c); await p.keyboard.press('Tab'); }
     await espera(p, 60);
   }
-  await irPara(p, 'F2'); await p.keyboard.type('='); await espera(p, 250); await p.keyboard.type('B2*1,15'); await p.keyboard.press('Enter'); await espera(p, 200);
-  await irPara(p, 'B2'); await espera(p, 200);
-  return p;
+  await irPara(p, 'A1'); await espera(p, 200);
 }
-const quadro = async (raiz) => {
-  const ctx = await b.newContext(PC); const p = await ctx.newPage();
-  await p.goto(raiz + '#/postits'); await espera(p, 600);
-  await p.click('[data-novo=postits]'); await p.waitForSelector('.qd-vazio'); await espera(p, 300);
-  return p;
-};
-const postit = async (p, texto) => {
-  await p.locator('[data-cmd="inserir.postit"]').first().click(); await p.waitForSelector('textarea.qd-edita');
-  await p.locator('textarea.qd-edita').fill(texto); await p.locator('textarea.qd-edita').press('Control+Enter'); await espera(p, 200);
-};
 const clip = (p, nome, c) => p.screenshot({ path: `${OUT}/${nome}.png`, clip: c });
 const cmd = (p, id) => p.locator(`[data-cmd="${id}"]`).first().click();
 
-/* antes: v0.4.7 */
-{
-  const p = await planilha(BASE + 'v047/');
-  await p.screenshot({ path: `${OUT}/antes-tela.png` });
-  await clip(p, 'antes-canto', { x: 0, y: 0, width: 520, height: 230 });
-  await p.click('[data-menu-ocultar]'); await espera(p, 300);
-  await clip(p, 'antes-alca', { x: 0, y: 300, width: 520, height: 200 });
-  const q = await quadro(BASE + 'v047/'); await postit(q, 'Comprar reagente'); await q.keyboard.press('Escape');
-  await q.locator('.qi-postit').click(); await q.keyboard.press('Delete'); await espera(q, 400);
-  await q.screenshot({ path: `${OUT}/antes-aviso.png` });
+for (const [pref, raiz] of [['antes', BASE + 'v048/'], ['depois', BASE]]) {
+  /* Início */
+  let p = await nova(raiz);
+  await p.screenshot({ path: `${OUT}/${pref}-inicio.png` });
+  /* planilha: faixa, menu, alça, aviso */
+  await planilha(p);
+  await clip(p, `${pref}-faixa`, { x: 0, y: 0, width: 1366, height: 230 });
+  await clip(p, `${pref}-menu`, { x: 0, y: 0, width: 260, height: 800 });
+  await p.screenshot({ path: `${OUT}/${pref}-planilha.png` });
+  await p.click('[data-menu-ocultar]'); await espera(p, 400);
+  await clip(p, `${pref}-alca-repouso`, { x: 0, y: 330, width: 300, height: 140 });
+  await p.hover('[data-menu-alca]'); await espera(p, 600);
+  await clip(p, `${pref}-alca-hover`, { x: 0, y: 330, width: 300, height: 140 });
+  await p.click('[data-menu-alca]'); await espera(p, 300);
+  await p.click('.tabs .tab:has-text("Exibir")'); await espera(p, 200);
+  await cmd(p, 'exibir.mesa'); await espera(p, 250);
+  await p.screenshot({ path: `${OUT}/${pref}-aviso.png` });
+  await clip(p, `${pref}-aviso-recorte`, { x: 700, y: 640, width: 666, height: 160 });
+  /* Opções › Tema */
+  await p.locator('.topbar [aria-label="Opções"]').click(); await espera(p, 300);
+  const sec = async (id) => { if (!(await p.locator(`.op-sec[data-sec=${id}].aberta`).count())) await p.locator(`.op-sec[data-sec=${id}] .op-cab`).click(); await espera(p, 250); };
+  await sec('tema');
+  await p.screenshot({ path: `${OUT}/${pref}-temas.png` });
+  await p.close();
+  /* celular */
+  p = await nova(raiz, CEL, pref === 'antes');
+  await p.screenshot({ path: `${OUT}/${pref}-cel-inicio.png` });
+  await planilha(p, true);
+  await p.screenshot({ path: `${OUT}/${pref}-cel-planilha.png` });
+  if (pref === 'depois') {
+    await p.locator('.abas-cel').tap(); await espera(p, 400);
+    await p.screenshot({ path: `${OUT}/depois-cel-abas.png` });
+  }
+  await p.close();
 }
-/* depois: v0.4.8 */
+/* depois: extras */
 {
-  const p = await planilha(BASE);
-  const foto = (n) => p.screenshot({ path: `${OUT}/depois-${n}.png` });
-  await foto('tela'); // padrão: Papel + mesa
-  await clip(p, 'depois-canto', { x: 0, y: 0, width: 520, height: 230 });
-  await clip(p, 'depois-canto-grande', { x: 0, y: 0, width: 360, height: 160 });
-  // acabamentos
-  await p.click('.tabs .tab:has-text("Exibir")'); await espera(p, 250);
-  await foto('exibir');
-  await cmd(p, 'exibir.mesa'); await cmd(p, 'exibir.relevo'); await espera(p, 300); // plano
-  await foto('acab-plano');
-  await cmd(p, 'exibir.relevo'); await espera(p, 300); // só relevo
-  await foto('acab-relevo');
-  await cmd(p, 'exibir.mesa'); await espera(p, 300); // relevo + mesa (padrão)
-  await foto('acab-mesa');
-  await p.click('.tabs .tab:has-text("Página Inicial")'); await espera(p, 200);
-  // Verificação no rodapé (Dica)
-  await p.locator('.pl-lamp, .foot .qd-lamp').first().click(); await espera(p, 400);
-  await foto('verificacao');
-  await p.locator('.pl-lamp, .foot .qd-lamp').first().click(); await espera(p, 200);
-  // Opções
-  await p.locator('.topbar [aria-label="Opções"]').click(); await espera(p, 400);
-  const sec = async (id) => { if (!(await p.locator(`.op-sec[data-sec=${id}].aberta`).count())) await p.locator(`.op-sec[data-sec=${id}] .op-cab`).click(); await espera(p, 200); };
-  await sec('tema'); await foto('opcoes-tema');
-  await p.keyboard.press('Escape'); await espera(p, 200);
-  // menu escondido + alça + ☰
-  await p.click('[data-menu-ocultar]'); await espera(p, 300);
-  await clip(p, 'depois-alca', { x: 0, y: 300, width: 520, height: 200 });
-  await p.click('.topo-alterna'); await espera(p, 300);
-  await foto('maximo');
-  await p.click('.tabs .tab:has-text("Inserir")'); await espera(p, 300);
-  await foto('faixa-temporaria');
-  await p.keyboard.press('Escape');
-  // tema escuro petróleo com mesa (para comparar)
-  const q = await quadro(BASE); await postit(q, 'Comprar reagente'); await q.keyboard.press('Escape');
-  await q.screenshot({ path: `${OUT}/depois-quadro.png` });
-  await q.locator('.qi-postit').click(); await q.keyboard.press('Delete'); await espera(q, 400);
-  await q.screenshot({ path: `${OUT}/depois-aviso.png` });
-  await q.keyboard.press('Control+z'); await espera(q, 400);
-  await clip(q, 'depois-aviso-desfeito', { x: 0, y: 600, width: 700, height: 200 });
-  medidas.avisos = await q.locator('.toast').count();
+  const p = await nova(BASE);
+  await p.click('.rail .novo-drive-b'); await espera(p, 250);
+  await clip(p, 'depois-menu-novo', { x: 0, y: 0, width: 360, height: 360 });
+  await p.click('.rail .novo-drive-b');
+  await p.click('.rail .brand-recolhe'); await espera(p, 350);
+  await clip(p, 'depois-menu-icones', { x: 0, y: 0, width: 120, height: 800 });
+  await p.click('.rail .brand-recolhe'); await espera(p, 300);
+  await planilha(p);
+  /* Centralizar: seleção A1:D4 */
+  await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('A1:D4'); await p.locator('.pl-nome').press('Enter');
+  await cmd(p, 'formatar.centro'); await espera(p, 300);
+  await p.screenshot({ path: `${OUT}/depois-centralizar.png` });
+  await p.close();
 }
-writeFileSync(`${OUT}/medidas.json`, JSON.stringify(medidas, null, 2));
-console.log(medidas);
 await b.close();
+console.log('prints prontos');

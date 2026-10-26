@@ -147,14 +147,42 @@ function SeloDemo({ fichas, demo, cx }) {
   return <button type="button" className={'selo demo-selo ' + (n >= LIMITE_DEMO ? 'warn' : '')} onClick={explicar} title="O que é a demonstração?">Demonstração: {n} de {LIMITE_DEMO} arquivos</button>;
 }
 
+/* v0.4.9 (L02/L05): cartões grandes de criar; cada um é uma prévia em branco do próprio arquivo (papel claro, em qualquer tema) */
+const PREVIA = {
+  planilha: <span className="pv pv-pl" aria-hidden="true"><i className="pv-cab" /><i className="pv-col" /></span>,
+  docx: <span className="pv pv-dc" aria-hidden="true"><i /><i /><i /><i /><i className="curta" /><i /><i /><i className="curta" /></span>,
+  postits: <span className="pv pv-qd" aria-hidden="true"><i className="pv-pit" /><i className="pv-pit b" /><i className="pv-seta" /></span>,
+};
+const FRASE = { planilha: 'Tabela com contas, em português', docx: 'POP, formulário e documento interno', postits: 'Post-its, setas, Kanban e fluxograma' };
+function CartoesInicio({ cx }) {
+  return (
+    <div className="cartoes-novos">
+      {['planilha', 'docx', 'postits'].map((t) => {
+        const bloq = cx.bloqueado(CMD_NOVO[t]);
+        const dica = `${TIPOS[t].novo}|${bloq || DESCRICAO[t] + (TIPOS[t].chega ? ` Editor na ${TIPOS[t].chega}.` : '')}`;
+        return (
+          <button key={t} type="button" className="cartao-novo" disabled={!!bloq} data-novo={t} data-dica={dica} aria-label={TIPOS[t].novo} onClick={() => cx.executar(CMD_NOVO[t])}>
+            {PREVIA[t]}
+            <span className="cn-rod">
+              <span className="ri"><Icone n={t} /></span>
+              <span className="cn-tx"><b>{NOME_CURTO[t]} em branco</b><span>{FRASE[t]}</span></span>
+              {TIPOS[t].chega && <span className="em">{TIPOS[t].chega}</span>}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Inicio({ fichas, cx, demo }) {
   const lista = maisRecentes(ativos(fichas));
   return (
     <div className="pagina">
       <div className="secao topo"><h3>Novo</h3><SeloDemo fichas={fichas} demo={demo} cx={cx} /></div>
-      <BotoesNovo tipos={['planilha', 'docx', 'postits']} cx={cx} />
+      <CartoesInicio cx={cx} />
       <ListaFiltrada chave="inicio" titulo="Recentes" unidade={['arquivo', 'arquivos']} todos={lista} tipos={['planilha', 'docx', 'postits']} cx={cx}
-        vazio="Nenhum arquivo ainda. Tudo o que você criar fica guardado neste aparelho." />
+        vazio="Comece criando uma planilha. Tudo fica salvo neste aparelho." />
       {cx.instalar && <button type="button" className="btn sm instalar" onClick={cx.instalar}><Icone n="instalar" />Instalar o EFCdocs neste aparelho</button>}
     </div>
   );

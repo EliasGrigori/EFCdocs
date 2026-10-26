@@ -87,7 +87,7 @@ export function AjudaFormula({ ctxCursor, sugest, selSug, aoEscolher, problemas,
           </div>
           {sig.atual && <div className="pl-sig-d"><b>{sig.atual.n}</b>: {sig.atual.d}</div>}
           {!sig.atual && ctxCursor.fechada && <div className="pl-sig-d">{f.desc}</div>}
-          <div className="pl-sig-e">Exemplo: <code>{f.ex}</code></div>
+          <div className="pl-sig-e">Exemplo: <code>{f.ex}</code> <span className="pl-sig-n">(só um modelo: troque as colunas e os valores pelos da sua planilha)</span></div>
         </div>
       )}
       {erros.length > 0 && (

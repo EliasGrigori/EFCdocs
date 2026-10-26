@@ -2936,3 +2936,125 @@ body.mesa .tabs .tab.active { box-shadow: none; }
 .iconbtn[aria-label="Abrir menu"] svg { width: 26px; height: 26px; stroke-width: 2.4; }
 .iconbtn[aria-label="Abrir menu"]:hover { background: var(--row-hover); color: var(--primary); }
 .tabs.compacta .tb-mini .iconbtn[aria-label="Abrir menu"] { width: 36px; height: 36px; }
+
+/* v0.4.9: no tema Papel o dourado não vira letra: selos de aviso e de versão usam tinta escura sobre fundo âmbar claro */
+body[data-theme=papel] .selo.warn, body[data-theme=papel] .novo .em { background: #fbf1da; color: #6b4a00; border-color: #e3cf9a; }
+
+/* ---------- v0.4.9: alça do menu escondido (fina; ao chegar o mouse ou tocar, sai um pouco; animação suave) ---------- */
+.menu-alca {
+  width: 7px; height: 56px; opacity: 1; background: var(--primary); color: transparent; border: 0; border-radius: 0 4px 4px 0;
+  box-shadow: 1px 0 5px rgba(12, 28, 38, .30); padding: 0; position: fixed; overflow: visible;
+  transition: width .28s cubic-bezier(.22, .8, .28, 1), box-shadow .28s ease, filter .2s ease, color .18s ease .08s;
+}
+.menu-alca::before { content: ''; position: absolute; left: 0; top: -14px; bottom: -14px; width: 26px; } /* área de pegar maior que o traço */
+.menu-alca svg { width: 16px; height: 16px; opacity: 0; transform: translateX(-4px); transition: opacity .2s ease .08s, transform .28s cubic-bezier(.22, .8, .28, 1); }
+.menu-alca:hover, .menu-alca:focus-visible { width: 22px; color: var(--on-primary); filter: none; box-shadow: 2px 2px 9px rgba(12, 28, 38, .38); }
+.menu-alca:hover svg, .menu-alca:focus-visible svg, .menu-alca.puxa svg { opacity: 1; transform: none; }
+.menu-alca.puxa { width: 30px; color: var(--on-primary); box-shadow: 3px 2px 12px rgba(12, 28, 38, .42); }
+@media (prefers-reduced-motion: reduce) { .menu-alca, .menu-alca svg { transition: none; } }
+
+/* ---------- v0.4.9: aviso no canto de baixo à direita, mais baixo e mais largo, cantos levemente arredondados ---------- */
+.toasts { left: auto; right: 16px; transform: none; width: min(460px, calc(100% - 32px)); }
+.toasts[data-menu] { left: auto; }
+.toast { padding: 6px 12px; align-items: center; border-radius: 5px; min-height: 34px; }
+.toast svg { margin-top: 0; }
+body:has(.qd-assist) .toasts { right: 490px; }
+.toasts[data-menu=cel] { left: 50%; right: auto; transform: translate(-50%); width: min(440px, calc(100% - 24px)); }
+body:has(.qd-assist) .toasts[data-menu=cel] { right: auto; }
+
+/* ---------- v0.4.9 (L02/L05): cartões grandes de criar, com prévia em branco do arquivo ---------- */
+.cartoes-novos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 880px; margin-bottom: 8px; }
+.cartao-novo {
+  display: flex; flex-direction: column; text-align: left; padding: 0; overflow: hidden; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--r-card); cursor: pointer; transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+body.mesa .cartao-novo, body.relevo .cartao-novo { box-shadow: 0 1px 2px rgba(12, 28, 38, .12), 0 6px 14px -8px rgba(12, 28, 38, .35); }
+.cartao-novo:hover:not(:disabled) { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 2px 4px rgba(12, 28, 38, .14), 0 12px 22px -10px rgba(12, 28, 38, .45); }
+.cartao-novo:disabled { opacity: .55; cursor: not-allowed; }
+.cartao-novo .pv { display: block; position: relative; height: 128px; margin: 12px 12px 0; background: #fff; border: 1px solid #cdd5dc; box-shadow: 0 2px 6px rgba(12, 28, 38, .16); overflow: hidden; }
+.cartao-novo .pv-pl { background-color: #fff; background-image: repeating-linear-gradient(0deg, #dfe4e9 0 1px, transparent 1px 16px), repeating-linear-gradient(90deg, #dfe4e9 0 1px, transparent 1px 44px); background-position: 0 14px, 22px 0; }
+.cartao-novo .pv-pl .pv-cab { position: absolute; left: 0; right: 0; top: 0; height: 14px; background: #eef1f4; border-bottom: 1px solid #cdd5dc; }
+.cartao-novo .pv-pl .pv-col { position: absolute; left: 0; top: 0; bottom: 0; width: 22px; background: #eef1f4; border-right: 1px solid #cdd5dc; }
+.cartao-novo .pv-dc { background: #fff; padding: 16px 22px; display: flex; flex-direction: column; gap: 7px; }
+.cartao-novo .pv-dc i { display: block; height: 4px; background: #d5dbe1; }
+.cartao-novo .pv-dc i.curta { width: 62%; }
+.cartao-novo .pv-qd { background-color: #fbfcfd; background-image: radial-gradient(#c3ccd4 1px, transparent 1.2px); background-size: 12px 12px; }
+.cartao-novo .pv-pit { position: absolute; left: 26px; top: 24px; width: 46px; height: 46px; background: #fde58a; box-shadow: 1px 2px 4px rgba(12, 28, 38, .25); }
+.cartao-novo .pv-pit.b { left: auto; right: 30px; top: 58px; width: 40px; height: 40px; background: #bfe3d0; }
+.cartao-novo .pv-seta { position: absolute; left: 74px; top: 46px; width: 44px; height: 2px; background: #7b8a96; transform: rotate(20deg); transform-origin: left center; }
+.cartao-novo .cn-rod { display: flex; align-items: center; gap: 10px; padding: 12px; }
+.cartao-novo .cn-rod .ri { width: 30px; height: 30px; display: grid; place-items: center; color: var(--primary); }
+.cartao-novo .cn-rod .ri svg { width: 22px; height: 22px; }
+.cartao-novo .cn-tx { display: flex; flex-direction: column; min-width: 0; }
+.cartao-novo .cn-tx b { font-size: 14px; }
+.cartao-novo .cn-tx span { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cartao-novo .em { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--warn); border: 1px solid currentColor; border-radius: var(--r-chip); padding: 0 4px; }
+.app.cel .cartoes-novos { grid-template-columns: 1fr; gap: 10px; }
+.app.cel .cartao-novo { flex-direction: row; align-items: center; }
+.app.cel .cartao-novo .pv { width: 96px; height: 70px; margin: 10px 0 10px 10px; flex: 0 0 auto; }
+.app.cel .cartao-novo .pv-pit { left: 12px; top: 12px; width: 26px; height: 26px; }
+.app.cel .cartao-novo .pv-pit.b { right: 10px; top: 34px; width: 24px; height: 24px; }
+.app.cel .cartao-novo .pv-seta { left: 40px; top: 26px; width: 24px; }
+.app.cel .cartao-novo .pv-dc { padding: 10px 12px; gap: 5px; }
+.app.cel .cartao-novo .cn-rod { padding: 10px; flex: 1; min-width: 0; }
+@media (max-width: 760px) { .cartoes-novos { grid-template-columns: 1fr; } .cartao-novo { flex-direction: row; align-items: center; } .cartao-novo .pv { width: 96px; height: 70px; margin: 10px 0 10px 10px; flex: 0 0 auto; } }
+
+/* ---------- v0.4.9 (L04): menu como o do Drive ---------- */
+.brand-recolhe { flex: none; }
+.rail .brand { margin-bottom: 8px; }
+.novo-drive { position: relative; margin: 0 2px 10px; }
+.novo-drive-b { width: 100%; justify-content: flex-start; gap: 10px; min-height: 40px; padding: 0 12px; font-weight: 700; }
+.novo-drive-b svg { width: 18px; height: 18px; }
+.novo-drive-m { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; padding: 4px; display: grid; gap: 1px; box-shadow: var(--shadow); }
+.novo-drive-m button { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px; border-radius: var(--r-ctl); font-size: 13.5px; font-weight: 600; text-align: left; }
+.novo-drive-m button:hover:not(:disabled) { background: var(--row-hover); }
+.novo-drive-m button:disabled { opacity: .5; }
+.novo-drive-m svg { width: 18px; height: 18px; color: var(--primary); }
+.rail .rail-baixo { margin-top: auto; display: grid; gap: 2px; padding-top: 8px; border-top: 1px solid var(--border); }
+.rail .rail-baixo + .rail-user { margin-top: 8px; }
+.app[data-menu=icones] .novo-drive-b span { display: none; }
+.app[data-menu=icones] .novo-drive-b { justify-content: center; padding: 0; }
+.app[data-menu=icones] .rail .rail-baixo { justify-items: center; }
+.app[data-menu=icones] .novo-drive { width: 44px; }
+.app[data-menu=icones] .novo-drive-m { right: auto; width: 150px; }
+
+/* ---------- v0.4.9 (L06): ícones da faixa maiores e coloridos, uma cor por família de comandos ---------- */
+.ribbon { --fam-editar: #3d7dca; --fam-formatar: #8a5cc2; --fam-planilha: #1f9d6b; --fam-inserir: #d0742a; --fam-formula: #c0457a; --fam-dados: #139aa6; --fam-revisao: #6b7bd1; --fam-exibir: #6f8a3a; --fam-arquivo: #4f7aa6; }
+.ribbon [data-fam=editar] svg { color: var(--fam-editar); }
+.ribbon [data-fam=formatar] svg { color: var(--fam-formatar); }
+.ribbon [data-fam=planilha] svg, .ribbon [data-fam=quadro] svg { color: var(--fam-planilha); }
+.ribbon [data-fam=inserir] svg { color: var(--fam-inserir); }
+.ribbon [data-fam=formula] svg { color: var(--fam-formula); }
+.ribbon [data-fam=dados] svg { color: var(--fam-dados); }
+.ribbon [data-fam=revisao] svg { color: var(--fam-revisao); }
+.ribbon [data-fam=exibir] svg { color: var(--fam-exibir); }
+.ribbon [data-fam=arquivo] svg { color: var(--fam-arquivo); }
+.ribbon .rbb.on svg, .ribbon .rbs.on svg, .ribbon .rbi.on svg { color: var(--primary); }
+.ribbon .rbb svg { width: 26px; height: 26px; }
+.ribbon .rbs svg { width: 18px; height: 18px; }
+.ribbon .rbi svg { width: 19px; height: 19px; }
+.ribbon .rbb:disabled svg, .ribbon .rbs:disabled svg, .ribbon .rbi:disabled svg { opacity: .5; }
+
+/* ---------- v0.4.9 (L07): barra rápida do celular (uma barra só; "Abas" abre o resto) ---------- */
+.tbar.cel-rapida { border-top: 0; padding: 4px 6px; background: var(--surface); }
+.tbar.cel-rapida .rbi { width: 40px; height: 40px; flex: none; }
+.tbar.cel-rapida .rbi svg { width: 21px; height: 21px; }
+.tbar .abas-cel { flex: none; min-height: 40px; padding: 0 10px; border-radius: var(--r-ctl); font-weight: 700; color: var(--primary); }
+.tbar .abas-cel.on { background: var(--primary-soft); }
+
+/* ---------- v0.4.9 (L09): temas em Claros e Escuros, com miniatura da tela ---------- */
+.temas-grupo { margin: 4px 0 6px; }
+.temas-rot { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-dim); margin: 6px 0 4px; }
+.tema-b i.mini {
+  width: 38px; height: 26px; border-radius: 0; border: 1px solid rgba(0, 0, 0, .22); flex: none; position: relative; overflow: hidden;
+  background:
+    linear-gradient(var(--ta), var(--ta)) 8px 8px / 20px 3px no-repeat,
+    linear-gradient(var(--ta), var(--ta)) 8px 14px / 12px 2px no-repeat,
+    linear-gradient(rgba(127, 127, 127, .45), rgba(127, 127, 127, .45)) 0 0 / 100% 5px no-repeat,
+    linear-gradient(rgba(127, 127, 127, .35), rgba(127, 127, 127, .35)) 0 5px / 6px 100% no-repeat,
+    var(--tb);
+}
+.opcoes .temas-grupo .temas { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.opcoes .temas-grupo .tema-b { min-height: 40px; gap: 8px; }
+.ver-todos { margin: 4px 0 8px; }
+.rail .brand-sub { display: none; } /* v0.4.9: com o ☰ do menu não sobra largura para a linha pequena */

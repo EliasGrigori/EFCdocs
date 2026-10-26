@@ -1,10 +1,15 @@
 /* EFCdocs — menu lateral (igual ao .rail do EFClaudian), gaveta do celular e barra de baixo do celular. */
+import { useState } from 'react';
 import { PERFIS } from '../nucleo/perfis.js';
 import { Icone, Marca, irPara } from './comum.jsx';
 
 const PRINCIPAIS = [['', 'casa', 'Início'], ['planilha', 'planilha', 'Planilhas'], ['docx', 'docx', 'Documentos'], ['postits', 'postits', 'Quadros']];
-/* [rota, ícone, nome, versão em que chega] */
-const ORGANIZAR = [['pastas', 'pasta', 'Pastas', 'v0.8.0'], ['externos', 'externo', 'Documentos externos', 'v0.8.0'], ['lixeira', 'lixeira', 'Lixeira']];
+/* v0.4.9 (L04): como o Drive: Início, "Meus arquivos", Organizar e a Lixeira embaixo. [rota, ícone, nome, versão em que chega] */
+const INICIO = PRINCIPAIS[0];
+const MEUS = PRINCIPAIS.slice(1);
+const ORGANIZAR = [['pastas', 'pasta', 'Pastas', 'v0.8.0'], ['externos', 'externo', 'Documentos externos', 'v0.8.0']];
+const LIXEIRA = ['lixeira', 'lixeira', 'Lixeira'];
+const NOVOS = [['arquivo.novaPlanilha', 'planilha', 'Planilha', 'planilha'], ['arquivo.novoDocumento', 'docx', 'Documento', 'docx'], ['arquivo.novoQuadro', 'postits', 'Quadro', 'postits']];
 
 const ativo = (rota, modAtual, alvo) => (alvo === '' ? rota === '' : rota === alvo || (modAtual === alvo && rota.startsWith('arq/')));
 
@@ -21,9 +26,15 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
     </a>
   );
   const recolhido = prefs.menu === 'icones';
+  const [novoAberto, setNovoAberto] = useState(false);
   return (
     <nav className={gaveta ? 'gaveta' : 'rail'} aria-label="Menu principal">
       <div className="brand">
+        {!gaveta && (
+          <button type="button" className="iconbtn brand-recolhe" title={recolhido ? 'Abrir o menu completo' : 'Recolher o menu (só ícones)'}
+            aria-label={recolhido ? 'Abrir o menu completo' : 'Recolher o menu (só ícones)'}
+            onClick={() => cx.executar(recolhido ? 'exibir.menuCompleto' : 'exibir.menuIcones')}><Icone n="menu" /></button>
+        )}
         <Marca className="brand-mark" />
         <div className="brand-txt">
           <div className="brand-name">EFCdocs</div>
@@ -31,22 +42,32 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
         </div>
         {gaveta && <button type="button" className="iconbtn" aria-label="Fechar menu" onClick={fechar}><Icone n="x" /></button>}
       </div>
-      {PRINCIPAIS.map(link)}
+      <div className="novo-drive">
+        <button type="button" className="btn primary novo-drive-b" aria-expanded={novoAberto} aria-haspopup="menu" title="Criar um arquivo novo" onClick={() => setNovoAberto(!novoAberto)}>
+          <Icone n="plus" /><span>Novo</span>
+        </button>
+        {novoAberto && (
+          <div className="novo-drive-m card" role="menu" onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setNovoAberto(false); } }}>
+            {NOVOS.map(([cmd, ic, nome, t]) => (
+              <button key={t} type="button" role="menuitem" disabled={!!cx.bloqueado(cmd)} onClick={() => { setNovoAberto(false); if (fechar) fechar(); cx.executar(cmd); }}><Icone n={ic} />{nome}</button>
+            ))}
+          </div>
+        )}
+      </div>
+      {link(INICIO)}
+      <div className="rail-sep">Meus arquivos</div>
+      {MEUS.map(link)}
       <div className="rail-sep">Organizar</div>
       {ORGANIZAR.map(link)}
-      {!gaveta && (
-        <button type="button" className="rn recolhe" title={recolhido ? 'Abrir o menu completo' : 'Recolher o menu (só ícones)'}
-          aria-label={recolhido ? 'Abrir o menu completo' : 'Recolher o menu (só ícones)'}
-          onClick={() => cx.executar(recolhido ? 'exibir.menuCompleto' : 'exibir.menuIcones')}>
-          <Icone n="recolher" /><span>Recolher menu</span>
-        </button>
-      )}
-      {!gaveta && (
-        <button type="button" className="rn oculta-menu" data-menu-ocultar title="Esconder o menu (a tela fica toda para o arquivo). Para voltar, use a setinha na borda esquerda."
-          aria-label="Esconder o menu lateral" onClick={() => cx.executar('exibir.menuOculto')}>
-          <Icone n="tela" /><span>Esconder menu</span>
-        </button>
-      )}
+      <div className="rail-baixo">
+        {link(LIXEIRA)}
+        {!gaveta && (
+          <button type="button" className="rn oculta-menu" data-menu-ocultar title="Esconder o menu (a tela fica toda para o arquivo). Para voltar, use a setinha na borda esquerda."
+            aria-label="Esconder o menu lateral" onClick={() => cx.executar('exibir.menuOculto')}>
+            <Icone n="tela" /><span>Esconder menu</span>
+          </button>
+        )}
+      </div>
       <button type="button" className="rail-user" title="Perfil de teste (muda em Opções)" onClick={() => cx.executar('app.opcoes')}>
         <span className="av">EF</span>
         <div><b>Neste aparelho</b><span>Perfil de teste: {PERFIS[prefs.perfil].nome}</span></div>

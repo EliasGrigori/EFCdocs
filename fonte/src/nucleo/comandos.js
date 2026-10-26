@@ -109,7 +109,7 @@ export const COMANDOS = [
   C('formula.autosoma', 'AutoSoma', 'soma', { sin: ['somar', 'total', 'soma'], chega: V4, mods: ['planilha'] }),
   C('formula.explicar', 'Explicar esta conta', 'explicar', { sin: ['entender fórmula', 'por que deu erro', 'erro na fórmula', 'avaliar fórmula'], chega: 'v0.4.3', mods: ['planilha'] }),
   C('formula.fluxo', 'Desenhar a conta (fluxograma)', 'fluxoConta', { sin: ['fluxograma da conta', 'de onde vem', 'mapa da fórmula', 'diagrama'], chega: 'v0.4.3', mods: ['planilha'] }),
-  C('formula.problemas', 'Problemas da planilha', 'lampada', { sin: ['erros', 'pendências', 'verificar planilha', 'revisar', 'assistente'], chega: 'v0.4.3', mods: ['planilha'] }),
+  C('formula.problemas', 'Verificação da planilha', 'lampada', { sin: ['erros', 'pendências', 'verificar planilha', 'revisar', 'assistente'], chega: 'v0.4.3', mods: ['planilha'] }),
   C('formula.montar', 'Montar a conta por pergunta', 'pergunta', { sin: ['receita', 'como faço', 'contar quantos', 'somar quando', 'quero calcular', 'assistente de fórmula'], chega: 'v0.4.3', mods: ['planilha'], acao: 'planilha.editar' }),
   C('formula.origem', 'De onde vem / quem usa esta célula', 'origem', { sin: ['rastrear precedentes', 'dependentes', 'referências', 'quem usa', 'para onde vai'], chega: V4, mods: ['planilha'] }),
   C('formula.nome', 'Dar nome à seleção', 'renomear', { sin: ['nome definido', 'meta', 'gerenciador de nomes', 'apelido da célula'], chega: V4, mods: ['planilha'], acao: 'planilha.editar' }),

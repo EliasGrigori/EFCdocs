@@ -112,7 +112,7 @@ export const ROTULO_CURTO = {
   'exibir.menuCompleto': 'Completo', 'exibir.menuIcones': 'Só ícones', 'exibir.menuOculto': 'Esconder',
   'exibir.layoutA': 'Faixa Excel', 'exibir.layoutB': 'Barra e painel', 'exibir.painel': 'Painel lateral',
   'arquivo.lixeira': 'Lixeira', 'arquivo.versoes': 'Versões', 'arquivo.cancelar': 'Cancelar',
-  'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Problemas', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
+  'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Verificação', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
   'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
   'dados.validacao': 'Validação', 'formatar.condicional': 'Destacar regra', 'editar.localizar': 'Localizar',
   'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
@@ -145,7 +145,7 @@ export function BotaoCmd({ id, tipo = 'g', cx, rotulo }) {
   const classe = { g: 'rbb', s: 'rbs', i: 'rbi', t: 'tlab' }[tipo] + (ligado ? ' on' : '') + (chega ? ' futuro' : '');
   return (
     <button type="button" className={classe} aria-label={tipo === 'i' ? titulo : undefined} data-nota={nota || undefined}
-      aria-pressed={ligado ? true : undefined} disabled={!!bloq} data-cmd={id} onClick={() => cx.executar(id)}>
+      aria-pressed={ligado ? true : undefined} disabled={!!bloq} data-cmd={id} data-fam={id.split('.')[0]} onClick={() => cx.executar(id)}>
       <Icone n={cmd.ic} />
       {tipo !== 'i' && <span>{rotulo || cmd.nome}</span>}
     </button>
@@ -245,12 +245,21 @@ function Faixa({ aba, cx, flutua, cel }) {
   );
 }
 
-function BarraCurta({ cx, soIcones }) {
+/* v0.4.9 (L07): no celular, uma barra só com o que mais se usa (como no Excel do Android); o botão "Abas" abre as abas e a faixa completa */
+const BARRA_CEL = {
+  planilha: ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.corFonte', 'formatar.preenchimento', '|', 'formatar.centro', 'formatar.moeda', 'formula.autosoma', '|', 'editar.desfazer', 'editar.refazer'],
+  docx: ['formatar.negrito', 'formatar.italico', 'formatar.titulo', 'formatar.lista', '|', 'inserir.tabela', 'inserir.imagem', '|', 'editar.desfazer', 'editar.refazer'],
+  postits: ['inserir.postit', 'inserir.forma', 'inserir.seta', 'inserir.proximo', '|', 'formatar.preenchimento', 'editar.excluir', '|', 'editar.desfazer', 'editar.refazer'],
+};
+function BarraCurta({ cx, soIcones, cel, abasAbertas, aoAbas }) {
+  const lista = cel ? (BARRA_CEL[cx.mod] || []) : (BARRA_CURTA[cx.mod] || []);
   return (
-    <div className={'tbar' + (soIcones ? ' so-icones' : '')} role="toolbar" aria-label="Barra de ferramentas">
-      {(BARRA_CURTA[cx.mod] || []).map((id, i) => (id === '|' ? <span className="sep" key={i} /> : <BotaoCmd key={id} id={id} tipo="i" cx={cx} />))}
+    <div className={'tbar' + (soIcones ? ' so-icones' : '') + (cel ? ' cel-rapida' : '')} role="toolbar" aria-label="Barra de ferramentas">
+      {lista.map((id, i) => (id === '|' ? <span className="sep" key={i} /> : <BotaoCmd key={id} id={id} tipo="i" cx={cx} />))}
       <span className="sp" />
-      <BotaoCmd id="exibir.painel" tipo="t" cx={cx} rotulo="Painel" />
+      {cel
+        ? <button type="button" className={'tlab abas-cel' + (abasAbertas ? ' on' : '')} aria-expanded={abasAbertas} aria-label="Abas da faixa" onClick={aoAbas}><Icone n={abasAbertas ? 'chevronCima' : 'chevronBaixo'} /><span>Abas</span></button>
+        : <BotaoCmd id="exibir.painel" tipo="t" cx={cx} rotulo="Painel" />}
     </div>
   );
 }
@@ -320,8 +329,12 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
   const temArquivo = !!ficha;
   const mostraMenu = cel || prefs.menu === 'oculto';
   const layoutA = prefs.layout === 'A';
-  const mostraAbas = temArquivo && layoutA && (prefs.faixa !== 'oculta' || faixaTemp);
-  const mostraFaixa = temArquivo && layoutA && (prefs.faixa === 'tudo' || faixaTemp);
+  /* v0.4.9 (L07): no celular as abas ficam escondidas atrás do botão "Abas" da barra rápida */
+  const [celAbas, setCelAbas] = useState(() => !!(typeof globalThis !== 'undefined' && globalThis.EFC_CEL_ABAS));
+  const celRapida = cel && temArquivo && layoutA;
+  const abasLiberadas = !celRapida || celAbas;
+  const mostraAbas = temArquivo && layoutA && abasLiberadas && (prefs.faixa !== 'oculta' || faixaTemp);
+  const mostraFaixa = temArquivo && layoutA && abasLiberadas && (prefs.faixa === 'tudo' || faixaTemp);
   /* v0.4.7: barra de cima compacta (como no Excel com a faixa recolhida): a linha do título some e o nome, o desfazer e a busca vão para a linha das abas */
   const compacto = mostraAbas && !cel && prefs.topo === 'compacto';
   const abasNav = mostraAbas && (
@@ -387,6 +400,7 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
         <button type="button" className="iconbtn" aria-label="Opções" title="Opções" onClick={() => cx.executar('app.opcoes')}><Icone n="gear" /></button>
       </div>
       )}
+      {celRapida && <BarraCurta cx={cx} cel abasAbertas={celAbas} aoAbas={() => setCelAbas(!celAbas)} />}
       {abasNav}
       {mostraFaixa && <Faixa aba={aba} cx={cx} flutua={prefs.faixa !== 'tudo'} cel={cel} />}
       {temArquivo && !layoutA && prefs.faixa !== 'oculta' && <BarraCurta cx={cx} soIcones={prefs.faixa === 'abas'} />}

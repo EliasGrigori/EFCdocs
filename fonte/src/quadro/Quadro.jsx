@@ -232,8 +232,10 @@ export function Quadro({ arquivo, cx }) {
     if (!selValida.itens.length) { avisoSelecione(); return; }
     clipInterno = Q.copiar(c, selValida.itens);
     marcaClip = clipInterno.itens.map((i) => i.texto).join('\n') || ' ';
-    /* a rubrica não vai para o armazenamento do navegador (fica só no arquivo); colar logo em seguida, na mesma sessão, leva a rubrica */
-    try { localStorage.setItem('efcdocs:clip-quadro', JSON.stringify({ ...clipInterno, marca: marcaClip, itens: clipInterno.itens.map((i) => { if (i.tipo !== 'assinatura') return i; const { rub, ...resto } = i; return resto; }) })); } catch { /* cheio */ }
+    /* v0.4.9: a rubrica vai junto, mas só no armazenamento deste aparelho (nunca na área de transferência do sistema, que leva só o nome);
+       se não couber, a cópia segue sem a rubrica */
+    try { localStorage.setItem('efcdocs:clip-quadro', JSON.stringify({ ...clipInterno, marca: marcaClip })); }
+    catch { try { localStorage.setItem('efcdocs:clip-quadro', JSON.stringify({ ...clipInterno, marca: marcaClip, itens: clipInterno.itens.map((i) => { if (i.tipo !== 'assinatura') return i; const { rub, ...resto } = i; return resto; }) })); } catch { /* cheio */ } }
     try { navigator.clipboard && navigator.clipboard.writeText(marcaClip).catch(() => {}); } catch { /* sem permissão */ }
     if (recortar) {
       aplicarQ(Q.mudancasExcluir(c, selValida.itens), 'Recortar', 'recortou');
@@ -256,12 +258,24 @@ export function Quadro({ arquivo, cx }) {
       const oy = Math.min(it.y + d.y + it.h, ex.y + ex.h) - Math.max(it.y + d.y, ex.y);
       return ox > 0 && oy > 0 && ox * oy > 0.25 * Math.min(it.w * it.h, ex.w * ex.h);
     }));
-    for (let n = 0; n < 40 && ocupado(desl); n++) { desl.x += passo.x; desl.y += passo.y; }
+    /* v0.4.9: o lugar escolhido precisa ficar livre E dentro do que se vê na tela; se o lado esgotou, procura numa grade sobre a área visível */
+    const v = viewRef.current;
+    const vis = { x1: -v.x / v.z, y1: -v.y / v.z, x2: (-v.x + area.w) / v.z, y2: (-v.y + area.h) / v.z };
+    const cabe = (d) => !lim || (lim.x + d.x >= vis.x1 && lim.y + d.y >= vis.y1 && lim.x + d.x + lim.w <= vis.x2 && lim.y + d.y + lim.h <= vis.y2);
+    const candidatos = [{ ...desl }];
+    for (let n = 1; n < 40; n++) candidatos.push({ x: desl.x + passo.x * n, y: desl.y + passo.y * n });
+    if (lim) {
+      const gw = lim.w + 24, gh = lim.h + 24;
+      for (let y = vis.y1 + 16; y + lim.h <= vis.y2; y += gh) for (let x = vis.x1 + 16; x + lim.w <= vis.x2; x += gw) candidatos.push({ x: Math.round(x - lim.x), y: Math.round(y - lim.y) });
+    }
+    const escolhido = candidatos.find((d) => !ocupado(d) && cabe(d)) || candidatos.find((d) => !ocupado(d)) || desl;
+    desl.x = escolhido.x; desl.y = escolhido.y;
     const r = Q.colar(c, clip, desl);
     aplicarQ(r.mudancas, 'Colar', 'colou');
     setSel({ itens: r.ids, seta: null });
     /* a próxima colagem sai um pouco mais adiante, em vez de cair em cima desta */
-    clipInterno = { itens: clip.itens.map((i) => ({ ...i, x: i.x + desl.x, y: i.y + desl.y })), setas: clip.setas || [] };
+    if (clip.marca) marcaClip = clip.marca; /* depois de recarregar a marca vem do aparelho; sem isso a 2ª colagem não era reconhecida */
+    clipInterno = { itens: clip.itens.map((i) => ({ ...i, x: i.x + desl.x, y: i.y + desl.y })), setas: clip.setas || [], ...(clip.marca ? { marca: clip.marca } : {}) };
   }, [c, selValida, aplicarQ, cx, area]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const colar = useCallback(() => {

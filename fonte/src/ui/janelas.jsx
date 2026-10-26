@@ -1,7 +1,7 @@
 /* EFCdocs — busca "O que você quer fazer?", Opções e painel lateral do arquivo. */
 import { useEffect, useMemo, useState } from 'react';
 import { buscarComandos, chegaNa, PorId, textoChega } from '../nucleo/comandos.js';
-import { TEMAS, AMOSTRAS, ROTULOS } from '../nucleo/prefs.js';
+import { TEMAS, AMOSTRAS, ROTULOS, ehTemaClaro, TEMAS_DESTAQUE } from '../nucleo/prefs.js';
 import { PERFIS } from '../nucleo/perfis.js';
 import { TIPOS } from '../nucleo/modelo.js';
 import { Icone, Janela } from './comum.jsx';
@@ -72,6 +72,7 @@ function Secao({ id, titulo, resumo, abertas, alternar, children }) {
 
 export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abrir }) {
   const [abertas, setAbertas] = useState(() => (abrir && abrir !== true ? { ...secoesAbertas, [abrir]: true } : secoesAbertas));
+  const [verTodos, setVerTodos] = useState(false);
   const alternar = (id) => setAbertas((a) => { const n = { ...a, [id]: !a[id] }; secoesAbertas = n; return n; });
   const nomesFaixa = prefs.layout === 'B' ? ROTULOS.faixaB : ROTULOS.faixa;
   const chips = (chave, valores, nomes) => (
@@ -88,13 +89,23 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
       <div className="janela-c">
         <Secao id="tema" titulo="Tema" abertas={abertas} alternar={alternar}
           resumo={<><i className="amostra" style={AMOSTRAS[prefs.tema] ? amostra(prefs.tema) : undefined} />{nomeTema}{prefs.relevo ? ' · relevo' : ''}{prefs.mesa ? ' · mesa' : ''}</>}>
-          <div className="temas">
-            {TEMAS.map(([id, nome]) => (
-              <button key={id} type="button" className={'tema-b' + (prefs.tema === id ? ' on' : '')} aria-pressed={prefs.tema === id} data-tema={id} title={nome} onClick={() => setPref('tema', id)}>
-                <i style={amostra(id)} /><span>{nome}</span>
-              </button>
-            ))}
-          </div>
+          {[['Claros', true], ['Escuros', false]].map(([rotulo, claro]) => {
+            const todos = TEMAS.filter(([id]) => ehTemaClaro(id) === claro);
+            const vis = verTodos ? todos : todos.filter(([id]) => TEMAS_DESTAQUE.includes(id) || id === prefs.tema);
+            return (
+              <div key={rotulo} className="temas-grupo">
+                <div className="temas-rot">{rotulo}</div>
+                <div className="temas">
+                  {vis.map(([id, nome]) => (
+                    <button key={id} type="button" className={'tema-b' + (prefs.tema === id ? ' on' : '')} aria-pressed={prefs.tema === id} data-tema={id} title={nome} onClick={() => setPref('tema', id)}>
+                      <i className="mini" style={{ '--tb': AMOSTRAS[id][0], '--ta': AMOSTRAS[id][1] }} aria-hidden="true" /><span>{nome}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <button type="button" className="btn sm ver-todos" data-ver-todos aria-expanded={verTodos} onClick={() => setVerTodos(!verTodos)}>{verTodos ? 'Mostrar só os principais' : `Ver todos os ${TEMAS.length} temas`}</button>
           <small className="op-dica">Papel (claro) é o tema de abertura: o dourado só marca onde você está. Os temas escuros continuam aqui.</small>
           <label className="chave"><input type="checkbox" checked={prefs.relevo} onChange={(ev) => setPref('relevo', ev.target.checked)} />Relevo nas barras</label>
           <small className="op-dica">Um brilho leve nas barras e nos botões, para parecerem peças de verdade.</small>

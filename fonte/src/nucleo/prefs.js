@@ -20,6 +20,11 @@ export const AMOSTRAS = {
   esmeralda: ['#f2efe6', '#0f5c46'], petroleo: ['#0c2a33', '#f1a93b'],
 };
 
+/* v0.4.9 (L09): temas claros e escuros (pelo fundo da amostra) e os que aparecem logo de cara */
+const luz = (hex) => { const n = parseInt(hex.slice(1).length === 3 ? hex.slice(1).replace(/./g, '$&$&') : hex.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
+export const ehTemaClaro = (id) => !!AMOSTRAS[id] && luz(AMOSTRAS[id][0]) > 0.5;
+export const TEMAS_DESTAQUE = ['papel', 'light', 'nevoa', 'dark', 'ocean', 'petroleo'];
+
 export const OPCOES = {
   layout: ['A', 'B'],
   faixa: ['tudo', 'abas', 'oculta'],

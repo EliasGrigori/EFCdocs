@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.4.8', () => assert.equal(VERSAO, 'v0.4.8'));
+test('versão é v0.4.9', () => assert.equal(VERSAO, 'v0.4.9'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -223,4 +223,15 @@ test('v0.4.1: duas abas gravando o mesmo arquivo: a segunda gravação com marca
   const g3 = await b.salvar({ ...a, ficha: { ...a.ficha, nome: 'Da aba 2' } }, 'salvou');
   assert.ok(g3.marca);
   assert.equal((await b.abrir(a.ficha.id)).ficha.nome, 'Da aba 2');
+});
+
+test('v0.4.9 (L09): temas claros e escuros pelo fundo; os principais têm 3 de cada', async () => {
+  const { ehTemaClaro, TEMAS, TEMAS_DESTAQUE } = await import('../src/nucleo/prefs.js');
+  const claros = TEMAS.filter(([id]) => ehTemaClaro(id)).map(([id]) => id);
+  const escuros = TEMAS.filter(([id]) => !ehTemaClaro(id)).map(([id]) => id);
+  assert.equal(claros.length + escuros.length, 18);
+  for (const id of ['papel', 'light', 'campo', 'nevoa']) assert.ok(claros.includes(id), id + ' devia ser claro');
+  for (const id of ['dark', 'ocean', 'petroleo', 'ouro']) assert.ok(escuros.includes(id), id + ' devia ser escuro');
+  assert.equal(TEMAS_DESTAQUE.filter((id) => ehTemaClaro(id)).length, 3);
+  assert.equal(TEMAS_DESTAQUE.filter((id) => !ehTemaClaro(id)).length, 3);
 });

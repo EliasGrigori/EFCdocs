@@ -344,3 +344,6 @@ body[data-theme=papel] .tk-num, body[data-theme=light] .tk-num, body[data-theme=
 }
 .app.cel .qd-lamp.pl-lamp { top: auto; bottom: 14px; right: 12px; }
 .app.cel .qd-assist.pl-problemas { top: auto; bottom: 62px; }
+
+/* v0.4.9: o exemplo da função é só um modelo */
+.pl-sig-n { color: var(--text-muted); font-size: 11.5px; }

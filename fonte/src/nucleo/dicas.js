@@ -137,7 +137,7 @@ export const DESCRICAO = {
   'exibir.menuOculto': 'Esconde o menu da esquerda. O botão de menu no topo abre quando precisar.',
   'exibir.layoutA': 'Faixa com abas e botões, como no Excel e no Word.',
   'exibir.layoutB': 'Uma barra curta com os botões mais usados e o painel ao lado.',
-  'formula.problemas': 'Lista os erros e avisos da planilha inteira, cada um com o caminho até a célula.',
+  'formula.problemas': 'Verificação: lista os erros, avisos e dicas da planilha inteira, cada um com o caminho até a célula.',
   'formula.montar': 'Monta a conta respondendo uma pergunta (contar, somar quando, buscar...), sem decorar função.',
   'formula.fluxo': 'Desenha de onde vem a conta, caixa por caixa, com setas até o resultado.',
 };
