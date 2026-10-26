@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.4.6.1', () => assert.equal(VERSAO, 'v0.4.6.1'));
+test('versão é v0.4.7', () => assert.equal(VERSAO, 'v0.4.7'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };

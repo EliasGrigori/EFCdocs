@@ -14,6 +14,7 @@ const ABA_ARQUIVO = {
   ],
 };
 const GRUPOS_EXIBIR = [
+  { nome: 'Barra de cima', itens: [['col', ['exibir.topoCompleto', 'exibir.topoCompacto']]] },
   { nome: 'Faixa', itens: [['col', ['exibir.faixaTudo', 'exibir.faixaAbas', 'exibir.faixaOculta']]] },
   { nome: 'Menu lateral', itens: [['col', ['exibir.menuCompleto', 'exibir.menuIcones', 'exibir.menuOculto']]] },
   { nome: 'Layout', itens: [['g', 'exibir.painel'], ['col', ['exibir.layoutA', 'exibir.layoutB']]] },
@@ -47,7 +48,7 @@ const FAIXAS = {
     { id: 'revisao', nome: 'Revisão', grupos: [
       { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar'], ['g', 'arquivo.versoes']] },
       { nome: 'Proteger', itens: [['g', 'revisao.travar']] }] },
-    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['g', 'exibir.grade'], ['g', 'exibir.folhaClara'], ['g', 'exibir.zoom']] }, { nome: 'Linhas e colunas', itens: [['col', ['planilha.ocultarLinha', 'planilha.ocultarColuna', 'planilha.reexibir', 'planilha.reexibirColuna']]] }, ...GRUPOS_EXIBIR] },
+    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['col', ['exibir.grade', 'exibir.folhaClara', 'exibir.barraFormula']], ['g', 'exibir.zoom']] }, { nome: 'Linhas e colunas', itens: [['col', ['planilha.ocultarLinha', 'planilha.ocultarColuna', 'planilha.reexibir', 'planilha.reexibirColuna']]] }, ...GRUPOS_EXIBIR] },
   ],
   docx: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
@@ -108,6 +109,7 @@ export function abasDoModulo(mod) {
 /* Rótulos curtos na faixa (o nome completo fica no "title" e na busca) */
 export const ROTULO_CURTO = {
   'exibir.faixaTudo': 'Mostrar tudo', 'exibir.faixaAbas': 'Só as abas', 'exibir.faixaOculta': 'Esconder',
+  'exibir.topoCompleto': 'Completa', 'exibir.topoCompacto': 'Só as abas', 'exibir.barraFormula': 'Barra fx',
   'exibir.menuCompleto': 'Completo', 'exibir.menuIcones': 'Só ícones', 'exibir.menuOculto': 'Esconder',
   'exibir.layoutA': 'Faixa tipo Excel', 'exibir.layoutB': 'Barra e painel', 'exibir.painel': 'Painel lateral',
   'arquivo.lixeira': 'Lixeira', 'arquivo.versoes': 'Versões', 'arquivo.cancelar': 'Cancelar',
@@ -225,6 +227,13 @@ function Faixa({ aba, cx, flutua, cel }) {
       {cel && lados.esq && <button type="button" className="rb-rolar esq" aria-label="Ver os botões anteriores" onClick={() => rolar(-1)}><Icone n="setaEsq" /></button>}
       {naFaixa.map((g, i) => <GrupoFaixa g={g} cx={cx} key={atual.id + i} />)}
       {cel && lados.dir && <button type="button" className="rb-rolar dir" aria-label="Tem mais botões: ver os próximos" data-dica="Tem mais|Arraste a faixa para o lado ou toque aqui para ver os outros botões." onClick={() => rolar(1)}><Icone n="setaDir" /></button>}
+      {!cel && (
+        <button type="button" className="rb-recolher" data-faixa-recolher={flutua ? 'fixar' : 'recolher'}
+          aria-label={flutua ? 'Fixar a faixa (mostrar sempre)' : 'Recolher a faixa (só as abas)'} title={flutua ? 'Fixar a faixa' : 'Recolher a faixa (Ctrl+F1)'}
+          onClick={() => cx.executar(flutua ? 'exibir.faixaTudo' : 'exibir.faixaAbas')}>
+          <Icone n={flutua ? 'alfinete' : 'chevronCima'} />
+        </button>
+      )}
       {noMais.length > 0 && (
         <div className="rb-mais-area">
           <button type="button" className="rbb rb-mais" aria-expanded={maisAberto} aria-label="Mais comandos" data-dica="Mais comandos|Os grupos que não cabem na largura da tela ficam aqui." onClick={() => setMaisAberto(!maisAberto)}>
@@ -314,8 +323,51 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
   const layoutA = prefs.layout === 'A';
   const mostraAbas = temArquivo && layoutA && (prefs.faixa !== 'oculta' || faixaTemp);
   const mostraFaixa = temArquivo && layoutA && (prefs.faixa === 'tudo' || faixaTemp);
+  /* v0.4.7: barra de cima compacta (como no Excel com a faixa recolhida): a linha do título some e o nome, o desfazer e a busca vão para a linha das abas */
+  const compacto = mostraAbas && !cel && prefs.topo === 'compacto';
+  const abasNav = mostraAbas && (
+    <nav className={'tabs' + (compacto ? ' compacta' : '')} aria-label="Abas da faixa">
+      {compacto && (
+        <span className="tb-mini">
+          {mostraMenu && <button type="button" className="iconbtn" aria-label="Abrir menu" onClick={abrirGaveta}><Icone n="menu" /></button>}
+          <NomeArquivo ficha={ficha} cx={cx} />
+          <span className={'salvo' + (salvo.sujo ? ' sujo' : '')} aria-live="polite" title={salvo.texto}><i /></span>
+        </span>
+      )}
+      {abasDoModulo(cx.mod).map((a) => (
+        <button key={a.id} type="button" className={'tab' + (aba === a.id && mostraFaixa ? ' active' : '')} aria-pressed={aba === a.id && mostraFaixa}
+          onClick={() => {
+            if (prefs.faixa !== 'tudo') setFaixaTemp(!(faixaTemp && aba === a.id));
+            setAba(a.id);
+          }}>
+          {a.nome}
+        </button>
+      ))}
+      <span className="sp" />
+      {compacto && (
+        <span className="tb-mini-dir">
+          <BotaoCmd id="editar.desfazer" tipo="i" cx={cx} />
+          <BotaoCmd id="editar.refazer" tipo="i" cx={cx} />
+          <BotaoCmd id="editar.historico" tipo="i" cx={cx} />
+          <button type="button" className="iconbtn" aria-label="O que você quer fazer? (Ctrl K)" title="O que você quer fazer? (Ctrl K)" onClick={() => cx.executar('app.buscar')}><Icone n="busca" /></button>
+          <BotaoCmd id="exibir.painel" tipo="i" cx={cx} />
+          <button type="button" className="iconbtn" aria-label="Opções" title="Opções" onClick={() => cx.executar('app.opcoes')}><Icone n="gear" /></button>
+        </span>
+      )}
+      <ModoFaixa prefs={prefs} cx={cx} />
+      {!cel && (
+        <button type="button" className="iconbtn modo topo-alterna" data-topo={compacto ? 'compacto' : 'completo'}
+          aria-label={compacto ? 'Mostrar a barra de cima completa' : 'Recolher a barra de cima (só as abas)'}
+          title={compacto ? 'Mostrar o título e a busca' : 'Recolher a barra de cima'}
+          onClick={() => cx.executar(compacto ? 'exibir.topoCompleto' : 'exibir.topoCompacto')}>
+          <Icone n={compacto ? 'chevronBaixo' : 'chevronCima'} />
+        </button>
+      )}
+    </nav>
+  );
   return (
-    <header className="topbar">
+    <header className={'topbar' + (compacto ? ' compacto' : '')}>
+      {!compacto && (
       <div className="topbar-row">
         {mostraMenu && <button type="button" className="iconbtn" aria-label="Abrir menu" onClick={abrirGaveta}><Icone n="menu" /></button>}
         <div className="tb-tit">
@@ -335,21 +387,8 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
         {temArquivo && (layoutA || prefs.faixa === 'oculta') && <BotaoCmd id="exibir.painel" tipo="i" cx={cx} />}
         <button type="button" className="iconbtn" aria-label="Opções" title="Opções" onClick={() => cx.executar('app.opcoes')}><Icone n="gear" /></button>
       </div>
-      {mostraAbas && (
-        <nav className="tabs" aria-label="Abas da faixa">
-          {abasDoModulo(cx.mod).map((a) => (
-            <button key={a.id} type="button" className={'tab' + (aba === a.id && mostraFaixa ? ' active' : '')} aria-pressed={aba === a.id && mostraFaixa}
-              onClick={() => {
-                if (prefs.faixa !== 'tudo') setFaixaTemp(!(faixaTemp && aba === a.id));
-                setAba(a.id);
-              }}>
-              {a.nome}
-            </button>
-          ))}
-          <span className="sp" />
-          <ModoFaixa prefs={prefs} cx={cx} />
-        </nav>
       )}
+      {abasNav}
       {mostraFaixa && <Faixa aba={aba} cx={cx} flutua={prefs.faixa !== 'tudo'} cel={cel} />}
       {temArquivo && !layoutA && prefs.faixa !== 'oculta' && <BarraCurta cx={cx} soIcones={prefs.faixa === 'abas'} />}
     </header>

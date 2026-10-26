@@ -39,6 +39,12 @@ const FUNCOES_CEL = ['SOMA', 'SE', 'PROCV', 'CONT.SE', 'MÉDIA', 'HOJE'];
 /* área de transferência interna (vale entre planilhas deste aparelho) */
 let clipInterno = null;
 
+/* v0.4.7: barra de fórmula esticável (como no Excel): mínimo = a altura de sempre; máximo = 220 px */
+const FX_MIN = 34;
+const FX_MAX = 220;
+const FX_ABRIR = 96;
+const limitaFx = (v, maxArea) => Math.round(Math.max(FX_MIN, Math.min(Number(v) || FX_MIN, FX_MAX, maxArea || FX_MAX)));
+
 function lerCores(el) {
   const st = getComputedStyle(el);
   const v = (n, p) => st.getPropertyValue(n).trim() || p;
@@ -137,7 +143,10 @@ export function Planilha({ arquivo, cx }) {
   const [arrasto, setArrasto] = useState(null);
   const [copia, setCopia] = useState(null);
   const [pincel, setPincel] = useState(null);
-  const [prefs, setPrefs] = useState(() => ({ folhaClara: false, status: ['soma', 'media', 'cont'], ...ler('planilha-prefs', {}) }));
+  const [prefs, setPrefs] = useState(() => ({ folhaClara: false, status: ['soma', 'media', 'cont'], fxAlt: FX_MIN, ...ler('planilha-prefs', {}) }));
+  /* v0.4.7: altura da barra de fórmula (arrasto ao vivo) */
+  const [fxArr, setFxArr] = useState(null);
+  const fxDrag = useRef(null);
   const [cores, setCores] = useState(CORES_FOLHA_CLARA);
   const [selSug, setSelSug] = useState(0);
   const [semSug, setSemSug] = useState(false);
@@ -850,6 +859,7 @@ export function Planilha({ arquivo, cx }) {
       const kk = k.toLowerCase();
       if (kk === 'z' && !ev.shiftKey) { ev.preventDefault(); cx.executar('editar.desfazer'); return; }
       if (kk === 'y' || (kk === 'z' && ev.shiftKey)) { ev.preventDefault(); cx.executar('editar.refazer'); return; }
+      if (kk === 'u' && ev.shiftKey) { ev.preventDefault(); trata('exibir.barraFormula'); return; }
       if (kk === 'a') { ev.preventDefault(); setSel({ ativa: sel.ativa, faixas: [{ l1: 0, c1: 0, l2: MAX_LIN - 1, c2: MAX_COL - 1 }] }); return; }
       if (kk === 'n' || kk === 'b') { ev.preventDefault(); trata('formatar.negrito'); return; }
       if (kk === 'i') { ev.preventDefault(); trata('formatar.italico'); return; }
@@ -1496,6 +1506,7 @@ export function Planilha({ arquivo, cx }) {
       case 'exibir.grade': mudar({ [`conteudo.abas.${abaId}.semGrade`]: aba.semGrade ? undefined : 1 }, aba.semGrade ? 'Mostrar linhas de grade' : 'Esconder linhas de grade'); return true;
       case 'exibir.folhaClara': setPrefs((p) => ({ ...p, folhaClara: !p.folhaClara })); cx.avisar(prefs.folhaClara ? 'A grade volta a seguir o tema.' : 'Folha clara: a grade fica branca neste aparelho.', { ic: 'tema' }); return true;
       case 'exibir.zoom': setJanela({ tipo: 'zoom' }); return true;
+      case 'exibir.barraFormula': alternarFx(); return true;
       default: return false;
     }
   };
@@ -1513,6 +1524,7 @@ export function Planilha({ arquivo, cx }) {
       case 'formatar.porcentagem': return (estiloAtivo.nf || '').includes('%');
       case 'exibir.grade': return !aba.semGrade;
       case 'exibir.folhaClara': return !!prefs.folhaClara;
+      case 'exibir.barraFormula': return fxAltura > FX_MIN + 2;
       case 'exibir.congelar': return !!(cong && (cong.l || cong.c));
       case 'editar.pincel': return !!pincel;
       case 'formula.problemas': return probAberto;
@@ -2001,6 +2013,39 @@ export function Planilha({ arquivo, cx }) {
     fantasma: autoTexto,
   });
 
+  /* v0.4.7: esticar a barra de fórmula */
+  const maxFxArea = () => { const h = raiz.current ? raiz.current.clientHeight : 600; return Math.max(FX_MIN, Math.floor(h * 0.45)); };
+  const fxAltura = cel ? FX_MIN : (fxArr != null ? fxArr : limitaFx(prefs.fxAlt, 9999));
+  const fxAberta = fxAltura > FX_MIN + 2;
+  const fixarFx = (v) => setPrefs((p) => ({ ...p, fxAlt: limitaFx(v, maxFxArea()) }));
+  function alternarFx() { fixarFx(fxAberta ? FX_MIN : FX_ABRIR); }
+  const alcaFx = {
+    onPointerDown: (ev) => {
+      if (ev.button != null && ev.button !== 0) return;
+      ev.preventDefault();
+      ev.currentTarget.setPointerCapture(ev.pointerId);
+      fxDrag.current = { y: ev.clientY, h: fxAltura };
+    },
+    onPointerMove: (ev) => {
+      const d = fxDrag.current; if (!d) return;
+      setFxArr(limitaFx(d.h + (ev.clientY - d.y), maxFxArea()));
+    },
+    onPointerUp: (ev) => {
+      const d = fxDrag.current; if (!d) return;
+      fxDrag.current = null;
+      const novo = limitaFx(d.h + (ev.clientY - d.y), maxFxArea());
+      setFxArr(null);
+      fixarFx(novo < FX_MIN + 8 ? FX_MIN : novo);
+    },
+    onPointerCancel: () => { fxDrag.current = null; setFxArr(null); },
+    onDoubleClick: () => alternarFx(),
+    onKeyDown: (ev) => {
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); fixarFx(fxAltura + 18); }
+      else if (ev.key === 'ArrowUp') { ev.preventDefault(); fixarFx(fxAltura - 18); }
+      else if (ev.key === 'Home') { ev.preventDefault(); fixarFx(FX_MIN); }
+    },
+  };
+
   /* barra de fórmula quando não está editando: a fórmula colorida com o nome da coluna (PL09) */
   const textoBarra = textoParaEditar(celulaAtiva, estiloAtivo);
   const barraLeitura = useMemo(() => {
@@ -2075,7 +2120,7 @@ export function Planilha({ arquivo, cx }) {
   return (
     <div className={'sup sup-planilha pl' + (somenteLeitura ? ' leitura' : '') + (prefs.folhaClara ? ' clara' : '') + (cel ? ' pl-cel' : '')} ref={raiz}>
       {/* barra de fórmula */}
-      <div className="pl-fx" role="group" aria-label="Barra de fórmula">
+      <div className={'pl-fx' + (fxAberta ? ' aberta' : '') + (fxArr != null ? ' arrastando' : '')} role="group" aria-label="Barra de fórmula" style={fxAberta ? { height: fxAltura } : undefined} data-fx-alt={fxAltura}>
         <input className="pl-nome" aria-label="Caixa de nome: endereço ou nome (digite para ir até lá ou para dar nome)" spellCheck={false}
           value={caixaTexto != null ? caixaTexto : caixaNome} onFocus={(ev) => { setCaixaTexto(caixaNome); setTimeout(() => ev.target.select(), 0); }}
           onChange={(ev) => setCaixaTexto(ev.target.value)} onBlur={() => setCaixaTexto(null)}
@@ -2086,6 +2131,20 @@ export function Planilha({ arquivo, cx }) {
             ? <CampoFormula ref={campoBarra} {...campoProps('barra')} classe="barra" rotulo="Conteúdo da célula" focar={edit.onde === 'barra'} />
             : barraLeitura}
         </div>
+        {!cel && (
+          <button type="button" className="pl-fx-exp" data-fx-exp={fxAberta ? 'recolher' : 'expandir'}
+            aria-label={fxAberta ? 'Recolher a barra de fórmula (tamanho mínimo)' : 'Expandir a barra de fórmula'}
+            title={fxAberta ? 'Recolher a barra de fórmula (Ctrl+Shift+U)' : 'Expandir a barra de fórmula (Ctrl+Shift+U)'}
+            onClick={() => alternarFx()}>
+            <Icone n={fxAberta ? 'chevronCima' : 'chevronBaixo'} />
+          </button>
+        )}
+        {!cel && (
+          <div className="pl-fx-alca" role="separator" aria-orientation="horizontal" tabIndex={0} data-fx-alca
+            aria-label="Altura da barra de fórmula: arraste, ou use as setas para cima e para baixo"
+            aria-valuemin={FX_MIN} aria-valuemax={FX_MAX} aria-valuenow={fxAltura}
+            title="Arraste para esticar ou encolher a barra de fórmula" {...alcaFx}><i /></div>
+        )}
       </div>
       {somenteLeitura && <div className="qd-modo leitura pl-leitura"><Icone n="ver" />{cx.travado && cx.travado.motivo === 'conflito' ? 'Em espera: escolha no aviso do topo o que fazer.' : cx.travado ? 'Só para ver' : 'Só leitura: seu perfil de teste não edita a planilha.'}</div>}
 
@@ -2095,7 +2154,7 @@ export function Planilha({ arquivo, cx }) {
             <canvas ref={cvRef} className="pl-cv" role="grid" aria-label={'Planilha ' + ficha.nome + ', aba ' + aba.nome}
               aria-rowcount={MAX_LIN} aria-colcount={MAX_COL}
               onPointerDown={aoBaixar} onPointerMove={aoMover} onPointerUp={aoSoltar}
-              onMouseDown={(ev) => { const f = document.activeElement; if (f && (f.classList.contains('pl-cap') || f.classList.contains('ef-campo'))) ev.preventDefault(); }}
+              onMouseDown={(ev) => { const f = document.activeElement; if (f && (f.classList.contains('pl-cap') || f.classList.contains('ef-campo'))) ev.preventDefault(); else if (f && f.closest && f.closest('.pl-fx') && f.tagName === 'BUTTON') { ev.preventDefault(); if (!editRef.current && capRef.current) capRef.current.focus({ preventScroll: true }); } /* v0.4.7: depois dos botões da barra fx a grade volta a receber o teclado */ }}
               onPointerCancel={() => { if (toque.current) { clearTimeout(toque.current.longo); toque.current = null; } setArrasto(null); }} />
           </div>
         </div>

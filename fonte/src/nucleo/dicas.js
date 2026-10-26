@@ -129,6 +129,9 @@ export const DESCRICAO = {
   'exibir.faixaAbas': 'Mostra só os nomes das abas; os botões aparecem quando você toca numa aba.',
   'exibir.faixaOculta': 'Esconde a faixa para ganhar espaço. Um botão no topo traz de volta.',
   'exibir.menuCompleto': 'Menu lateral completo: mostra o menu da esquerda com ícone e nome.',
+  'exibir.topoCompleto': 'Barra de cima completa: nome do arquivo, desfazer, busca e opções ficam numa linha acima das abas.',
+  'exibir.topoCompacto': 'Barra de cima compacta: a linha do título some e o nome, o desfazer e a busca vão para a linha das abas, com mais espaço para o arquivo.',
+  'exibir.barraFormula': 'Estica a barra de fórmula para ver fórmulas compridas em várias linhas. Arraste a borda de baixo dela para o tamanho que quiser; a seta volta ao tamanho de antes.',
   'exibir.menuIcones': 'Menu lateral estreito: só os ícones, com mais espaço para o arquivo.',
   'exibir.menuOculto': 'Esconde o menu da esquerda. O botão de menu no topo abre quando precisar.',
   'exibir.layoutA': 'Faixa com abas e botões, como no Excel e no Word.',
@@ -165,7 +168,7 @@ export const ATALHOS = {
     'formatar.negrito': 'Ctrl+B', 'formatar.italico': 'Ctrl+I', 'formatar.sublinhado': 'Ctrl+S',
     'formatar.formatoNumero': 'Ctrl+1', 'formatar.moeda': 'Ctrl+Shift+$', 'formatar.porcentagem': 'Ctrl+Shift+%',
     'editar.preencherBaixo': 'Ctrl+D', 'editar.preencherDireita': 'Ctrl+R', 'editar.localizar': 'Ctrl+L',
-    'formula.autosoma': 'Alt+=', 'planilha.limparConteudo': 'Delete',
+    'formula.autosoma': 'Alt+=', 'exibir.barraFormula': 'Ctrl+Shift+U', 'planilha.limparConteudo': 'Delete',
   },
   postits: {
     ...COMUNS,

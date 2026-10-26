@@ -411,6 +411,7 @@ export function App() {
   const ligado = useCallback((id) => {
     const geral = {
       'exibir.faixaTudo': prefs.faixa === 'tudo', 'exibir.faixaAbas': prefs.faixa === 'abas', 'exibir.faixaOculta': prefs.faixa === 'oculta',
+      'exibir.topoCompleto': prefs.topo !== 'compacto', 'exibir.topoCompacto': prefs.topo === 'compacto',
       'exibir.menuCompleto': prefs.menu === 'completo', 'exibir.menuIcones': prefs.menu === 'icones', 'exibir.menuOculto': prefs.menu === 'oculto',
       'exibir.layoutA': prefs.layout === 'A', 'exibir.layoutB': prefs.layout === 'B', 'exibir.painel': prefs.painel, 'exibir.relevo': prefs.relevo,
     };
@@ -449,6 +450,8 @@ export function App() {
         setPref('faixa', 'oculta'); setFaixaTemp(false);
         avisar('Faixa escondida. Para trazer de volta: botão de faixa no topo, Opções ou Ctrl+F1.', { ic: 'info' });
         return;
+      case 'exibir.topoCompleto': setPref('topo', 'completo'); return;
+      case 'exibir.topoCompacto': setPref('topo', 'compacto'); return;
       case 'exibir.menuCompleto': setPref('menu', 'completo'); return;
       case 'exibir.menuIcones': setPref('menu', 'icones'); return;
       case 'exibir.menuOculto': setPref('menu', 'oculto'); return;
@@ -545,6 +548,10 @@ export function App() {
   return (
     <div className={'app' + (cel ? ' cel' : '')} data-menu={prefs.menu} data-layout={prefs.layout} data-faixa={prefs.faixa}>
       {!cel && prefs.menu !== 'oculto' && <Menu rota={rota} modAtual={mod} cont={contagem} prefs={prefs} cx={cx} />}
+      {!cel && prefs.menu === 'oculto' && (
+        <button type="button" className="menu-alca" data-menu-alca aria-label="Mostrar o menu lateral" title="Mostrar o menu lateral"
+          onClick={() => cx.executar('exibir.menuCompleto')}><Icone n="chevronDir" /></button>
+      )}
       <div className="col">
         {estadoPwa.aviso && (
           <button type="button" className="faixa-aviso nova" onClick={atualizarAgora}><Icone n="atualizar" />Versão nova pronta. Toque para atualizar.</button>

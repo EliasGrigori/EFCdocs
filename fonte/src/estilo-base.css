@@ -2838,3 +2838,33 @@ body[data-theme] .tabs .tab.active { background: none; color: var(--primary); bo
 .lista.grade .arq .txt > span { margin-top: auto; }
 .btn.apagar { border: 1px solid var(--crit); background: var(--crit-soft); color: var(--crit); font-weight: 700; }
 .btn.apagar:hover:not(:disabled) { background: var(--crit); color: #fff; }
+
+
+/* ---------- v0.4.7: tela como no Excel (barra de cima compacta, faixa recolhível, menu com alça) ---------- */
+.rb-recolher {
+  position: absolute; right: 4px; bottom: 2px; width: 22px; height: 22px; border-radius: 6px;
+  display: grid; place-items: center; color: var(--text-muted); background: var(--surface); z-index: 2;
+}
+.rb-recolher:hover { color: var(--primary); background: var(--surface-2); }
+.rb-recolher svg { width: 15px; height: 15px; }
+.ribbon:not(.flutua) { position: relative; }
+.ribbon .rb-mais-area { margin-right: 26px; }
+.topbar.compacto { border-bottom: 1px solid var(--border); }
+.tabs.compacta { padding: 2px 8px 0 6px; gap: 2px; min-height: 36px; border-bottom: 0; }
+.tabs.compacta .tab { min-height: 32px; }
+.tb-mini, .tb-mini-dir { flex: none; display: inline-flex; align-items: center; gap: 4px; }
+.tb-mini { margin-right: 8px; padding-right: 8px; border-right: 1px solid var(--border); max-width: 38%; min-width: 0; }
+.tb-mini button.nome { max-width: 200px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-mini input.nome { width: 160px; font-size: 13px; }
+.tb-mini .salvo i { margin: 0; }
+.tb-mini-dir .iconbtn, .tabs.compacta .iconbtn { width: 30px; height: 30px; }
+.tb-mini-dir .iconbtn svg { width: 17px; height: 17px; }
+.topo-alterna { flex: none; }
+/* alça na borda esquerda quando o menu lateral está oculto */
+.menu-alca {
+  position: fixed; left: 0; top: 50%; transform: translateY(-50%); z-index: 20; width: 14px; height: 54px;
+  border-radius: 0 8px 8px 0; display: grid; place-items: center; color: var(--text-muted);
+  background: var(--surface); border: 1px solid var(--border); border-left: 0; opacity: .55; transition: opacity .12s, width .12s;
+}
+.menu-alca:hover, .menu-alca:focus-visible { opacity: 1; width: 22px; color: var(--primary); }
+.menu-alca svg { width: 14px; height: 14px; }

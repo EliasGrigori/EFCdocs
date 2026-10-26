@@ -24,6 +24,7 @@ export const OPCOES = {
   layout: ['A', 'B'],
   faixa: ['tudo', 'abas', 'oculta'],
   menu: ['completo', 'icones', 'oculto'],
+  topo: ['completo', 'compacto'],
   perfil: ['admin', 'editor', 'operador', 'leitor'],
 };
 
@@ -32,6 +33,7 @@ export const ROTULOS = {
   faixa: { tudo: 'Mostrar tudo', abas: 'Só as abas', oculta: 'Esconder' },
   faixaB: { tudo: 'Mostrar a barra', abas: 'Barra só com ícones', oculta: 'Esconder' },
   menu: { completo: 'Completo', icones: 'Só ícones', oculto: 'Escondido' },
+  topo: { completo: 'Completa', compacto: 'Só as abas' },
 };
 
 /* Tema padrão (até a v0.2.0 era Claro, ou Escuro se o aparelho estivesse no escuro).
@@ -41,7 +43,7 @@ export const TEMA_PADRAO_PETROLEO = true;
 export function prefsPadrao(escuro = false) {
   return {
     tema: TEMA_PADRAO_PETROLEO ? 'petroleo' : (escuro ? 'dark' : 'light'),
-    relevo: true, layout: 'A', faixa: 'tudo', menu: 'completo', painel: false, perfil: 'admin',
+    relevo: true, layout: 'A', faixa: 'tudo', menu: 'completo', topo: 'completo', painel: false, perfil: 'admin',
   };
 }
 

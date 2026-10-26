@@ -25,6 +25,30 @@
 }
 .pl-fx-txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
 .pl-fx-txt.formula { font-family: inherit; }
+/* v0.4.7: barra de fórmula esticável (alça embaixo + botão v/^ na ponta) */
+.pl-fx { position: relative; }
+.pl-fx.arrastando { user-select: none; }
+.pl-fx-exp {
+  width: 30px; flex: none; align-self: flex-start; height: 34px; display: grid; place-items: center;
+  color: var(--text-muted); border-left: 1px solid var(--border);
+}
+.pl-fx-exp:hover { color: var(--primary); background: var(--surface-2); }
+.pl-fx-exp svg { width: 16px; height: 16px; }
+.pl-fx-alca {
+  position: absolute; left: 0; right: 0; bottom: -4px; height: 9px; cursor: ns-resize; z-index: 3; touch-action: none;
+  display: grid; place-items: center; outline: none;
+}
+.pl-fx-alca i { width: 34px; height: 3px; border-radius: 2px; background: var(--border-strong, var(--border)); opacity: 0; transition: opacity .12s; }
+.pl-fx:hover .pl-fx-alca i, .pl-fx.aberta .pl-fx-alca i, .pl-fx-alca:focus-visible i, .pl-fx.arrastando .pl-fx-alca i { opacity: 1; }
+.pl-fx-alca:hover i, .pl-fx.arrastando .pl-fx-alca i, .pl-fx-alca:focus-visible i { background: var(--primary); }
+.pl-fx.aberta { min-height: 0; overflow: hidden; }
+.pl-fx.aberta .pl-nome, .pl-fx.aberta .pl-fx-b { align-self: flex-start; height: 34px; }
+.pl-fx.aberta .pl-fx-campo { align-items: flex-start; overflow-y: auto; padding-top: 0; padding-bottom: 6px; }
+.pl-fx.aberta .pl-fx-campo > * { padding-top: 8px; }
+.pl-fx.aberta .pl-fx-txt { white-space: pre-wrap; overflow: visible; text-overflow: clip; word-break: break-word; overflow-wrap: anywhere; width: 100%; }
+.pl-fx.aberta .ef.barra { width: 100%; }
+.pl-fx.aberta .ef.barra .ef-cores, .pl-fx.aberta .ef.barra .ef-campo { padding: 8px 2px 0; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
+.pl-fx.aberta .ef.barra .ef-campo { overflow: visible; }
 .pl-inlay {
   font-style: normal; font-family: system-ui, sans-serif; font-size: 11px; font-weight: 600; margin: 0 2px 0 1px;
   padding: 0 4px; border-radius: 4px; background: var(--surface-3); color: var(--text-muted); vertical-align: 1px;

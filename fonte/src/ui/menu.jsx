@@ -41,6 +41,12 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
           <Icone n="recolher" /><span>Recolher menu</span>
         </button>
       )}
+      {!gaveta && (
+        <button type="button" className="rn oculta-menu" data-menu-ocultar title="Esconder o menu (a tela fica toda para o arquivo). Para voltar, use a setinha na borda esquerda."
+          aria-label="Esconder o menu lateral" onClick={() => cx.executar('exibir.menuOculto')}>
+          <Icone n="tela" /><span>Esconder menu</span>
+        </button>
+      )}
       <button type="button" className="rail-user" title="Perfil de teste (muda em Opções)" onClick={() => cx.executar('app.opcoes')}>
         <span className="av">EF</span>
         <div><b>Neste aparelho</b><span>Perfil de teste: {PERFIS[prefs.perfil].nome}</span></div>
