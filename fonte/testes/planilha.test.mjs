@@ -741,6 +741,10 @@ test('v0.4.3.1: frase do Explicar de cada função sem erro de português (de a,
   assert.match(se, /se não, divide a coluna Cloro \(B2 = 1,2\) pela coluna Qtd \(C2 = 10\) \(= 0,12\)/);
   assert.doesNotMatch(se, /mostra B2\/C2/);
   assert.match(ex('SE(B2>1;SOMA(B2:B3);0)'), /soma .*\(= 4,2\); se não, mostra 0/i);
+  /* v0.4.4.2: número pequeno em célula formatada como data */
+  assert.ok(X.numeroEmData(0.9, 'dd/mm/yyyy') && X.numeroEmData(18, 'dd/mm/yyyy') && X.numeroEmData(0, 'dd/mm/yyyy'));
+  assert.ok(!X.numeroEmData(46320, 'dd/mm/yyyy') && !X.numeroEmData(0.9, 'General') && !X.numeroEmData(0.5, 'hh:mm') && !X.numeroEmData('x', 'dd/mm/yyyy'));
+  assert.ok(!X.numeroEmData(0.9, '0,00'), 'formato de número comum não conta');
   assert.match(ex('A5'), /^Mostra a coluna Lote \(A5 = vazio\)\./);
   assert.match(ex('FILTRO(A2:C3;C2:C3>5;"nada")'), /^Mostra só as linhas .* em que a coluna Qtd \(C2:C3\) é maior que 5/);
   assert.match(ex('DIATRABALHOTOTAL(D2;D3)'), /^Conta os dias úteis de 01\/10\/2026 \(D2\) até 02\/10\/2026 \(D3\)\./);

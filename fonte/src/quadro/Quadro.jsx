@@ -2,7 +2,7 @@
    Quadro livre (post-its, formas de fluxograma, texto, imagem, raias, páginas, legenda) com setas presas,
    visão Kanban dos mesmos post-its, exportar PNG/PDF paisagem e imprimir.
    Toda mudança vira um diff: entra no desfazer/refazer e grava só o que mudou. */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ler, gravar } from '../nucleo/armazem.js';
 import { Icone, Janela } from '../ui/comum.jsx';
 import * as Q from './modelo.js';
@@ -477,6 +477,7 @@ export function Quadro({ arquivo, cx }) {
 
   /* ---------- edição de texto ---------- */
   const comecarEdicao = (it) => {
+    if (somenteLeitura && cx.travado && cx.chamarFaixa) cx.chamarFaixa();
     if (somenteLeitura || !COM_TEXTO(it)) return;
     setSel({ itens: [it.id], seta: null });
     setEditando({ id: it.id, valor: it.texto || '' });
@@ -908,6 +909,18 @@ export function Quadro({ arquivo, cx }) {
   const retArea = arrasto && arrasto.tipo === 'area' ? normalizarRet(arrasto.a, arrasto.b) : null;
   const vazio = Q.listaItens(c).length === 0;
   const editItem = editando && editando.id ? cv.itens[editando.id] : null;
+  /* nas formas, o texto de quem escreve fica no meio da caixa (como na forma desenhada) */
+  const taRef = useRef(null);
+  useLayoutEffect(() => {
+    const ta = taRef.current;
+    if (!ta || !editItem || !['inicio', 'processo', 'dados', 'decisao'].includes(editItem.tipo)) return;
+    const h = editItem.h;
+    ta.style.paddingTop = '0px'; ta.style.paddingBottom = '0px'; ta.style.height = '0px';
+    const t = ta.scrollHeight;
+    ta.style.height = h + 'px';
+    const p = Math.max(6, Math.floor((h - 4 - t) / 2));
+    ta.style.paddingTop = p + 'px'; ta.style.paddingBottom = '6px';
+  }, [editItem && editItem.id, editando && editando.valor]);
   const editSeta = editando && editando.seta ? c.setas[editando.seta] : null;
 
   return (
@@ -943,7 +956,7 @@ export function Quadro({ arquivo, cx }) {
               <div key={i} className={'qd-guia ' + (gu.h ? 'v' : 'h')} style={gu.h ? { left: gu.x, top: gu.y, height: gu.h } : { left: gu.x, top: gu.y, width: gu.w }} />
             ))}
             {editItem && (
-              <textarea className={'qd-edita qd-edita-' + editItem.tipo} autoFocus spellCheck={qp.ortografia} lang="pt-BR" value={editando.valor} aria-label="Texto do item"
+              <textarea ref={taRef} className={'qd-edita qd-edita-' + editItem.tipo} autoFocus spellCheck={qp.ortografia} lang="pt-BR" value={editando.valor} aria-label="Texto do item"
                 style={editItem.tipo === 'raia'
                   ? { left: editItem.x + 50, top: editItem.y + 6, width: Math.min(320, editItem.w - 60), height: 40 }
                   : editItem.tipo === 'pagina'

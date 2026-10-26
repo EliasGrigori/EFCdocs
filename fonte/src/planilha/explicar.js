@@ -30,6 +30,9 @@ export function txtValor(v, nf = 'General') {
   return String(v);
 }
 
+/** Número pequeno (ex.: 0,9 ou 18) numa célula formatada como data: aparece como 31/12/1899, o que parece conta quebrada. */
+export const numeroEmData = (v, nf) => typeof v === 'number' && Number.isFinite(v) && !!nf && ehFormatoData(nf) && /[dy]/i.test(nf.replace(/"[^"]*"/g, '')) && v < 36526;
+
 /** Data (e hora, se tiver) como a pessoa lê: 25/10/2026 ou 25/10/2026 14:30. */
 export const txtData = (v) => { try { return formatar(v, Number.isInteger(v) ? 'dd/mm/yyyy' : 'dd/mm/yyyy hh:mm').t; } catch { return numeroGeral(v); } };
 
@@ -311,7 +314,9 @@ export function explicarConta(motor, c, abaId, l, col, titulo) {
   if (linhas.length) linhas[linhas.length - 1].valor = txtValor(valor, nf);
   let frase;
   try { frase = maiuscula(frases(ctx).f(fm.arv)) + '.'; } catch { frase = ''; }
-  const agora = ` Agora mostra ${txtValor(valor, nf)}.`;
+  const agora = numeroEmData(valor, nf)
+    ? ` Agora mostra ${txtValor(valor, nf)} (a célula está formatada como data; a conta deu ${numeroGeral(valor)}).`
+    : ` Agora mostra ${txtValor(valor, nf)}.`;
   return {
     formula: escrever(fm.arv, 'pt'), linhas, frase: frase + agora, valor: txtValor(valor, nf),
     erro: ehErro(valor) ? valor.cod : null,

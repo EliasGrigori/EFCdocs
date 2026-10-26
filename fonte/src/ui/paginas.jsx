@@ -103,12 +103,12 @@ function ListaFiltrada({ chave, titulo, unidade, todos, tipos, cx, vazio }) {
     <>
       <div className="secao">
         {titulo && <h3>{titulo}</h3>}
-        <span className="cont">{lista.length === todos.length ? todos.length : `${lista.length} de ${todos.length}`}{unidade ? ' ' + (todos.length === 1 && lista.length === todos.length ? unidade[0] : unidade[1]) : ''}</span>
+        <span className="cont" data-cont>{lista.length === todos.length ? todos.length : `${lista.length} de ${todos.length}`}{unidade ? ' ' + (todos.length === 1 && lista.length === todos.length ? unidade[0] : unidade[1]) : ''}</span>
         {todos.length > 0 && <Filtro f={f} mudar={mudar} tipos={tipos} aberto={aberto} setAberto={setAberto} />}
       </div>
       {aberto && todos.length > 0 && <PainelFiltro f={f} mudar={mudar} tipos={tipos} fechar={() => setAberto(false)} />}
       {lista.length
-        ? <div className="lista grade">{lista.map((x) => <LinhaArquivo key={x.id} f={x} cx={cx} semTipo={!!unidade} />)}</div>
+        ? <div className="lista grade">{lista.map((x) => <LinhaArquivo key={x.id} f={x} cx={cx} semTipo={!!unidade && unidade[1] !== 'arquivos'} />)}</div>
         : <div className="vazio-lista">{todos.length ? 'Nenhum arquivo com esse filtro.' : vazio}</div>}
     </>
   );
@@ -153,7 +153,7 @@ export function Inicio({ fichas, cx, demo }) {
     <div className="pagina">
       <div className="secao topo"><h3>Novo</h3><SeloDemo fichas={fichas} demo={demo} cx={cx} /></div>
       <BotoesNovo tipos={['planilha', 'docx', 'postits']} cx={cx} />
-      <ListaFiltrada chave="inicio" titulo="Recentes" todos={lista} tipos={['planilha', 'docx', 'postits']} cx={cx}
+      <ListaFiltrada chave="inicio" titulo="Recentes" unidade={['arquivo', 'arquivos']} todos={lista} tipos={['planilha', 'docx', 'postits']} cx={cx}
         vazio="Nenhum arquivo ainda. Tudo o que você criar fica guardado neste aparelho." />
       {cx.instalar && <button type="button" className="btn sm instalar" onClick={cx.instalar}><Icone n="instalar" />Instalar o EFCdocs neste aparelho</button>}
     </div>
@@ -176,7 +176,7 @@ export function Lixeira({ fichas, cx }) {
   const lista = maisRecentes(naLixeira(fichas));
   return (
     <div className="pagina">
-      <p className="sub">Restaure o que apagou ou apague para sempre (fica anotado no histórico).</p>
+      <p className="sub">Aqui ficam os arquivos apagados. Restaure ou apague para sempre.</p>
       {lista.length
         ? <div className="lista">{lista.map((f) => <LinhaArquivo key={f.id} f={f} cx={cx} lixeira />)}</div>
         : <div className="vazio-lista">A lixeira está vazia.</div>}

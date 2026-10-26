@@ -334,6 +334,25 @@ export function BarraSimbolos({ aoInserir, funcoes }) {
 }
 
 /** Código com zero na frente (001): o número perde o zero. Pergunta se é para guardar como texto (estoque, lotes, amostras). */
+/** Conta que deu número pequeno numa célula formatada como data (aparece como 31/12/1899). */
+export function JanelaNumeroData({ valor, mostra, aoEscolher, aoFechar }) {
+  return (
+    <Janela titulo="A célula está como data" aoFechar={aoFechar} classe="pl-jzeros" rodape={(
+      <>
+        <button type="button" className="btn" onClick={aoFechar}>Cancelar</button>
+        <span className="sp" />
+        <button type="button" className="btn" onClick={() => aoEscolher('d')}>Deixar como data</button>
+        <button type="button" className="btn primary" onClick={() => aoEscolher('n')}><Icone n="check" />Mostrar como número</button>
+      </>
+    )}>
+      <div className="janela-c">
+        <p>Esta conta deu <b>{valor}</b>, mas a célula está formatada como data e mostraria <b>{mostra}</b>.</p>
+        <p className="qd-dica">Para contas de contagem, soma ou divisão, o número é o mais claro.</p>
+      </div>
+    </Janela>
+  );
+}
+
 export function JanelaZeros({ codigos, colunas, colar, aoEscolher, aoFechar }) {
   const [lembrar, setLembrar] = useState(true);
   const unicos = [...new Set(codigos)];

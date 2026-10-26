@@ -85,6 +85,9 @@ export function App() {
   const [opcoes, setOpcoes] = useState(false);
   const [pergunta, setPergunta] = useState(null);
   const [avisos, setAvisos] = useState([]);
+  /* a faixa "só para ver" pisca quando a pessoa tenta mexer (o aviso embaixo some em segundos) */
+  const [piscando, setPiscando] = useState(false);
+  const chamarFaixa = useCallback(() => { setPiscando(true); clearTimeout(chamarFaixa.t); chamarFaixa.t = setTimeout(() => setPiscando(false), 1400); }, []);
   const [espaco, setEspaco] = useState('');
   const [statusEd, setStatusEd] = useState(null);
   const [alvoPainel, setAlvoPainel] = useState(null);
@@ -108,8 +111,10 @@ export function App() {
   const avisar = useCallback((texto, extra = {}) => {
     const id = Date.now() + Math.random();
     setAvisos((l) => [...l.slice(-2), { id, texto, ...extra }]);
-    setTimeout(() => setAvisos((l) => l.filter((a) => a.id !== id)), extra.acao ? 6500 : extra.longo ? 6000 : 3400);
+    setTimeout(() => setAvisos((l) => l.filter((a) => a.id !== id)), extra.acao ? 8000 : extra.longo ? 6000 : 3400);
   }, []);
+  /* o aviso com Desfazer não acompanha a troca de página (só some o que já estava na tela há um tempo) */
+  useEffect(() => { setAvisos((l) => (l.some((a) => a.acao && Date.now() - a.id > 1500) ? l.filter((a) => !a.acao || Date.now() - a.id <= 1500) : l)); }, [rota]);
   const tirarAviso = useCallback((id) => setAvisos((l) => l.filter((a) => a.id !== id)), []);
 
   const recarregar = useCallback(async () => {
@@ -494,7 +499,7 @@ export function App() {
     dataHora, tamanho: tamanhoLegivel,
     instalar: estadoPwa.instalar ? pedirInstalacao : null,
     /* para o editor */
-    aplicar, avisar, perguntar: setPergunta, temJanela: !!(paleta || opcoes || pergunta || gaveta || linhaTempo),
+    aplicar, avisar, chamarFaixa, perguntar: setPergunta, temJanela: !!(paleta || opcoes || pergunta || gaveta || linhaTempo),
     pode: (acao) => !semPermissao(acao), travado, buscarNoEditor: (q) => { const ed = editorRef.current; return ed && ed.buscar ? ed.buscar(q) : []; },
     registrarEditor: (ed) => { editorRef.current = ed; }, setStatus: setStatusEd,
     alvoPainel, abrirPainel: () => setPref('painel', true), painelAberto: prefs.painel, cel,
@@ -534,7 +539,7 @@ export function App() {
           <button type="button" className="faixa-aviso nova" onClick={atualizarAgora}><Icone n="atualizar" />Versão nova pronta. Toque para atualizar.</button>
         )}
         {aberto && travado && travado.motivo === 'outraAba' && (
-          <div className="faixa-aviso trava" role="alert">
+          <div className={'faixa-aviso trava' + (piscando ? ' piscar' : '')} role="alert">
             <Icone n="aviso" /><span>Aberto em outra aba. Aqui fica só para ver.</span>
             <button type="button" className="btn sm" onClick={editarAqui}>Editar aqui</button>
           </div>

@@ -15,14 +15,14 @@ import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, 
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
 import { paraMostrar, refTexto, tokenizar, ler as lerFormula, paraGuardar, escrever } from './formula.js';
-import { explicarConta, causaDaConta, causaCircular, problemasDaPlanilha, grafoDaConta, trocarNumeroPorNome } from './explicar.js';
+import { explicarConta, numeroEmData, causaDaConta, causaCircular, problemasDaPlanilha, grafoDaConta, trocarNumeroPorNome } from './explicar.js';
 import { JanelaExplicar, JanelaFluxo, JanelaMontar, PainelProblemas, quadroDaConta } from './entender.jsx';
 import { diagnosticar, corrigir, contextoNoCursor, sugestoes, pedacosColoridos, CORES_REF, funcoesQueFaltam } from './ajuda.js';
 import { formatoDaFormula } from './formatoAuto.js';
 import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt, numeroGeral } from './valores.js';
 import * as O from './operacoes.js';
 import { CampoFormula, AjudaFormula } from './EditorFormula.jsx';
-import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, JanelaZeros, BarraSimbolos, ESTATS } from './partes.jsx';
+import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, JanelaZeros, JanelaNumeroData, BarraSimbolos, ESTATS } from './partes.jsx';
 
 const Z_MIN = 0.5, Z_MAX = 2;
 const CORES_FOLHA_CLARA = {
@@ -158,6 +158,7 @@ export function Planilha({ arquivo, cx }) {
   /* quem só pode ver recebe um aviso ao tentar mexer (sem repetir a cada tecla) */
   const ultimoAvisoLeitura = useRef(0);
   const avisarLeitura = () => {
+    if (cx.travado && cx.chamarFaixa) cx.chamarFaixa();
     if (Date.now() - ultimoAvisoLeitura.current < 2500) return;
     ultimoAvisoLeitura.current = Date.now();
     cx.avisar(cx.travado && cx.travado.motivo === 'conflito' ? 'Antes de continuar, escolha no aviso do topo: ver a versão gravada ou gravar a sua por cima.' : cx.travado ? 'Só para ver: este arquivo está aberto em outra aba. Toque em "Editar aqui" no topo para editar nesta.' : 'Só leitura: seu perfil de teste (Leitor) só vê a planilha. Para editar, troque o perfil em Opções.', { ic: 'ver' });
@@ -457,7 +458,7 @@ export function Planilha({ arquivo, cx }) {
   };
 
   /** Grava o que foi digitado. mover: [dl, dc] ou null. Devolve false se a fórmula tem erro. */
-  const confirmar = (mover, { preencherTudo = false, zero = null, lembrar = false } = {}) => {
+  const confirmar = (mover, { preencherTudo = false, zero = null, lembrar = false, numdata = null } = {}) => {
     let e = editRef.current;
     if (!e) return true;
     if (autoTextoRef.current && autoTextoRef.current.toLowerCase().startsWith(e.texto.toLowerCase())) e = { ...e, texto: autoTextoRef.current };
@@ -504,6 +505,21 @@ export function Planilha({ arquivo, cx }) {
       if (esc === 't') r = { v: r.zeroNaFrente, texto: true };
       if (zero && lembrar) memoZero = { ...(abaE.zeros || {}), [e.c]: zero };
     }
+    /* conta que dá número pequeno numa célula formatada como data (0,9 viraria 31/12/1899): pergunta uma vez */
+    if (r.f != null && !preencherTudo && !numdata && est.nf && ehFormatoData(est.nf)) {
+      const auto = formatoDaFormula(r.f, nfDaRef(e.abaId));
+      if (!auto || !ehFormatoData(auto)) {
+        const pv = motor.previa(texto.replace(/^\s*=/, ''), e.abaId, e.l, e.c);
+        if (!pv.erro && numeroEmData(pv.valor, est.nf)) {
+          setJanela({
+            tipo: 'numdata', valor: numeroGeral(pv.valor), mostra: formatar(pv.valor, est.nf).t,
+            aoEscolher: (esc) => { setJanela(null); confirmarRef.current(mover, { preencherTudo, zero, lembrar, numdata: esc }); },
+            aoFechar: () => { setJanela(null); setTimeout(() => { const f = (editRef.current && editRef.current.onde === 'barra' ? campoBarra : campoCel).current; if (f) f.focar(); }, 0); },
+          });
+          return false;
+        }
+      }
+    }
     const lote = new O.Lote(c);
     const nova = { ...atual };
     delete nova.v; delete nova.f;
@@ -511,6 +527,7 @@ export function Planilha({ arquivo, cx }) {
     else if (!r.vazio) nova.v = paraGuardarValor(r.v);
     const nfNovo = r.nf || (r.f != null ? formatoDaFormula(r.f, nfDaRef(e.abaId)) : null);
     if (nfNovo && (!est.nf || /^general$/i.test(est.nf))) { const s = lote.estilo({ ...est, nf: nfNovo }); if (s) nova.s = s; }
+    if (numdata === 'n') { const s = lote.estilo({ ...est, nf: 'General' }); if (s) nova.s = s; }
     /* grava e devolve o teclado para a grade na mesma hora (quem digita rápido não perde letra) */
     flushSync(() => {
       setEdit(null);
@@ -2067,6 +2084,7 @@ export function Planilha({ arquivo, cx }) {
       {janela && janela.tipo === 'fonte' && <JanelaFonte estilo={estiloAtivo} aoAplicar={(x) => formatarSel((e) => ({ ...e, ...x }), 'Fonte')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'congelar' && <JanelaCongelar ativa={sel.ativa} cong={cong} aoEscolher={(v) => mudar({ [`conteudo.abas.${abaId}.cong`]: v && (v.l || v.c) ? v : undefined }, v ? 'Congelar painéis' : 'Descongelar painéis')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'funcoes' && <JanelaFuncoes aoEscolher={(f) => { if (editRef.current && editRef.current.texto.startsWith('=')) inserirNoCursor(f.pt + '('); else comecarEdicao({ texto: '=' + f.pt + '(', modo: 'entrar' }); }} aoFechar={() => setJanela(null)} />}
+      {janela && janela.tipo === 'numdata' && <JanelaNumeroData valor={janela.valor} mostra={janela.mostra} aoEscolher={janela.aoEscolher} aoFechar={janela.aoFechar} />}
       {janela && janela.tipo === 'zero' && <JanelaZeros codigos={janela.codigos} colunas={janela.colunas} colar={!!janela.colar} aoEscolher={janela.aoEscolher} aoFechar={janela.aoFechar} />}
       {janela && janela.tipo === 'nomes' && (
         <JanelaNomes c={c} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoNovo={darNome}

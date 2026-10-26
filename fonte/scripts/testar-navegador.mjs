@@ -82,10 +82,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.4.4.1', async () => {
+await caso('abre sem erro, rodapé mostra v0.4.4.2', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.4.4.1'), 'rodapé sem v0.4.4');
+  certo((await p.locator('.foot').innerText()).includes('v0.4.4.2'), 'rodapé sem v0.4.4');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1882,7 +1882,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.4.1'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.4.2'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 17);
   await p.locator('.tema-b[data-tema=campo]').click();
@@ -2074,6 +2074,118 @@ await caso('v0.4.4.1 celular: ao escrever na forma aparece OK / Cancelar; OK gua
   await p.waitForSelector('textarea.qd-edita', { state: 'detached' });
   certo(!(await p.locator('.qd-mundo').innerText()).includes('Outro'), 'o Cancelar guardou');
   await print(p, '71-celular-quadro');
+});
+await ctx.close();
+
+
+/* ---------- v0.4.4.2: número em célula de data, aba só para ver, avisos e retoques ---------- */
+({ ctx, p } = await novaPagina());
+await caso('v0.4.4.2: conta que dá 0,9 numa célula de data pergunta uma vez; "Mostrar como número" mostra 0,9; "Deixar como data" mantém; o Explicar explica', async () => {
+  await p.goto(BASE + '#/planilha');
+  await p.click('[data-novo=planilha]');
+  await p.waitForSelector('.pl-cv');
+  await digitarEm(p, 'F2', ['26/10/2026']);
+  await digitarEm(p, 'F3', ['26/10/2026']);
+  certo((await celula(p, 'F2')).includes('2026'), 'F2 não ficou como data');
+  await digitarEm(p, 'F2', ['=9/10']);
+  await p.waitForSelector('.pl-jzeros');
+  const t = await p.locator('.pl-jzeros').innerText();
+  certo(t.includes('0,9') && /1899/.test(t), t);
+  await print(p, '72-numero-em-data');
+  await p.locator('.pl-jzeros button:has-text("Mostrar como número")').click();
+  await p.waitForSelector('.pl-jzeros', { state: 'detached' });
+  await p.waitForTimeout(150);
+  certo((await celula(p, 'F2')).includes('0,9'), 'F2: ' + await celula(p, 'F2'));
+  /* F3: deixar como data */
+  await digitarEm(p, 'F3', ['=18']);
+  await p.waitForSelector('.pl-jzeros');
+  await p.locator('.pl-jzeros button:has-text("Deixar como data")').click();
+  await p.waitForTimeout(150);
+  certo(/1900/.test(await celula(p, 'F3')), 'F3 devia seguir como data: ' + await celula(p, 'F3'));
+  await p.click('.tabs .tab:has-text("Fórmulas")');
+  await cmd(p, 'formula.explicar');
+  await p.waitForSelector('.pl-jexp');
+  const fr = await p.locator('.pl-frase').innerText();
+  certo(/formatada como data; a conta deu 18/.test(fr), fr);
+  await p.keyboard.press('Escape');
+  /* data de verdade (=F3+1 com F3 data) não pergunta */
+  await digitarEm(p, 'G2', ['26/10/2026']);
+  await digitarEm(p, 'G2', ['=G2+1']);
+  await p.waitForTimeout(200);
+  igual(await p.locator('.pl-jzeros').count(), 0, 'perguntou à toa para uma conta de data');
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina());
+await ctx.addInitScript(() => { globalThis.EFC_BATIDA = { a: 250, b: 60000 }; });
+await caso('v0.4.4.2: na aba só para ver, digitar faz a faixa de cima piscar (além do aviso)', async () => {
+  await p.goto(BASE + '#/');
+  await p.click('[data-novo=planilha]');
+  await p.waitForSelector('.pl-cv');
+  const p2 = await ctx.newPage();
+  p2.on('pageerror', (e) => errosConsole.push(`[${atual}] erro de página (aba 2): ${e.message}`));
+  await p2.goto(p.url());
+  await p2.waitForSelector('.faixa-aviso.trava', { timeout: 3000 });
+  await celula(p2, 'A2');
+  await p2.keyboard.type('9');
+  await p2.waitForSelector('.faixa-aviso.trava.piscar', { timeout: 2000 });
+  igual(await p2.locator('.pl-edcel').count(), 0);
+  certo((await p2.locator('.toasts').innerText()).includes('Só para ver'), 'sem o aviso de baixo');
+  await p2.close();
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina());
+await caso('v0.4.4.2: aviso com Desfazer some ao trocar de página; fica atrás do fundo das janelas; contagem igual no Início e nas listas; data no pé do cartão; Apagar com borda; texto da forma no meio; nome da barra', async () => {
+  await p.goto(BASE + '#/planilha');
+  for (const nome of ['Nome bem comprido para ocupar duas linhas no cartão da planilha de teste', 'Curta']) {
+    await p.click('[data-novo=planilha]'); await p.waitForSelector('.pl-cv');
+    await p.goto(BASE + '#/planilha'); await p.waitForSelector('.arq');
+    await p.locator('.arq .iconbtn[aria-label^="Renomear"]').first().click();
+    await p.locator('.janela input').fill(nome); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  }
+  await p.click('[data-novo=planilha]'); await p.waitForSelector('.pl-cv');
+  await p.goto(BASE + '#/planilha'); await p.waitForSelector('.arq');
+  /* datas no pé: na mesma linha de cartões, o bottom da data é igual */
+  const fundos = [];
+  for (const a of await p.locator('.arq').all()) { const b = await a.locator('.txt > span').boundingBox(); const c = await a.boundingBox(); fundos.push(Math.round(b.y + b.height - c.y - c.height)); }
+  certo(new Set(fundos).size === 1, 'datas em alturas diferentes: ' + fundos);
+  /* contagem */
+  certo((await p.locator('.secao .cont').innerText()).includes('3 planilhas'), await p.locator('.secao .cont').innerText());
+  await p.goto(BASE + '#/');
+  await p.waitForSelector('.secao .cont');
+  certo((await p.locator('.secao .cont').innerText()).includes('3 arquivos'), await p.locator('.secao .cont').innerText());
+  const cx1 = (await p.locator('.secao .cont').boundingBox()), fx = (await p.locator('.filtro-b').boundingBox());
+  certo(cx1.x + cx1.width <= fx.x + 1 && fx.x - (cx1.x + cx1.width) < 40, 'a contagem devia ficar ao lado do filtro');
+  /* aviso com Desfazer: some ao trocar de página, depois de um tempo na tela */
+  await p.goto(BASE + '#/planilha'); await p.waitForSelector('.arq');
+  await p.locator('.arq .iconbtn[aria-label^="Mandar para a lixeira"]').first().click();
+  await p.waitForSelector('.toast');
+  await p.waitForTimeout(1800);
+  await p.click('.rail a[href="#/lixeira"]');
+  await p.waitForTimeout(250);
+  igual(await p.locator('.toast').count(), 0, 'o aviso com Desfazer acompanhou a troca de página');
+  /* Apagar para sempre com borda */
+  await p.waitForSelector('.arq .btn.apagar');
+  const bd = await p.locator('.arq .btn.apagar').evaluate((el) => { const c = getComputedStyle(el); return { w: c.borderTopWidth, st: c.borderTopStyle }; });
+  igual(bd.w, '1px'); igual(bd.st, 'solid');
+  const hs = await p.locator('.arq .btn').evaluateAll((l) => l.map((e) => Math.round(e.getBoundingClientRect().height)));
+  certo(new Set(hs).size === 1, 'botões da Lixeira de alturas diferentes: ' + hs);
+  /* z-index do aviso fica abaixo do fundo das janelas */
+  const z = await p.evaluate(() => [parseInt(getComputedStyle(document.querySelector('.toasts')).zIndex), 80]);
+  certo(z[0] < z[1], 'aviso acima do fundo: ' + z);
+});
+await caso('v0.4.4.2: quadro: botão do Exibir chama "Barra de ferramentas"; texto da forma Início/Fim no meio da caixa de escrever', async () => {
+  await p.goto(BASE + '#/postits');
+  await p.click('[data-novo=postits]'); await p.waitForSelector('.qd');
+  await p.click('.tabs .tab:has-text("Exibir")');
+  certo((await p.locator('[data-cmd="exibir.ferramentas"]').first().innerText()).includes('Barra de ferramentas'), await p.locator('[data-cmd="exibir.ferramentas"]').first().innerText());
+  await p.locator('.qd-vazio .chipb:has-text("Fluxograma")').click();
+  await p.waitForSelector('textarea.qd-edita');
+  await p.locator('textarea.qd-edita').fill('Início');
+  await p.waitForTimeout(100);
+  const m = await p.locator('textarea.qd-edita').evaluate((el) => ({ pt: parseFloat(getComputedStyle(el).paddingTop), h: el.clientHeight, sh: el.scrollHeight }));
+  certo(m.pt >= 12 && m.sh <= m.h + 1, 'texto não está no meio: ' + JSON.stringify(m));
 });
 await ctx.close();
 
