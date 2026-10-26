@@ -122,7 +122,8 @@ export function comparar(a, b) {
   const ta = ordemTipo(a), tb = ordemTipo(b);
   if (ta !== tb) return ta - tb;
   if (ta === 1) {
-    const x = a.toLocaleLowerCase('pt-BR'), y = b.toLocaleLowerCase('pt-BR');
+    if (a === b) return 0;
+    const x = a.toLowerCase(), y = b.toLowerCase();
     return x < y ? -1 : x > y ? 1 : 0;
   }
   if (ta === 2) return (a ? 1 : 0) - (b ? 1 : 0);
@@ -148,6 +149,7 @@ export function serialDe(ano, mes, dia) {
 export function dataDe(serial) {
   const n = Math.floor(serial);
   if (n === 60) return { ano: 1900, mes: 2, dia: 29 };
+  if (n === 0) return { ano: 1900, mes: 1, dia: 0 }; // o "00/01/1900" do Excel (MÊS(0) = 1, como no Excel)
   const d = new Date(BASE + (n < 60 ? n + 1 : n) * DIA);
   return { ano: d.getUTCFullYear(), mes: d.getUTCMonth() + 1, dia: d.getUTCDate() };
 }

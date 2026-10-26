@@ -138,8 +138,17 @@ function vetor(v, ctx, limite) {
 /** Comparação de busca (sem diferenciar maiúsculas; com curingas se pedir). */
 function igualBusca(a, b, curinga) {
   if (curinga && typeof b === 'string' && typeof a === 'string' && /[*?~]/.test(b)) return curingaParaRegex(b).test(a);
-  if (typeof a === 'string' && typeof b === 'string') return a.toLocaleLowerCase('pt-BR') === b.toLocaleLowerCase('pt-BR');
+  if (typeof a === 'string' && typeof b === 'string') return a === b || a.toLowerCase() === b.toLowerCase();
   return a === b;
+}
+/** O mesmo teste do igualBusca, montado uma vez para procurar o alvo numa lista longa (PROCV, CORRESP). */
+function testeBusca(alvo, curinga) {
+  if (typeof alvo === 'string') {
+    if (curinga && /[*?~]/.test(alvo)) { const rx = curingaParaRegex(alvo); return (x) => typeof x === 'string' && rx.test(x); }
+    const b = alvo.toLowerCase();
+    return (x) => typeof x === 'string' && (x === alvo || x.toLowerCase() === b);
+  }
+  return (x) => x === alvo;
 }
 const mesmoTipo = (a, b) => (typeof a === 'number' && typeof b === 'number') || (typeof a === 'string' && typeof b === 'string') || (typeof a === 'boolean' && typeof b === 'boolean');
 
@@ -240,7 +249,7 @@ function somarMeses(s, meses, fimDoMes) {
 /* ---------- texto ---------- */
 const T = (v) => aTexto(v);
 function capitalizar(t) {
-  return t.toLocaleLowerCase('pt-BR').replace(/(^|[^A-Za-zÀ-ÿ])([a-zà-ÿ])/g, (m, a, b) => a + b.toLocaleUpperCase('pt-BR'));
+  return t.toLowerCase().replace(/(^|[^A-Za-zÀ-ÿ])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase());
 }
 
 /* ---------- a tabela de funções ---------- */
@@ -337,7 +346,7 @@ export const IMPL = {
     if (ehErro(cod)) return cod;
     const ocultas = cod > 100;
     const base = cod % 100;
-    const filtro = (aba, l, c) => !ctx.ehSubtotal(aba, l, c) && !(ocultas && ctx.linhaOculta(aba, l));
+    const filtro = (aba, l, c) => !ctx.ehSubtotal(aba, l, c) && !(ocultas && ctx.linhaOculta(aba, l)) && !(ctx.linhaFiltrada && ctx.linhaFiltrada(aba, l));
     return agregarCom(base, args.slice(1), ctx, { filtroCelula: filtro });
   },
   AGGREGATE: (args, ctx) => {
@@ -348,7 +357,7 @@ export const IMPL = {
     const ignoraErros = [2, 3, 6, 7].includes(op);
     const ignoraOcultas = [1, 3, 5, 7].includes(op);
     const ignoraSub = op <= 3;
-    const filtro = (aba, l, c) => !(ignoraSub && ctx.ehSubtotal(aba, l, c)) && !(ignoraOcultas && ctx.linhaOculta(aba, l));
+    const filtro = (aba, l, c) => !(ignoraSub && ctx.ehSubtotal(aba, l, c)) && !(ignoraOcultas && ctx.linhaOculta(aba, l)) && !(ctx.linhaFiltrada && ctx.linhaFiltrada(aba, l));
     if (cod >= 14 && cod <= 17) {
       const xs = numeros([args[2]], ctx, { ignorarErros: ignoraErros, filtroCelula: filtro });
       if (ehErro(xs)) return xs;
@@ -540,7 +549,7 @@ export const IMPL = {
     const tipo = args[2] && args[2].t !== 'vazio' ? NI(ctx.deref(ctx.av(args[2]))) : 1;
     if (ehErro(tipo)) return tipo;
     const L = vt.lista;
-    if (tipo === 0) { const i = L.findIndex((x) => x != null && igualBusca(x, alvo, true)); return i < 0 ? E.NA : i + 1; }
+    if (tipo === 0) { const t = testeBusca(alvo, true); const i = L.findIndex((x) => x != null && t(x)); return i < 0 ? E.NA : i + 1; }
     if (tipo > 0) { const i = buscaAproximada(L, alvo); return i < 0 ? E.NA : i + 1; }
     let achou = -1;
     for (let i = 0; i < L.length; i++) {
@@ -631,6 +640,23 @@ export const IMPL = {
   },
   ROWS: (args, ctx) => { const v = ctx.av(args[0]); return ehRef(v) || ehMat(v) ? v.linhas : ehErro(v) ? v : 1; },
   COLUMNS: (args, ctx) => { const v = ctx.av(args[0]); return ehRef(v) || ehMat(v) ? v.colunas : ehErro(v) ? v : 1; },
+  /* v0.5.0: o @ do Excel (interseção implícita) e o TRIMRANGE (A1:.A100 do Excel novo) */
+  SINGLE: (args, ctx) => {
+    const x = ctx.av(args[0]);
+    if (ehRef(x)) return x.unica ? x : ctx.deref(x);
+    if (ehMat(x)) return x.d[0] && x.d[0][0] != null ? x.d[0][0] : 0;
+    return x;
+  },
+  TRIMRANGE: (args, ctx) => {
+    const x = ctx.av(args[0]);
+    if (!ehRef(x)) return x;
+    const modo = (i) => { if (!args[i] || args[i].t === 'vazio') return 3; const v = aNumero(ctx.deref(ctx.av(args[i]))); return ehErro(v) ? 3 : Math.trunc(v); };
+    const ml = modo(1), mc = modo(2);
+    let l1 = Infinity, l2 = -1, c1 = Infinity, c2 = -1;
+    ctx.cada(x, (v, l, c) => { if (v === '' || l == null) return; if (l < l1) l1 = l; if (l > l2) l2 = l; if (c < c1) c1 = c; if (c > c2) c2 = c; });
+    if (l2 < 0) return new Ref(x.abaId, x.l1, x.c1, x.l1, x.c1);
+    return new Ref(x.abaId, ml & 1 ? l1 : x.l1, mc & 1 ? c1 : x.c1, ml & 2 ? l2 : x.l2, mc & 2 ? c2 : x.c2);
+  },
   TRANSPOSE: (args, ctx) => { const m = ctx.mat(ctx.av(args[0])); return Mat.de(m.colunas, m.linhas, (i, j) => (m.d[j][i] == null ? 0 : m.d[j][i])); },
 
   /* Matrizes que derramam */
@@ -655,7 +681,7 @@ export const IMPL = {
     const porCol = args[1] && args[1].t !== 'vazio' ? aLogico(ctx.deref(ctx.av(args[1]))) : false;
     const umaVez = args[2] && args[2].t !== 'vazio' ? aLogico(ctx.deref(ctx.av(args[2]))) : false;
     const linhas = porCol ? Mat.de(m.colunas, m.linhas, (i, j) => m.d[j][i]).d : m.d;
-    const chave = (r) => JSON.stringify(r.map((x) => (typeof x === 'string' ? 's' + x.toLocaleLowerCase('pt-BR') : x == null ? '' : ehErro(x) ? x.cod : x)));
+    const chave = (r) => JSON.stringify(r.map((x) => (typeof x === 'string' ? 's' + x.toLowerCase() : x == null ? '' : ehErro(x) ? x.cod : x)));
     const cont = new Map();
     for (const r of linhas) cont.set(chave(r), (cont.get(chave(r)) || 0) + 1);
     const vistos = new Set();
@@ -812,8 +838,8 @@ export const IMPL = {
   MID: esc((t, i, n) => { const a = NI(i), k = NI(n); if (ehErro(a)) return a; if (ehErro(k)) return k; if (a < 1 || k < 0) return E.VALOR; return [...T(t)].slice(a - 1, a - 1 + k).join(''); }),
   LEN: esc((t) => [...T(t)].length),
   TRIM: esc((t) => T(t).replace(/ +/g, ' ').trim()),
-  UPPER: esc((t) => T(t).toLocaleUpperCase('pt-BR')),
-  LOWER: esc((t) => T(t).toLocaleLowerCase('pt-BR')),
+  UPPER: esc((t) => T(t).toUpperCase()),
+  LOWER: esc((t) => T(t).toLowerCase()),
   PROPER: esc((t) => capitalizar(T(t))),
   FIND: esc((p, t, i) => {
     const ini = i == null ? 1 : NI(i); if (ehErro(ini)) return ini;
@@ -832,7 +858,7 @@ export const IMPL = {
       const m = rx.exec(s.slice(ini - 1));
       return m ? m.index + ini : E.VALOR;
     }
-    const k = s.toLocaleLowerCase('pt-BR').indexOf(pr.toLocaleLowerCase('pt-BR'), ini - 1);
+    const k = s.toLowerCase().indexOf(pr.toLowerCase(), ini - 1);
     return k < 0 ? E.VALOR : k + 1;
   }),
   SUBSTITUTE: esc((t, a, n, o) => {
@@ -1017,7 +1043,8 @@ function procVH(args, ctx, horizontal) {
   const chaves = horizontal ? (m.d[0] || []) : m.d.map((r) => r[0]);
   const um = (alvo) => {
     if (ehErro(alvo)) return alvo;
-    const i = aprox ? buscaAproximada(chaves, alvo) : chaves.findIndex((x) => x != null && igualBusca(x, alvo, true));
+    const tb = aprox ? null : testeBusca(alvo, true);
+    const i = aprox ? buscaAproximada(chaves, alvo) : chaves.findIndex((x) => x != null && tb(x));
     if (i < 0) return E.NA;
     const v = horizontal ? m.d[idx - 1][i] : m.d[i][idx - 1];
     return v == null ? 0 : v;

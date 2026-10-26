@@ -1,0 +1,492 @@
+/* EFCdocs — abrir um arquivo do Excel (.xlsx / .xlsm) como planilha do EFCdocs.
+   - Lê as abas aos pedaços (uma aba de 200 MB não precisa caber inteira na memória).
+   - Valores, fórmulas (com o último valor que o Excel calculou), estilos, larguras, alturas, ocultas,
+     mescladas, congelar painéis, cor e abas ocultas, nomes definidos, tabelas (as fórmulas viram endereços).
+   - Não vêm (e o relatório diz): macros, gráficos, tabelas dinâmicas (vêm os valores), imagens, controles,
+     comentários, formatação condicional, validação de dados, filtros, proteção.
+   - Linhas no fim que não mostram nada (fórmula copiada até a linha 1.048.576, só formatação ou ocultas com sobra)
+     são cortadas, e o relatório diz onde. */
+import { lerZip } from './zip.js';
+import { atributos, tags, tag, desescapar, textoRico } from './xml.js';
+import { lerTema, lerEstilos, corDe } from './estilos.js';
+import { tirarPrefixos, trocarTabelas } from './formulas.js';
+import { chave, letraCol, lerChave, numCol, MAX_LIN } from '../ref.js';
+import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
+import { IMPL } from '../funcoes.js';
+import { indiceEstilo, LARG_PADRAO, ALT_PADRAO, NOME_ABA_PADRAO } from '../modelo.js';
+
+export const LIMITES = {
+  folga: 1000, // linhas vazias (ou de fórmula que dá vazio) que ficam depois do último dado
+  ocultas: 20000, // linhas ocultas com valores no fim: acima disso, cortadas
+  guardaPendentes: 30000, // linhas "sem nada à vista" guardadas esperando para ver se vem dado depois
+  celulasAba: 300000,
+  celulasTotal: 800000,
+};
+
+const NS_REL = /^https?:\/\/[^ ]*\/relationships\//;
+
+function caminho(base, alvo) {
+  if (!alvo) return null;
+  if (/^[a-z]+:\/\//i.test(alvo)) return null;
+  if (alvo.startsWith('/')) return alvo.slice(1);
+  const partes = base.split('/'); partes.pop();
+  for (const p of alvo.split('/')) { if (p === '..') partes.pop(); else if (p !== '.') partes.push(p); }
+  return partes.join('/');
+}
+const relsDe = (parte) => { const p = parte.split('/'); const n = p.pop(); return [...p, '_rels', n + '.rels'].join('/'); };
+function lerRels(xml, parte) {
+  const out = new Map();
+  for (const r of tags(xml || '', 'Relationship')) out.set(r.a.Id, { tipo: (r.a.Type || '').replace(NS_REL, ''), alvo: r.a.TargetMode === 'External' ? null : caminho(parte, r.a.Target), externo: r.a.TargetMode === 'External' });
+  return out;
+}
+
+/** Formato de número é de data/hora? (para o sistema de datas 1904) */
+const ehFormatoData = (nf) => !!nf && /[dmyhs]/i.test(nf.replace(/"[^"]*"|\[[^\]]*\]|\\./g, '')) && !/^[#0.,%E+\-\s]*$/.test(nf);
+
+const fmtN = (n) => n.toLocaleString('pt-BR');
+
+/**
+ * bytes do .xlsx → { conteudo, relatorio }.
+ * aoProgresso({ fase, aba, i, n, linha }) é chamado de vez em quando.
+ */
+export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgresso = () => {}, limites = LIMITES, agora = new Date() } = {}) {
+  const zip = lerZip(bytes);
+  const rel = {
+    arquivo: nomeArquivo, em: agora.toISOString(), bytes: bytes.length || bytes.byteLength || 0,
+    abas: [], fora: [], avisos: [], semCalculo: 0, exemplosSemCalculo: [], celulas: 0, formulas: 0,
+  };
+  const fora = new Map();
+  const juntarFora = (item, qtd = 1, detalhe = '') => { const x = fora.get(item) || { item, qtd: 0, detalhe }; x.qtd += qtd; if (detalhe && !x.detalhe) x.detalhe = detalhe; fora.set(item, x); };
+
+  /* ---------- livro ---------- */
+  const relsRaiz = lerRels(await zip.texto('_rels/.rels'), '');
+  let pWb = 'xl/workbook.xml';
+  for (const r of relsRaiz.values()) if (/officeDocument$/.test(r.tipo) && r.alvo) pWb = r.alvo;
+  const wb = await zip.texto(pWb);
+  if (!wb) throw new Error('Este arquivo não parece ser do Excel (falta o workbook.xml).');
+  const relsWb = lerRels(await zip.texto(relsDe(pWb)), pWb);
+  let pSst = null, pEst = null, pTema = null;
+  for (const r of relsWb.values()) {
+    if (/sharedStrings$/.test(r.tipo)) pSst = r.alvo;
+    else if (/styles$/.test(r.tipo)) pEst = r.alvo;
+    else if (/theme$/.test(r.tipo)) pTema = r.alvo;
+  }
+  const date1904 = /<workbookPr\b[^>]*date1904="(1|true)"/.test(wb);
+  if (date1904) rel.avisos.push('O arquivo usa o sistema de datas de 1904 (Mac antigo): as datas foram convertidas para o sistema de 1900.');
+
+  aoProgresso({ fase: 'textos' });
+  const textos = [];
+  if (pSst) {
+    const sx = await zip.texto(pSst);
+    const rx = /<si>([\s\S]*?)<\/si>|<si\/>/g;
+    let m;
+    while ((m = rx.exec(sx))) textos.push(m[1] ? textoRico(m[1]) : '');
+  }
+  const tema = lerTema(pTema ? await zip.texto(pTema) : null);
+  const est = lerEstilos(pEst ? await zip.texto(pEst) : null, tema);
+
+  /* estilos do EFCdocs (sem repetição) e a ponte xf do Excel → índice do EFCdocs */
+  let estilos = [{}];
+  const ponte = est.xfs.map((e) => { const r = indiceEstilo(estilos, e); estilos = r.estilos; return r.s; });
+  const sDe = (xf) => (xf == null ? 0 : ponte[+xf] || 0);
+  const nfDe = (s) => (s ? estilos[s].nf : null);
+
+  /* ---------- abas ---------- */
+  const folhas = [];
+  for (const s of tags(tag(wb, 'sheets')?.dentro || '', 'sheet')) {
+    const r = relsWb.get(s.a['r:id'] || s.a.id);
+    if (!r || !r.alvo) continue;
+    if (/chartsheet$/.test(r.tipo)) { juntarFora('Abas de gráfico', 1, s.a.name); continue; }
+    if (!/worksheet$/.test(r.tipo)) { juntarFora('Abas de outro tipo (macro antiga ou diálogo)', 1, s.a.name); continue; }
+    folhas.push({ nome: s.a.name, parte: r.alvo, oculta: s.a.state === 'hidden' || s.a.state === 'veryHidden' });
+  }
+  if (!folhas.length) throw new Error('O arquivo não tem nenhuma aba de planilha.');
+
+  /* tabelas de todas as abas (as fórmulas de uma aba podem usar a tabela de outra) */
+  const tabelas = new Map();
+  for (const f of folhas) {
+    f.rels = lerRels(await zip.texto(relsDe(f.parte)), f.parte);
+    for (const r of f.rels.values()) {
+      if (!/table$/.test(r.tipo) || !r.alvo) continue;
+      const tx = await zip.texto(r.alvo);
+      const t = tag(tx || '', 'table');
+      if (!t || !t.a.ref) continue;
+      const [a, b] = t.a.ref.split(':');
+      const p1 = lerChave(a), p2 = lerChave(b || a);
+      if (!p1 || !p2) continue;
+      const cols = tags(t.dentro, 'tableColumn').map((c) => desescapar(c.a.name || ''));
+      const nome = t.a.displayName || t.a.name;
+      if (/<filterColumn\b/.test(t.dentro)) (f.filtros || (f.filtros = [])).push({ l1: p1.l + 1, l2: p2.l });
+      tabelas.set(nome.toLowerCase(), {
+        nome, aba: f.nome, l1: p1.l, c1: p1.c, l2: p2.l, c2: p2.c, cols,
+        cab: t.a.headerRowCount === '0' ? 0 : 1, tot: +(t.a.totalsRowCount || 0) > 0 || t.a.totalsRowShown === '1' && +(t.a.totalsRowCount || 0) > 0 ? 1 : 0,
+      });
+    }
+  }
+  let exemploTabela = null;
+  const conv = (txt, aba, l) => {
+    const sem = tirarPrefixos(txt);
+    if (!tabelas.size || sem.indexOf('[') < 0 && !exemploTabela) return trocarTabelas(sem, tabelas, { aba, l });
+    const r = trocarTabelas(sem, tabelas, { aba, l });
+    if (!exemploTabela && r !== sem) {
+      /* exemplo para o relatório: o primeiro Tabela[...] (com os colchetes de dentro) */
+      for (const m of sem.matchAll(/[A-Za-z_\\À-ÿ][\wÀ-ÿ.]*\[/g)) {
+        let prof = 0, k = m.index + m[0].length - 1;
+        for (; k < sem.length; k++) { if (sem[k] === "'") { k++; continue; } if (sem[k] === '[') prof++; else if (sem[k] === ']' && --prof === 0) break; }
+        const pedaco = sem.slice(m.index, k + 1);
+        if (prof !== 0 || pedaco.length > 60 || /[\r\n]/.test(pedaco)) continue;
+        const d = trocarTabelas(pedaco, tabelas, { aba, l });
+        if (d !== pedaco && !/#REF!/.test(d)) { exemploTabela = `${pedaco} virou ${d}`; break; }
+      }
+    }
+    return r;
+  };
+
+  /* partes que o EFCdocs não traz */
+  const nomes = zip.nomes;
+  const conta = (rx) => nomes.filter((n) => rx.test(n)).length;
+  if (conta(/vbaProject\.bin$/i)) juntarFora('Macros (VBA)', 1, 'os botões que rodam macro não funcionam aqui');
+  if (conta(/^xl\/charts\/chart\d+\.xml$/i)) juntarFora('Gráficos', conta(/^xl\/charts\/chart\d+\.xml$/i), 'chegam na v0.6.0');
+  if (conta(/^xl\/pivotTables\//i)) juntarFora('Tabelas dinâmicas', conta(/^xl\/pivotTables\/pivotTable\d+\.xml$/i), 'vêm só os valores, que não atualizam');
+  if (conta(/^xl\/media\//i)) juntarFora('Imagens', conta(/^xl\/media\//i));
+  if (conta(/^xl\/(slicers|slicerCaches|timelines|timelineCaches)\//i)) juntarFora('Segmentações de dados e linhas do tempo', conta(/^xl\/(slicers|timelines)\/[^/]+\.xml$/i) || 1);
+  if (conta(/^xl\/ctrlProps\//i)) juntarFora('Botões e caixas de controle', conta(/^xl\/ctrlProps\//i));
+  if (conta(/^xl\/(comments\d*|threadedComments\/)/i)) juntarFora('Comentários e anotações', conta(/^xl\/(comments\d*\.xml|threadedComments\/threadedComment\d*\.xml)$/i) || 1);
+  if (conta(/^xl\/webextensions\//i)) juntarFora('Suplementos do Office', conta(/^xl\/webextensions\/webextension\d*\.xml$/i) || 1);
+  if (conta(/^xl\/externalLinks\//i)) juntarFora('Vínculos com outros arquivos', conta(/^xl\/externalLinks\/externalLink\d*\.xml$/i), 'as fórmulas que usam outro arquivo mostram o último valor');
+  if (conta(/^xl\/(connections\.xml|queryTables\/)/i)) juntarFora('Consultas e conexões de dados (Power Query)', 1);
+
+  /* nomes definidos */
+  const nomesDef = {};
+  let areasImpressao = 0;
+  for (const d of tags(tag(wb, 'definedNames')?.dentro || '', 'definedName')) {
+    const n = d.a.name || '';
+    if (/^_xlnm\./i.test(n)) { if (/Print_(Area|Titles)/i.test(n)) areasImpressao++; continue; }
+    if (/^_xl/i.test(n)) continue;
+    let ref = desescapar(d.dentro).trim();
+    if (/\[\d+\]/.test(ref)) { juntarFora('Nomes que apontam para outro arquivo', 1); continue; }
+    ref = conv(ref, null, 0);
+    const k = n.toLowerCase();
+    if (nomesDef[k]) { if (d.a.localSheetId != null) { juntarFora('Nomes que só valem numa aba (repetidos)', 1, n); } continue; }
+    nomesDef[k] = { n, ref };
+  }
+  if (areasImpressao) juntarFora('Áreas de impressão', areasImpressao);
+
+  /* ---------- cada aba ---------- */
+  const conteudo = { v: 1, ordem: [], abas: {}, estilos: null, nomes: nomesDef, seq: folhas.length + 1 };
+  let totalCel = 0;
+  const abasZero = [];
+  const avisoFormula = (f, motivo) => { rel.semCalculo++; if (rel.exemplosSemCalculo.length < 5) rel.exemplosSemCalculo.push({ f: f.slice(0, 120), motivo }); };
+  const funcaoOk = new Map();
+  const checarFormula = (f) => {
+    if (funcaoOk.has(f)) return funcaoOk.get(f);
+    let r = '';
+    try {
+      const arv = lerGuardada(f);
+      const d = dependencias(arv);
+      const desc = d.desconhecidas.filter((n) => !IMPL[n]);
+      if (desc.length) r = 'função ' + [...new Set(desc)].join(', ');
+    } catch { r = 'o EFCdocs ainda não entende esta fórmula'; }
+    funcaoOk.set(f, r);
+    if (funcaoOk.size > 50000) funcaoOk.clear();
+    return r;
+  };
+
+  for (let fi = 0; fi < folhas.length; fi++) {
+    const F = folhas[fi];
+    const id = 'a' + (fi + 1);
+    aoProgresso({ fase: 'aba', aba: F.nome, i: fi + 1, n: folhas.length, linha: 0 });
+    const aba = { id, nome: F.nome, cel: {} };
+    if (F.oculta) aba.oculta = true;
+    const ra = { nome: F.nome, celulas: 0, formulas: 0, linhas: 0, cortes: [] };
+    let cab = '', resto = '', estado = 0, buf = '';
+    let ultimaReal = -1;
+    const pendentes = []; // linhas sem nada à vista (ou ocultas) esperando
+    let contando = null; // { de, ate, comValor } linhas puladas por serem muitas
+    let pararEm = null; // passou do limite de células
+    const masters = new Map(); // fórmula compartilhada: si → { f, l, c }
+    const cobertos = new Map(); // linha → [[c1, c2]] área de matriz (os valores vêm da fórmula)
+    let nCel = 0, nForm = 0, lMax = -1, cMax = -1;
+    let zeroAltura = false;
+    let ultimoAviso = 0;
+
+    const gravarLinha = (L) => {
+      if (pararEm != null) return;
+      if (nCel + L.cells.length > limites.celulasAba || totalCel + L.cells.length > limites.celulasTotal) { pararEm = L.r; return; }
+      for (const x of L.cells) {
+        const k = chave(L.r, x.c);
+        const cel = {};
+        if (x.v !== undefined) cel.v = x.v;
+        if (x.f != null) {
+          cel.f = x.f; if (x.da) cel.da = 1; else cel.lg = 1; nForm++;
+          const motivo = checarFormula(x.f);
+          if (motivo) avisoFormula(x.f, motivo);
+        }
+        if (x.s) cel.s = x.s;
+        if (cel.v === undefined && cel.f == null && !cel.s) continue;
+        aba.cel[k] = cel;
+        nCel++; totalCel++;
+        if (cel.v !== undefined || cel.f != null) { if (L.r > lMax) lMax = L.r; if (x.c > cMax) cMax = x.c; }
+      }
+      if (L.ht != null && L.ht !== ALT_PADRAO) { (aba.alt || (aba.alt = {}))[L.r] = L.ht; }
+      if (L.oculta) { (aba.ocL || (aba.ocL = {}))[L.r] = 1; }
+    };
+    const soltarPendentes = () => {
+      for (const L of pendentes) gravarLinha(L);
+      pendentes.length = 0;
+      if (contando) {
+        ra.cortes.push(`linhas ${fmtN(contando.de + 1)} a ${fmtN(contando.ate + 1)}: eram ${fmtN(contando.ate - contando.de + 1)} linhas sem nada à vista (ocultas, vazias ou com fórmula que dá vazio) e não vieram`);
+        contando = null;
+      }
+    };
+
+    const linha = (atr, corpo) => {
+      const a = atributos(atr);
+      const r = (a.r ? +a.r : (linha.ult ?? -1) + 2) - 1;
+      linha.ult = r;
+      if (r >= MAX_LIN) return;
+      const L = { r, cells: [], oculta: a.hidden === '1' || a.hidden === 'true', ht: null, s: a.customFormat === '1' ? sDe(a.s) : 0 };
+      if (a.ht && (a.customHeight === '1' || a.customHeight === 'true')) L.ht = Math.max(0, Math.round(parseFloat(a.ht) * 4 / 3));
+      else if (a.ht && parseFloat(a.ht) * 4 / 3 > ALT_PADRAO * 1.4) L.ht = Math.round(parseFloat(a.ht) * 4 / 3);
+      let temValor = false, temVisivel = false;
+      if (corpo) {
+        const rx = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+        let m, cAuto = -1;
+        while ((m = rx.exec(corpo))) {
+          const ca = atributos(m[1]);
+          let c;
+          if (ca.r) { const p = /^([A-Z]+)/.exec(ca.r); c = p ? numCol(p[1]) : cAuto + 1; } else c = cAuto + 1;
+          cAuto = c;
+          if (c < 0) continue;
+          const dentro = m[2] || '';
+          const x = { c, s: sDe(ca.s) };
+          /* valor */
+          const vm = dentro.indexOf('<v') >= 0 ? /<v(?:\s[^>]*)?>([\s\S]*?)<\/v>/.exec(dentro) : null;
+          const tv = ca.t || 'n';
+          let v;
+          if (tv === 'inlineStr') { const is = /<is>([\s\S]*?)<\/is>/.exec(dentro); v = is ? textoRico(is[1]) : ''; } else if (vm) {
+            const t = vm[1];
+            if (tv === 's') v = textos[+t] ?? '';
+            else if (tv === 'str') v = desescapar(t);
+            else if (tv === 'b') v = t === '1' || t === 'true';
+            else if (tv === 'e') v = { e: desescapar(t).trim() };
+            else if (tv === 'd') { const d = Date.parse(t); v = Number.isFinite(d) ? d / 86400000 + 25569 : desescapar(t); } else if (t !== '') { const n = Number(t); v = Number.isFinite(n) ? n : desescapar(t); }
+          }
+          if (typeof v === 'number' && date1904 && ehFormatoData(nfDe(x.s))) v += 1462;
+          /* fórmula */
+          const fm = dentro.indexOf('<f') >= 0 ? /<f\b([^>]*?)(?:\/>|>([\s\S]*?)<\/f>)/.exec(dentro) : null;
+          let f = null;
+          if (fm) {
+            const fa = atributos(fm[1]);
+            const txt = fm[2] != null ? desescapar(fm[2]) : '';
+            if (fa.t === 'shared') {
+              if (txt) {
+                f = conv(txt, F.nome, r);
+                if (fa.si != null) masters.set(fa.si, { f, l: r, c });
+              } else {
+                const ms = masters.get(fa.si);
+                if (ms) {
+                  try { f = escrever(deslocar(lerGuardada(ms.f), r - ms.l, c - ms.c), 'en'); } catch { f = ms.f; }
+                }
+              }
+            } else if (fa.t === 'dataTable') {
+              juntarFora('Tabelas de dados (teste de hipóteses)', 1, 'vêm só os valores');
+            } else if (txt) {
+              f = conv(txt, F.nome, r);
+              if (fa.t === 'array') {
+                x.da = 1;
+                const [a1, b1] = (fa.ref || '').split(':');
+                const p1 = lerChave(a1 || ''), p2 = lerChave(b1 || a1 || '');
+                if (p1 && p2 && (p2.l > p1.l || p2.c > p1.c)) {
+                  for (let ll = p1.l; ll <= Math.min(p2.l, p1.l + 100000); ll++) {
+                    const lst = cobertos.get(ll) || [];
+                    lst.push([p1.c, p2.c, ll === p1.l ? p1.c : -1]);
+                    cobertos.set(ll, lst);
+                  }
+                }
+              }
+            }
+          }
+          /* célula dentro da área de uma matriz: o valor vem da fórmula */
+          if (f == null) {
+            const cob = cobertos.get(r);
+            if (cob && cob.some(([c1, c2, ancora]) => c >= c1 && c <= c2 && c !== ancora)) {
+              if (v !== undefined && v !== '') { temValor = true; temVisivel = temVisivel || !L.oculta; }
+              v = undefined;
+            }
+          }
+          if (f != null) x.f = f;
+          if (v !== undefined) x.v = v;
+          const mostra = v !== undefined && v !== '' && !(typeof v === 'string' && !v.trim() && f != null);
+          if (mostra) { temValor = true; if (!L.oculta) temVisivel = true; }
+          if (x.v !== undefined || x.f != null || x.s) L.cells.push(x);
+        }
+      }
+      ra.linhas = r + 1;
+      if (r - ultimoAviso > 20000) { ultimoAviso = r; aoProgresso({ fase: 'aba', aba: F.nome, i: fi + 1, n: folhas.length, linha: r + 1 }); }
+      /* linha "de verdade": mostra algo */
+      if (temVisivel) {
+        soltarPendentes();
+        gravarLinha(L);
+        ultimaReal = r;
+        return;
+      }
+      /* sem nada à vista: espera para ver se vem dado depois */
+      L.temValor = temValor;
+      if (!L.cells.length && L.ht == null && !L.oculta) return;
+      if (contando) { contando.ate = r; if (temValor) contando.comValor++; return; }
+      if (pendentes.length >= limites.guardaPendentes) { contando = { de: r, ate: r, comValor: temValor ? 1 : 0 }; return; }
+      pendentes.push(L);
+    };
+
+    /* lê a aba aos pedaços */
+    const processar = (fimArquivo) => {
+      let p = 0;
+      if (estado === 0) {
+        const i = buf.indexOf('<sheetData');
+        if (i < 0) { if (fimArquivo) { cab = buf; buf = ''; } return; }
+        const j = buf.indexOf('>', i);
+        if (j < 0) return;
+        cab = buf.slice(0, i);
+        if (buf[j - 1] === '/') { estado = 2; buf = buf.slice(j + 1); resto += buf; buf = ''; return; }
+        estado = 1; p = j + 1;
+      }
+      if (estado === 1) {
+        for (;;) {
+          const i = buf.indexOf('<', p);
+          if (i < 0) { p = buf.length; break; }
+          if (buf.startsWith('<row', i)) {
+            const j = buf.indexOf('>', i);
+            if (j < 0) { p = i; break; }
+            if (buf[j - 1] === '/') { linha(buf.slice(i + 4, j - 1), ''); p = j + 1; continue; }
+            const k = buf.indexOf('</row>', j);
+            if (k < 0) { p = i; break; }
+            linha(buf.slice(i + 4, j), buf.slice(j + 1, k));
+            p = k + 6;
+            continue;
+          }
+          if (buf.startsWith('</sheetData', i)) { estado = 2; const j = buf.indexOf('>', i); p = j < 0 ? buf.length : j + 1; break; }
+          const j = buf.indexOf('>', i);
+          if (j < 0) { p = i; break; }
+          p = j + 1;
+        }
+        buf = buf.slice(p);
+        if (estado === 2) { resto += buf; buf = ''; }
+        return;
+      }
+      resto += buf; buf = '';
+    };
+    const ok = await zip.pedacos(F.parte, (pedaco) => { buf += pedaco; processar(false); });
+    if (!ok) { rel.avisos.push(`A aba "${F.nome}" está faltando dentro do arquivo.`); continue; }
+    processar(true);
+
+    /* ---------- cabeçalho: congelar, cor, colunas ---------- */
+    const sp = tag(cab, 'sheetPr');
+    if (sp) { const tc = tag(sp.dentro, 'tabColor'); if (tc) { const cor = corDe(tc.a, tema); if (cor) aba.cor = cor; } }
+    const pane = tag(cab, 'pane');
+    if (pane && /frozen/i.test(pane.a.state || '')) {
+      const l = Math.round(+(pane.a.ySplit || 0)), c = Math.round(+(pane.a.xSplit || 0));
+      if (l > 0 || c > 0) aba.cong = { l, c };
+    }
+    const sfp = tag(cab, 'sheetFormatPr');
+    if (sfp && (sfp.a.zeroHeight === '1' || sfp.a.zeroHeight === 'true')) zeroAltura = true;
+    const colsDef = tags(tag(cab, 'cols')?.dentro || '', 'col');
+
+    /* ---------- fim da aba: o que fica das linhas pendentes ---------- */
+    if (pendentes.length || contando) {
+      const ocultasComValor = pendentes.filter((L) => L.temValor).length + (contando ? contando.comValor : 0);
+      let ateLinha = ultimaReal + limites.folga;
+      const ultPend = pendentes.length ? pendentes[pendentes.length - 1].r : ultimaReal;
+      const ultOcultaValor = [...pendentes].reverse().find((L) => L.temValor);
+      if (ocultasComValor && ocultasComValor <= limites.ocultas && !contando && ultOcultaValor) ateLinha = Math.max(ateLinha, ultOcultaValor.r);
+      const ficam = pendentes.filter((L) => L.r <= ateLinha);
+      for (const L of ficam) gravarLinha(L);
+      const ultima = contando ? contando.ate : ultPend;
+      if (ultima > ateLinha) {
+        const ini = Math.max(ateLinha + 1, ficam.length ? ficam[ficam.length - 1].r + 1 : ateLinha + 1);
+        ra.cortes.push(ocultasComValor > limites.ocultas
+          ? `linhas ${fmtN(ini + 1)} a ${fmtN(ultima + 1)}: eram ${fmtN(ocultasComValor)} linhas ocultas com valores no fim da aba (sobra de cópia); não vieram`
+          : `linhas ${fmtN(ini + 1)} a ${fmtN(ultima + 1)}: não mostravam nada (vazias, só com formatação ou com fórmula que dá vazio). Ficaram ${fmtN(limites.folga)} linhas de folga depois do último dado; se precisar de mais, copie a fórmula para baixo`);
+      }
+      pendentes.length = 0; contando = null;
+    }
+    if (pararEm != null) ra.cortes.push(`a aba passou de ${fmtN(limites.celulasAba)} células: parou na linha ${fmtN(pararEm + 1)}`);
+    if (zeroAltura) abasZero.push(F.nome);
+
+    /* células só com formatação muito à direita do último dado saem */
+    for (const k of Object.keys(aba.cel)) {
+      const x = aba.cel[k];
+      if (x.v !== undefined || x.f != null) continue;
+      const p = lerChave(k);
+      if (p && (p.c > cMax + 2 || p.l > lMax + limites.folga)) { delete aba.cel[k]; nCel--; totalCel--; }
+    }
+
+    /* colunas: largura, ocultas */
+    const ultCol = Math.max(cMax + 50, 25);
+    for (const cd of colsDef) {
+      const c1 = +cd.a.min - 1, c2 = Math.min(+cd.a.max - 1, ultCol);
+      if (!(c1 >= 0)) continue;
+      const w = cd.a.width != null ? parseFloat(cd.a.width) : null;
+      const px = w != null ? Math.max(0, Math.trunc(((256 * w + Math.trunc(128 / 7)) / 256) * 7)) : null;
+      for (let c = c1; c <= c2; c++) {
+        if (cd.a.hidden === '1' || cd.a.hidden === 'true') (aba.ocC || (aba.ocC = {}))[c] = 1;
+        else if (px != null && (cd.a.customWidth === '1' || Math.abs(px - 64) > 2) && px !== LARG_PADRAO) (aba.larg || (aba.larg = {}))[c] = px;
+      }
+    }
+
+    /* mescladas, e o que a aba tem que não vem */
+    const mesc = [];
+    for (const m of resto.matchAll(/<mergeCell ref="([^"]+)"/g)) {
+      const [a1, b1] = m[1].split(':');
+      const p1 = lerChave(a1), p2 = lerChave(b1 || a1);
+      if (!p1 || !p2 || (p1.l === p2.l && p1.c === p2.c)) continue;
+      if (p1.l > lMax + limites.folga) continue;
+      mesc.push(m[1].toUpperCase());
+    }
+    if (mesc.length) aba.mesc = mesc;
+    const nCond = (resto.match(/<conditionalFormatting\b/g) || []).length + (resto.match(/<x14:conditionalFormatting\b/g) || []).length;
+    if (nCond) juntarFora('Formatação condicional', nCond, 'as cores automáticas por regra não vêm');
+    const nVal = (resto.match(/<dataValidation\b/g) || []).length + (resto.match(/<x14:dataValidation\b/g) || []).length;
+    if (nVal) juntarFora('Validação de dados (listas suspensas)', nVal);
+    const nLink = (resto.match(/<hyperlink\b/g) || []).length;
+    if (nLink) juntarFora('Links nas células', nLink, 'o texto vem, o link não');
+    if (/<autoFilter\b/.test(resto)) juntarFora('Filtros', 1, 'as linhas escondidas pelo filtro continuam escondidas; os botões de filtro não vêm');
+    /* linhas escondidas por filtro: o SUBTOTAL do Excel pula sempre (não só com 101 a 111) */
+    const af = /<autoFilter\b[^>]*ref="([^"]+)"[^>]*>([\s\S]*?)<\/autoFilter>/.exec(resto);
+    const filtros = [...(F.filtros || [])];
+    if (af && /<filterColumn\b/.test(af[2])) { const [a1, b1] = af[1].split(':'); const p1 = lerChave(a1), p2 = lerChave(b1 || a1); if (p1 && p2) filtros.push({ l1: p1.l + 1, l2: p2.l }); }
+    if (filtros.length && aba.ocL) {
+      for (const k of Object.keys(aba.ocL)) { const l = +k; if (filtros.some((x) => l >= x.l1 && l <= x.l2)) (aba.ocF || (aba.ocF = {}))[l] = 1; }
+    }
+    if (/<sheetProtection\b/.test(resto)) juntarFora('Proteção de aba', 1, 'aqui a aba fica livre para editar');
+
+    if (nCel < 0) nCel = 0;
+    ra.celulas = nCel; ra.formulas = nForm;
+    rel.celulas += nCel; rel.formulas += nForm;
+    rel.abas.push(ra);
+    conteudo.ordem.push(id);
+    conteudo.abas[id] = aba;
+  }
+
+  if (abasZero.length) rel.avisos.push(`${abasZero.length === 1 ? `Na aba "${abasZero[0]}"` : `Nas abas ${abasZero.map((n) => `"${n}"`).join(', ')}`}, as linhas não usadas ficavam escondidas no Excel; aqui elas aparecem vazias.`);
+  if (tabelas.size) rel.avisos.push(`${tabelas.size === 1 ? 'A tabela' : `As ${tabelas.size} tabelas`} do Excel ${tabelas.size === 1 ? 'virou' : 'viraram'} faixa normal: nas fórmulas, o nome da coluna virou o endereço${exemploTabela ? ` (por exemplo, ${exemploTabela})` : ''}. A conta é a mesma.`);
+
+  /* abas com nome repetido ou vazio (não deveria acontecer) */
+  const vistos = new Set();
+  conteudo.ordem.forEach((id, i) => {
+    const a = conteudo.abas[id];
+    let n = String(a.nome || '').trim().slice(0, 31) || NOME_ABA_PADRAO(i + 1);
+    while (vistos.has(n.toLowerCase())) n = n.slice(0, 28) + ' ' + (i + 1);
+    vistos.add(n.toLowerCase());
+    a.nome = n;
+  });
+  if (conteudo.ordem.every((id) => conteudo.abas[id].oculta)) delete conteudo.abas[conteudo.ordem[0]].oculta;
+  conteudo.estilos = estilos;
+  if (est.fonteBase && est.fonteBase.nome) conteudo.fonteBase = est.fonteBase.nome;
+  conteudo.calcExcel = true; // até a primeira mudança, as fórmulas começam com o último valor do Excel (abre rápido)
+  rel.fora = [...fora.values()];
+  conteudo.importado = rel;
+  aoProgresso({ fase: 'pronto' });
+  void letraCol;
+  return { conteudo, relatorio: rel };
+}

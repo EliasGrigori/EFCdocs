@@ -1,86 +1,79 @@
-/* EFCdocs — prints de antes (v0.4.8 em /v048/) e depois (v0.4.9) para a página de aprovação.
+/* EFCdocs — prints de antes (v0.4.9 em /v049/) e depois (v0.5.0) para a página de aprovação.
+   Só a amostra inventada (testes/amostras/amostra-qualidade.xlsx): nenhum dado real nos prints.
    Uso: node scripts/prints-aprovacao.mjs <endereço> <pasta> */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 const BASE = process.argv[2], OUT = process.argv[3];
+const AMOSTRA = fileURLToPath(new URL('../testes/amostras/amostra-qualidade.xlsx', import.meta.url));
 mkdirSync(OUT, { recursive: true });
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome', env: { ...process.env, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' } });
-const PC = { viewport: { width: 1366, height: 800 } };
+const PC = { viewport: { width: 1366, height: 800 }, acceptDownloads: true };
 const CEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 const espera = (p, ms = 150) => p.waitForTimeout(ms);
-const DADOS = [['Ponto', 'Cloro (mg/L)', 'pH', 'Turbidez'], ['Entrada', '1,2', '7,1', '0,8'], ['Reservatório', '1,0', '7,3', '0,5'], ['Rede 1', '0,8', '7,2', '0,6']];
-const irPara = async (p, ref) => { await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill(ref); await p.locator('.pl-nome').press('Enter'); await espera(p, 120); };
-async function nova(raiz, opc = PC, abas = false) {
+async function nova(raiz, opc = PC) {
   const ctx = await b.newContext(opc);
-  if (abas) await ctx.addInitScript(() => { globalThis.EFC_CEL_ABAS = true; });
   const p = await ctx.newPage();
   await p.goto(raiz + '#/'); await espera(p, 700);
   return p;
 }
-async function planilha(p, cel = false) {
-  await p.goto(p.url().split('#')[0] + '#/planilha'); await espera(p, 400);
-  if (cel) await p.locator('[data-novo=planilha]').first().tap(); else await p.click('[data-novo=planilha]');
-  await p.waitForSelector('.pl-cv'); await espera(p, 400);
-  for (let i = 0; i < DADOS.length; i++) {
-    await irPara(p, 'A' + (i + 1));
-    for (const c of DADOS[i]) { await p.keyboard.type(c); await p.keyboard.press('Tab'); }
-    await espera(p, 60);
-  }
-  await irPara(p, 'A1'); await espera(p, 200);
-}
-const clip = (p, nome, c) => p.screenshot({ path: `${OUT}/${nome}.png`, clip: c });
-const cmd = (p, id) => p.locator(`[data-cmd="${id}"]`).first().click();
+const shot = (p, nome, clip) => p.screenshot({ path: `${OUT}/${nome}.png`, ...(clip ? { clip } : {}) });
 
-for (const [pref, raiz] of [['antes', BASE + 'v048/'], ['depois', BASE]]) {
-  /* Início */
-  let p = await nova(raiz);
-  await p.screenshot({ path: `${OUT}/${pref}-inicio.png` });
-  /* planilha: faixa, menu, alça, aviso */
-  await planilha(p);
-  await clip(p, `${pref}-faixa`, { x: 0, y: 0, width: 1366, height: 230 });
-  await clip(p, `${pref}-menu`, { x: 0, y: 0, width: 260, height: 800 });
-  await p.screenshot({ path: `${OUT}/${pref}-planilha.png` });
-  await p.click('[data-menu-ocultar]'); await espera(p, 400);
-  await clip(p, `${pref}-alca-repouso`, { x: 0, y: 330, width: 300, height: 140 });
-  await p.hover('[data-menu-alca]'); await espera(p, 600);
-  await clip(p, `${pref}-alca-hover`, { x: 0, y: 330, width: 300, height: 140 });
-  await p.click('[data-menu-alca]'); await espera(p, 300);
-  await p.click('.tabs .tab:has-text("Exibir")'); await espera(p, 200);
-  await cmd(p, 'exibir.mesa'); await espera(p, 250);
-  await p.screenshot({ path: `${OUT}/${pref}-aviso.png` });
-  await clip(p, `${pref}-aviso-recorte`, { x: 700, y: 640, width: 666, height: 160 });
-  /* Opções › Tema */
-  await p.locator('.topbar [aria-label="Opções"]').click(); await espera(p, 300);
-  const sec = async (id) => { if (!(await p.locator(`.op-sec[data-sec=${id}].aberta`).count())) await p.locator(`.op-sec[data-sec=${id}] .op-cab`).click(); await espera(p, 250); };
-  await sec('tema');
-  await p.screenshot({ path: `${OUT}/${pref}-temas.png` });
-  await p.close();
-  /* celular */
-  p = await nova(raiz, CEL, pref === 'antes');
-  await p.screenshot({ path: `${OUT}/${pref}-cel-inicio.png` });
-  await planilha(p, true);
-  await p.screenshot({ path: `${OUT}/${pref}-cel-planilha.png` });
-  if (pref === 'depois') {
-    await p.locator('.abas-cel').tap(); await espera(p, 400);
-    await p.screenshot({ path: `${OUT}/depois-cel-abas.png` });
-  }
-  await p.close();
-}
-/* depois: extras */
-{
-  const p = await nova(BASE);
-  await p.click('.rail .novo-drive-b'); await espera(p, 250);
-  await clip(p, 'depois-menu-novo', { x: 0, y: 0, width: 360, height: 360 });
-  await p.click('.rail .novo-drive-b');
-  await p.click('.rail .brand-recolhe'); await espera(p, 350);
-  await clip(p, 'depois-menu-icones', { x: 0, y: 0, width: 120, height: 800 });
-  await p.click('.rail .brand-recolhe'); await espera(p, 300);
-  await planilha(p);
-  /* Centralizar: seleção A1:D4 */
-  await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('A1:D4'); await p.locator('.pl-nome').press('Enter');
-  await cmd(p, 'formatar.centro'); await espera(p, 300);
-  await p.screenshot({ path: `${OUT}/depois-centralizar.png` });
-  await p.close();
-}
+/* antes: v0.4.9 */
+let p = await nova(BASE + 'v049/');
+await shot(p, 'antes-inicio');
+await p.click('[data-novo=planilha]'); await p.waitForSelector('.pl-cv'); await espera(p, 400);
+await p.click('.tabs .tab:has-text("Arquivo")'); await espera(p, 250);
+await shot(p, 'antes-faixa-arquivo', { x: 0, y: 0, width: 1366, height: 190 });
+await p.locator('[data-cmd="arquivo.abrir"]').first().click(); await espera(p, 400);
+await shot(p, 'antes-abrir');
+await p.context().close();
+
+/* depois: v0.5.0 */
+p = await nova(BASE);
+await shot(p, 'depois-inicio');
+await p.click('.novo-drive-b'); await espera(p, 250);
+await shot(p, 'depois-novo', { x: 0, y: 0, width: 420, height: 330 });
+await p.click('[data-novo-excel]'); await espera(p, 300);
+await shot(p, 'depois-escolher');
+await p.setInputFiles('[data-excel-arquivo]', AMOSTRA);
+await p.waitForSelector('[data-excel-abrir]'); await espera(p, 300);
+await shot(p, 'depois-relatorio');
+await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await espera(p, 600);
+await shot(p, 'depois-planilha');
+await p.locator('.pl-aba:has-text("Resumo")').click(); await espera(p, 300);
+await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('B3'); await p.locator('.pl-nome').press('Enter'); await espera(p, 250);
+await shot(p, 'depois-resumo');
+await p.click('.tabs .tab:has-text("Arquivo")'); await espera(p, 250);
+await shot(p, 'depois-faixa-arquivo', { x: 0, y: 0, width: 1366, height: 190 });
+const [dl] = await Promise.all([p.waitForEvent('download'), p.locator('[data-cmd="arquivo.exportarExcel"]').first().click()]);
+await dl.path(); await espera(p, 600);
+await shot(p, 'depois-salvou');
+await p.locator('[data-cmd="arquivo.relatorioExcel"]').first().click(); await espera(p, 300);
+await shot(p, 'depois-relatorio-de-novo');
+await p.context().close();
+
+/* lendo (com a barra de progresso): arquivo grande montado na hora, sem dados reais */
+p = await nova(BASE);
+await p.click('[data-abrir-excel]');
+await p.evaluate(() => {
+  /* segura a leitura para fotografar a barra */
+  const W = window.Worker;
+  window.Worker = function (url) { const w = new W(url); const env = w.postMessage.bind(w); w.postMessage = (d, t) => setTimeout(() => env(d, t), 4000); return w; };
+});
+await p.setInputFiles('[data-excel-arquivo]', AMOSTRA);
+await espera(p, 600);
+await shot(p, 'depois-lendo');
+await p.context().close();
+
+/* celular */
+p = await nova(BASE, CEL);
+await shot(p, 'depois-cel-inicio');
+await p.locator('[data-abrir-excel]').tap(); await espera(p, 300);
+await p.setInputFiles('[data-excel-arquivo]', AMOSTRA);
+await p.waitForSelector('[data-excel-abrir]'); await espera(p, 300);
+await shot(p, 'depois-cel-relatorio');
+await p.locator('[data-excel-abrir]').tap(); await p.waitForSelector('.pl-cv'); await espera(p, 500);
+await shot(p, 'depois-cel-planilha');
 await b.close();
 console.log('prints prontos');

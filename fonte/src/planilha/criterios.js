@@ -1,5 +1,16 @@
 /* EFCdocs — Planilha: condições do CONT.SE, SOMASE, MÉDIASES... (">=0,5", "Ajustar", "<>", "L-*"). */
-import { lerNumeroPt, lerDataTexto, ehErro, comparar } from './valores.js';
+import { lerNumeroPt as lerNumeroPt0, lerDataTexto, ehErro, comparar } from './valores.js';
+
+/* CONT.SES com milhares de linhas lê o mesmo texto muitas vezes: guarda a leitura */
+const memoNum = new Map();
+function lerNumeroPt(t) {
+  if (typeof t !== 'string') return lerNumeroPt0(t);
+  if (memoNum.has(t)) return memoNum.get(t);
+  const n = lerNumeroPt0(t);
+  if (memoNum.size > 50000) memoNum.clear();
+  memoNum.set(t, n);
+  return n;
+}
 
 const escRx = (s) => s.replace(/[.+^${}()|[\]\\]/g, '\\$&');
 
@@ -23,7 +34,9 @@ export function criterio(c) {
   if (ehErro(c)) return (v) => ehErro(v) && v.cod === c.cod;
   if (typeof c === 'number') return (v) => (typeof v === 'number' && v === c) || (typeof v === 'string' && lerNumeroPt(v) === c);
   if (typeof c === 'boolean') return (v) => v === c;
-  if (c == null) return (v) => v == null || v === '';
+  /* condição numa célula vazia: o Excel trata como 0 (CONT.SES e afins não contam as vazias) */
+  if (c == null) c = 0;
+  if (typeof c === 'number') return (v) => (typeof v === 'number' && v === c) || (typeof v === 'string' && lerNumeroPt(v) === c);
   const s = String(c);
   const m = /^(<=|>=|<>|<|>|=)?([\s\S]*)$/.exec(s);
   const op = m[1] || '=';
@@ -55,8 +68,8 @@ export function criterio(c) {
   }
   if (op === '=' || op === '<>') {
     const rx = temCuringa(resto) ? curingaParaRegex(resto) : null;
-    const baixo = resto.toLocaleLowerCase('pt-BR');
-    const bate = (v) => typeof v === 'string' && (rx ? rx.test(v) : v.toLocaleLowerCase('pt-BR') === baixo);
+    const baixo = resto.toLowerCase();
+    const bate = (v) => typeof v === 'string' && (rx ? rx.test(v) : v === resto || v.toLowerCase() === baixo);
     return op === '=' ? bate : (v) => !bate(v);
   }
   return (v) => {

@@ -199,8 +199,8 @@ export function preencherSelecao(c, abaId, faixas, celBase, lBase, cBase) {
     const k = chave(l, cc);
     const atual = c.abas[abaId].cel[k] || {};
     const nova = { ...atual };
-    delete nova.v; delete nova.f;
-    if (celBase.f != null) nova.f = moverFormula(celBase.f, l - lBase, cc - cBase);
+    delete nova.v; delete nova.f; delete nova.da; delete nova.lg;
+    if (celBase.f != null) { nova.f = moverFormula(celBase.f, l - lBase, cc - cBase); if (celBase.lg) nova.lg = 1; }
     else if (celBase.v !== undefined) nova.v = celBase.v;
     if (celBase.s != null && !atual.s) nova.s = celBase.s;
     lote.por(abaId, k, nova);

@@ -85,6 +85,8 @@ export const FUNCOES = [
   F('COLUMN', 'COL', 'busca', 'O número da coluna.', ['[ref]|a célula (sem ela, a própria coluna)'], '=COL()'),
   F('ROWS', 'LINS', 'busca', 'Quantas linhas a faixa tem.', ['matriz|a faixa'], '=LINS(A2:A30)'),
   F('COLUMNS', 'COLS', 'busca', 'Quantas colunas a faixa tem.', ['matriz|a faixa'], '=COLS(A1:F1)'),
+  F('SINGLE', 'SINGLE', 'busca', 'Um valor só da faixa (o @ do Excel): a célula da mesma linha ou coluna da fórmula.', ['valor|faixa ou conta'], '=SINGLE(A2:A30)', { v: '21', oculta: true }),
+  F('TRIMRANGE', 'TRIMRANGE', 'busca', 'A faixa sem as linhas e colunas vazias das pontas.', ['intervalo|a faixa', '[cortar_linhas]|0 nada, 1 no começo, 2 no fim, 3 nos dois', '[cortar_colunas]|0 nada, 1 no começo, 2 no fim, 3 nos dois'], '=TRIMRANGE(A2:A1000)', { v: '21', oculta: true }),
   F('TRANSPOSE', 'TRANSPOR', 'busca', 'Vira linhas em colunas e colunas em linhas.', ['matriz|a faixa'], '=TRANSPOR(A1:D1)'),
 
   /* Matrizes que derramam */

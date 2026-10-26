@@ -1,66 +1,71 @@
-"""EFCdocs — monta a página de aprovação da v0.4.9 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.5.0 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" """
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.4.9'
+VERSAO = 'v0.5.0'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-G1, G2, G3, G4 = 'A. Defeitos que o Grok achou (corrigidos)', 'B. Pedidos da v0.4.9 (menu, aviso, Início, ícones, celular, temas)', 'C. Perguntas abertas', 'D. Decisões'
+G1, G2, G3, G4 = 'A. Abrir arquivo do Excel', 'B. Salvar como Excel', 'C. O que ainda não vem e decisões de rumo', 'D. Decisões'
+TABELA_4 = (
+    '<table class="tab"><thead><tr><th>Arquivo</th><th>Abas</th><th>Células que vieram</th><th>Fórmulas iguais ao Excel</th><th>Ler e mostrar o relatório</th><th>Abrir a planilha</th><th>Salvar como Excel</th></tr></thead><tbody>'
+    '<tr><td>Estoque</td><td>6</td><td>9.643</td><td><b>2.891 de 2.891</b> (100%)</td><td>0,3 s</td><td>0,6 s</td><td>0,1 s</td></tr>'
+    '<tr><td>Acerola</td><td>4</td><td>63.497</td><td><b>11.730 de 11.731</b> (99,99%)</td><td>1,4 s</td><td>1,2 s</td><td>0,3 s</td></tr>'
+    '<tr><td>Potabilidade</td><td>7</td><td>41.189 (de 1,1 milhão)</td><td><b>8.909 de 8.910</b> (99,99%)</td><td>5 a 8 s</td><td>1,4 s</td><td>0,4 s</td></tr>'
+    '<tr><td>Coletas</td><td>31</td><td>106.299 (de 2,2 milhões)</td><td><b>18.825 de 18.829</b> (99,98%)</td><td>5 s</td><td>2,3 s</td><td>0,7 s</td></tr>'
+    '</tbody></table>')
 ITENS = [
-    ('X01', 'Centralizar: agora centraliza tudo e só desfaz quando todas já estão', G1,
-     '<p>O Grok viu que <b>Centralizar</b> invertia: com várias células escolhidas e só algumas já centralizadas, o botão tirava o centro das que estavam certas. Agora funciona como o Excel: <b>põe todas no centro</b>; só quando <b>todas</b> já estão no centro é que o clique tira. Vale também para Esquerda e Direita. Tem teste.</p>',
-     'Confirma que ficou certo?', [('Quatro linhas escolhidas, todas centralizadas (desfazer: "Centralizar")', 'depois-centralizar')], 'um'),
-    ('X02', 'Cópia do quadro leva a rubrica e cola sempre dentro da tela', G1,
-     '<p>Duas coisas do Grok no B02: (1) ao copiar uma assinatura e colar, <b>a rubrica sumia</b>, ainda mais depois de recarregar; agora a rubrica <b>vai junto com a cópia</b>, mesmo depois de recarregar a página (ela fica guardada só neste aparelho). (2) A terceira cópia caía <b>fora da tela</b>; agora o EFCdocs procura o primeiro lugar livre <b>dentro da parte que você está vendo</b>. Tem teste: cinco colagens seguidas, todas visíveis e sem uma em cima da outra.</p>',
-     'Confirma? (Para testar: copie uma assinatura com rubrica, recarregue e cole três vezes.)', [], ''),
-    ('X03', 'Painel "Verificação", dica sem bolinha verde e o exemplo "só um modelo"', G1,
-     '<p>O painel agora se chama <b>Verificação · 1 dica</b> (e não mais "Problemas"), e uma <b>dica sozinha não acende a bolinha</b> do botão (a bolinha só aparece com erro ou aviso). No ajuda da função, o exemplo ganhou a frase <b>"só um modelo: troque as colunas e os valores pelos da sua planilha"</b>, porque o Grok achou que o D2:D30 do SOMASE parecia fixo. A <b>cor do cursor</b> também ficou certa: o cursor não pisca mais atrás das letras.</p>',
-     'Está claro agora?', [('Painel Verificação com uma dica', 'depois-verificacao'), ('Ajuda do SOMASE com a nota', 'depois-formula')], 'um'),
-    ('W03', 'Alça do menu mais fina, que sai um pouco ao chegar o mouse ou o dedo; ☰ igual', G2,
-     '<p>Como você pediu: a alça ficou <b>bem mais fina (7 px)</b> e, ao <b>passar o mouse ou tocar</b>, ela <b>sai um pouco</b> (e fica mais escura, com a setinha) para ajudar a puxar, com animação suave. Dá para <b>puxar para o lado</b> ou clicar. O <b>☰</b> do topo agora faz exatamente o mesmo que a alça (menu fixo, não gaveta). No celular continua entrar e sair.</p>',
-     'Ficou do tamanho e do jeito que você imaginou? Mais fina ainda, ou sai mais ao chegar perto?',
-     [('Antes (v0.4.9): repouso e mouse em cima', 'alca-antes'), ('Depois (v0.4.9): repouso e mouse em cima', 'alca-depois')], 'um'),
-    ('W09', 'Aviso no canto direito, mais baixo, mais largo e levemente arredondado', G2,
-     '<p>O aviso foi para o <b>canto de baixo à direita</b>, ficou <b>mais baixo e mais largo</b> e com <b>cantos levemente arredondados</b> (5 px). Quando o painel Verificação está aberto no quadro, o aviso se desloca para não ficar por cima.</p>',
-     'Ficou como você queria?', [('Antes', 'antes-aviso'), ('Depois', 'depois-aviso')], 'par'),
-    ('L02', 'Início com cartões grandes que são uma prévia em branco (sua ideia)', G2,
-     '<p>No Início, "Nova planilha / documento / quadro" agora são <b>cartões grandes com a prévia do arquivo em branco</b>: grade para a planilha, folha com linhas de texto para o documento, fundo pontilhado com post-its para o quadro. O Documento mostra o selo dourado <b>v0.7.0</b> (ainda não abre). Se não houver arquivo, a frase é <b>"Comece criando uma planilha. Tudo fica salvo neste aparelho."</b></p>',
-     'Gostou dos cartões? Quer a prévia maior, ou com o nome do arquivo escrito por cima?', [('Antes', 'antes-inicio'), ('Depois', 'depois-inicio')], 'par'),
-    ('L04', 'Menu como o do Google Drive', G2,
-     '<p>O menu agora segue o <b>Google Drive</b>: o <b>☰</b> no topo alterna entre menu com nomes e só ícones; o botão grande <b>+ Novo</b> abre as três opções (Planilha, Documento, Quadro); depois vêm <b>Início</b>, <b>Meus arquivos</b> (Planilhas, Documentos, Quadros) e <b>Organizar</b> (Pastas, Documentos externos, ainda "em breve"); a <b>Lixeira</b> e o <b>Esconder menu</b> ficam embaixo, e o texto pequeno do logo saiu para caber o ☰.</p>',
-     'O menu está do jeito que você imaginou? Falta algo (Compartilhados comigo, Recentes)?',
-     [('Antes', 'antes-menu'), ('Depois, menu completo', 'depois-menu'), ('Botão Novo aberto', 'depois-menu-novo'), ('Depois, só ícones', 'depois-menu-icones')], 'par'),
-    ('L06', 'Ícones da faixa maiores e coloridos por família', G2,
-     '<p>Os ícones da faixa ficaram <b>maiores</b> (os grandes 26 px) e <b>coloridos por família</b>: área de transferência em azul, fonte em roxo, alinhamento em cinza-petróleo, número em azul, células em verde, edição em vermelho/rosa. A altura da faixa <b>não mudou</b>.</p>',
-     'Gostou das cores? Quer mais fortes, mais suaves, ou uma cor só (petróleo)?', [('Antes', 'antes-faixa'), ('Depois', 'depois-faixa')], 'um'),
-    ('L07', 'Celular: uma barra rápida só e botão "Abas"', G2,
-     '<p>No celular, em vez de abas + faixa + barra de baixo ocupando a tela, fica <b>uma única barra rápida</b> (negrito, itálico, sublinhado, cor, preenchimento, alinhar, moeda, soma, desfazer, refazer) e um botão <b>Abas</b> no fim. Tocando em Abas, abrem as abas e a faixa completa; tocando de novo, fecham. A planilha ganha bastante espaço.</p>',
-     'No celular de verdade, ficou fácil? Quais botões você mais usa e quer na barra rápida?',
-     [('Antes', 'antes-cel-planilha'), ('Depois (barra rápida)', 'depois-cel-planilha'), ('Depois, Abas aberto', 'depois-cel-abas'), ('Início no celular', 'depois-cel-inicio')], 'par'),
-    ('L09', 'Temas agrupados em Claros e Escuros, com miniatura e "Ver todos"', G2,
-     '<p>Em Opções › Tema, os temas aparecem em dois grupos, <b>Claros</b> (Papel, Claro, Névoa) e <b>Escuros</b> (Escuro, Ardósia, Petróleo), cada um com uma <b>miniatura</b>. O botão <b>Ver todos os 18 temas</b> mostra o resto, também separado em claros e escuros.</p>',
-     'Ficou fácil de escolher? Quer outros temas em destaque?', [('Antes', 'antes-temas'), ('Depois', 'depois-temas')], 'par'),
-    ('B03', 'Mensagem "Aberto em outra aba" sem outra aba aberta', G3,
-     '<p>Continua sem aparecer nos meus testes (o Chrome 156 reabre as abas antigas junto com a nova). Já reduzi a trava para 90 s e o aviso tem <b>Editar aqui</b>. Se você ou o Grok virem de novo, anotem: <b>navegador, se reabriu abas sozinho, e há quanto tempo fechou a anterior</b>. O roteiro do Grok pede isso.</p>',
-     'Voltou a aparecer nesta versão?', [], ''),
-    ('W06', 'Sem resposta na v0.4.9: nome "Quadros" e textos sem jargão', G3,
-     '<p>O Grok achou tudo certo; mas você ainda não respondeu. O menu diz <b>Quadros</b>, o rodapé diz <b>"Salvo neste aparelho"</b> e <b>Tamanho</b>.</p>', 'Está bom assim?', [], ''),
-    ('V01', 'Publicação da v0.4.9', G4,
-     '<p>Depois da sua aprovação, publico a v0.4.9 no GitHub (commit só com esta versão). Nada vai antes disso.</p>', 'Pode publicar? (marque Aprovado e diga se quer algum ajuste antes, principalmente W03, L04 e L07)', [], ''),
-    ('V02', 'Próxima versão: v0.5.0 com Opus 5.5 · esforço alto', G4,
-     '<p><b>v0.5.0 (Opus 5.5 · alto)</b>: abrir e salvar <b>.xlsx</b> com os seus 4 arquivos (Potabilidade, Coletas, Estoque e Acerola). Macros, tabelas dinâmicas, gráficos e controles não serão preservados nesta etapa; um <b>relatório</b> dirá o que ficou de fora. Os arquivos <b>não entram</b> no pacote nem no GitHub. Depois, v0.6.0 gráficos, v0.7.0 Docx e assinatura, v0.8.0 pastas e nuvens.</p>',
-     'Posso seguir para a v0.5.0 com o Opus 5.5 em esforço alto, depois da aprovação desta?', [], ''),
+    ('E01', 'Abrir arquivo do Excel: no Início, no Novo e na faixa', G1,
+     '<p>Antes, "Abrir Excel/Word" só dizia que chegava na v0.5.0. Agora tem um botão <b>Abrir arquivo do Excel (.xlsx ou .xlsm)</b> logo embaixo dos cartões do Início, a opção <b>Abrir do Excel</b> no botão <b>Novo</b> do menu (como o "Upload" do Google Drive) e os botões <b>Abrir Excel</b>, <b>Salvar como Excel</b> e <b>O que veio do Excel</b> nas abas Arquivo e Dados. Dá para escolher o arquivo ou <b>arrastar</b> para a janela. O arquivo original <b>não muda</b>: vem uma cópia para o EFCdocs.</p>',
+     'O lugar dos botões ficou bom? Quer o "Abrir arquivo do Excel" também como um quarto cartão grande?',
+     [('Antes: Início (v0.5.0)', 'antes-inicio'), ('Depois: botão embaixo dos cartões', 'depois-inicio'), ('Antes: "chega na v0.5.0"', 'antes-abrir'), ('Depois: escolher ou arrastar o arquivo', 'depois-escolher'), ('Depois: Novo › Abrir do Excel', 'depois-novo')], 'par'),
+    ('E02', 'Relatório antes de abrir: o que veio, o que ficou de fora e o que é bom saber', G1,
+     '<p>O arquivo é lido numa linha separada (a tela não trava; aparece a barra de progresso, aba por aba). Antes de abrir, o EFCdocs mostra um <b>relatório</b>: quantas abas, células e fórmulas, o que <b>veio</b>, o que <b>ficou de fora</b> (com a quantidade) e o que é <b>bom saber</b> (cortes no fim das abas, tabelas que viraram faixa normal, fórmulas que mostram o último valor do Excel). Você decide se abre. O mesmo relatório fica guardado na planilha: <b>Arquivo › O que veio do Excel</b>.</p>',
+     'O relatório está claro? Alguma palavra difícil?',
+     [('Relatório (amostra inventada)', 'depois-relatorio'), ('Lendo, com a barra de progresso', 'depois-lendo'), ('De novo, depois: Arquivo › O que veio do Excel', 'depois-relatorio-de-novo')], 'um'),
+    ('E03', 'A planilha abre como estava no Excel', G1,
+     '<p>Vêm os <b>valores</b> e as <b>fórmulas</b> (em português na barra fx), e a <b>formatação</b>: fonte, negrito, cores, preenchimento, bordas, alinhamento, quebra de texto, formato de número (data, R$, %), <b>larguras e alturas</b>, linhas e colunas <b>ocultas</b>, células <b>mescladas</b>, <b>congelar painéis</b>, a <b>cor das abas</b>, as <b>abas ocultas</b> ("+1 oculta") e os <b>nomes definidos</b>. Quando o aparelho tem a fonte do arquivo (Calibri, Arial), a grade usa a mesma. No celular abre igual. Os prints são de uma <b>amostra inventada</b> (nenhum dado seu aparece nesta página).</p>',
+     'Abra os seus arquivos: alguma cor, borda ou largura ficou diferente do Excel?',
+     [('Aba Coletas da amostra', 'depois-planilha'), ('Aba Resumo: MÉDIA da coluna da tabela, R$, %, VERDADEIRO, #DIV/0!', 'depois-resumo'), ('No celular: Início, relatório e planilha', 'depois-celular')], 'um'),
+    ('E04', 'As contas dão o mesmo resultado do Excel (testado nos seus 4 arquivos)', G1,
+     '<p>Abri os seus 4 arquivos e comparei, fórmula por fórmula, o valor que o EFCdocs calcula com o último valor que o Excel tinha guardado. Para isso o motor ganhou várias coisas que os seus arquivos usam (item E09).</p>' + TABELA_4 +
+     '<p>As poucas diferenças: <b>HOJE()</b> (o Excel guardou o dia em que o arquivo foi salvo; aqui é hoje), <b>1 fórmula com #REF!</b> na aba ACIDIFICAÇÃO da Acerola (a referência já estava quebrada no Excel, que mostrava um valor antigo) e <b>3 fórmulas</b> do RELATÓRIO de Coletas com FILTRO dentro de SE (o Excel mostra #VALOR!, aqui #DESPEJAR!; os dois são erro). <b>Ida e volta</b> (abrir, salvar como Excel e abrir de novo): <b>0 células diferentes</b> nos 4 arquivos. Tempos medidos num computador comum; no celular deve levar umas 3 vezes mais.</p>',
+     'Confere 2 ou 3 contas importantes de cada arquivo (por exemplo, um total e um status) e me diga se bateu.', [], ''),
+    ('E05', 'Fim das abas que não mostra nada é cortado (com 1.000 linhas de folga)', G1,
+     '<p>Alguns arquivos têm a fórmula copiada até a última linha do Excel. Exemplo: na aba <b>RATEIO</b> da Potabilidade, a coluna A ia até a linha <b>1.048.543</b>, mas só as primeiras ~545 mostravam algo; e a <b>ET. FOLHAS</b> de Coletas tinha <b>121.995 linhas ocultas</b> com sobras até o fim. Trazer tudo travaria o celular. A regra: o que <b>não mostra nada</b> no fim da aba (vazio, só formatação, fórmula que dá vazio) é cortado, deixando <b>1.000 linhas de folga</b> com a fórmula depois do último dado; <b>linhas ocultas com valor</b> só saem quando passam de 20 mil no fim da aba. O relatório diz cada corte (aba e linhas).</p>',
+     'A folga de 1.000 linhas serve? Ou prefere que, ao salvar como Excel, eu copie a fórmula de novo até a linha onde ela ia no original?', [], ''),
+    ('E06', 'Salvar como Excel (.xlsx)', G2,
+     '<p>Na aba Arquivo (ou Dados): <b>Salvar como Excel</b> baixa o arquivo com o nome da planilha. Vão valores, fórmulas (com o valor já calculado), formatação, larguras, alturas, ocultas, mescladas, congelar painéis, cor e abas ocultas, nomes definidos e as fórmulas que <b>derramam</b> (FILTRO, ÚNICO…), no formato do Excel 365. O Excel <b>recalcula tudo ao abrir</b>. Se a planilha usa funções que só existem no <b>Excel 2021/365</b>, o aviso diz quais (por exemplo, "Usa FILTRO, ÚNICO"). As <b>assinaturas</b> sobre a planilha ainda não vão (chegam com o Documento, v0.7.0).</p>',
+     'Abra no seu Excel um arquivo salvo pelo EFCdocs: abriu sem reclamar? As contas e as cores estão certas?',
+     [('Antes: faixa Arquivo (v0.5.0)', 'antes-faixa-arquivo'), ('Depois: Abrir Excel, Salvar como Excel e O que veio do Excel', 'depois-faixa-arquivo'), ('Depois de salvar: "Excel pronto"', 'depois-salvou')], 'um'),
+    ('E07', 'O que ainda não vem (somando os seus 4 arquivos)', G3,
+     '<p><b>Validação de dados (listas suspensas): 58</b> · <b>Formatação condicional: 38</b> · Comentários e anotações: 23 · Proteção de aba: 22 · Áreas de impressão: 37 · <b>Gráficos: 14</b> (v0.6.0) · <b>Tabelas dinâmicas: 11</b> (vêm só os valores, que não atualizam) · Macros (VBA): 2 arquivos · Botões e caixas de controle: 29 · Imagens: 38 · Segmentações e linhas do tempo: 13 · Links nas células: 4. Os arquivos de você <b>continuam no Excel do jeito que estão</b>; aqui é uma cópia. Pelos números, a validação (listas) e a formatação condicional são as que mais fazem falta nas suas planilhas de controle.</p>',
+     'Quer uma v0.5.1 só com listas suspensas, formatação condicional e comentários antes dos gráficos (v0.6.0)? Ou segue direto para os gráficos?', [], ''),
+    ('E08', 'Tabelas do Excel viram faixa normal', G3,
+     '<p>Os seus arquivos têm <b>51 tabelas do Excel</b> (Inserir › Tabela). Nas fórmulas, <code>Tabela[Coluna]</code> virou o endereço da coluna (por exemplo, <code>Tab_ENTRADAS[Mês/Ano]</code> virou <code>ENTRADAS!$C$4:$C$213</code>), e <code>[@Coluna]</code> virou a célula da mesma linha. A conta é a mesma; o que muda é que a tabela não cresce sozinha quando entra uma linha nova no fim (o botão <b>Tabela</b> do EFCdocs, que já aparece como "em breve", é que vai fazer isso).</p>',
+     'Serve assim por enquanto?', [], ''),
+    ('E09', 'O que o motor de contas aprendeu com os seus arquivos', G3,
+     '<p><b>Fórmula antiga do Excel</b> (sem matriz dinâmica): uma faixa dentro da conta vira a célula da mesma linha, como no Excel (antes derramava e dava #DESPEJAR!); SOMARPRODUTO e afins continuam com a matriz. <b>SUBTOTAL</b> pula as linhas escondidas por filtro. <b>CONT.SES</b> com a condição numa célula vazia não conta as vazias (como o Excel). <b>MÊS(0)</b> = 1. <b>TEXTO(data;"MMMM")</b> com letra maiúscula. O <b>@</b> do Excel (SINGLE) e o <b>A1:.A100</b> (TRIMRANGE). Função que o EFCdocs ainda não tem mostra o <b>último valor do Excel</b> (em vez de #NOME?). <b>Abre rápido</b>: até a primeira mudança, as fórmulas começam com o valor que o Excel guardou e só calculam as que derramam e as de data de hoje; PROCV e CORRESP em listas longas ficaram bem mais rápidos.</p>',
+     'Algo nessa lista que você estranhou ao usar?', [], ''),
+    ('D01', 'PDF e Imprimir da planilha passam para a v0.6.0', G4,
+     '<p>No plano antigo, o PDF e o Imprimir da planilha estavam marcados para a v0.5.0. Fazer bem (quebra de página, área de impressão, cabeçalho repetido) é outro trabalho grande; proponho junto com os <b>gráficos</b>, na <b>v0.6.0</b>, porque o PDF vai precisar desenhar os gráficos. O botão já avisa "chega na v0.6.0".</p>',
+     'Pode ser na v0.6.0?', [], ''),
+    ('V01', 'Publicação da v0.5.0', G4,
+     '<p>Depois da sua aprovação, publico a v0.5.0 no GitHub (commit só com esta versão). Os seus 4 arquivos <b>não</b> vão para o GitHub nem para os pacotes: o teste usa uma amostra inventada (<code>testes/amostras/amostra-qualidade.xlsx</code>). Nada a configurar no Firebase.</p>',
+     'Pode publicar? (diga se quer algum ajuste antes, principalmente E05 e E07)', [], ''),
+    ('V02', 'Próxima versão', G4,
+     '<p>Opção 1 (se responder sim no E07): <b>v0.5.1 · Sonnet 5.5 · alto</b>: listas suspensas (validação), formatação condicional e comentários, lidos do Excel e salvos de volta. Opção 2: <b>v0.6.0 · Opus 5.5 · alto</b>: gráficos (os 14 dos seus arquivos como referência) e PDF/Imprimir da planilha. O relatório do Grok da v0.5.0 entra na próxima que for feita.</p>',
+     'Qual vem primeiro: v0.5.1 ou v0.6.0?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
     f'<div class="nums"><span>{sys.argv[4]} testes de regras</span><span>{sys.argv[5]} testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>A v0.4.9 <b>corrige o que o Grok achou</b> (Centralizar, rubrica na cópia, colar dentro da tela, painel Verificação, cursor) e faz os seus pedidos: <b>alça menor que sai ao chegar perto, aviso à direita, cartões de prévia no Início, menu estilo Drive, ícones coloridos, barra rápida no celular e temas agrupados</b>.</li>'
-    '<li>Aprove ou reprove cada item abaixo; no fim, o botão gera as suas respostas para você colar na conversa.</li>'
-    '<li>Nada foi publicado. Nada a configurar no Firebase.</li>'
+    '<li>A v0.5.0 <b>abre e salva arquivos do Excel</b> (.xlsx e .xlsm), com um relatório do que veio e do que ficou de fora antes de abrir.</li>'
+    '<li>Testada nos seus 4 arquivos: as contas dão o mesmo resultado do Excel em 99,98% a 100% das fórmulas, e abrir, salvar e abrir de novo não mudou nenhuma célula.</li>'
+    '<li>Os prints usam só uma amostra inventada; os seus arquivos não foram para o GitHub nem para os pacotes. Nada a configurar no Firebase.</li>'
     '</ul>'
 )
 
@@ -86,7 +91,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Menu, avisos, Início, ícones, celular e temas')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Abrir e salvar Excel')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

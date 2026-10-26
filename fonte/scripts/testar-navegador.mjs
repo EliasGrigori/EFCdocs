@@ -2,7 +2,10 @@
    Uso: node scripts/testar-navegador.mjs <endereço> [pasta-dos-prints]
    O endereço precisa servir o dist/ na raiz e o v0.2.0 em /v020/ (mesma origem, para o teste de compatibilidade). */
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const BASE = process.argv[2] || 'http://localhost:8731/';
 const PRINTS = process.argv[3] || null;
@@ -83,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.4.8', async () => {
+await caso('abre sem erro, rodapé mostra v0.5.0', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.4.9'), 'rodapé sem v0.4.9');
+  certo((await p.locator('.foot').innerText()).includes('v0.5.0'), 'rodapé sem v0.5.0');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -111,7 +114,7 @@ await caso('planilha: aviso do PDF diz de qual módulo é', async () => {
   await p.click('.tab:has-text("Arquivo")');
   await cmd(p, 'arquivo.exportarPDF');
   const t = await p.locator('.toast').last().innerText();
-  certo(t.includes('da planilha chega na v0.5.0'), 'aviso: ' + t);
+  certo(t.includes('da planilha chega na v0.6.0'), 'aviso: ' + t); // v0.5.0: o PDF da planilha passou para a v0.6.0
   await print(p, '03-aviso-pdf-planilha');
 });
 await caso('novo quadro abre vazio, na aba Inserir', async () => {
@@ -1560,7 +1563,7 @@ await caso('v0.4.3: Ctrl+B põe negrito; dica mostra Ctrl+B; Início e "chega de
   igual(await p.locator('.ribbon [data-cmd="dados.dinamica"]').getAttribute('data-nota'), 'Chega depois da v1.0.0.');
   await p.goto(BASE + '#/');
   await p.waitForSelector('.pagina');
-  certo((await p.locator('[data-novo=planilha]').getAttribute('data-dica')).includes('Abrir e salvar Excel chega na v0.5.0'), 'dica do Início');
+  certo((await p.locator('[data-novo=planilha]').getAttribute('data-dica')).includes('Abre e salva arquivos do Excel'), 'dica do Início'); // v0.5.0: já funciona
 });
 await ctx.close();
 
@@ -1890,7 +1893,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.9'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.5.0'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -2100,7 +2103,7 @@ await caso('v0.4.4.2: conta que dá 0,9 numa célula de data pergunta uma vez; "
   await digitarEm(p, 'F2', ['=9/10']);
   await p.waitForSelector('.pl-jzeros');
   const t = await p.locator('.pl-jzeros').innerText();
-  certo(t.includes('0,9') && /1899/.test(t), t);
+  certo(t.includes('0,9') && /00\/01\/1900/.test(t), t); // v0.5.0: como o Excel mostra (00/01/1900)
   await print(p, '72-numero-em-data');
   await p.locator('.pl-jzeros button:has-text("Mostrar como número")').click();
   await p.waitForSelector('.pl-jzeros', { state: 'detached' });
@@ -2785,7 +2788,8 @@ await caso('v0.4.9: menu como o do Drive: botão Novo com as três opções, Meu
   await p.goto(BASE + '#/');
   await p.waitForSelector('.rail .novo-drive-b');
   await p.click('.rail .novo-drive-b');
-  igual(await p.locator('.novo-drive-m button').count(), 3);
+  igual(await p.locator('.novo-drive-m button:not([data-novo-excel])').count(), 3);
+  igual(await p.locator('.novo-drive-m [data-novo-excel]').count(), 1, 'v0.5.0: Abrir do Excel no Novo');
   await p.click('.rail .novo-drive-b');
   igual(await p.locator('.novo-drive-m').count(), 0);
   certo((await p.locator('.rail').innerText()).includes('MEUS ARQUIVOS') || (await p.locator('.rail-sep').first().innerText()).toLowerCase().includes('meus arquivos'), 'sem a seção Meus arquivos');
@@ -2831,6 +2835,115 @@ await caso('v0.4.9 celular: uma barra rápida só; o botão "Abas" abre e fecha 
   igual(await p.locator('.tabs .tab').count(), 0);
   const larg = await p.evaluate(() => document.documentElement.scrollWidth);
   certo(larg <= 390, 'rolagem lateral: ' + larg);
+});
+
+/* ---------- v0.5.0: abrir e salvar Excel ---------- */
+await ctx.close();
+({ ctx, p } = await novaPagina({ acceptDownloads: true }));
+const AMOSTRA_XLSX = fileURLToPath(new URL('../testes/amostras/amostra-qualidade.xlsx', import.meta.url));
+const lerXlsxNode = async (bytes) => (await import('../src/planilha/xlsx/ler.js')).lerXlsx(bytes);
+async function abrirAmostra(p, arquivo = AMOSTRA_XLSX) {
+  await p.goto(BASE + '#/');
+  await p.waitForSelector('[data-abrir-excel]');
+  await p.click('[data-abrir-excel]');
+  await p.setInputFiles('[data-excel-arquivo]', arquivo);
+  await p.waitForSelector('[data-excel-abrir]', { timeout: 30000 });
+}
+await caso('v0.5.0: Início e o botão Novo do menu têm "Abrir do Excel"', async () => {
+  await p.goto(BASE + '#/');
+  await p.waitForSelector('[data-abrir-excel]');
+  await p.click('.novo-drive-b');
+  certo(await p.locator('[data-novo-excel]').isVisible(), 'falta "Abrir do Excel" no Novo');
+  await p.click('[data-novo-excel]');
+  await p.waitForSelector('.janela-excel [data-excel-escolher]');
+  certo((await p.locator('.janela-excel').innerText()).includes('o arquivo original não muda'), 'a janela devia dizer que o original não muda');
+  await p.keyboard.press('Escape');
+  igual(await p.locator('.janela-excel').count(), 0);
+});
+await caso('v0.5.0: abrir a amostra: relatório antes de abrir (o que veio, o que ficou de fora, o corte do fim)', async () => {
+  await abrirAmostra(p);
+  const t = await p.locator('.rel-excel').innerText();
+  for (const x of ['3 abas', 'VEIO', 'FICOU DE FORA', 'Formatação condicional', 'Validação de dados', 'Comentários', 'linhas 1.042 a 6.000', 'TAB_COLETAS[Cloro (mg/L)] virou Coletas!$C$2:$C$41']) certo(t.toUpperCase().includes(x.toUpperCase()), 'faltou no relatório: ' + x);
+  await print(p, 'v050-relatorio');
+  await p.click('[data-excel-abrir]');
+  await p.waitForSelector('.pl-cv');
+  await p.waitForTimeout(300);
+  certo((await p.locator('.topbar, .tb-mini').first().innerText()).includes('amostra-qualidade'), 'o nome do arquivo devia vir do Excel');
+  igual(await p.locator('.pl-aba').count(), 2, 'Coletas e Resumo (Apoio é oculta)');
+  igual(await celula(p, 'A1'), 'Data');
+  igual(await celula(p, 'A3'), '05/01/2026');
+  igual(await celula(p, 'E2'), 'CONFORME');
+  igual(await celula(p, 'F2'), 'JANEIRO');
+  await p.locator('.pl-aba:has-text("Resumo")').click();
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'B3'), '1,19', 'média da coluna da tabela');
+  igual(await fxTexto(p), '=MÉDIA(Coletas!$C$2:$C$41)');
+  igual(await celula(p, 'B9'), '35', 'CONT.SE com nome definido');
+  igual(await celula(p, 'B10'), 'R$ 1.234,50');
+  igual(await celula(p, 'B13'), '#DIV/0!');
+  await print(p, 'v050-planilha');
+});
+await caso('v0.5.0: Arquivo › O que veio do Excel mostra o relatório de novo', async () => {
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  await cmd(p, 'arquivo.relatorioExcel');
+  await p.waitForSelector('.janela-excel .rel-excel');
+  certo((await p.locator('.janela-excel').innerText()).includes('amostra-qualidade.xlsx'));
+  await p.keyboard.press('Escape');
+});
+await caso('v0.5.0: Salvar como Excel baixa um .xlsx que abre de novo igual (fórmulas, valores e estilos)', async () => {
+  await p.click('.tabs .tab:has-text("Dados")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  igual(dl.suggestedFilename(), 'amostra-qualidade.xlsx');
+  const caminho = await dl.path();
+  const { conteudo: c } = await lerXlsxNode(new Uint8Array(readFileSync(caminho)));
+  const res = c.abas[c.ordem[1]];
+  igual(res.nome, 'Resumo');
+  igual(res.cel.B3.f, 'AVERAGE(Coletas!$C$2:$C$41)');
+  certo(Math.abs(res.cel.B3.v - 1.1925) < 1e-9, 'valor calculado foi junto: ' + res.cel.B3.v);
+  igual(c.abas[c.ordem[2]].oculta, true);
+  igual(c.estilos[c.abas[c.ordem[0]].cel.A1.s].fundo, '#0f4c5c');
+  await p.waitForSelector('.toast:has-text("Excel pronto")');
+});
+await caso('v0.5.0: depois da primeira mudança o EFCdocs passa a calcular tudo (e continua igual ao recarregar)', async () => {
+  await p.locator('.pl-aba:has-text("Coletas")').click();
+  await celula(p, 'C2');
+  await p.keyboard.type('3'); await p.keyboard.press('Enter');
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'E2'), 'NÃO CONFORME');
+  await p.waitForTimeout(1200);
+  await p.reload();
+  await p.waitForSelector('.pl-cv');
+  igual(await celula(p, 'E2'), 'NÃO CONFORME');
+  await p.locator('.pl-aba:has-text("Resumo")').click();
+  igual(await celula(p, 'B3'), '1,26', 'a média mudou com o 3 em C2');
+});
+await caso('v0.5.0: arquivo que não é Excel mostra o motivo (e o .xls antigo explica como salvar em .xlsx)', async () => {
+  const pasta = mkdtempSync(join(tmpdir(), 'efc-'));
+  const xls = join(pasta, 'antigo.xls'); writeFileSync(xls, 'x');
+  await abrirAmostra(p, xls).catch(() => {});
+  await p.waitForSelector('.erro-excel');
+  certo((await p.locator('.erro-excel').innerText()).includes('.xlsx'), 'devia explicar o .xlsx');
+  const ruim = join(pasta, 'quebrado.xlsx'); writeFileSync(ruim, 'não sou zip');
+  await p.click('.janela-excel .btn.primary');
+  await p.setInputFiles('[data-excel-arquivo]', ruim);
+  await p.waitForSelector('.erro-excel:has-text("quebrado.xlsx")');
+  certo((await p.locator('.erro-excel').innerText()).includes('Excel'), 'devia dizer que não é arquivo do Excel');
+  await p.keyboard.press('Escape');
+});
+await ctx.close();
+({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }));
+await caso('v0.5.0 celular: abrir do Excel pelo Início e ver o relatório sem rolagem lateral', async () => {
+  await p.goto(BASE + '#/');
+  await p.waitForSelector('[data-abrir-excel]');
+  await p.locator('[data-abrir-excel]').tap();
+  await p.setInputFiles('[data-excel-arquivo]', AMOSTRA_XLSX);
+  await p.waitForSelector('[data-excel-abrir]', { timeout: 30000 });
+  const larg = await p.evaluate(() => document.documentElement.scrollWidth);
+  certo(larg <= 390, 'rolagem lateral: ' + larg);
+  await print(p, 'v050-celular-relatorio');
+  await p.locator('[data-excel-abrir]').tap();
+  await p.waitForSelector('.pl-cv');
+  igual(await celula(p, 'B2'), 'Entrada');
 });
 
 await navegador.close();

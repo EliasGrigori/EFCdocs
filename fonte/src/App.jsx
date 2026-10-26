@@ -23,6 +23,7 @@ import { Planilha } from './planilha/Planilha.jsx';
 import { normalizarPlanilha } from './planilha/modelo.js';
 import { StatusPlanilha } from './planilha/partes.jsx';
 import { LinhaDoTempo } from './ui/historico.jsx';
+import { JanelaAbrirExcel } from './ui/excel.jsx';
 
 const AUTOR = 'neste aparelho';
 const TITULOS = { '': 'Início', planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros', lixeira: 'Lixeira', pastas: 'Pastas', externos: 'Documentos externos' };
@@ -110,6 +111,7 @@ export function App() {
   const [alvoPainel, setAlvoPainel] = useState(null);
   const [alvoRodape, setAlvoRodape] = useState(null); /* v0.4.8 (L11): a Verificação mora no rodapé, igual em todos os arquivos */
   const [linhaTempo, setLinhaTempo] = useState(false);
+  const [abrirExcel, setAbrirExcel] = useState(false);
   const editorRef = useRef(null);
 
   /* tema, relevo e cor da barra do celular */
@@ -358,14 +360,14 @@ export function App() {
   }, [banco, recarregar, avisar]);
 
   /** Cria um arquivo já com conteúdo (ex.: a conta desenhada vira um quadro) e abre. */
-  const criarCom = useCallback(async (tipo, nome, conteudo) => {
+  const criarCom = useCallback(async (tipo, nome, conteudo, aviso) => {
     try {
       const a = criarArquivo({ tipo, nome, autor: AUTOR });
       a.conteudo = conteudo;
       await banco.criar(a);
       await recarregar();
       irPara('arq/' + a.ficha.id);
-      avisar(`"${a.ficha.nome}" foi criado. A planilha continua igual.`, { ic: 'check' });
+      avisar(aviso ? aviso.replace('{nome}', a.ficha.nome) : `"${a.ficha.nome}" foi criado. A planilha continua igual.`, { ic: 'check', longo: !!aviso });
       return true;
     } catch (e) {
       avisar(e.message, { ic: 'aviso' });
@@ -458,6 +460,7 @@ export function App() {
       case 'exibir.tema': setOpcoes('tema'); return;
       case 'arquivo.novo': criarNovo(mod || 'planilha'); return;
       case 'arquivo.novaPlanilha': case 'arquivo.novoDocumento': case 'arquivo.novoQuadro': criarNovo(NOVO_POR_CMD[id]); return;
+      case 'arquivo.abrir': setAbrirExcel(true); return;
       case 'arquivo.renomear': if (atual) perguntarNome(atual.arquivo.ficha); return;
       case 'arquivo.lixeira': if (atual) mandarLixeira(atual.arquivo.ficha); return;
       case 'editar.desfazer': desfazerOuRefazer(false); return;
@@ -497,7 +500,7 @@ export function App() {
   /* atalhos do teclado que valem em qualquer tela */
   useEffect(() => {
     const tecla = (ev) => {
-      if (paleta || opcoes || pergunta || linhaTempo) return;
+      if (paleta || opcoes || pergunta || linhaTempo || abrirExcel) return;
       const k = ev.key.toLowerCase();
       const ctrl = ev.ctrlKey || ev.metaKey;
       const digitando = /^(input|textarea|select)$/i.test(ev.target.tagName) || ev.target.isContentEditable;
@@ -510,7 +513,7 @@ export function App() {
     };
     addEventListener('keydown', tecla);
     return () => removeEventListener('keydown', tecla);
-  }, [paleta, opcoes, pergunta, linhaTempo, executar, desfazerOuRefazer, prefs.faixa]);
+  }, [paleta, opcoes, pergunta, linhaTempo, abrirExcel, executar, desfazerOuRefazer, prefs.faixa]);
 
   /* faixa mostrada "por um momento": some ao tocar fora do topo */
   useEffect(() => {
@@ -642,6 +645,7 @@ export function App() {
       {paleta && <Paleta mod={mod} cx={cx} aoFechar={() => setPaleta(false)} />}
       {opcoes && <Opcoes prefs={prefs} setPref={setPref} cx={cx} aoFechar={() => setOpcoes(false)} demo={demo} versao={VERSAO} espaco={espaco} abrir={opcoes} />}
       {pergunta && <Pergunta p={pergunta} aoFechar={() => setPergunta(null)} />}
+      {abrirExcel && <JanelaAbrirExcel aoFechar={() => setAbrirExcel(false)} aoAbrir={(conteudo, nome) => { setAbrirExcel(false); criarCom('planilha', nome, conteudo, '"{nome}" veio do Excel. O que veio e o que ficou de fora: Arquivo › O que veio do Excel.'); }} />}
       {linhaTempo && aberto && <LinhaDoTempo h={aberto.h} aoIr={irParaPasso} aoFechar={() => setLinhaTempo(false)} />}
       <Avisos lista={avisos} tirar={tirarAviso} menu={cel ? 'cel' : prefs.menu} />
     </div>

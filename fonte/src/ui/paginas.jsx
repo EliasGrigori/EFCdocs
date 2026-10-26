@@ -7,7 +7,7 @@ import { Icone, dataHora } from './comum.jsx';
 const CMD_NOVO = { planilha: 'arquivo.novaPlanilha', docx: 'arquivo.novoDocumento', postits: 'arquivo.novoQuadro' };
 /* o que cada botão "Novo" faz: vai na dica (parar o mouse em cima), não na tela */
 const DESCRICAO = {
-  planilha: 'Fórmulas em português. Abrir e salvar Excel chega na v0.5.0.',
+  planilha: 'Fórmulas em português. Abre e salva arquivos do Excel (.xlsx).',
   docx: 'POP, formulários e documentos internos.',
   postits: 'Quadro, Kanban e fluxograma com setas.',
 };
@@ -181,6 +181,9 @@ export function Inicio({ fichas, cx, demo }) {
     <div className="pagina">
       <div className="secao topo"><h3>Novo</h3><SeloDemo fichas={fichas} demo={demo} cx={cx} /></div>
       <CartoesInicio cx={cx} />
+      <div className="abrir-excel-linha">
+        <button type="button" className="btn sm" data-abrir-excel data-dica="Abrir do Excel|Traz uma cópia de um arquivo .xlsx ou .xlsm como planilha nova. O original não muda." onClick={() => cx.executar('arquivo.abrir')}><Icone n="excel" />Abrir arquivo do Excel (.xlsx ou .xlsm)</button>
+      </div>
       <ListaFiltrada chave="inicio" titulo="Recentes" unidade={['arquivo', 'arquivos']} todos={lista} tipos={['planilha', 'docx', 'postits']} cx={cx}
         vazio="Comece criando uma planilha. Tudo fica salvo neste aparelho." />
       {cx.instalar && <button type="button" className="btn sm instalar" onClick={cx.instalar}><Icone n="instalar" />Instalar o EFCdocs neste aparelho</button>}
@@ -247,7 +250,7 @@ export function EmBreve({ qual }) {
 }
 
 const O_QUE_VEM = {
-  planilha: ['Grade com fórmulas em português e explicação da conta', 'Barra de status com Soma, Média e Contagem', 'Abrir e salvar Excel com relatório de compatibilidade (v0.5.0)'],
+  planilha: ['Grade com fórmulas em português e explicação da conta', 'Barra de status com Soma, Média e Contagem', 'Abrir e salvar Excel (.xlsx e .xlsm) com relatório do que veio e do que ficou de fora'],
   docx: ['POP com cabeçalho travado e campos de formulário', 'Revisões no editor: comparar, linha do tempo, aprovação', 'Abrir e salvar Word, PDF retrato'],
 };
 

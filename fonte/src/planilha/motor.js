@@ -15,7 +15,9 @@ const K = (l, c) => l * MAX_COL + c;
 const LC = (k) => [Math.floor(k / MAX_COL), k % MAX_COL];
 const FK = (abaId, k) => abaId + '|' + k;
 const deFK = (fk) => { const i = fk.lastIndexOf('|'); return [fk.slice(0, i), +fk.slice(i + 1)]; };
-const LARGO = 60; // faixas com mais colunas que isso vão para a lista "larga" do índice
+const LARGO = 60;
+/* funções cujos argumentos o Excel antigo calcula como matriz mesmo sem Ctrl+Shift+Enter */
+const MATRIZ_LEGADO = new Set(['SUMPRODUCT', 'LOOKUP', 'INDEX', 'MMULT', 'MDETERM', 'MINVERSE', 'FREQUENCY', 'AGGREGATE', 'LINEST', 'LOGEST', 'TREND', 'GROWTH', 'SUMX2MY2', 'SUMX2PY2', 'SUMXMY2']); // faixas com mais colunas que isso vão para a lista "larga" do índice
 
 const OPS = {
   '+': (a, b) => a + b, '-': (a, b) => a - b, '*': (a, b) => a * b,
@@ -72,12 +74,12 @@ export class Motor {
       for (const k of Object.keys(cel)) {
         if (cel[k] && cel[k].f != null) {
           const p = lerChave(k);
-          if (p) this.registrar(id, p.l, p.c, cel[k].f);
+          if (p) this.registrar(id, p.l, p.c, cel[k].f, !!cel[k].lg);
         }
       }
       this.usados[id] = null;
     }
-    this.recalcularTudo();
+    if (c.calcExcel) this.semearDoExcel(); else this.recalcularTudo();
   }
 
   abaId(nome, atual) {
@@ -102,12 +104,12 @@ export class Motor {
     return { faixas: out, nomes: d.nomes, volatil: d.volatil, desconhecidas: d.desconhecidas };
   }
 
-  registrar(abaId, l, c, f) {
+  registrar(abaId, l, c, f, lg = false) {
     const k = K(l, c);
     const fk = FK(abaId, k);
     let arv = null, erro = null;
     try { arv = lerGuardada(f); } catch (e) { erro = e; }
-    const info = { abaId, l, c, k, fk, f, arv, erro, deps: [], nomes: [], desc: [], vol: false };
+    const info = { abaId, l, c, k, fk, f, arv, erro, deps: [], nomes: [], desc: [], vol: false, lg };
     if (arv) {
       const d = this.faixasDe(arv, abaId);
       info.deps = d.faixas; info.nomes = d.nomes; info.desc = d.desconhecidas.filter((n) => !IMPL[n]);
@@ -217,16 +219,23 @@ export class Motor {
   }
 
   calcular(fm) {
-    if (fm.erro) return E.NOME;
-    if (fm.desc.length) {
+    if (fm.erro || fm.desc.length) {
+      /* fórmula que o EFCdocs ainda não entende (veio do Excel): mostra o último valor que o Excel calculou */
       const v = valorGuardado(this.cel(fm.abaId, fm.l, fm.c));
       return v == null ? E.NOME : v;
     }
-    return this.avaliar(fm.arv, this.contexto(fm.abaId, fm.l, fm.c));
+    const ctx = this.contexto(fm.abaId, fm.l, fm.c);
+    if (fm.lg) { ctx.legado = true; ctx.matrizLeg = 0; }
+    return this.avaliar(fm.arv, ctx);
   }
 
   /** Resultado final da célula: faixa vira valor; matriz derrama (ou #DESPEJAR!). */
   finalizar(fm, r) {
+    /* fórmula antiga do Excel (sem matriz dinâmica): faixa vira a célula da mesma linha/coluna e matriz vira o 1º valor, sem derramar */
+    if (fm.lg) {
+      if (ehRef(r) && !r.unica) r = this.deref(r, { abaId: fm.abaId, l: fm.l, c: fm.c });
+      if (ehMat(r)) r = r.d[0] && r.d[0][0] != null ? r.d[0][0] : 0;
+    }
     if (ehRef(r)) {
       if (r.unica) { const v = this.valor(r.abaId, r.l1, r.c1); r = v == null ? 0 : v; }
       else r = this.matriz(r);
@@ -247,12 +256,16 @@ export class Motor {
     let bloqueado = l2 >= MAX_LIN || c2 >= MAX_COL;
     if (!bloqueado) {
       const aba = this.c.abas[abaId];
-      /* checa as células ocupadas (rápido: olha só as que existem no arquivo) */
-      for (const ch of Object.keys(aba.cel)) {
-        const p = lerChave(ch);
-        if (!p || p.l < l || p.l > l2 || p.c < c || p.c > c2 || (p.l === l && p.c === c)) continue;
-        const x = aba.cel[ch];
-        if (x.v !== undefined || x.f != null) { bloqueado = true; break; }
+      /* checa as células ocupadas: área pequena olha célula por célula; grande, só as que existem no arquivo */
+      const ocupa = (x) => x && (x.v !== undefined || x.f != null);
+      if ((l2 - l + 1) * (c2 - c + 1) <= 20000) {
+        for (let i = l; i <= l2 && !bloqueado; i++) for (let j = c; j <= c2; j++) { if ((i !== l || j !== c) && ocupa(aba.cel[chave(i, j)])) { bloqueado = true; break; } }
+      } else {
+        for (const ch of Object.keys(aba.cel)) {
+          const p = lerChave(ch);
+          if (!p || p.l < l || p.l > l2 || p.c < c || p.c > c2 || (p.l === l && p.c === c)) continue;
+          if (ocupa(aba.cel[ch])) { bloqueado = true; break; }
+        }
       }
       if (!bloqueado) {
         for (const [kk, outro] of this.spill[abaId]) {
@@ -285,6 +298,7 @@ export class Motor {
 
   marcarSpillMudou(abaId, area) {
     if (!area) return;
+    this.limparCacheMat();
     if (!this.spillPendente) this.spillPendente = [];
     this.spillPendente.push({ abaId, ...area });
   }
@@ -301,6 +315,8 @@ export class Motor {
       ultimaLinha: (refs) => Math.max(...refs.map((r) => motor.usado(r.abaId).lMax)),
       ehSubtotal: (a, ll, cc) => { const f = motor.form[a] && motor.form[a].get(K(ll, cc)); return !!(f && f.sub); },
       linhaOculta: (a, ll) => { const aba = motor.c.abas[a]; return !!(aba && aba.ocL && aba.ocL[ll]); },
+      /* linha escondida por um filtro (veio do Excel): o SUBTOTAL sempre pula, como no Excel */
+      linhaFiltrada: (a, ll) => { const aba = motor.c.abas[a]; return !!(aba && aba.ocF && aba.ocF[ll] && aba.ocL && aba.ocL[ll]); },
       refDeTexto: (t) => motor.refDeTexto(t, abaId),
     };
     return ctx;
@@ -348,6 +364,7 @@ export class Motor {
           const max = meta.args.some((a) => a.rep) ? Infinity : meta.args.length;
           if (n.args.length < min || n.args.length > max) return E.VALOR;
         }
+        if (ctx.legado && MATRIZ_LEGADO.has(n.n)) { ctx.matrizLeg++; try { return f(n.args, ctx); } finally { ctx.matrizLeg--; } }
         return f(n.args, ctx);
       }
       case 'paren': return this.avaliar(n.a, ctx);
@@ -380,6 +397,8 @@ export class Motor {
 
   /** Aplica a conta item a item quando há matriz (como o Excel 365). */
   levantar(vals, fn, ctx) {
+    /* fórmula antiga do Excel: faixa numa conta vira a célula da mesma linha (interseção implícita), a não ser dentro de SOMARPRODUTO e afins */
+    if (ctx && ctx.legado && !ctx.matrizLeg) vals = vals.map((v) => (ehRef(v) && !v.unica ? this.deref(v, ctx) : v));
     if (!vals.some(ehMultiplo)) return fn(...vals.map((v) => this.deref(v, ctx)));
     const ms = vals.map((v) => (ehMultiplo(v) ? this.matriz(v) : null));
     const L = Math.max(...ms.map((m) => (m ? m.linhas : 1)));
@@ -435,6 +454,18 @@ export class Motor {
     const lim = limiteLin != null ? Math.max(limiteLin, u.lMax) : u.lMax;
     if (l2 - x.l1 + 1 > 2000 && l2 > lim) l2 = Math.max(x.l1, lim);
     if (c2 - x.c1 + 1 > 200 && c2 > u.cMax) c2 = Math.max(x.c1, u.cMax);
+    /* v0.5.0: a mesma faixa lida por milhares de fórmulas (PROCV, CORRESP...) é montada uma vez por recálculo */
+    const area = (l2 - x.l1 + 1) * (c2 - x.c1 + 1);
+    if (area >= 16 && this.cacheMat) {
+      const ch = x.abaId + '|' + x.l1 + '|' + x.c1 + '|' + l2 + '|' + c2;
+      const m0 = this.cacheMat.get(ch);
+      if (m0) return m0;
+      const v0 = this.versaoSpill;
+      const m = Mat.de(l2 - x.l1 + 1, c2 - x.c1 + 1, (i, j) => this.valor(x.abaId, x.l1 + i, x.c1 + j));
+      /* só guarda se nenhuma área derramada mudou enquanto montava */
+      if (this.versaoSpill === v0 && this.cacheCel + area < 3000000) { this.cacheMat.set(ch, m); this.cacheCel += area; }
+      return m;
+    }
     return Mat.de(l2 - x.l1 + 1, c2 - x.c1 + 1, (i, j) => this.valor(x.abaId, x.l1 + i, x.c1 + j));
   }
 
@@ -491,7 +522,10 @@ export class Motor {
     return out;
   }
 
+  limparCacheMat() { this.cacheMat = new Map(); this.cacheCel = 0; this.versaoSpill = (this.versaoSpill || 0) + 1; }
+
   recalcularTudo() {
+    this.limparCacheMat();
     for (const id of this.c.ordem) { this.vals[id].clear(); }
     this.circ.clear();
     this.spillPendente = [];
@@ -499,7 +533,31 @@ export class Motor {
     this.resolverSpill();
   }
 
-  /** Quando uma área derramada muda, quem usa aquelas células recalcula (até estabilizar). */
+  /**
+   * v0.5.0: arquivo que veio do Excel e ainda não foi mexido: as fórmulas começam com o último valor que o Excel
+   * calculou (abre na hora); só calculam agora as de matriz dinâmica (derramam), as voláteis (HOJE, AGORA...) e quem depende delas.
+   */
+  semearDoExcel() {
+    this.limparCacheMat();
+    for (const id of this.c.ordem) this.vals[id].clear();
+    this.circ.clear();
+    this.spillPendente = [];
+    const calcular = [];
+    for (const id of this.c.ordem) {
+      const aba = this.c.abas[id];
+      for (const [k, fm] of this.form[id]) {
+        const cel = aba.cel[chave(fm.l, fm.c)];
+        if (cel && cel.v !== undefined && !cel.da && !fm.vol && !fm.erro && !fm.desc.length) this.vals[id].set(k, valorGuardado(cel) ?? 0);
+        else calcular.push(fm);
+      }
+    }
+    const sujos = this.volateis.size ? this.espalhar(new Set(this.volateis)) : new Set();
+    for (const fk of sujos) { const [id, k] = deFK(fk); const fm = this.form[id].get(k); if (fm) { this.vals[id].delete(k); calcular.push(fm); } }
+    for (const fm of calcular) this.valorFormula(fm);
+    this.resolverSpill();
+  }
+
+  /** Quando uma área derramada muda, quem usa aquelas células recalcula; segue adiante só o que mudou de valor. */
   resolverSpill() {
     for (let volta = 0; volta < 10 && this.spillPendente && this.spillPendente.length; volta++) {
       const areas = this.spillPendente;
@@ -511,9 +569,40 @@ export class Motor {
       }
       for (const fk of this.usaSpill) sujos.add(fk);
       if (!sujos.size) break;
-      this.recalcularSujos(this.espalhar(sujos), false);
+      this.propagar(sujos);
     }
     this.spillPendente = [];
+  }
+
+  /** Recalcula as fórmulas e, em ondas, quem usa as que mudaram de valor (para quando quase nada muda). */
+  propagar(inicio) {
+    const igual = (a, b) => a === b || (ehErro(a) && ehErro(b) && a.cod === b.cod);
+    const ordem = new Map(this.c.ordem.map((id, i) => [id, i]));
+    let fila = [...inicio];
+    const vezes = new Map();
+    for (let onda = 0; onda < 200 && fila.length; onda++) {
+      const lista = [];
+      const antes = new Map();
+      for (const fk of new Set(fila)) {
+        const n = (vezes.get(fk) || 0) + 1;
+        if (n > 20) continue;
+        vezes.set(fk, n);
+        const [id, k] = deFK(fk);
+        const fm = this.form[id] && this.form[id].get(k);
+        if (!fm) continue;
+        antes.set(fk, this.vals[id].get(k));
+        this.vals[id].delete(k); this.circ.delete(fk);
+        lista.push(fm);
+      }
+      this.limparCacheMat();
+      lista.sort((a, b) => (ordem.get(a.abaId) - ordem.get(b.abaId)) || (a.k - b.k));
+      for (const fm of lista) this.valorFormula(fm);
+      fila = [];
+      for (const fm of lista) {
+        if (igual(antes.get(fm.fk), this.vals[fm.abaId].get(fm.k))) continue;
+        for (const x of this.quemUsa(fm.abaId, fm.l, fm.c)) fila.push(x);
+      }
+    }
   }
 
   /** Todas as fórmulas que dependem (direta ou indiretamente) das fk iniciais. */
@@ -536,6 +625,7 @@ export class Motor {
   }
 
   recalcularSujos(fks, comSpill = true) {
+    this.limparCacheMat();
     const lista = [];
     for (const fk of fks) {
       const [id, k] = deFK(fk);
@@ -555,6 +645,7 @@ export class Motor {
   atualizar(novo) {
     const velho = this.c;
     if (novo === velho) return 0;
+    this.limparCacheMat();
     const estrutura = novo.ordem.length !== velho.ordem.length || novo.ordem.some((id, i) => id !== velho.ordem[i] || !velho.abas[id] || velho.abas[id].nome !== novo.abas[id].nome) || novo.nomes !== velho.nomes;
     if (estrutura) { this.carregar(novo); return -1; }
     const mudou = [];
@@ -562,7 +653,7 @@ export class Motor {
     for (const id of novo.ordem) {
       const a = novo.abas[id], b = velho.abas[id];
       if (a === b) continue;
-      if (a.ocL !== b.ocL) ocultasMudaram = true;
+      if (a.ocL !== b.ocL || a.ocF !== b.ocF) ocultasMudaram = true;
       if (a.cel === b.cel) continue;
       for (const k of Object.keys(a.cel)) if (a.cel[k] !== b.cel[k]) mudou.push([id, k]);
       for (const k of Object.keys(b.cel)) if (!(k in a.cel)) mudou.push([id, k]);
@@ -578,8 +669,9 @@ export class Motor {
       const k = K(p.l, p.c);
       const antes = velho.abas[id].cel[ch], depois = novo.abas[id].cel[ch];
       const fAntes = antes && antes.f, fDepois = depois && depois.f;
-      if (fAntes != null && fAntes !== fDepois) this.desregistrar(id, k);
-      if (fDepois != null && (fAntes !== fDepois || !this.form[id].has(k))) this.registrar(id, p.l, p.c, fDepois);
+      const lgMudou = !!(antes && antes.lg) !== !!(depois && depois.lg);
+      if (fAntes != null && (fAntes !== fDepois || lgMudou)) this.desregistrar(id, k);
+      if (fDepois != null && (fAntes !== fDepois || lgMudou || !this.form[id].has(k))) this.registrar(id, p.l, p.c, fDepois, !!depois.lg);
       if (fDepois != null) { sujos.add(FK(id, k)); this.vals[id].delete(k); }
       for (const x of this.quemUsa(id, p.l, p.c)) sujos.add(x);
       /* célula dentro de uma área derramada: a fórmula de origem confere de novo (pode virar #DESPEJAR!) */

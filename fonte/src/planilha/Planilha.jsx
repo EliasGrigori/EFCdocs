@@ -23,6 +23,8 @@ import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt
 import * as O from './operacoes.js';
 import { objetosDaAba, novaAssinatura, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS } from './objetos.js';
 import { JanelaAssinatura, AssinaturaView } from '../ui/assinatura.jsx';
+import { RelatorioExcel } from '../ui/excel.jsx';
+import { baixarXlsx } from './xlsx/abrir.js';
 import { ASN } from '../nucleo/assinatura.js';
 import { CampoFormula, AjudaFormula } from './EditorFormula.jsx';
 import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, JanelaZeros, JanelaNumeroData, BarraSimbolos, ESTATS } from './partes.jsx';
@@ -110,6 +112,12 @@ export function linhaCabecalho(aba, motor, abaId) {
     if (textos >= Math.max(2, cols.length * 0.5) && idx.porLin.has(l + 1)) return l;
   }
   return -1;
+}
+
+/* v0.5.0: planilha que veio do Excel usa a fonte padrão do arquivo (Calibri, Arial...) quando o aparelho tem */
+function familiaDa(c) {
+  const base = typeof document !== 'undefined' ? getComputedStyle(document.body).fontFamily : 'sans-serif';
+  return c && c.fonteBase && /^[\w À-ÿ-]{1,40}$/.test(c.fonteBase) ? `"${c.fonteBase}", ${base}` : base;
 }
 
 export function Planilha({ arquivo, cx }) {
@@ -359,8 +367,10 @@ export function Planilha({ arquivo, cx }) {
   const mudar = useCallback((mud, rotulo, acao = 'editou') => {
     if (somenteLeitura) { avisarLeitura(); return false; }
     if (!mud || !Object.keys(mud).length) return false;
+    /* v0.5.0: veio do Excel e é a primeira mudança: daqui em diante o EFCdocs calcula tudo (não usa mais o último valor do Excel) */
+    if (c.calcExcel && !('conteudo.calcExcel' in mud)) mud = { ...mud, 'conteudo.calcExcel': undefined };
     return cx.aplicar(mud, rotulo, acao);
-  }, [somenteLeitura, cx]);
+  }, [somenteLeitura, cx, c.calcExcel]);
   const aplicarLote = (lote, rotulo) => (lote.vazio ? false : mudar(lote.mudancas(), rotulo));
   const contaCelulas = (fs) => fs.reduce((n, f) => n + (f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1), 0);
   const nomeSel = () => (sel.faixas.length > 1 ? `${sel.faixas.length} faixas` : textoFaixa(faixa).replace(/:?\b[A-Z]+1048576\b/, '').replace(/^A(\d+):XFD\1$/, 'linha $1'));
@@ -457,7 +467,7 @@ export function Planilha({ arquivo, cx }) {
     const porCol = new Map();
     if (!medidor.current) medidor.current = document.createElement('canvas').getContext('2d');
     const m = medidor.current;
-    const familia = getComputedStyle(document.body).fontFamily;
+    const familia = familiaDa(c);
     for (const { col, v, est } of itens) {
       if (typeof v !== 'number' || (a.larg && a.larg[col] != null)) continue;
       const t = formatar(v, est.nf).t;
@@ -542,7 +552,7 @@ export function Planilha({ arquivo, cx }) {
     }
     const lote = new O.Lote(c);
     const nova = { ...atual };
-    delete nova.v; delete nova.f;
+    delete nova.v; delete nova.f; delete nova.da; delete nova.lg; // fórmula digitada aqui é sempre do Excel novo (matriz dinâmica)
     if (r.f != null) nova.f = r.f;
     else if (!r.vazio) nova.v = paraGuardarValor(r.v);
     const nfNovo = r.nf || (r.f != null ? formatoDaFormula(r.f, nfDaRef(e.abaId)) : null);
@@ -1108,7 +1118,7 @@ export function Planilha({ arquivo, cx }) {
   /** Largura que cabe o maior texto da coluna (dois toques na divisa). */
   const autoAjustar = (col) => {
     const cv = document.createElement('canvas').getContext('2d');
-    const familia = getComputedStyle(document.body).fontFamily;
+    const familia = familiaDa(c);
     let max = 30;
     for (const l of cheias.porCol.get(col) || []) {
       const tx = textoCelula(motor, c, abaId, l, col);
@@ -1448,6 +1458,17 @@ export function Planilha({ arquivo, cx }) {
     });
   };
 
+  /* ---------- Excel (v0.5.0) ---------- */
+  const salvarExcel = async () => {
+    try {
+      cx.avisar('Montando o arquivo do Excel…', { ic: 'excel' });
+      const r = await baixarXlsx(c, motor, ficha.nome);
+      cx.avisar(`Excel pronto: ${ficha.nome}.xlsx${r.avisos.length ? '. ' + r.avisos.join(' ') : ''}`, { ic: 'excel', longo: true });
+    } catch (e) {
+      cx.avisar('Não deu para montar o Excel: ' + (e.message || e), { ic: 'aviso', longo: true });
+    }
+  };
+
   /* ---------- comandos da faixa ---------- */
   const trata = (id) => {
     const ed = (fn) => { if (somenteLeitura) { cx.avisar('Seu perfil não permite esta ação.', { ic: 'aviso' }); return true; } fn(); return true; };
@@ -1514,6 +1535,11 @@ export function Planilha({ arquivo, cx }) {
       case 'exibir.folhaClara': setPrefs((p) => ({ ...p, folhaClara: !p.folhaClara })); cx.avisar(prefs.folhaClara ? 'A grade volta a seguir o tema.' : 'Folha clara: a grade fica branca neste aparelho.', { ic: 'tema' }); return true;
       case 'exibir.zoom': setJanela({ tipo: 'zoom' }); return true;
       case 'exibir.barraFormula': alternarFx(); return true;
+      case 'arquivo.exportarExcel': salvarExcel(); return true;
+      case 'arquivo.relatorioExcel':
+        if (c.importado) setJanela({ tipo: 'relExcel' });
+        else cx.avisar('Esta planilha foi criada aqui no EFCdocs (não veio de um arquivo do Excel).', { ic: 'info' });
+        return true;
       default: return false;
     }
   };
@@ -1664,7 +1690,7 @@ export function Planilha({ arquivo, cx }) {
   }, [calc, prefs.status, faixa, z, edit && !!edit, ehFormula, estiloAtivo.nf, c]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- desenho ---------- */
-  const familia = useMemo(() => (typeof document !== 'undefined' ? getComputedStyle(document.body).fontFamily : 'sans-serif'), []);
+  const familia = useMemo(() => familiaDa(c), [c.fonteBase]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     const cv = cvRef.current;
     if (!cv) return;
@@ -2370,6 +2396,12 @@ export function Planilha({ arquivo, cx }) {
             aplicarLote(lote, `Substituir ${n} ${n === 1 ? 'célula' : 'células'}`);
             return `${n} ${n === 1 ? 'troca feita' : 'trocas feitas'}. Ctrl+Z desfaz.`;
           }} />
+      )}
+      {janela && janela.tipo === 'relExcel' && (
+        <Janela titulo={'O que veio do Excel' + (c.importado && c.importado.arquivo ? ` (${c.importado.arquivo})` : '')} aoFechar={() => setJanela(null)} classe="janela-excel"
+          rodape={<button type="button" className="btn sm primary" onClick={() => setJanela(null)}>Fechar</button>}>
+          <div className="janela-c"><RelatorioExcel rel={c.importado} /></div>
+        </Janela>
       )}
       {janela && janela.tipo === 'zoom' && (
         <JanelaZoomPl z={z} aoEscolher={(v) => { setZ(v); setJanela(null); }} aoFechar={() => setJanela(null)} />

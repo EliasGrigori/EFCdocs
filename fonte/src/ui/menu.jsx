@@ -51,6 +51,8 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
             {NOVOS.map(([cmd, ic, nome, t]) => (
               <button key={t} type="button" role="menuitem" disabled={!!cx.bloqueado(cmd)} onClick={() => { setNovoAberto(false); if (fechar) fechar(); cx.executar(cmd); }}><Icone n={ic} />{nome}</button>
             ))}
+            <div className="novo-drive-sep" />
+            <button type="button" role="menuitem" data-novo-excel onClick={() => { setNovoAberto(false); if (fechar) fechar(); cx.executar('arquivo.abrir'); }}><Icone n="excel" />Abrir do Excel (.xlsx)</button>
           </div>
         )}
       </div>

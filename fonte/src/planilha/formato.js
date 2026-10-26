@@ -70,7 +70,7 @@ function limparSecao(s) {
   return { corpo, cor, cond };
 }
 
-const RX_DATA = /(y+|a{2,}|d+|h+|s+|AM\/PM|A\/P|\[h+\]|\[m+\]|\[s+\])/i;
+const RX_DATA = /(y+|a{2,}|d+|h+|s+|m{3,}|AM\/PM|A\/P|\[h+\]|\[m+\]|\[s+\])/i; // m{3,}: "mmmm" sozinho é o mês por extenso
 const tiraLiterais = (s) => s.replace(/"[^"]*"/g, '').replace(/\\./g, '').replace(/_./g, '').replace(/\*./g, '');
 export const ehFormatoData = (cod) => !ehGeral(cod) && secoes(cod).some((s) => RX_DATA.test(tiraLiterais(limparSecao(s).corpo)) && !/[0#?]/.test(tiraLiterais(limparSecao(s).corpo).replace(/\.0+/, '')));
 
@@ -251,7 +251,7 @@ function andar(s, troca) {
   }
   return out;
 }
-const secaoEhData = (s) => { const c = tiraLiterais(limparSecao(s).corpo); return /(y+|a{2,}|d+|h+|s+)/i.test(c) && !/[0#?]/.test(c.replace(/[.,]0+/, '')); };
+const secaoEhData = (s) => { const c = tiraLiterais(limparSecao(s).corpo); return /(y+|a{2,}|d+|h+|s+|m{3,})/i.test(c) && !/[0#?]/.test(c.replace(/[.,]0+/, '')); };
 
 /** "#,##0.00" → "#.##0,00"; "dd/mm/yyyy" → "dd/mm/aaaa"; "General" → "Geral" */
 export function codigoPt(cod) {

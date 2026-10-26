@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.4.9', () => assert.equal(VERSAO, 'v0.4.9'));
+test('versão é v0.5.0', () => assert.equal(VERSAO, 'v0.5.0'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -138,13 +138,17 @@ test('comandos da planilha chegam na v0.4.0 (menos os das próximas versões)', 
     assert.equal(chegaNa(PorId[id], 'planilha'), null, id);
   for (const id of ['formula.explicar', 'formula.fluxo', 'formula.problemas', 'formula.montar']) assert.equal(chegaNa(PorId[id], 'planilha'), null, id + ' já funciona na v0.4.3');
   assert.equal(chegaNa(PorId['formatar.condicional'], 'planilha'), 'v0.6.0');
-  assert.equal(chegaNa(PorId['arquivo.exportarExcel'], 'planilha'), 'v0.5.0');
+  /* v0.5.0: abrir e salvar Excel já funcionam */
+  assert.equal(chegaNa(PorId['arquivo.exportarExcel'], 'planilha'), null);
+  assert.equal(chegaNa(PorId['arquivo.abrir'], 'planilha'), null);
+  assert.equal(chegaNa(PorId['arquivo.abrir'], null), null);
+  assert.equal(chegaNa(PorId['arquivo.abrir'], 'docx'), 'v0.7.0');
 });
 
 test('comandos do quadro continuam funcionando', () => {
   for (const id of ['inserir.postit', 'inserir.seta', 'organizar.kanban', 'arquivo.exportarPDF', 'arquivo.exportarImagem', 'editar.colar', 'exibir.zoom', 'exibir.minimapa', 'organizar.temporizador'])
     assert.equal(chegaNa(PorId[id], 'postits'), null, id);
-  assert.equal(chegaNa(PorId['arquivo.exportarPDF'], 'planilha'), 'v0.5.0');
+  assert.equal(chegaNa(PorId['arquivo.exportarPDF'], 'planilha'), 'v0.6.0'); // v0.5.0: o PDF da planilha passou para a v0.6.0 (com os gráficos)
   assert.equal(chegaNa(PorId['inserir.grafico'], 'postits'), 'v0.6.0');
   assert.equal(chegaNa(PorId['dados.dinamica'], 'planilha'), 'depois da v1.0.0');
   assert.ok(versaoMaior('v0.10.0', 'v0.9.0'));

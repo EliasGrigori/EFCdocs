@@ -3058,3 +3058,36 @@ body.mesa .cartao-novo, body.relevo .cartao-novo { box-shadow: 0 1px 2px rgba(12
 .opcoes .temas-grupo .tema-b { min-height: 40px; gap: 8px; }
 .ver-todos { margin: 4px 0 8px; }
 .rail .brand-sub { display: none; } /* v0.4.9: com o ☰ do menu não sobra largura para a linha pequena */
+
+/* ---------- v0.5.0: abrir e salvar Excel ---------- */
+.janela.janela-excel { width: min(640px, 100%); max-height: 86vh; }
+.janela-excel .janela-c { overflow: auto; }
+.solta-excel { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 26px 18px; border: 1.5px dashed var(--border-light); border-radius: var(--r-card); background: var(--surface-2); }
+.solta-excel.sobre { border-color: var(--primary); background: var(--primary-soft); }
+.solta-excel > svg { width: 38px; height: 38px; color: #1f7a46; }
+.solta-excel p { margin: 0; }
+.solta-excel .sub, .lendo-excel .sub { color: var(--text-muted); font-size: 12.5px; max-width: 46ch; }
+.solta-excel .btn { margin-top: 6px; }
+.lendo-excel { display: grid; gap: 8px; padding: 8px 2px; }
+.lendo-excel p { margin: 0; }
+.barra-prog { height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+.barra-prog i { display: block; height: 100%; background: var(--primary); transition: width .25s ease; }
+.erro-excel { padding: 10px 12px; border-radius: var(--r-ctl); background: var(--crit-soft); border: 1px solid var(--crit); }
+.erro-excel p { margin: 0 0 4px; }
+.rel-excel { display: grid; gap: 6px; font-size: 13.5px; }
+.rel-excel h3 { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); }
+.rel-excel h3 svg { width: 16px; height: 16px; }
+.rel-nums { display: flex; flex-wrap: wrap; gap: 6px; }
+.rel-nums span { padding: 4px 9px; border-radius: var(--r-ctl); background: var(--surface-2); border: 1px solid var(--border); }
+.rel-lista { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.rel-lista li { line-height: 1.4; }
+.rel-lista code { font-size: 12px; background: var(--surface-2); padding: 0 4px; border-radius: 3px; word-break: break-all; }
+.rel-fora li::marker { color: var(--warn); }
+.rel-abas summary { cursor: pointer; font-weight: 600; margin-top: 6px; }
+.rel-abas table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12.5px; }
+.rel-abas th, .rel-abas td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--border); }
+.rel-abas td:not(:first-child), .rel-abas th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.rel-nota { margin: 8px 0 0; color: var(--text-muted); font-size: 12.5px; }
+.novo-drive-sep { height: 1px; margin: 3px 6px; background: var(--border); }
+.abrir-excel-linha { margin: 10px 0 4px; }
+.abrir-excel-linha .btn svg { width: 16px; height: 16px; color: #1f7a46; }

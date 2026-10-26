@@ -12,6 +12,20 @@ const versao = readFileSync(join(raiz, 'src/nucleo/modelo.js'), 'utf8').match(/V
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(join(dist, 'assets'), { recursive: true });
 
+/* v0.5.0: o leitor de Excel roda num trabalhador; o código dele vai dentro do app (sem arquivo a mais para o cache) */
+const trab = await build({
+  entryPoints: [join(raiz, 'src/planilha/xlsx/trabalhador.js')],
+  bundle: true,
+  minify: true,
+  format: 'iife',
+  target: ['es2020', 'chrome90', 'safari15'],
+  loader: { '.js': 'jsx' },
+  write: false,
+  legalComments: 'none',
+  logLevel: 'warning',
+});
+const codigoTrab = trab.outputFiles[0].text;
+
 const r = await build({
   entryPoints: [join(raiz, 'src/main.jsx')],
   bundle: true,
@@ -25,7 +39,7 @@ const r = await build({
   assetNames: 'app-[hash]',
   metafile: true,
   legalComments: 'none',
-  define: { 'process.env.NODE_ENV': '"production"' },
+  define: { 'process.env.NODE_ENV': '"production"', __EFC_TRABALHADOR_XLSX__: JSON.stringify(codigoTrab) },
   logLevel: 'warning',
 });
 
@@ -71,4 +85,5 @@ const kb = (f) => (statSync(join(dist, f)).size / 1024).toFixed(1) + ' KB';
 console.log(`EFCdocs ${versao} montado em dist/`);
 console.log(`  assets/${js}  ${kb('assets/' + js)}`);
 console.log(`  assets/${css} ${kb('assets/' + css)}`);
+console.log(`  (leitor de Excel no trabalhador: ${(codigoTrab.length / 1024).toFixed(1)} KB dentro do app)`);
 void r;

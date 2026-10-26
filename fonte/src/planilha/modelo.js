@@ -1,5 +1,5 @@
 /* EFCdocs — Planilha: o arquivo (abas, células, estilos, nomes) e as mudanças que viram desfazer.
-   conteudo = { v:1, ordem:[ids], abas:{ id:{ id, nome, cor, oculta, cel:{ B12:{ v, f, s } }, larg:{col:px}, alt:{lin:px},
+   conteudo = { v:1, importado?:{relatório do Excel}, fonteBase?:'Calibri', calcExcel?:true (veio do Excel e ainda não mudou), ordem:[ids], abas:{ id:{ id, nome, cor, oculta, cel:{ B12:{ v, f, s } }, larg:{col:px}, alt:{lin:px},
                 ocL:{lin:1}, ocC:{col:1}, objs:[{ id, tipo:'assinatura', l, c, dx, dy, w, h, nome, rub? }] (v0.4.5, ver objetos.js), zeros:{col:'t'|'n'} (escolha lembrada para códigos com zero na frente), cong:{l,c}, mesc:['A1:C1'], cab } }, estilos:[{...}], nomes:{ chave:{ n, ref } }, seq }
    Célula: v = valor digitado (número, texto, lógico ou { e:'#N/A' }); f = fórmula guardada como no Excel (inglês, sem "=");
    s = número do estilo em "estilos". Linhas e colunas guardadas a partir de 0. */
@@ -43,6 +43,10 @@ export function normalizarPlanilha(c) {
   }
   out.ordem = ordem;
   if (!out.ordem.length) return planilhaVazia();
+  /* v0.5.0: veio do Excel (relatório, fonte padrão do arquivo e "ainda não mexido") */
+  if (c.importado && typeof c.importado === 'object') out.importado = c.importado;
+  if (typeof c.fonteBase === 'string') out.fonteBase = c.fonteBase;
+  if (c.calcExcel === true) out.calcExcel = true;
   return out;
 }
 
@@ -127,8 +131,23 @@ export function mescladas(aba) {
     return x && y ? { ...normalFaixa({ l1: x.l, c1: x.c, l2: y.l, c2: y.c }), t } : null;
   }).filter(Boolean);
 }
+/* v0.5.0: planilha do Excel com milhares de mescladas: índice por linha (montado uma vez por lista) */
+const INDICE_MESC = new WeakMap();
 export function mesclaEm(lista, l, c) {
-  return lista.find((m) => l >= m.l1 && l <= m.l2 && c >= m.c1 && c <= m.c2) || null;
+  if (lista.length < 40) return lista.find((m) => l >= m.l1 && l <= m.l2 && c >= m.c1 && c <= m.c2) || null;
+  let ix = INDICE_MESC.get(lista);
+  if (!ix) {
+    ix = { porLinha: new Map(), largas: [] };
+    for (const m of lista) {
+      if (m.l2 - m.l1 > 2000) { ix.largas.push(m); continue; }
+      for (let r = m.l1; r <= m.l2; r++) { let a = ix.porLinha.get(r); if (!a) ix.porLinha.set(r, (a = [])); a.push(m); }
+    }
+    INDICE_MESC.set(lista, ix);
+  }
+  const a = ix.porLinha.get(l);
+  if (a) for (const m of a) if (c >= m.c1 && c <= m.c2) return m;
+  for (const m of ix.largas) if (l >= m.l1 && l <= m.l2 && c >= m.c1 && c <= m.c2) return m;
+  return null;
 }
 
 /* ---------- caminhos das mudanças (para o desfazer e a gravação) ---------- */
