@@ -1,52 +1,55 @@
-"""EFCdocs — monta a página de aprovação da v0.4.3.1 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.4.4.1 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" """
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.4.4'
+VERSAO = 'v0.4.4.1'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-G1, G2, G3 = 'A. Revisão de layout (o que você pediu: menos texto, temas retráteis, mais limpo)', 'B. Defeitos achados no caminho', 'C. Decisões'
+G1, G2, G3 = 'A. O que você pediu na v0.4.4 (comentários M02 e M04)', 'B. O que o Grok achou na v0.4.4', 'C. Decisões'
 ITENS = [
-    ('M01', 'Cantos retos e abas da faixa planas', G1,
-     '<p>Todos os cantos ficaram quase retos (3 a 4 px no lugar de 8 a 12 px e das pílulas). As abas da faixa (Arquivo, Página Inicial...) deixaram de ser pílulas laranja: agora são texto simples e a aba ativa ganha um <b>sublinhado</b> na cor do tema, como no Excel. Vale para todos os 17 temas.</p>',
-     'Gostou dos cantos retos e das abas sublinhadas?',
-     [('Antes (computador)', 'antes-pc-planilha'), ('Depois (computador)', 'depois-pc-planilha')], 'par'),
-    ('M02', 'Início: sem texto repetido, Novo numa linha e um filtro só', G1,
-     '<ul><li>Saíram o título repetido ("Início" já está na barra de cima) e o parágrafo sobre versões.</li>'
-     '<li>Os três cartões grandes de <b>Novo</b> viraram três botões compactos numa linha (no celular, três quadrados lado a lado). A descrição de cada um aparece ao parar o mouse em cima.</li>'
-     '<li><b>Filtro único recolhível</b> em Recentes, do jeito que você gosta: um botão com o resumo ("Planilha · Mais recentes") que abre um painel com <b>Nome</b>, <b>Tipo</b> e <b>Ordem</b> (mais recentes, mais antigos, nome de A a Z) e <b>Limpar</b>. A contagem mostra "1 de 2" quando está filtrando. Esc fecha o painel. O filtro continua igual quando você volta para a página.</li></ul>',
-     '', [('Antes', 'antes-pc-inicio'), ('Depois', 'depois-pc-inicio'), ('Depois: filtro aberto (só planilhas)', 'depois-pc-filtro')], 'par'),
-    ('M03', 'Listas de Planilhas, Documentos e Lixeira enxutas', G1,
-     '<p>Cada lista começa com um botão só (<b>Nova planilha</b>, <b>Novo quadro</b>...) e logo abaixo os arquivos com o mesmo filtro. Documentos mostra o aviso "o editor chega na v0.7.0" uma vez (antes eram três). A Lixeira tem uma linha de explicação no lugar de um parágrafo.</p>',
-     '', [('Antes: Planilhas', 'antes-pc-planilhas'), ('Depois: Planilhas', 'depois-pc-planilhas'), ('Antes: Documentos', 'antes-pc-documentos'), ('Depois: Documentos', 'depois-pc-documentos'), ('Antes: Lixeira', 'antes-pc-lixeira'), ('Depois: Lixeira', 'depois-pc-lixeira')], 'par'),
-    ('M04', 'Opções retráteis: Tema, Tela, Perfil e Sobre abrem e fecham', G1,
-     '<p>Opções agora são quatro linhas que <b>abrem e fecham</b>. Cada linha mostra o que está escolhido (ex.: "Petróleo · relevo", "Faixa tipo Excel · Mostrar tudo · menu completo"), então dá para conferir sem abrir. Os 17 temas só aparecem ao tocar em <b>Tema</b>, em amostras menores. O que você deixar aberto continua aberto na próxima vez. O comando "Tema" (busca ou Exibir) abre já na seção Tema. A janela fechada tem 225 px de altura (antes ocupava mais de uma tela no celular).</p>',
-     'Ficou do jeito que você imaginou os temas retráteis?',
-     [('Antes', 'antes-pc-opcoes'), ('Depois: fechada', 'depois-pc-opcoes'), ('Depois: Tela aberta', 'depois-pc-opcoes-tela'), ('Depois: Tema aberto', 'depois-pc-opcoes-tema')], 'par'),
-    ('M05', 'Celular: as mesmas mudanças, e mais espaço para a planilha', G1,
-     '<ul><li>Início com os três botões de Novo lado a lado e as Opções retráteis.</li>'
-     '<li>Na planilha, a barra de baixo que só dizia "Planilha" sumiu; ela volta sozinha quando há Soma/Média para mostrar (ao selecionar números). A grade ganhou cerca de duas linhas.</li>'
-     '<li>Quadro vazio com uma linha de texto ("Dois toques no quadro criam um post-it. Ou comece por:").</li></ul>',
-     '', [('Antes: Início', 'antes-cel-inicio'), ('Depois: Início', 'depois-cel-inicio'), ('Antes: Opções', 'antes-cel-opcoes'), ('Depois: Opções', 'depois-cel-opcoes'), ('Antes: planilha', 'antes-cel-planilha'), ('Depois: planilha', 'depois-cel-planilha'), ('Antes: quadro vazio', 'antes-cel-quadro'), ('Depois: quadro vazio', 'depois-cel-quadro'), ('Depois: Tema aberto', 'depois-cel-opcoes-tema'), ('Depois: Planilhas', 'depois-cel-planilhas')], 'quatro'),
-    ('M06', 'Dois defeitos corrigidos no caminho', G2,
-     '<ul><li>A <b>dica</b> (balão que aparece ao parar o mouse) ficava na tela ao trocar de página. Agora some.</li>'
-     '<li>No celular, tocar em "Fluxograma" no quadro vazio e logo em seguida na forma nova (no mesmo lugar) abria a edição do texto como se fossem dois toques. Agora só conta quando os dois toques são no quadro.</li></ul>', '', [], ''),
-    ('M07', 'O que mais incomoda?', G3,
-     '<p>Fiz a revisão com base no que você disse ("feio, contra intuitivo, temas retráteis, muito texto e pouca funcionalidade") e nas suas regras de tela (sem cantos arredondados, sem poluição, filtro único recolhível, lixeira no canto). <b>Não mexi</b> no desenho das cores dos temas nem na faixa de botões da planilha e do quadro, que seguem o EFClaudian.</p>',
+    ('P01', 'Arquivos em cartões, 2 ou 3 por linha (opção A do M02)', G1,
+     '<p>As listas de Planilhas, Documentos e Quadros agora são <b>cartões</b>: 3 por linha no computador, 2 em janelas mais estreitas (800 px) e 1 no celular. O nome pode ocupar <b>duas linhas</b> (não é mais cortado com "..."), e embaixo fica só a data. Saíram a palavra "Planilha" (já está no título), o selo "Rascunho" e o título repetido; no lugar do título há só a contagem ("5 planilhas") ao lado do filtro. Ao parar o mouse no cartão aparece o nome inteiro. Renomear e mandar para a lixeira ficam no canto de cima à direita.</p>',
+     'Ficou do jeito que você imaginou?',
+     [('Antes (computador)', 'antes-pc-planilhas'), ('Depois (computador)', 'depois-pc-planilhas'), ('Antes (celular)', 'antes-cel-planilhas'), ('Depois (celular)', 'depois-cel-planilhas')], 'par'),
+    ('P02', 'Fundo das janelas igual ao do EFClaudian (M04)', G1,
+     '<p>Copiei do EFClaudian: quando abre uma janela, o fundo escurece <b>25%</b> com um <b>desfoque leve</b> (3 px). Antes escurecia 45% sem desfoque. Vale para Opções, Renomear, confirmações e a gaveta do celular. Uma janela aberta sobre outra soma o fundo de novo, então a de trás fica ainda mais apagada.</p>',
+     'É isso o que você queria dizer com "embaçado 30%"? Se quiser 30% no lugar de 25%, é só dizer.',
+     [('Antes: Opções', 'antes-pc-opcoes-fundo'), ('Depois: Opções', 'depois-pc-opcoes-fundo'), ('Antes: janela sobre a Lixeira', 'antes-pc-lixeira-pergunta'), ('Depois: janela sobre a Lixeira', 'depois-pc-lixeira-pergunta')], 'par'),
+    ('P03', 'Lixeira: "Apagar para sempre" com confirmação', G2,
+     '<p>Antes, "Excluir de vez" era só um <b>X</b> que parece "fechar". Agora é um botão escrito <b>Apagar para sempre</b>, em vermelho, e a janela pergunta: "Apagar [nome] para sempre? Não dá para desfazer."</p>',
+     '', [('Antes', 'antes-pc-lixeira'), ('Depois', 'depois-pc-lixeira')], 'par'),
+    ('P04', 'Demonstração e "aberto em outra aba": um aviso só', G2,
+     '<ul><li><b>Demonstração</b> aparecia três vezes (faixa de cima, selo e rodapé). Ficou só o selo ao lado de Novo ("Demonstração: 0 de 3 arquivos"); ao tocar nele aparece a explicação (guardado só neste aparelho, exportações com a marca DEMO · EFC).</li>'
+     '<li><b>Aberto em outra aba</b> aparecia três vezes (faixa, etiqueta e aviso embaixo). Ficou a faixa de cima ("Aberto em outra aba. Aqui fica só para ver.", com o botão Editar aqui) e a etiqueta curta "Só para ver". O aviso embaixo só aparece quando você tenta digitar.</li>'
+     '<li><b>Marca presa:</b> se a outra aba fechar à força (celular que mata o app, navegador que cai), a marca de "aberto" ficava. Agora a aba que edita avisa a cada 15 segundos que está viva; se parar de avisar por 2 minutos, a outra aba é liberada sozinha ("A outra aba não responde mais. Agora dá para editar aqui."). Não consegui reproduzir exatamente o caso do Grok, só o princípio: um teste automático simula a aba que para de avisar. Se ainda acontecer no seu aparelho, o botão Editar aqui continua resolvendo.</li></ul>',
+     '', [('Antes: demonstração', 'antes-pc-demo'), ('Depois: demonstração', 'depois-pc-demo')], 'par'),
+    ('P05', 'Quadro: barra da esquerda escondida, quadro vazio numa linha, forma Início/Fim, OK e Cancelar no celular', G2,
+     '<ul><li>A barra de ferramentas da esquerda repetia a faixa Inserir. Agora <b>começa escondida</b> (liga em Exibir ou pelo comando "Barra de ferramentas do quadro"). Quem já tinha escolhido antes volta ao novo padrão uma vez.</li>'
+     '<li>O cartão do quadro vazio tem uma linha ("Comece por:") e os quatro botões numa linha só. A dica dos dois toques ficou ao parar o mouse.</li>'
+     '<li>A caixa de escrever da forma <b>Início/Fim</b> agora é arredondada como a forma.</li>'
+     '<li>No <b>celular</b>, ao escrever numa forma ou post-it aparece embaixo a barra <b>Cancelar / OK</b>, como na planilha. Antes só dava para sair tocando fora.</li></ul>',
+     '', [('Antes: quadro vazio', 'antes-pc-quadro'), ('Depois: quadro vazio', 'depois-pc-quadro'), ('Antes: forma (celular)', 'antes-cel-quadro-forma'), ('Depois: forma com OK/Cancelar', 'depois-cel-quadro-forma')], 'par'),
+    ('P06', 'Opções e Explicar', G2,
+     '<ul><li>No celular, o resumo da Tela estava comprido ("Faixa tipo Excel · Mostrar tudo · menu completo"). Agora é "Excel · tudo · completo".</li>'
+     '<li>Os nomes dos temas "Alto contraste" e "Curvas de nível" quebravam em duas linhas. Agora cabem numa.</li>'
+     '<li><b>Explicar</b> do <code>=SE(D3=0;"";E3/D3)</code> mostrava a conta crua ("se não, mostra E3/D3"). Agora: "se não, divide a coluna Conformes (E2 = 9) pela coluna Qtd. amostras (D2 = 10) (= 0,9)". Vale para qualquer conta ou função dentro do SE.</li></ul>',
+     '', [('Antes: Tela (celular)', 'antes-cel-opcoes-tela'), ('Depois: Tela (celular)', 'depois-cel-opcoes-tela'), ('Antes: temas (celular)', 'antes-cel-opcoes-tema'), ('Depois: temas (celular)', 'depois-cel-opcoes-tema')], 'par'),
+    ('P07', 'O que mais incomoda?', G3,
+     '<p>Esta versão é só ajuste. Não mexi nas cores dos temas, na faixa de botões da planilha e do quadro, nem no celular deitado (fica para depois, como combinado).</p>',
      'Ainda tem alguma tela que incomoda (cite qual e o quê)? Se não, sigo para a Assinatura.', [], ''),
-    ('M08', 'Publicação e próxima versão', G3,
-     '<p>A v0.4.4 já inclui a <b>v0.4.3.1 revisada</b> (que ainda espera as suas respostas K01 a K08). Se aprovar as duas páginas, publico <b>só a v0.4.4</b> de uma vez no GitHub. Próxima: <b>v0.4.5 Assinatura</b> (Sonnet 5.5 · alto): linha em branco com o nome completo embaixo, rubrica desenhada ou foto, primeiro no quadro, depois Docx e Planilha.</p>',
-     'Pode publicar a v0.4.4 (com a v0.4.3.1 dentro) e seguir para a Assinatura?', [], ''),
+    ('P08', 'Publicação e próxima versão', G3,
+     '<p>Se aprovar, publico a <b>v0.4.4.1</b> no GitHub. Próxima: <b>v0.4.5 Assinatura</b> (Sonnet 5.5 · alto): linha em branco com o nome completo embaixo, rubrica desenhada com o mouse ou o dedo, ou foto; primeiro no quadro, depois Docx e Planilha. A imagem fica só no arquivo, no aparelho.</p>',
+     'Pode publicar a v0.4.4.1 e seguir para a Assinatura?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
-    f'<div class="nums"><span>106/106 testes de regras</span><span>100/100 testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
+    f'<div class="nums"><span>{sys.argv[4]} testes de regras</span><span>{sys.argv[5]} testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>Revisão de layout que você aprovou no J07 da v0.4.3.1: menos texto, Opções retráteis, cantos retos, filtro único. Nada de função foi tirado.</li>'
-    '<li>Feita em cima da v0.4.3.1 revisada (que ainda aguarda K01 a K08). Os prints de "antes" são da v0.4.3.1.</li>'
+    '<li>A v0.4.4 (com a v0.4.3.1) já está no GitHub, aprovada por você. Esta é uma versão pequena em cima dela.</li>'
+    '<li>Traz o que você pediu nos comentários M02 (cartões) e M04 (fundo das janelas, copiado do EFClaudian) e os achados do Grok na v0.4.4.</li>'
     '<li>Nada vai ao GitHub antes da sua resposta. Nada a configurar no Firebase.</li>'
     '</ul>'
 )
@@ -73,7 +76,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'revisão de layout: menos texto, Opções retráteis, cantos retos')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'cartões, fundo das janelas, Lixeira e avisos repetidos')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

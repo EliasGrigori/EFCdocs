@@ -98,7 +98,7 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
           <label className="chave"><input type="checkbox" checked={prefs.relevo} onChange={(ev) => setPref('relevo', ev.target.checked)} />Relevo nas barras</label>
         </Secao>
         <Secao id="tela" titulo="Tela" abertas={abertas} alternar={alternar}
-          resumo={`${ROTULOS.layout[prefs.layout]} · ${nomesFaixa[prefs.faixa]} · menu ${ROTULOS.menu[prefs.menu].toLowerCase()}`}>
+          resumo={`${{ A: 'Excel', B: 'Barra curta' }[prefs.layout]} · ${{ tudo: 'tudo', abas: 'abas', oculta: 'oculta' }[prefs.faixa]} · ${{ completo: 'completo', icones: 'ícones', oculto: 'oculto' }[prefs.menu]}`}>
           <div className="op-linha"><span>Layout</span>{chips('layout', ['A', 'B'], ROTULOS.layout)}</div>
           <div className="op-linha"><span title="Ctrl+F1 alterna entre mostrar tudo e só as abas">{prefs.layout === 'B' ? 'Barra curta' : 'Faixa'}</span>{chips('faixa', ['tudo', 'abas', 'oculta'], nomesFaixa)}</div>
           <div className="op-linha"><span>Menu lateral</span>{chips('menu', ['completo', 'icones', 'oculto'], ROTULOS.menu)}</div>

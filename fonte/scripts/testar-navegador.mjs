@@ -33,7 +33,10 @@ const navegador = await chromium.launch({ executablePath: CHROME, env: { ...proc
 const errosConsole = [];
 let paginaAtual = null;
 async function novaPagina(opcoes = {}) {
-  const ctx = await navegador.newContext({ viewport: { width: 1366, height: 800 }, acceptDownloads: true, ...opcoes });
+  const { padraoQuadro, ...resto } = opcoes;
+  const ctx = await navegador.newContext({ viewport: { width: 1366, height: 800 }, acceptDownloads: true, ...resto });
+  /* v0.4.4.1: a barra da esquerda do quadro começa escondida; os testes antigos de ferramentas ligam a barra, a não ser que peçam o padrão */
+  if (!padraoQuadro) await ctx.addInitScript(() => { try { for (const k of ['efcdocs:quadro-prefs', 'efcdocs-demo:quadro-prefs']) if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v: 2, ferramentas: true })); } catch { /* sem armazenamento */ } });
   const p = await ctx.newPage();
   paginaAtual = p;
   p.on('console', (m) => { if (m.type() === 'error') errosConsole.push(`[${atual}] ${m.text()}`); });
@@ -79,10 +82,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.4.4', async () => {
+await caso('abre sem erro, rodapé mostra v0.4.4.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.4.4'), 'rodapé sem v0.4.4');
+  certo((await p.locator('.foot').innerText()).includes('v0.4.4.1'), 'rodapé sem v0.4.4');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -361,7 +364,8 @@ await ctx.close();
 ({ ctx, p } = await novaPagina());
 await caso('demonstração: no máximo 3 arquivos e marca no topo', async () => {
   await p.goto(BASE + '?demo=1');
-  await p.waitForSelector('.faixa-aviso.demo');
+  await p.waitForSelector('.selo.demo-selo');
+  igual(await p.locator('.faixa-aviso.demo').count(), 0, 'faixa de demonstração repetida');
   for (let i = 0; i < 3; i++) {
     await p.goto(BASE + '?demo=1#/postits');
     await p.click('[data-novo=postits]');
@@ -1158,7 +1162,7 @@ await caso('v0.4.1: mesmo arquivo em duas abas: a segunda fica só para ver, rec
   await p2.goto(url);
   await p2.waitForSelector('.pl-cv');
   await p2.waitForSelector('.faixa-aviso.trava', { timeout: 3000 });
-  certo((await p2.locator('.faixa-aviso.trava').innerText()).includes('aberto em outra aba'), 'aba 2 sem aviso');
+  certo((await p2.locator('.faixa-aviso.trava').innerText()).toLowerCase().includes('aberto em outra aba'), 'aba 2 sem aviso');
   igual(await p.locator('.faixa-aviso.trava').count(), 0, 'aba 1 travou');
   /* a aba 2 tenta digitar: nada muda e aparece o aviso */
   await celula(p2, 'A2');
@@ -1195,7 +1199,7 @@ await caso('v0.4.1: quadro de post-its em duas abas também fica protegido', asy
   const p2 = await ctx.newPage();
   await p2.goto(p.url());
   await p2.waitForSelector('.faixa-aviso.trava', { timeout: 3000 });
-  certo((await p2.locator('.qd-modo.leitura').innerText()).includes('outra aba'), 'quadro da aba 2 não ficou só para ver');
+  certo((await p2.locator('.qd-modo.leitura').innerText()).includes('Só para ver'), 'quadro da aba 2 não ficou só para ver');
   await p2.close();
   await p.waitForTimeout(500);
   await novaPlanilha(p);
@@ -1878,7 +1882,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.4'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.4.1'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 17);
   await p.locator('.tema-b[data-tema=campo]').click();
@@ -1928,6 +1932,151 @@ await caso('v0.4.4 celular: Novo em três botões numa linha; planilha sem a bar
   certo((await p.locator('.foot').innerText()).includes('3'), await p.locator('.foot').innerText());
 });
 await ctx.close();
+
+/* ---------- v0.4.4.1: cartões, fundo das janelas, Lixeira, avisos, batida, quadro ---------- */
+({ ctx, p } = await novaPagina({ padraoQuadro: true }));
+await caso('v0.4.4.1: a barra da esquerda do quadro começa escondida e o comando a liga', async () => {
+  await p.goto(BASE + '#/postits');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd');
+  igual(await p.locator('.qd-ferr').count(), 0, 'barra devia começar escondida');
+  certo((await p.locator('.qd-vazio').innerText()).trim().startsWith('Comece por:'), 'texto do quadro vazio');
+  const alt = (await p.locator('.qd-vazio > span').boundingBox()).height;
+  certo(alt < 24, 'o texto do quadro vazio ocupa mais de uma linha: ' + alt);
+  const ys = [];
+  for (const b of await p.locator('.qd-vazio .chipb').all()) ys.push(Math.round((await b.boundingBox()).y));
+  certo(ys.length === 4 && ys.every((y) => y === ys[0]), 'os 4 botões na mesma linha: ' + ys);
+  await p.keyboard.press('Control+k');
+  await p.keyboard.type('barra de ferramentas');
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('.qd-ferr');
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina());
+await caso('v0.4.4.1: planilhas em cartões (3 colunas no computador, 2 em 800 px), sem título repetido; contagem ao lado do filtro', async () => {
+  for (let i = 0; i < 4; i++) {
+    await p.goto(BASE + '#/planilha');
+    await p.click('[data-novo=planilha]');
+    await p.waitForSelector('.pl-cv');
+  }
+  await p.goto(BASE + '#/planilha');
+  await p.waitForSelector('.arq');
+  igual(await p.locator('.pagina h3').count(), 0, 'título "Planilhas" repetido na página');
+  certo((await p.locator('.secao .cont').innerText()).includes('4 planilhas'), await p.locator('.secao .cont').innerText());
+  const ys = [];
+  for (const a of await p.locator('.arq').all()) ys.push(Math.round((await a.boundingBox()).y));
+  igual(ys.filter((y) => y === ys[0]).length, 3, 'devia haver 3 cartões na primeira linha: ' + ys);
+  await print(p, '70-planilhas-cartoes');
+  await p.setViewportSize({ width: 800, height: 800 });
+  await p.waitForTimeout(250);
+  const ys2 = [];
+  for (const a of await p.locator('.arq').all()) ys2.push(Math.round((await a.boundingBox()).y));
+  igual(ys2.filter((y) => y === ys2[0]).length, 2, 'em 800 px devia haver 2 cartões na linha: ' + ys2);
+  await p.setViewportSize({ width: 1366, height: 800 });
+});
+await caso('v0.4.4.1: Lixeira com "Apagar para sempre" que pergunta antes (sem o X solto)', async () => {
+  await p.goto(BASE + '#/planilha');
+  await p.waitForSelector('.arq');
+  await p.locator('.arq .iconbtn[aria-label^="Mandar para a lixeira"]').first().click();
+  await p.goto(BASE + '#/lixeira');
+  await p.waitForSelector('.arq');
+  igual(await p.locator('.arq .iconbtn').count(), 0, 'sobrou botão só com X');
+  const b = p.locator('.arq .btn.apagar');
+  certo((await b.innerText()).includes('Apagar para sempre'));
+  await b.click();
+  await p.waitForSelector('.janela');
+  const t = await p.locator('.janela').innerText();
+  certo(/para sempre\?/.test(t) && t.includes('Não dá para desfazer'), t);
+  await p.locator(".janela button:has-text(\"Voltar\")").click();
+  igual(await p.locator('.arq').count(), 1, 'apagou sem confirmar');
+});
+await caso('v0.4.4.1: fundo da janela escurece 25% com desfoque leve, como no EFClaudian; janela sobre janela soma o fundo', async () => {
+  await p.goto(BASE + '#/');
+  await p.locator('.topbar [aria-label="Opções"]').click();
+  await p.waitForSelector('.fundo');
+  const e = await p.locator('.fundo').first().evaluate((el) => { const c = getComputedStyle(el); return { bg: c.backgroundColor, bf: c.backdropFilter || c.webkitBackdropFilter }; });
+  igual(e.bg, 'rgba(0, 0, 0, 0.25)');
+  certo(e.bf.includes('blur(3px)'), e.bf);
+  await p.keyboard.press('Escape');
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina());
+await caso('v0.4.4.1: Opções, resumo da Tela curto e nomes de tema numa linha só', async () => {
+  await p.goto(BASE + '#/');
+  await p.locator('.topbar [aria-label="Opções"]').click();
+  await p.waitForSelector('.op-sec');
+  certo((await p.locator('.op-sec[data-sec=tela] .res').innerText()).trim() === 'Excel · tudo · completo', await p.locator('.op-sec[data-sec=tela] .res').innerText());
+  await abrirSecao(p, 'tema');
+  for (const nome of ['Alto contraste', 'Curvas de nível']) {
+    const alt = await p.locator(`.tema-b:has-text("${nome}")`).first().evaluate((el) => el.getBoundingClientRect().height);
+    certo(alt <= 34, nome + ' quebrou em duas linhas: ' + alt);
+  }
+  await p.keyboard.press('Escape');
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina());
+await caso('v0.4.4.1: Demonstração aparece uma vez só (o selo ao lado de Novo), que explica ao tocar', async () => {
+  await p.goto(BASE + '?demo=1#/');
+  await p.waitForSelector('.selo.demo-selo');
+  igual(await p.locator('.faixa-aviso.demo').count(), 0);
+  const tudo = await p.locator('body').innerText();
+  igual((tudo.match(/Demonstra[çc][ãa]o/g) || []).length, 1, 'Demonstração repetida: ' + (tudo.match(/Demonstra[çc][ãa]o/g) || []).length);
+  await p.locator('.selo.demo-selo').click();
+  await p.waitForSelector('.toast');
+  certo((await p.locator('.toast').last().innerText()).includes('DEMO · EFC'));
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina());
+await ctx.addInitScript(() => { globalThis.EFC_BATIDA = { a: 250, b: 1500 }; });
+await caso('v0.4.4.1: marca de "aberto em outra aba" que ficou presa (a outra aba parou de avisar) é solta sozinha; aviso só na faixa', async () => {
+  await p.goto(BASE + '#/');
+  await p.click('[data-novo=planilha]');
+  await p.waitForSelector('.pl-cv');
+  const url = p.url();
+  const p2 = await ctx.newPage();
+  p2.on('pageerror', (e) => errosConsole.push(`[${atual}] erro de página (aba 2): ${e.message}`));
+  await p2.goto(url);
+  await p2.waitForSelector('.pl-cv');
+  await p2.waitForSelector('.faixa-aviso.trava', { timeout: 3000 });
+  igual(await p2.locator('.toast').count(), 0, 'toast repetido além da faixa');
+  igual(await p2.locator('.qd-modo.leitura').innerText(), 'Só para ver');
+  /* a aba 1 morre sem avisar: deixa de mandar a batida */
+  await p.evaluate(() => { const o = BroadcastChannel.prototype.postMessage; BroadcastChannel.prototype.postMessage = function (m) { if (m && (m.t === 'vivo' || m.t === 'fechei')) return undefined; return o.call(this, m); }; });
+  await p2.waitForSelector('.faixa-aviso.trava', { state: 'detached', timeout: 6000 });
+  certo((await p2.locator('.toast').last().innerText()).includes('não responde mais'));
+  /* com a aba 1 viva e avisando, a marca fica */
+  await p2.close();
+});
+await ctx.close();
+
+({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }));
+await caso('v0.4.4.1 celular: ao escrever na forma aparece OK / Cancelar; OK guarda, Cancelar descarta', async () => {
+  await p.goto(BASE + '#/postits');
+  await p.locator('[data-novo=postits]').tap();
+  await p.waitForSelector('.qd');
+  await p.locator('.qd-vazio .chipb:has-text("Fluxograma")').tap();
+  await p.waitForSelector('textarea.qd-edita');
+  await p.waitForSelector('.qd-ok-cel');
+  const ta = p.locator('textarea.qd-edita');
+  await ta.fill('Começo');
+  await p.locator('.qd-ok-cel [data-ok=ok]').tap();
+  await p.waitForSelector('textarea.qd-edita', { state: 'detached' });
+  certo((await p.locator('.qd-mundo').innerText()).includes('Começo'), 'texto não ficou');
+  /* Cancelar descarta */
+  await p.locator('.qd-cores-cel .qd-cc-editar').tap();
+  await p.waitForSelector('textarea.qd-edita');
+  await p.locator('textarea.qd-edita').fill('Outro');
+  await p.locator('.qd-ok-cel [data-ok=cancelar]').tap();
+  await p.waitForSelector('textarea.qd-edita', { state: 'detached' });
+  certo(!(await p.locator('.qd-mundo').innerText()).includes('Outro'), 'o Cancelar guardou');
+  await print(p, '71-celular-quadro');
+});
+await ctx.close();
+
 
 await navegador.close();
 const ok = resultados.filter((r) => r.ok).length;

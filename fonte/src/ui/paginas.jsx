@@ -88,7 +88,7 @@ function PainelFiltro({ f, mudar, tipos, fechar }) {
 }
 
 /** Cabeçalho de uma lista (título, quantos, filtro) e as linhas filtradas. */
-function ListaFiltrada({ chave, titulo, todos, tipos, cx, vazio }) {
+function ListaFiltrada({ chave, titulo, unidade, todos, tipos, cx, vazio }) {
   const [f, mudar] = useFiltro(chave);
   const [aberto, setAberto] = useState(false);
   const lista = aplicarFiltro(todos, f);
@@ -102,56 +102,56 @@ function ListaFiltrada({ chave, titulo, todos, tipos, cx, vazio }) {
   return (
     <>
       <div className="secao">
-        <h3>{titulo}</h3>
-        <span className="cont">{lista.length === todos.length ? todos.length : `${lista.length} de ${todos.length}`}</span>
+        {titulo && <h3>{titulo}</h3>}
+        <span className="cont">{lista.length === todos.length ? todos.length : `${lista.length} de ${todos.length}`}{unidade ? ' ' + (todos.length === 1 && lista.length === todos.length ? unidade[0] : unidade[1]) : ''}</span>
         {todos.length > 0 && <Filtro f={f} mudar={mudar} tipos={tipos} aberto={aberto} setAberto={setAberto} />}
       </div>
       {aberto && todos.length > 0 && <PainelFiltro f={f} mudar={mudar} tipos={tipos} fechar={() => setAberto(false)} />}
       {lista.length
-        ? <div className="lista">{lista.map((x) => <LinhaArquivo key={x.id} f={x} cx={cx} />)}</div>
+        ? <div className="lista grade">{lista.map((x) => <LinhaArquivo key={x.id} f={x} cx={cx} semTipo={!!unidade} />)}</div>
         : <div className="vazio-lista">{todos.length ? 'Nenhum arquivo com esse filtro.' : vazio}</div>}
     </>
   );
 }
 
-export function LinhaArquivo({ f, cx, lixeira }) {
+export function LinhaArquivo({ f, cx, lixeira, semTipo }) {
   const bloq = (acao) => cx.bloqueado(acao, f);
   return (
     <div className="arq" data-id={f.id}>
-      <button type="button" className="abre" onClick={() => (lixeira ? null : cx.abrir(f.id))} disabled={lixeira} style={lixeira ? { cursor: 'default' } : undefined}>
+      <button type="button" className="abre" onClick={() => (lixeira ? null : cx.abrir(f.id))} disabled={lixeira} title={f.nome} style={lixeira ? { cursor: 'default' } : undefined}>
         <span className="ri"><Icone n={f.tipo} /></span>
         <span className="txt">
           <b>{f.nome}</b>
-          <span>{TIPOS[f.tipo].nome} · {lixeira ? 'na lixeira desde ' + dataHora(f.lixeiraEm) : dataHora(f.alteradoEm)}</span>
+          <span>{semTipo ? '' : TIPOS[f.tipo].nome + ' · '}{lixeira ? 'na lixeira desde ' + dataHora(f.lixeiraEm) : dataHora(f.alteradoEm)}</span>
         </span>
       </button>
-      {!lixeira && <span className="selo warn">Rascunho</span>}
       {lixeira ? (
-        <>
+        <span className="acoes">
           <button type="button" className="btn sm" disabled={!!bloq('arquivo.restaurar')} onClick={() => cx.restaurar(f)}><Icone n="restaurar" />Restaurar</button>
-          <button type="button" className="iconbtn" aria-label={'Excluir de vez: ' + f.nome} title={bloq('arquivo.excluirDeVez') || 'Excluir de vez'} disabled={!!bloq('arquivo.excluirDeVez')} onClick={() => cx.excluirDeVez(f)}><Icone n="x" /></button>
-        </>
+          <button type="button" className="btn sm apagar" aria-label={'Apagar para sempre: ' + f.nome} title={bloq('arquivo.excluirDeVez') || 'Apagar para sempre'} disabled={!!bloq('arquivo.excluirDeVez')} onClick={() => cx.excluirDeVez(f)}><Icone n="lixeira" />Apagar para sempre</button>
+        </span>
       ) : (
-        <>
+        <span className="acoes">
           <button type="button" className="iconbtn" aria-label={'Renomear: ' + f.nome} title={bloq('arquivo.renomear') || 'Renomear'} disabled={!!bloq('arquivo.renomear')} onClick={() => cx.perguntarNome(f)}><Icone n="renomear" /></button>
           <button type="button" className="iconbtn" aria-label={'Mandar para a lixeira: ' + f.nome} title={bloq('arquivo.lixeira') || 'Mandar para a lixeira'} disabled={!!bloq('arquivo.lixeira')} onClick={() => cx.lixeira(f)}><Icone n="lixeira" /></button>
-        </>
+        </span>
       )}
     </div>
   );
 }
 
-function SeloDemo({ fichas, demo }) {
+function SeloDemo({ fichas, demo, cx }) {
   if (!demo) return null;
   const n = ativos(fichas).length;
-  return <span className={'selo ' + (n >= LIMITE_DEMO ? 'warn' : '')}>Demonstração: {n} de {LIMITE_DEMO} arquivos</span>;
+  const explicar = () => cx.avisar(`Demonstração: até ${LIMITE_DEMO} arquivos, guardados só neste aparelho. O que você exportar sai com a marca DEMO · EFC.`, { ic: 'info', longo: true });
+  return <button type="button" className={'selo demo-selo ' + (n >= LIMITE_DEMO ? 'warn' : '')} onClick={explicar} title="O que é a demonstração?">Demonstração: {n} de {LIMITE_DEMO} arquivos</button>;
 }
 
 export function Inicio({ fichas, cx, demo }) {
   const lista = maisRecentes(ativos(fichas));
   return (
     <div className="pagina">
-      <div className="secao topo"><h3>Novo</h3><SeloDemo fichas={fichas} demo={demo} /></div>
+      <div className="secao topo"><h3>Novo</h3><SeloDemo fichas={fichas} demo={demo} cx={cx} /></div>
       <BotoesNovo tipos={['planilha', 'docx', 'postits']} cx={cx} />
       <ListaFiltrada chave="inicio" titulo="Recentes" todos={lista} tipos={['planilha', 'docx', 'postits']} cx={cx}
         vazio="Nenhum arquivo ainda. Tudo o que você criar fica guardado neste aparelho." />
@@ -162,12 +162,12 @@ export function Inicio({ fichas, cx, demo }) {
 
 export function ListaDoTipo({ tipo, fichas, cx, demo }) {
   const lista = maisRecentes(ativos(fichas).filter((f) => f.tipo === tipo));
-  const titulo = { planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros' }[tipo];
+  const unidade = { planilha: ['planilha', 'planilhas'], docx: ['documento', 'documentos'], postits: ['quadro', 'quadros'] }[tipo];
   return (
     <div className="pagina">
       {TIPOS[tipo].chega && <div className="aviso-breve"><Icone n="info" /><span>O editor de {TIPOS[tipo].nome.toLowerCase()} chega na {TIPOS[tipo].chega}. Já dá para criar, renomear e organizar.</span></div>}
-      <div className="secao topo"><BotoesNovo tipos={[tipo]} cx={cx} /><SeloDemo fichas={fichas} demo={demo} /></div>
-      <ListaFiltrada chave={tipo} titulo={titulo} todos={lista} cx={cx} vazio={`Nenhum${tipo === 'postits' ? ' quadro' : tipo === 'docx' ? ' documento' : 'a planilha'} ainda.`} />
+      <div className="secao topo"><BotoesNovo tipos={[tipo]} cx={cx} /><SeloDemo fichas={fichas} demo={demo} cx={cx} /></div>
+      <ListaFiltrada chave={tipo} unidade={unidade} todos={lista} cx={cx} vazio={`Nenhum${tipo === 'postits' ? ' quadro' : tipo === 'docx' ? ' documento' : 'a planilha'} ainda.`} />
     </div>
   );
 }
@@ -176,7 +176,7 @@ export function Lixeira({ fichas, cx }) {
   const lista = maisRecentes(naLixeira(fichas));
   return (
     <div className="pagina">
-      <p className="sub">Restaure o que apagou ou exclua de vez (fica anotado no histórico).</p>
+      <p className="sub">Restaure o que apagou ou apague para sempre (fica anotado no histórico).</p>
       {lista.length
         ? <div className="lista">{lista.map((f) => <LinhaArquivo key={f.id} f={f} cx={cx} lixeira />)}</div>
         : <div className="vazio-lista">A lixeira está vazia.</div>}

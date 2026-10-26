@@ -128,6 +128,7 @@ export function App() {
   const travadoRef = useRef(null);
   const setTravado = useCallback((v) => { travadoRef.current = v; setTravadoEstado(v); }, []);
   const avisarRef = useRef(avisar);
+  const vivoEm = useRef(0);
 
   /** Lê de novo o arquivo aberto do aparelho (o que a outra aba gravou). */
   const recarregarAberto = useCallback(async () => {
@@ -150,14 +151,14 @@ export function App() {
       const m = ev.data || {};
       const meu = abertoRef.current && abertoRef.current.arquivo.ficha.id;
       if (!meu || m.arq !== meu || m.de === abaApp) return;
-      if (m.t === 'abri' && !travadoRef.current) postar({ t: 'tenho', arq: meu, para: m.de });
+      if (m.t === 'vivo') { if (travadoRef.current && travadoRef.current.motivo === 'outraAba') vivoEm.current = Date.now(); }
+      else if (m.t === 'abri' && !travadoRef.current) postar({ t: 'tenho', arq: meu, para: m.de });
       else if (m.t === 'tenho' && m.para === abaApp && !travadoRef.current) {
+        vivoEm.current = Date.now();
         setTravado({ motivo: 'outraAba' });
-        avisarRef.current('Este arquivo já está aberto em outra aba. Aqui fica só para ver, para nada se perder.', { ic: 'aviso', longo: true });
       } else if (m.t === 'salvou' && travadoRef.current && travadoRef.current.motivo === 'outraAba') recarregarAberto();
       else if (m.t === 'assumir' && !travadoRef.current) {
         setTravado({ motivo: 'outraAba' });
-        avisarRef.current('A outra aba passou a editar este arquivo. Aqui fica só para ver.', { ic: 'info', longo: true });
         setTimeout(recarregarAberto, 400);
       } else if (m.t === 'fechei' && travadoRef.current && travadoRef.current.motivo === 'outraAba') {
         recarregarAberto().then(() => { setTravado(null); avisarRef.current('A outra aba fechou este arquivo. Agora dá para editar aqui.', { ic: 'check' }); });
@@ -168,6 +169,23 @@ export function App() {
     addEventListener('pagehide', sair);
     return () => { canal.removeEventListener('message', tratar); removeEventListener('pagehide', sair); };
   }, [canal, abaApp, postar, recarregarAberto, setTravado]);
+
+  /* Batida: quem edita o arquivo avisa a cada poucos segundos que continua aí. Se a aba que "segura" o arquivo
+     fechou à força (celular que mata o app, navegador que cai) e deixou de avisar, a marca velha é solta. */
+  useEffect(() => {
+    if (!canal) return undefined;
+    const bat = (typeof globalThis !== 'undefined' && globalThis.EFC_BATIDA) || { a: 15000, b: 120000 };
+    const id = setInterval(() => {
+      const a = abertoRef.current;
+      if (!a) return;
+      const t = travadoRef.current;
+      if (!t) postar({ t: 'vivo', arq: a.arquivo.ficha.id });
+      else if (t.motivo === 'outraAba' && Date.now() - vivoEm.current > bat.b) {
+        recarregarAberto().then(() => { setTravado(null); avisarRef.current('A outra aba não responde mais. Agora dá para editar aqui.', { ic: 'check' }); });
+      }
+    }, bat.a);
+    return () => clearInterval(id);
+  }, [canal, postar, recarregarAberto, setTravado]);
 
   const editarAqui = useCallback(async () => {
     const a = abertoRef.current;
@@ -349,9 +367,9 @@ export function App() {
   }), [renomearArquivo]);
 
   const excluirDeVez = useCallback((f) => setPergunta({
-    titulo: 'Excluir de vez?', texto: `"${f.nome}" será apagado deste aparelho e não dá para voltar. Fica anotado no histórico.`,
-    confirmar: 'Excluir de vez', perigo: true,
-    aoConfirmar: async () => { await banco.excluirDeVez(f.id); await recarregar(); avisar(`"${f.nome}" foi excluído de vez.`, { ic: 'x' }); },
+    titulo: `Apagar ${f.nome} para sempre?`, texto: 'Não dá para desfazer. O arquivo some deste aparelho e fica só anotado no histórico.',
+    confirmar: 'Apagar para sempre', perigo: true,
+    aoConfirmar: async () => { await banco.excluirDeVez(f.id); await recarregar(); avisar(`"${f.nome}" foi apagado para sempre.`, { ic: 'x' }); },
   }), [banco, recarregar, avisar]);
 
   const mod = aberto ? aberto.arquivo.ficha.tipo : TIPOS[rota] ? rota : null;
@@ -515,12 +533,9 @@ export function App() {
         {estadoPwa.aviso && (
           <button type="button" className="faixa-aviso nova" onClick={atualizarAgora}><Icone n="atualizar" />Versão nova pronta. Toque para atualizar.</button>
         )}
-        {demo && (
-          <div className="faixa-aviso demo" role="status"><Icone n="info" />Demonstração: até 3 arquivos, guardados só neste aparelho. Exportações saem com a marca DEMO · EFC.</div>
-        )}
         {aberto && travado && travado.motivo === 'outraAba' && (
           <div className="faixa-aviso trava" role="alert">
-            <Icone n="aviso" /><span>Este arquivo está aberto em outra aba. Aqui fica só para ver (o que a outra aba grava aparece aqui).</span>
+            <Icone n="aviso" /><span>Aberto em outra aba. Aqui fica só para ver.</span>
             <button type="button" className="btn sm" onClick={editarAqui}>Editar aqui</button>
           </div>
         )}
@@ -568,7 +583,6 @@ export function App() {
               <>
                 <span><b>EFCdocs</b> {VERSAO}</span>
                 <span className="sts">
-                  {demo && <span className="demo">Demonstração</span>}
                   <span>{ativos(fichas).length} {ativos(fichas).length === 1 ? 'arquivo' : 'arquivos'} neste aparelho</span>
                 </span>
               </>

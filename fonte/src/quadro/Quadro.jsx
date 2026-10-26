@@ -66,7 +66,12 @@ export function Quadro({ arquivo, cx }) {
   const [arrasto, setArrasto] = useState(null);
   const [editando, setEditando] = useState(null);
   const [modo, setModo] = useState(null);
-  const [qp, setQp] = useState(() => ({ minimapa: false, codigos: true, ortografia: true, ferramentas: true, ...ler('quadro-prefs', {}) }));
+  const [qp, setQp] = useState(() => {
+    const salvo = ler('quadro-prefs', {});
+    /* v0.4.4.1: a barra da esquerda começa escondida (a faixa Inserir tem tudo); quem já tinha escolha antiga volta ao novo padrão uma vez */
+    if (salvo.v !== 2) { salvo.ferramentas = false; salvo.v = 2; }
+    return { minimapa: false, codigos: true, ortografia: true, ferramentas: false, ...salvo };
+  });
   const [assistAberto, setAssistAberto] = useState(false);
   const [timer, setTimer] = useState(false);
   const [janela, setJanela] = useState(null);
@@ -679,7 +684,7 @@ export function Quadro({ arquivo, cx }) {
     const noTitulo = !!ev.target.closest('.qi-raia-h, .qi-pg-h');
     if (alvoItem && !(Q.ehFundo(alvoItem) && !noTitulo)) { comecarEdicao(alvoItem); return; }
     if (setaEl) { const s = c.setas[setaEl.dataset.seta]; setSel({ itens: [], seta: s.id }); setEditando({ seta: s.id, valor: s.rotulo || '' }); return; }
-    if (ev.target.closest('.qd-barra,.qd-mini,.qd-timer,.qd-zoom,.qd-vistas,.qd-vazio,.qd-ferr,.qd-lamp,.qd-assist,.qd-cores-cel')) return;
+    if (ev.target.closest('.qd-barra,.qd-mini,.qd-timer,.qd-zoom,.qd-vistas,.qd-vazio,.qd-ok-cel,.qd-ferr,.qd-lamp,.qd-assist,.qd-cores-cel')) return;
     const p = paraMundo(ev.clientX, ev.clientY);
     const t = Q.TIPOS_ITEM.postit;
     const r = Q.novoItem(c, 'postit', { x: Math.round(p.x - t.w / 2), y: Math.round(p.y - t.h / 2) });
@@ -913,7 +918,7 @@ export function Quadro({ arquivo, cx }) {
         <button type="button" role="tab" aria-selected={vista === 'kanban'} className={vista === 'kanban' ? 'on' : ''} onClick={() => setVista('kanban')}><Icone n="kanban" />Kanban</button>
         {vista === 'kanban' && !somenteLeitura && <button type="button" className="qd-gut" data-cmd="organizar.ordenarGut" title="Ordenar cada coluna pela nota GUT (maior primeiro)" onClick={() => trata('organizar.ordenarGut')}><Icone n="classificar" />GUT</button>}
       </div>
-      {somenteLeitura && <div className="qd-modo leitura"><Icone n="ver" />{cx.travado && cx.travado.motivo === 'conflito' ? 'Em espera: escolha no aviso do topo o que fazer.' : cx.travado ? 'Só para ver: este quadro está aberto em outra aba.' : 'Só leitura: seu perfil de teste não edita o quadro.'}</div>}
+      {somenteLeitura && <div className="qd-modo leitura"><Icone n="ver" />{cx.travado && cx.travado.motivo === 'conflito' ? 'Em espera: escolha no aviso do topo o que fazer.' : cx.travado ? 'Só para ver' : 'Só leitura: seu perfil de teste não edita o quadro.'}</div>}
 
       {vista === 'kanban' ? (
         <KanbanVista c={c} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} sel={selValida} setSel={setSel} cx={cx} codigos={qp.codigos} hoje={hoje} />
@@ -975,6 +980,13 @@ export function Quadro({ arquivo, cx }) {
               aoEditar={itensSel.length === 1 && COM_TEXTO(itensSel[0]) ? () => comecarEdicao(itensSel[0]) : null} />
           )}
 
+          {cx.cel && editando && !somenteLeitura && (
+            <div className="qd-ok-cel card" role="group" aria-label="Terminar de escrever" onPointerDown={(ev) => ev.stopPropagation()} onMouseDown={(ev) => ev.preventDefault()}>
+              <button type="button" className="btn sm" data-ok="cancelar" onClick={() => terminarEdicao(false)}>Cancelar</button>
+              <button type="button" className="btn sm primary" data-ok="ok" onClick={() => terminarEdicao(true)}>OK</button>
+            </div>
+          )}
+
           {modo && (
             <div className="qd-modo" role="status">
               <Icone n={modo.tipo === 'seta' ? 'seta' : 'pincel'} />
@@ -985,7 +997,7 @@ export function Quadro({ arquivo, cx }) {
 
           {vazio && !somenteLeitura && (
             <div className="qd-vazio card">
-              <span>Dois toques no quadro criam um post-it. Ou comece por:</span>
+              <span title="Dois toques no quadro também criam um post-it">Comece por:</span>
               <div className="chips">
                 <button type="button" className="chipb" onClick={() => inserir('postit')}><Icone n="postit" />Post-it</button>
                 <button type="button" className="chipb" onClick={() => inserir('inicio', { texto: 'Início' })}><Icone n="inicio" />Fluxograma</button>

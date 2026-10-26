@@ -135,6 +135,12 @@ function frases(ctx) {
   /** valor de um pedaço, sem parêntese dentro de parêntese: célula vazia vira "vazio" */
   const vt = (n) => { const t = ctx.valorTxt(n); return t === '(vazio)' ? 'vazio' : t; };
   const mostra = (n) => (n && n.t === 'str' && n.v === '' ? 'deixa a célula vazia' : `mostra ${d(n)}`);
+  /** Um lado do SE: texto/número/célula "mostra"; uma conta vira a frase da conta ("divide A por B (= 1)"). */
+  const lado = (n) => {
+    if (n && n.t === 'paren') return lado(n.a);
+    const conta = n && ((n.t === 'bin' && ['+', '-', '*', '/', '^', '&'].includes(n.o)) || (n.t === 'fn' && !ehIf(n)));
+    return conta ? `${f(n)} (= ${vt(n)})` : mostra(n);
+  };
   const naAba = (n, id) => (n.aba != null ? ` da aba ${nomeAba(ctx.c, id)}` : '');
   /** Como um pedaço aparece na frase: B2 vira "o Cloro livre (B2 = 1,2)". */
   const d = (n) => {
@@ -234,8 +240,8 @@ function frases(ctx) {
     switch (n.n) {
       case 'IF': {
         const sim = a[1] || { t: 'bool', v: true };
-        const parteSim = ehIf(sim) ? `olha de novo (${f(sim)})` : mostra(sim);
-        const parteNao = !a[2] ? 'mostra FALSO' : ehIf(a[2]) ? `olha de novo: ${f(a[2])}` : mostra(a[2]);
+        const parteSim = ehIf(sim) ? `olha de novo (${f(sim)})` : lado(sim);
+        const parteNao = !a[2] ? 'mostra FALSO' : ehIf(a[2]) ? `olha de novo: ${f(a[2])}` : lado(a[2]);
         return `se ${cond(a[0])}, ${parteSim}; se não, ${parteNao}`;
       }
       case 'IFERROR': return `${f(a[0])}; se der erro, ${mostra(a[1])}`;

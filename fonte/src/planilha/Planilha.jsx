@@ -1984,7 +1984,7 @@ export function Planilha({ arquivo, cx }) {
             : barraLeitura}
         </div>
       </div>
-      {somenteLeitura && <div className="qd-modo leitura pl-leitura"><Icone n="ver" />{cx.travado && cx.travado.motivo === 'conflito' ? 'Em espera: escolha no aviso do topo o que fazer.' : cx.travado ? 'Só para ver: este arquivo está aberto em outra aba.' : 'Só leitura: seu perfil de teste não edita a planilha.'}</div>}
+      {somenteLeitura && <div className="qd-modo leitura pl-leitura"><Icone n="ver" />{cx.travado && cx.travado.motivo === 'conflito' ? 'Em espera: escolha no aviso do topo o que fazer.' : cx.travado ? 'Só para ver' : 'Só leitura: seu perfil de teste não edita a planilha.'}</div>}
 
       <div className="pl-area">
         <div className="pl-rol" ref={rolRef} onScroll={aoRolar} onContextMenu={aoMenuContexto}>

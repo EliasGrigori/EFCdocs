@@ -142,6 +142,12 @@ body[data-theme=petroleo] .qd-ponta-cor { fill: #b8c2cf; }
   border-radius: 2px; box-shadow: 0 6px 20px rgba(0,0,0,.25); user-select: text; -webkit-user-select: text;
 }
 .qd-edita-processo, .qd-edita-inicio, .qd-edita-dados, .qd-edita-decisao { padding: 8px 12px; }
+.qd-edita-inicio { border-radius: 999px; padding: 8px 18px; text-align: center; }
+.qd-ok-cel {
+  position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 47; display: flex; justify-content: flex-end; gap: 8px; padding: 6px;
+  border-radius: var(--r-ctl); box-shadow: 0 -2px 18px rgba(0,0,0,.22); background: var(--surface);
+}
+.qd-ok-cel .btn { min-width: 84px; }
 .qd-edita-texto { font-size: 18px; font-weight: 700; padding: 2px 4px; }
 .qd-edita-raia { font-weight: 700; padding: 8px 10px; }
 .qd-edita-seta {
@@ -197,6 +203,10 @@ body.relevo .qd-vistas .on { box-shadow: inset 0 1px #ffffff1a, 0 1px 2px #00000
 }
 .qd-vazio b { font-size: 16px; }
 .qd-vazio span { font-size: 13.5px; color: var(--text-muted); }
+.qd-vazio { width: min(480px, calc(100% - 32px)); }
+.qd-vazio .chips { flex-wrap: nowrap; gap: 6px; }
+.qd-vazio .chipb { white-space: nowrap; }
+.app.cel .qd-vazio .chips { flex-wrap: wrap; justify-content: center; }
 
 .qd-timer {
   position: absolute; right: 10px; top: 10px; z-index: 47; display: grid; gap: 6px; padding: 10px 12px; justify-items: center;

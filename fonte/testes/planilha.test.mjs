@@ -736,6 +736,11 @@ test('v0.4.3.1: frase do Explicar de cada função sem erro de português (de a,
   assert.match(ex('ÍNDICE(C2:C3;CORRESP("L-012";A2:A3;0))'), /^Acha "L-012" na coluna Lote \(A2:A3\) e traz o valor da mesma linha da coluna Qtd \(C2:C3\)\./);
   assert.match(ex('SE(B2>1;"";"x")'), /mostra "x"|deixa a célula vazia/);
   assert.match(ex('SE(B2>1;"";"x")'), /^Se a coluna Cloro \(B2 = 1,2\) for maior que 1, deixa a célula vazia; se não, mostra "x"\./);
+  /* v0.4.4.1: um lado do SE que é conta vira a frase da conta, não "E3/D3" cru */
+  const se = ex('SE(C2=0;"";B2/C2)');
+  assert.match(se, /se não, divide a coluna Cloro \(B2 = 1,2\) pela coluna Qtd \(C2 = 10\) \(= 0,12\)/);
+  assert.doesNotMatch(se, /mostra B2\/C2/);
+  assert.match(ex('SE(B2>1;SOMA(B2:B3);0)'), /soma .*\(= 4,2\); se não, mostra 0/i);
   assert.match(ex('A5'), /^Mostra a coluna Lote \(A5 = vazio\)\./);
   assert.match(ex('FILTRO(A2:C3;C2:C3>5;"nada")'), /^Mostra só as linhas .* em que a coluna Qtd \(C2:C3\) é maior que 5/);
   assert.match(ex('DIATRABALHOTOTAL(D2;D3)'), /^Conta os dias úteis de 01\/10\/2026 \(D2\) até 02\/10\/2026 \(D3\)\./);
