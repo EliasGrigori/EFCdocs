@@ -707,7 +707,7 @@ export function problemasDaPlanilha(motor, c, titulo, { max = 200 } = {}) {
     const p = lista[0], u = lista[lista.length - 1];
     const onde = lista.length > 1 ? `${chave(p.l, p.c)}:${chave(u.l, u.c)}` : chave(p.l, p.c);
     add({
-      id: 'fixo:' + k, nivel: 'aviso', abaId: id, l: p.l, c: p.c,
+      id: 'fixo:' + k, nivel: 'dica', abaId: id, l: p.l, c: p.c,
       texto: `Número fixo na conta: =${escrever(p.arv, 'pt')}${lista.length > 1 ? ` (e em mais ${lista.length - 1} ${lista.length === 2 ? 'fórmula' : 'fórmulas'} de ${onde})` : ''}. Se ${numeroGeral(v)} mudar, alguém precisa lembrar de trocar em todas. Melhor dar um nome a ele.`,
       acoes: [{ tipo: 'nomearNumero', rotulo: 'Dar nome ao número', alvo: { abaId: id, l: p.l, c: p.c }, v, celulas: lista.map((x) => ({ abaId: id, l: x.l, c: x.c })) }],
     });
@@ -721,7 +721,8 @@ export function problemasDaPlanilha(motor, c, titulo, { max = 200 } = {}) {
     });
   }
 
-  out.sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === 'erro' ? -1 : 1) || (ordemAba.get(a.abaId) - ordemAba.get(b.abaId)) || a.l - b.l || a.c - b.c);
+  const pesoNivel = (n) => (n === 'erro' ? 0 : n === 'aviso' ? 1 : 2);
+  out.sort((a, b) => (pesoNivel(a.nivel) - pesoNivel(b.nivel)) || (ordemAba.get(a.abaId) - ordemAba.get(b.abaId)) || a.l - b.l || a.c - b.c);
   return out.slice(0, max);
 }
 

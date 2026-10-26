@@ -87,7 +87,7 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
     <Janela titulo="Opções" aoFechar={aoFechar} classe="opcoes">
       <div className="janela-c">
         <Secao id="tema" titulo="Tema" abertas={abertas} alternar={alternar}
-          resumo={<><i className="amostra" style={AMOSTRAS[prefs.tema] ? amostra(prefs.tema) : undefined} />{nomeTema}{prefs.relevo ? ' · relevo' : ''}</>}>
+          resumo={<><i className="amostra" style={AMOSTRAS[prefs.tema] ? amostra(prefs.tema) : undefined} />{nomeTema}{prefs.relevo ? ' · relevo' : ''}{prefs.mesa ? ' · mesa' : ''}</>}>
           <div className="temas">
             {TEMAS.map(([id, nome]) => (
               <button key={id} type="button" className={'tema-b' + (prefs.tema === id ? ' on' : '')} aria-pressed={prefs.tema === id} data-tema={id} title={nome} onClick={() => setPref('tema', id)}>
@@ -95,14 +95,24 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
               </button>
             ))}
           </div>
+          <small className="op-dica">Papel (claro) é o tema de abertura: o dourado só marca onde você está. Os temas escuros continuam aqui.</small>
           <label className="chave"><input type="checkbox" checked={prefs.relevo} onChange={(ev) => setPref('relevo', ev.target.checked)} />Relevo nas barras</label>
+          <small className="op-dica">Um brilho leve nas barras e nos botões, para parecerem peças de verdade.</small>
+          <label className="chave"><input type="checkbox" checked={!!prefs.mesa} onChange={(ev) => setPref('mesa', ev.target.checked)} />Papel sobre a mesa (sombra nas barras e contorno nas laterais)</label>
+          <small className="op-dica">A folha parece apoiada sobre a mesa: sombra embaixo das barras de cima e de baixo e contorno suave nas laterais.</small>
         </Secao>
         <Secao id="tela" titulo="Tela" abertas={abertas} alternar={alternar}
           resumo={`${{ A: 'Excel', B: 'Barra curta' }[prefs.layout]} · ${{ tudo: 'tudo', abas: 'abas', oculta: 'oculta' }[prefs.faixa]} · ${{ completo: 'completo', icones: 'ícones', oculto: 'oculto' }[prefs.menu]}`}>
           <div className="op-linha"><span>Layout</span>{chips('layout', ['A', 'B'], ROTULOS.layout)}</div>
+          <small className="op-dica">Faixa tipo Excel: abas com botões grandes em cima. Barra curta: uma linha de ícones e o painel de detalhes ao lado.</small>
           <div className="op-linha"><span title="Ctrl+F1 alterna entre mostrar tudo e só as abas">{prefs.layout === 'B' ? 'Barra curta' : 'Faixa'}</span>{chips('faixa', ['tudo', 'abas', 'oculta'], nomesFaixa)}</div>
+          <small className="op-dica">Quanto da faixa fica à mostra. "Só as abas" ganha espaço; um toque numa aba mostra a faixa por um momento.</small>
           <div className="op-linha"><span>Menu lateral</span>{chips('menu', ['completo', 'icones', 'oculto'], ROTULOS.menu)}</div>
+          <small className="op-dica">O menu da esquerda com nomes, só com ícones ou escondido (uma setinha na borda traz de volta).</small>
+          <div className="op-linha"><span>Barra de cima</span>{chips('topo', ['completo', 'compacto'], ROTULOS.topo)}</div>
+          <small className="op-dica">Completa tem o título e a busca; "Só as abas" junta tudo na linha das abas para sobrar mais planilha.</small>
           <label className="chave"><input type="checkbox" checked={prefs.painel} onChange={(ev) => setPref('painel', ev.target.checked)} />Abrir o painel de detalhes junto com o arquivo</label>
+          <small className="op-dica">O painel da direita mostra nome, datas, tamanho e ações do arquivo aberto.</small>
         </Secao>
         <Secao id="perfil" titulo="Perfil de teste" abertas={abertas} alternar={alternar} resumo={PERFIS[prefs.perfil].nome}>
           <div className="seg">
@@ -110,7 +120,7 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
               <button key={id} type="button" className={'chipb' + (prefs.perfil === id ? ' on' : '')} aria-pressed={prefs.perfil === id} title={pf.cadastro} onClick={() => setPref('perfil', id)}>{pf.nome}</button>
             ))}
           </div>
-          <p>Só para testar. O perfil de verdade vem do login (v0.9.0).</p>
+          <p>Só para testar o que cada tipo de pessoa pode fazer. O perfil de verdade vem do login (v0.9.0).</p>
         </Secao>
         <Secao id="sobre" titulo="Sobre" abertas={abertas} alternar={alternar} resumo={`EFCdocs ${versao}`}>
           <p>{demo ? 'Modo demonstração (até 3 arquivos, banco separado).' : 'Tudo fica neste aparelho.'}{espaco ? ` Espaço usado: ${espaco}.` : ''}</p>
@@ -143,10 +153,10 @@ export function Painel({ aberto, cx, fechar, extra }) {
           <dt>Nome</dt><dd>{f.nome}</dd>
           <dt>Tipo</dt><dd>{TIPOS[f.tipo].nome}</dd>
           <dt>Situação</dt><dd><span className={'selo ' + cls}>{txt}</span></dd>
-          <dt>Revisão</dt><dd>Rev. {String(f.rev).padStart(2, '0')}</dd>
+          <dt>Versão do arquivo</dt><dd>{String(f.rev).padStart(2, '0')}</dd>
           <dt>Criado</dt><dd>{cx.dataHora(f.criadoEm)}</dd>
           <dt>Alterado</dt><dd>{cx.dataHora(f.alteradoEm)}</dd>
-          {tam && <><dt>No aparelho</dt><dd>{cx.tamanho(tam.bytesFinal)} {tam.fmt === 'gzip' ? `(compactado de ${cx.tamanho(tam.bytesOriginal)})` : ''}</dd></>}
+          {tam && <><dt>Tamanho</dt><dd>{cx.tamanho(tam.bytesFinal)} {tam.fmt === 'gzip' ? `(compactado de ${cx.tamanho(tam.bytesOriginal)})` : ''}</dd></>}
         </dl>
       </div>
       <div className="side-s">

@@ -25,7 +25,7 @@ import { StatusPlanilha } from './planilha/partes.jsx';
 import { LinhaDoTempo } from './ui/historico.jsx';
 
 const AUTOR = 'neste aparelho';
-const TITULOS = { '': 'Início', planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros de post-its', lixeira: 'Lixeira', pastas: 'Pastas', externos: 'Documentos externos' };
+const TITULOS = { '': 'Início', planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros', lixeira: 'Lixeira', pastas: 'Pastas', externos: 'Documentos externos' };
 const NOVO_POR_CMD = { 'arquivo.novaPlanilha': 'planilha', 'arquivo.novoDocumento': 'docx', 'arquivo.novoQuadro': 'postits' };
 const DO_MODULO = { planilha: 'da planilha', docx: 'do documento', postits: 'do quadro' };
 
@@ -91,6 +91,7 @@ export function App() {
   const [espaco, setEspaco] = useState('');
   const [statusEd, setStatusEd] = useState(null);
   const [alvoPainel, setAlvoPainel] = useState(null);
+  const [alvoRodape, setAlvoRodape] = useState(null); /* v0.4.8 (L11): a Verificação mora no rodapé, igual em todos os arquivos */
   const [linhaTempo, setLinhaTempo] = useState(false);
   const editorRef = useRef(null);
 
@@ -99,6 +100,7 @@ export function App() {
     const b = document.body;
     b.dataset.theme = prefs.tema;
     b.classList.toggle('relevo', prefs.relevo);
+    b.classList.toggle('mesa', !!prefs.mesa);
     const st = getComputedStyle(b);
     const fundo = st.getPropertyValue('--bg').trim();
     if (fundo) document.documentElement.style.background = fundo;
@@ -110,7 +112,7 @@ export function App() {
 
   const avisar = useCallback((texto, extra = {}) => {
     const id = Date.now() + Math.random();
-    setAvisos((l) => [...l.slice(-2), { id, texto, ...extra }]);
+    setAvisos([{ id, texto, ...extra }]); /* v0.4.8: um aviso de cada vez; o novo toma o lugar do anterior */
     setTimeout(() => setAvisos((l) => l.filter((a) => a.id !== id)), extra.acao ? 8000 : extra.longo ? 6000 : 3400);
   }, []);
   /* o aviso com Desfazer não acompanha a troca de página (só some o que já estava na tela há um tempo) */
@@ -190,7 +192,7 @@ export function App() {
      fechou à força (celular que mata o app, navegador que cai) e deixou de avisar, a marca velha é solta. */
   useEffect(() => {
     if (!canal) return undefined;
-    const bat = (typeof globalThis !== 'undefined' && globalThis.EFC_BATIDA) || { a: 15000, b: 120000 };
+    const bat = (typeof globalThis !== 'undefined' && globalThis.EFC_BATIDA) || { a: 15000, b: 90000 };
     const id = setInterval(() => {
       const a = abertoRef.current;
       if (!a) return;
@@ -413,7 +415,7 @@ export function App() {
       'exibir.faixaTudo': prefs.faixa === 'tudo', 'exibir.faixaAbas': prefs.faixa === 'abas', 'exibir.faixaOculta': prefs.faixa === 'oculta',
       'exibir.topoCompleto': prefs.topo !== 'compacto', 'exibir.topoCompacto': prefs.topo === 'compacto',
       'exibir.menuCompleto': prefs.menu === 'completo', 'exibir.menuIcones': prefs.menu === 'icones', 'exibir.menuOculto': prefs.menu === 'oculto',
-      'exibir.layoutA': prefs.layout === 'A', 'exibir.layoutB': prefs.layout === 'B', 'exibir.painel': prefs.painel, 'exibir.relevo': prefs.relevo,
+      'exibir.layoutA': prefs.layout === 'A', 'exibir.layoutB': prefs.layout === 'B', 'exibir.painel': prefs.painel, 'exibir.relevo': prefs.relevo, 'exibir.mesa': !!prefs.mesa,
     };
     if (id in geral) return geral[id];
     const ed = editorRef.current;
@@ -458,6 +460,7 @@ export function App() {
       case 'exibir.painel': setPref('painel', !prefs.painel); return;
       case 'exibir.layoutA': setPref('layout', 'A'); return;
       case 'exibir.layoutB': setPref('layout', 'B'); return;
+      case 'exibir.mesa': setPref('mesa', !prefs.mesa); avisar(prefs.mesa ? 'Papel sobre a mesa desligado.' : 'Papel sobre a mesa ligado: sombra nas barras e contorno nas laterais.', { ic: 'relevo' }); return;
       case 'exibir.relevo': setPref('relevo', !prefs.relevo); avisar(prefs.relevo ? 'Relevo desligado.' : 'Relevo ligado.', { ic: 'relevo' }); return;
       case 'exibir.telaCheia': {
         const el = document.documentElement;
@@ -516,7 +519,7 @@ export function App() {
     aplicar, avisar, chamarFaixa, perguntar: setPergunta, temJanela: !!(paleta || opcoes || pergunta || gaveta || linhaTempo),
     pode: (acao) => !semPermissao(acao), travado, buscarNoEditor: (q) => { const ed = editorRef.current; return ed && ed.buscar ? ed.buscar(q) : []; },
     registrarEditor: (ed) => { editorRef.current = ed; }, setStatus: setStatusEd,
-    alvoPainel, abrirPainel: () => setPref('painel', true), painelAberto: prefs.painel, cel,
+    alvoPainel, alvoRodape, abrirPainel: () => setPref('painel', true), painelAberto: prefs.painel, cel,
   };
 
   const contagem = useMemo(() => {
@@ -586,7 +589,7 @@ export function App() {
             {aberto ? (
               <>
                 <span className="some-cel"><b>{TIPOS[ficha.tipo].nome}</b></span>
-                <span className="some-cel">Rascunho · Rev. {String(ficha.rev).padStart(2, '0')}</span>
+                <span className="some-cel">{aberto.sujo ? 'Salvando…' : 'Salvo neste aparelho às ' + hora(aberto.salvoEm)}</span>
                 {ultimo && <button type="button" className="some-cel foot-desfazer" title="Ver a linha do tempo do desfazer" onClick={() => setLinhaTempo(true)}>Desfazer: {ultimo}</button>}
                 <span className="sts">
                   {ficha.tipo === 'planilha' && <StatusPlanilha st={st.planilha} />}
@@ -599,7 +602,8 @@ export function App() {
                       {st.zoom ? <span className="some-cel">Zoom <b>{Math.round(st.zoom * 100)}%</b></span> : null}
                     </>
                   )}
-                  {aberto.tamanho && <span className="some-cel">No aparelho: <b>{tamanhoLegivel(aberto.tamanho.bytesFinal)}</b></span>}
+                  {aberto.tamanho && <span className="some-cel">Tamanho: <b>{tamanhoLegivel(aberto.tamanho.bytesFinal)}</b></span>}
+                  {!cel && (ficha.tipo === 'planilha' || ficha.tipo === 'postits') && <span className="foot-verif" ref={setAlvoRodape} />}
                 </span>
               </>
             ) : (
@@ -623,7 +627,7 @@ export function App() {
       {opcoes && <Opcoes prefs={prefs} setPref={setPref} cx={cx} aoFechar={() => setOpcoes(false)} demo={demo} versao={VERSAO} espaco={espaco} abrir={opcoes} />}
       {pergunta && <Pergunta p={pergunta} aoFechar={() => setPergunta(null)} />}
       {linhaTempo && aberto && <LinhaDoTempo h={aberto.h} aoIr={irParaPasso} aoFechar={() => setLinhaTempo(false)} />}
-      <Avisos lista={avisos} tirar={tirarAviso} />
+      <Avisos lista={avisos} tirar={tirarAviso} menu={cel ? 'cel' : prefs.menu} />
     </div>
   );
 }

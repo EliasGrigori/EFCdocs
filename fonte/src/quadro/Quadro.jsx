@@ -248,6 +248,15 @@ export function Quadro({ arquivo, cx }) {
     const dentroDaTela = selValida.itens.length || (lim && Math.abs(lim.x + lim.w / 2 - ctr.x) < area.w / viewRef.current.z / 2);
     const soAssinatura = clip.itens.every((i) => i.tipo === 'assinatura');
     const desl = dentroDaTela ? (soAssinatura && lim ? { x: Math.round(lim.w + 24), y: 0 } : { x: 24, y: 24 }) : { x: Math.round(ctr.x - lim.x - lim.w / 2), y: Math.round(ctr.y - lim.y - lim.h / 2) };
+    /* v0.4.8 (B02): se o lugar já está ocupado (por uma cópia anterior, até de antes de recarregar), anda para o lado até achar espaço livre */
+    const passo = soAssinatura && lim ? { x: Math.round(lim.w + 24), y: 0 } : { x: 24, y: 24 };
+    const existentes = Q.listaItens(c).filter((i) => !Q.ehFundo(i));
+    const ocupado = (d) => clip.itens.some((it) => existentes.some((ex) => {
+      const ox = Math.min(it.x + d.x + it.w, ex.x + ex.w) - Math.max(it.x + d.x, ex.x);
+      const oy = Math.min(it.y + d.y + it.h, ex.y + ex.h) - Math.max(it.y + d.y, ex.y);
+      return ox > 0 && oy > 0 && ox * oy > 0.25 * Math.min(it.w * it.h, ex.w * ex.h);
+    }));
+    for (let n = 0; n < 40 && ocupado(desl); n++) { desl.x += passo.x; desl.y += passo.y; }
     const r = Q.colar(c, clip, desl);
     aplicarQ(r.mudancas, 'Colar', 'colou');
     setSel({ itens: r.ids, seta: null });
@@ -1054,7 +1063,7 @@ export function Quadro({ arquivo, cx }) {
         </div>
       )}
 
-      <Assistente lista={pendencias} aberto={assistAberto} aoAlternar={() => setAssistAberto(!assistAberto)} aoIr={irParaPendencia}
+      <Assistente alvo={cx.cel ? null : cx.alvoRodape} lista={pendencias} aberto={assistAberto} aoAlternar={() => setAssistAberto(!assistAberto)} aoIr={irParaPendencia}
         folga={cx.cel ? undefined : vista === 'kanban' ? 14 : qp.minimapa ? 150 : 10} />
       {timer && <Temporizador fechar={() => setTimer(false)} avisar={cx.avisar} />}
       <PortalPainel alvo={cx.alvoPainel}>{secaoPainel}</PortalPainel>

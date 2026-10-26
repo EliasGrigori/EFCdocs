@@ -121,9 +121,9 @@ export function Pergunta({ p, aoFechar }) {
   );
 }
 
-export function Avisos({ lista, tirar }) {
+export function Avisos({ lista, tirar, menu }) {
   return (
-    <div className="toasts" aria-live="polite">
+    <div className="toasts" aria-live="polite" data-menu={menu}>
       {lista.map((a) => (
         <div className="toast" role="status" key={a.id}>
           <Icone n={a.ic || 'info'} />

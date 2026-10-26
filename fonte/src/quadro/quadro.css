@@ -378,7 +378,7 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .qd-lamp.tem { color: var(--primary); }
 .qd-lamp em { font-style: normal; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; background: var(--crit); color: #fff; font-size: 11.5px; }
 .qd-assist {
-  position: absolute; right: 10px; bottom: 60px; z-index: 48; width: min(360px, calc(100% - 20px)); max-height: min(60%, 420px); overflow: auto;
+  position: absolute; right: 10px; bottom: 10px; z-index: 48; width: min(360px, calc(100% - 20px)); max-height: min(60%, 420px); overflow: auto;
   padding: 10px; border-radius: var(--r-ctl); background: var(--surface); box-shadow: 0 10px 28px rgba(0,0,0,.28);
 }
 .qd-assist header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }

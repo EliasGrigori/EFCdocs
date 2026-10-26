@@ -2217,7 +2217,7 @@ export function Planilha({ arquivo, cx }) {
         )}
         {!cel && ajuda && <div className="pl-ajuda-ancora">{ajuda}</div>}
         {cel && !edit && !somenteLeitura && (<>{alcaCel('a')}{alcaCel('b')}</>)}
-        {!cel || !edit ? <PainelProblemas lista={listaProb} aberto={probAberto} aoAlternar={() => { if (probAberto) setTimeout(voltarFocoGrade, 0); setProbAberto(!probAberto); }} somenteLeitura={somenteLeitura}
+        {!cel || !edit ? <PainelProblemas alvo={cel ? null : cx.alvoRodape} lista={listaProb} aberto={probAberto} aoAlternar={() => { if (probAberto) setTimeout(voltarFocoGrade, 0); setProbAberto(!probAberto); }} somenteLeitura={somenteLeitura}
           aoIr={(p) => { if (cel) setProbAberto(false); /* no celular a lista cobre a grade */ irPara({ abaId: p.abaId, l: p.l, c: p.c }); }} aoAcao={fazerAcao} /> : null}
         {pincel && <div className="qd-modo pl-modo"><Icone n="pincel" />Toque onde vai o formato.<button type="button" className="btn sm" onClick={() => setPincel(null)}>Cancelar</button></div>}
       </div>

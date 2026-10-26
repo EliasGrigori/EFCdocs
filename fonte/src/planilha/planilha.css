@@ -53,7 +53,7 @@
   font-style: normal; font-family: system-ui, sans-serif; font-size: 11px; font-weight: 600; margin: 0 2px 0 1px;
   padding: 0 4px; border-radius: 4px; background: var(--surface-3); color: var(--text-muted); vertical-align: 1px;
 }
-.tk-ref-b { cursor: pointer; font-weight: 600; }
+.tk-ref-b { cursor: pointer; font-weight: 400; text-shadow: .4px 0 0 currentColor, -.4px 0 0 currentColor; }
 .tk-ref-b:hover { text-decoration: underline; }
 
 /* ---------- campo de edição com cores (fórmula) ---------- */
@@ -72,18 +72,18 @@
 .ef.formula .ef-campo::selection { background: rgba(26, 115, 232, .3); color: transparent; }
 .ef.barra { font-family: 'DejaVu Sans Mono', ui-monospace, Consolas, monospace; font-size: 13.5px; }
 .ef.barra .ef-cores, .ef.barra .ef-campo { padding: 6px 2px; }
-.tk-fn { color: var(--text); font-weight: 700; }
+.tk-fn { color: var(--text); font-weight: 400; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; } /* negrito de mentira: o de verdade alarga a letra e o cursor fica para trás */
 .tk-str { color: #2f9e6e; }
 .tk-num { color: #5aa0e6; }
 .tk-err, .tk-ruim { color: var(--crit); text-decoration: wavy underline var(--crit); }
-.tk-bool { color: #c678dd; font-weight: 600; }
+.tk-bool { color: #c678dd; font-weight: 400; text-shadow: .4px 0 0 currentColor, -.4px 0 0 currentColor; }
 .tk-nome { color: #d19a66; }
 .tk-op { color: var(--text-muted); }
-.tk-par { font-weight: 700; }
+.tk-par { font-weight: 400; text-shadow: .45px 0 0 currentColor, -.45px 0 0 currentColor; }
 .tk-par.ativo { background: var(--primary-soft); border-radius: 3px; outline: 1px solid currentColor; }
-body[data-theme=light] .tk-str, body[data-theme=campo] .tk-str, body[data-theme=pomar] .tk-str, body[data-theme=esmeralda] .tk-str,
+body[data-theme=papel] .tk-str, body[data-theme=light] .tk-str, body[data-theme=campo] .tk-str, body[data-theme=pomar] .tk-str, body[data-theme=esmeralda] .tk-str,
 .pl.clara .pl-edcel .tk-str { color: #1b7f4c; }
-body[data-theme=light] .tk-num, body[data-theme=campo] .tk-num, .pl.clara .pl-edcel .tk-num { color: #1d5fae; }
+body[data-theme=papel] .tk-num, body[data-theme=light] .tk-num, body[data-theme=campo] .tk-num, .pl.clara .pl-edcel .tk-num { color: #1d5fae; }
 
 /* ---------- grade ---------- */
 .pl-area { flex: 1; min-height: 0; position: relative; }
@@ -328,7 +328,7 @@ body[data-theme=light] .tk-num, body[data-theme=campo] .tk-num, .pl.clara .pl-ed
 
 /* lâmpada dos problemas sobre a grade (o mesmo jeito do Assistente do quadro) */
 .pl-lamp { right: 22px; bottom: 20px; }
-.pl-problemas { right: 22px; bottom: 66px; width: min(460px, calc(100% - 30px)); }
+.pl-problemas { right: 10px; bottom: 46px; width: min(460px, calc(100% - 30px)); }
 .pl-problemas li { flex-wrap: wrap; }
 .pl-problemas .pl-prob-tx { flex: 1 1 calc(100% - 20px); line-height: 1.4; }
 .pl-prob-cel { font-family: 'DejaVu Sans Mono', ui-monospace, monospace; font-size: 12px; margin-right: 2px; }

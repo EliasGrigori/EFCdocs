@@ -104,6 +104,7 @@ export const DESCRICAO = {
   'exibir.assistente': 'Avisa o que falta no fluxograma (decisão sem saída, passo solto...).',
   'exibir.painel': 'Abre ou fecha o painel lateral com detalhes e ajuda.',
   'exibir.tema': 'Troca as cores do app.',
+  'exibir.mesa': 'Sombra embaixo das barras de cima e de baixo e um contorno suave nas laterais, como uma folha de papel sobre a mesa.',
   'exibir.relevo': 'Liga ou desliga o relevo das barras.',
   'exibir.telaCheia': 'Esconde tudo para ter mais espaço.',
   'exibir.leitura': 'Mostra o documento sem as ferramentas de edição.',

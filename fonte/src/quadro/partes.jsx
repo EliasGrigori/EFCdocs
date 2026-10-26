@@ -350,15 +350,18 @@ export function CoresCelular({ cor, aoCor, aoEditar }) {
 }
 
 /** Assistente do quadro: a lâmpada com o número de pendências e a lista de problemas. */
-export function Assistente({ lista, aberto, aoAlternar, aoIr, folga }) {
+export function Assistente({ lista, aberto, aoAlternar, aoIr, folga, alvo }) {
+  const botao = (
+    <button type="button" className={'qd-lamp card' + (lista.length ? ' tem' : '')} style={!alvo && folga ? { bottom: folga } : undefined} aria-expanded={aberto} aria-label={'Assistente do quadro: ' + (lista.length ? lista.length + ' pendências' : 'nenhuma pendência')} title="Verificação do quadro: o que está pendente" onClick={aoAlternar} onPointerDown={(ev) => ev.stopPropagation()}>
+      <Icone n="lampada" /><span>Verificação</span>{lista.length > 0 && <em>{lista.length}</em>}
+    </button>
+  );
   return (
     <>
-      <button type="button" className={'qd-lamp card' + (lista.length ? ' tem' : '')} style={folga ? { bottom: folga } : undefined} aria-expanded={aberto} aria-label={'Assistente do quadro: ' + (lista.length ? lista.length + ' pendências' : 'nenhuma pendência')} title="Assistente do quadro" onClick={aoAlternar} onPointerDown={(ev) => ev.stopPropagation()}>
-        <Icone n="lampada" /><span>Assistente</span>{lista.length > 0 && <em>{lista.length}</em>}
-      </button>
+      {alvo ? createPortal(botao, alvo) : botao}
       {aberto && (
-        <div className="qd-assist card" style={folga ? { bottom: folga + 50 } : undefined} role="dialog" aria-label="Assistente do quadro" onPointerDown={(ev) => ev.stopPropagation()}>
-          <header><b>Assistente</b><button type="button" className="rbi" title="Fechar" aria-label="Fechar o assistente" onClick={aoAlternar}><Icone n="x" /></button></header>
+        <div className="qd-assist card" style={folga && !alvo ? { bottom: folga + 50 } : undefined} role="dialog" aria-label="Assistente do quadro" onPointerDown={(ev) => ev.stopPropagation()}>
+          <header><b>Verificação do quadro</b><button type="button" className="rbi" title="Fechar" aria-label="Fechar o assistente" onClick={aoAlternar}><Icone n="x" /></button></header>
           {lista.length === 0 ? <p className="qd-assist-ok"><Icone n="check" />Tudo certo: nenhuma pendência no quadro.</p> : (
             <ul>
               {lista.map((p) => (

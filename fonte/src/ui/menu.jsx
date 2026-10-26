@@ -2,7 +2,7 @@
 import { PERFIS } from '../nucleo/perfis.js';
 import { Icone, Marca, irPara } from './comum.jsx';
 
-const PRINCIPAIS = [['', 'casa', 'Início'], ['planilha', 'planilha', 'Planilhas'], ['docx', 'docx', 'Documentos'], ['postits', 'postits', 'Post-its']];
+const PRINCIPAIS = [['', 'casa', 'Início'], ['planilha', 'planilha', 'Planilhas'], ['docx', 'docx', 'Documentos'], ['postits', 'postits', 'Quadros']];
 /* [rota, ícone, nome, versão em que chega] */
 const ORGANIZAR = [['pastas', 'pasta', 'Pastas', 'v0.8.0'], ['externos', 'externo', 'Documentos externos', 'v0.8.0'], ['lixeira', 'lixeira', 'Lixeira']];
 
@@ -27,7 +27,7 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
         <Marca className="brand-mark" />
         <div className="brand-txt">
           <div className="brand-name">EFCdocs</div>
-          <div className="brand-sub">Planilha · Doc · Post-its</div>
+          <div className="brand-sub">Planilha · Documento · Quadro</div>
         </div>
         {gaveta && <button type="button" className="iconbtn" aria-label="Fechar menu" onClick={fechar}><Icone n="x" /></button>}
       </div>

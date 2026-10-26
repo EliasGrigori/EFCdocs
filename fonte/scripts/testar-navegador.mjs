@@ -82,10 +82,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.4.7', async () => {
+await caso('abre sem erro, rodapé mostra v0.4.8', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.4.7'), 'rodapé sem v0.4.6.1');
+  certo((await p.locator('.foot').innerText()).includes('v0.4.8'), 'rodapé sem v0.4.8');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -326,11 +326,11 @@ await caso('perfil Leitor: quadro só de leitura', async () => {
   await p.locator('.opcoes .chipb:has-text("Admin")').click();
   await p.keyboard.press('Escape');
 });
-await caso('17 temas sem erro (16 do EFClaudian + Petróleo)', async () => {
+await caso('18 temas sem erro (16 do EFClaudian + Petróleo + Papel)', async () => {
   await p.locator('.topbar [aria-label="Opções"]').click();
   await abrirSecao(p, 'tema');
   const temas = await p.locator('.tema-b').count();
-  igual(temas, 17);
+  igual(temas, 18);
   for (let i = 0; i < temas; i++) await p.locator('.tema-b').nth(i).click();
   await p.locator('.tema-b[data-tema=petroleo]').click();
   await p.keyboard.press('Escape');
@@ -386,7 +386,7 @@ await caso('celular: barra de baixo com os módulos', async () => {
   await p.waitForTimeout(900);
   igual(await p.locator('.navcel a, .navcel button').count(), 5);
   await print(p, '12-celular-inicio');
-  await p.locator('.navcel a:has-text("Post-its")').tap();
+  await p.locator('.navcel a:has-text("Quadros")').tap();
   await p.waitForSelector('[data-novo=postits]');
   await print(p, '13-celular-postits');
 });
@@ -663,7 +663,7 @@ await caso('v0.3.1 celular: faixa de cores à mão, sem barra vertical, Assisten
   await p.goto(BASE);
   await p.waitForSelector('.navcel');
   await p.waitForTimeout(900);
-  await p.locator('.navcel a:has-text("Post-its")').tap();
+  await p.locator('.navcel a:has-text("Quadros")').tap();
   await p.locator('[data-novo=postits]').tap();
   await p.waitForSelector('.qd-vazio');
   igual(await p.locator('.qd-ferr').count(), 0, 'barra vertical no celular');
@@ -1457,7 +1457,7 @@ await caso('v0.4.3: PL12 Por que deu erro: segue até F3, explica D3 vazio e o S
 await caso('v0.4.3: PL13 lâmpada Problemas: conta, lista e converte o número guardado como texto', async () => {
   await p.waitForTimeout(400);
   const n = Number(await p.locator('.pl-lamp em').innerText());
-  certo(n >= 3, 'esperava 3 ou mais problemas, veio ' + n);
+  certo(n >= 2, 'esperava 2 ou mais problemas (o número fixo agora é só uma dica), veio ' + n);
   await p.click('.pl-lamp');
   await p.waitForSelector('.pl-problemas');
   const t = await p.locator('.pl-problemas').innerText();
@@ -1843,7 +1843,7 @@ await caso('v0.4.4: Início sem título repetido nem parágrafo; Novo compacto; 
   await p.waitForTimeout(100);
   igual(await p.locator('.arq').count(), 1);
   certo((await p.locator('.secao .cont').innerText()).includes('1 de 2'), await p.locator('.secao .cont').innerText());
-  certo((await p.locator('.filtro-b').innerText()).includes('Post-its'), 'resumo sem o tipo: ' + await p.locator('.filtro-b').innerText());
+  certo((await p.locator('.filtro-b').innerText()).includes('Quadro'), 'resumo sem o tipo: ' + await p.locator('.filtro-b').innerText());
   await p.locator('.filtro-p input').fill('nada disso');
   await p.waitForTimeout(100);
   igual(await p.locator('.arq').count(), 0);
@@ -1885,9 +1885,9 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.7'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.8'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
-  igual(await p.locator('.tema-b').count(), 17);
+  igual(await p.locator('.tema-b').count(), 18);
   await p.locator('.tema-b[data-tema=campo]').click();
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).includes('Campo'));
   await p.locator('.tema-b[data-tema=petroleo]').click();
@@ -1898,7 +1898,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   await p.keyboard.type('tema');
   await p.keyboard.press('Enter');
   await p.waitForSelector('.opcoes');
-  igual(await p.locator('.tema-b').count(), 17, 'o comando Tema devia abrir já na seção Tema');
+  igual(await p.locator('.tema-b').count(), 18, 'o comando Tema devia abrir já na seção Tema');
   await print(p, '61-opcoes-sanfona');
   await p.keyboard.press('Escape');
 });
@@ -2595,6 +2595,109 @@ await caso('v0.4.6.1 o aviso com Desfazer some quando a pessoa segue em frente (
   await p.mouse.click(720, 520);
   await p.waitForTimeout(200);
   igual(await p.locator('.toast button').count(), 0, 'o aviso ficou depois de seguir em frente');
+});
+
+/* ---------- v0.4.8: B01 a B03, tema Papel, acabamento, Verificação no rodapé ---------- */
+({ ctx, p } = await novaPagina());
+await caso('v0.4.8: abre no tema Papel, com "Papel sobre a mesa" ligado; o menu diz Quadros', async () => {
+  await p.goto(BASE);
+  await p.waitForSelector('.foot');
+  igual(await p.evaluate(() => document.body.dataset.theme), 'papel');
+  certo(await p.evaluate(() => document.body.classList.contains('mesa')), 'sem a classe mesa');
+  certo((await p.locator('.rail').innerText()).includes('Quadros'), 'o menu devia dizer Quadros');
+  igual(await p.locator('.rail a:has-text("Post-its")').count(), 0, 'ainda aparece "Post-its" no menu');
+});
+await caso('v0.4.8 B01/L10: um aviso de cada vez (o novo toma o lugar do anterior), no canto de baixo à esquerda', async () => {
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await cmd(p, 'inserir.postit');
+  await p.waitForSelector('.qi-postit');
+  await p.keyboard.press('Escape');
+  await p.locator('.qi-postit').click();
+  await p.keyboard.press('Delete');
+  await p.waitForSelector('.toast button');
+  const x = (await p.locator('.toasts').boundingBox()).x;
+  certo(x > 150 && x < 320, 'o aviso devia ficar à esquerda, ao lado do menu: x=' + x);
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(250);
+  igual(await p.locator('.toast').count(), 1, 'ficaram avisos empilhados');
+  certo((await p.locator('.toast').innerText()).includes('Desfeito'), 'devia mostrar só o "Desfeito"');
+  igual(await p.locator('.toast button').count(), 0, 'o Desfazer continuou clicável depois de desfeito');
+});
+await caso('v0.4.8 L11: o botão "Verificação" fica no rodapé, no quadro e na planilha', async () => {
+  igual(await p.locator('.foot .qd-lamp').count(), 1, 'quadro sem a Verificação no rodapé');
+  await novaPlanilha(p);
+  igual(await p.locator('.foot .qd-lamp').count(), 1, 'planilha sem a Verificação no rodapé');
+  certo((await p.locator('.foot .qd-lamp').innerText()).includes('Verificação'));
+});
+await caso('v0.4.8: "Número fixo na conta" é uma Dica (não conta como problema)', async () => {
+  await celula(p, 'A1'); await p.keyboard.type('10'); await p.keyboard.press('Enter');
+  await celula(p, 'B1'); await p.keyboard.type('='); await p.waitForTimeout(250); await p.keyboard.type('A1*1,15'); await p.keyboard.press('Enter');
+  await p.waitForTimeout(600);
+  certo((await p.locator('.pl-lamp').getAttribute('aria-label')).includes('1 dica'), 'sem a dica: ' + await p.locator('.pl-lamp').getAttribute('aria-label'));
+  certo(!(await p.locator('.pl-lamp').getAttribute('class')).includes(' tem'), 'a dica não devia contar como problema');
+  await p.click('.pl-lamp');
+  await p.waitForSelector('.pl-problemas li.dica');
+  await p.click('.pl-lamp');
+});
+await caso('v0.4.8: Exibir tem o grupo "Mesa"; desligar tira a classe do corpo e volta ao ligar', async () => {
+  await p.click('.tabs .tab:has-text("Exibir")');
+  await cmd(p, 'exibir.mesa');
+  certo(!(await p.evaluate(() => document.body.classList.contains('mesa'))), 'ainda com mesa');
+  await cmd(p, 'exibir.mesa');
+  certo(await p.evaluate(() => document.body.classList.contains('mesa')), 'mesa não voltou');
+});
+await caso('v0.4.8 U03: a alça do menu escondido é uma aba de pelo menos 24 x 48 px, e o ☰ é maior', async () => {
+  await p.click('[data-menu-ocultar]');
+  await p.waitForSelector('[data-menu-alca]');
+  const a = await p.locator('[data-menu-alca]').boundingBox();
+  certo(a.width >= 24 && a.height >= 48, `alça pequena: ${a.width}x${a.height}`);
+  const h = await p.locator('.topbar [aria-label="Abrir menu"]').boundingBox();
+  certo(h.width >= 40, 'o ☰ continua pequeno: ' + h.width);
+  await p.click('[data-menu-alca]');
+});
+await caso('v0.4.8 B02: cópias coladas depois de recarregar nunca caem uma em cima da outra', async () => {
+  await p.goto(BASE);
+  await p.waitForSelector('.foot');
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await abrirNovaAssinatura(p);
+  await p.fill('[data-asn=nome]', 'Maria da Silva Souza');
+  await desenharRubrica(p);
+  await p.click('[data-asn=pronto]');
+  await p.waitForSelector('.qi-assinatura');
+  await p.keyboard.press('Control+c');
+  await p.waitForTimeout(150);
+  const colarDeNovo = () => p.evaluate(() => {
+    const dt = new DataTransfer(); dt.setData('text/plain', 'Maria da Silva Souza');
+    document.body.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  });
+  for (let volta = 0; volta < 2; volta++) {
+    await p.reload();
+    await p.waitForSelector('.qi-assinatura');
+    await p.waitForTimeout(1000);
+    await colarDeNovo();
+    await p.waitForTimeout(250);
+  }
+  igual(await p.locator('.qi-assinatura').count(), 3, 'devia ter a original e 2 cópias');
+  const xs = await p.locator('.qi-assinatura').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().x)).sort((a, b) => a - b));
+  certo(xs[1] - xs[0] >= 200 && xs[2] - xs[1] >= 200, 'cópias uma em cima da outra: ' + xs.join(', '));
+});
+
+await caso('v0.4.8: o cursor da fórmula acompanha as letras (nenhuma peça colorida alarga o texto)', async () => {
+  await novaPlanilha(p);
+  await celula(p, 'K2'); await p.keyboard.type('='); await p.waitForTimeout(250); await p.keyboard.type('SOMASE(A1:A3;"x";B1:B3)+VERDADEIRO');
+  const r = await p.evaluate(() => {
+    const ta = document.querySelector('.pl-edcel .ef-campo');
+    const pesoCampo = getComputedStyle(ta).fontWeight;
+    const ruins = [...document.querySelectorAll('.pl-edcel .ef-cores span')].filter((s) => getComputedStyle(s).fontWeight !== pesoCampo).length;
+    return { ruins, n: document.querySelectorAll('.pl-edcel .ef-cores span').length };
+  });
+  certo(r.n > 3, 'não achei as peças coloridas');
+  igual(r.ruins, 0, 'peças com peso diferente do campo: ' + r.ruins);
+  await p.keyboard.press('Escape');
 });
 
 await navegador.close();

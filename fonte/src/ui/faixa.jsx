@@ -14,11 +14,10 @@ const ABA_ARQUIVO = {
   ],
 };
 const GRUPOS_EXIBIR = [
-  { nome: 'Barra de cima', itens: [['col', ['exibir.topoCompleto', 'exibir.topoCompacto']]] },
-  { nome: 'Faixa', itens: [['col', ['exibir.faixaTudo', 'exibir.faixaAbas', 'exibir.faixaOculta']]] },
+  { nome: 'Barra de cima e faixa', itens: [['col', ['exibir.topoCompleto', 'exibir.topoCompacto']], ['col', ['exibir.faixaTudo', 'exibir.faixaAbas', 'exibir.faixaOculta']]] },
   { nome: 'Menu lateral', itens: [['col', ['exibir.menuCompleto', 'exibir.menuIcones', 'exibir.menuOculto']]] },
   { nome: 'Layout', itens: [['g', 'exibir.painel'], ['col', ['exibir.layoutA', 'exibir.layoutB']]] },
-  { nome: 'Aparência', itens: [['g', 'exibir.tema'], ['g', 'exibir.relevo'], ['g', 'exibir.telaCheia']] },
+  { nome: 'Aparência', itens: [['col', ['exibir.tema', 'exibir.relevo', 'exibir.mesa']], ['g', 'exibir.telaCheia']] },
 ];
 const GRUPO_TRANSFERENCIA = { nome: 'Área de transferência', itens: [['lin', ['editar.colar', 'editar.recortar', 'editar.copiar', 'editar.pincel']]] };
 
@@ -111,7 +110,7 @@ export const ROTULO_CURTO = {
   'exibir.faixaTudo': 'Mostrar tudo', 'exibir.faixaAbas': 'Só as abas', 'exibir.faixaOculta': 'Esconder',
   'exibir.topoCompleto': 'Completa', 'exibir.topoCompacto': 'Só as abas', 'exibir.barraFormula': 'Barra fx',
   'exibir.menuCompleto': 'Completo', 'exibir.menuIcones': 'Só ícones', 'exibir.menuOculto': 'Esconder',
-  'exibir.layoutA': 'Faixa tipo Excel', 'exibir.layoutB': 'Barra e painel', 'exibir.painel': 'Painel lateral',
+  'exibir.layoutA': 'Faixa Excel', 'exibir.layoutB': 'Barra e painel', 'exibir.painel': 'Painel lateral',
   'arquivo.lixeira': 'Lixeira', 'arquivo.versoes': 'Versões', 'arquivo.cancelar': 'Cancelar',
   'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Problemas', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
   'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
@@ -120,7 +119,7 @@ export const ROTULO_CURTO = {
   'editar.comentar': 'Comentário', 'organizar.temporizador': 'Temporizador', 'revisao.comparar': 'Comparar',
   'revisao.concluir': 'Concluir revisão', 'pagina.cabecalho': 'Cabeçalho do POP', 'pagina.orientacao': 'Orientação',
   'exibir.congelar': 'Congelar', 'exibir.grade': 'Linhas de grade', 'exibir.leitura': 'Modo leitura',
-  'exibir.relevo': 'Relevo', 'exibir.telaCheia': 'Tela cheia', 'formatar.titulo': 'Título', 'inserir.campo': 'Campo',
+  'exibir.relevo': 'Relevo', 'exibir.mesa': 'Mesa', 'exibir.telaCheia': 'Tela cheia', 'formatar.titulo': 'Título', 'inserir.campo': 'Campo',
   'editar.colar': 'Colar', 'inserir.processo': 'Atividade', 'inserir.decisao': 'Decisão', 'inserir.inicio': 'Início/Fim',
   'inserir.dados': 'Entrada/Saída', 'inserir.pagina': 'Página', 'inserir.legenda': 'Legenda', 'inserir.modelo': 'Modelos', 'organizar.ordenarGut': 'Ordenar GUT', 'exibir.ferramentas': 'Barra de ferramentas', 'exibir.assistente': 'Assistente', 'organizar.quadro': 'Quadro livre', 'organizar.frente': 'Para a frente',
   'organizar.tras': 'Para trás', 'exibir.ajustar': 'Ajustar à tela', 'exibir.codigos': 'Códigos Q',

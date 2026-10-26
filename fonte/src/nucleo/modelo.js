@@ -4,12 +4,12 @@
 import { conteudoQuadroVazio } from '../quadro/modelo.js';
 import { planilhaVazia } from '../planilha/modelo.js';
 
-export const VERSAO = 'v0.4.7';
+export const VERSAO = 'v0.4.8';
 
 export const TIPOS = {
   planilha: { nome: 'Planilha', novo: 'Nova planilha', padrao: 'Planilha sem título', chega: null },
   docx: { nome: 'Documento', novo: 'Novo documento', padrao: 'Documento sem título', chega: 'v0.7.0' },
-  postits: { nome: 'Post-its', novo: 'Novo quadro', padrao: 'Quadro sem título', chega: null },
+  postits: { nome: 'Quadro', novo: 'Novo quadro', padrao: 'Quadro sem título', chega: null },
 };
 
 let contadorId = 0;

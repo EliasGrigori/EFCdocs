@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.4.7', () => assert.equal(VERSAO, 'v0.4.7'));
+test('versão é v0.4.8', () => assert.equal(VERSAO, 'v0.4.8'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -180,17 +180,18 @@ test('perfis: matriz e dono', () => {
   for (const linha of Object.values(MATRIZ)) assert.deepEqual(Object.keys(linha).sort(), Object.keys(PERFIS).sort());
 });
 
-test('preferências: padrão, tema Petróleo e valores inválidos', () => {
-  assert.equal(prefsPadrao(false).tema, 'petroleo', 'C11: Petróleo é o padrão');
-  assert.equal(prefsPadrao(true).tema, 'petroleo');
+test('preferências: padrão, tema Papel e valores inválidos', () => {
+  assert.equal(prefsPadrao(false).tema, 'papel', 'v0.4.8 (L01): o tema claro Papel é o padrão');
+  assert.equal(prefsPadrao(true).tema, 'papel');
+  assert.equal(prefsPadrao(false).mesa, true, 'v0.4.8: papel sobre a mesa ligado');
   assert.equal(normalizarPrefs({ tema: 'light' }).tema, 'light', 'quem escolheu Claro continua no Claro');
   assert.equal(normalizarPrefs({ tema: 'petroleo' }).tema, 'petroleo');
   const p = normalizarPrefs({ tema: 'xx', faixa: 'nada', relevo: false, menu: 'icones' });
-  assert.equal(p.tema, 'petroleo');
+  assert.equal(p.tema, 'papel');
   assert.equal(p.faixa, 'tudo');
   assert.equal(p.relevo, false);
   assert.equal(p.menu, 'icones');
-  assert.equal(TEMAS.length, 17);
+  assert.equal(TEMAS.length, 18);
   for (const [id] of TEMAS) assert.ok(AMOSTRAS[id], id);
 });
 

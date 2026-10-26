@@ -1,6 +1,7 @@
 /* EFCdocs — Planilha: telas para entender a conta (v0.4.3).
    PL11/PL12 JanelaExplicar · PL13 PainelProblemas · PL15 JanelaFluxo · PL18 JanelaMontar. */
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Icone, Janela } from '../ui/comum.jsx';
 import { tokenizar } from './formula.js';
 import { textoEmLinhas, arrumarGrafo } from './explicar.js';
@@ -110,15 +111,20 @@ export function JanelaExplicar({ nomeCel, dados, causa, titulo, aoAcao, aoAplica
 }
 
 /** PL13: a lâmpada com o número de problemas e a lista (o mesmo jeito do Assistente do quadro). */
-export function PainelProblemas({ lista, aberto, aoAlternar, aoIr, aoAcao, somenteLeitura }) {
+export function PainelProblemas({ lista, aberto, aoAlternar, aoIr, aoAcao, somenteLeitura, alvo }) {
   const erros = lista.filter((p) => p.nivel === 'erro').length;
-  const avisos = lista.length - erros;
-  const resumo = !lista.length ? 'nenhum problema' : [erros && `${erros} ${erros === 1 ? 'erro' : 'erros'}`, avisos && `${avisos} ${avisos === 1 ? 'aviso' : 'avisos'}`].filter(Boolean).join(' · ');
+  const dicas = lista.filter((p) => p.nivel === 'dica').length;
+  const avisos = lista.length - erros - dicas;
+  const real = erros + avisos; /* v0.4.8: "dica" (ex.: número fixo na conta) não conta como problema */
+  const resumo = !lista.length ? 'nenhum problema' : [erros && `${erros} ${erros === 1 ? 'erro' : 'erros'}`, avisos && `${avisos} ${avisos === 1 ? 'aviso' : 'avisos'}`, dicas && `${dicas} ${dicas === 1 ? 'dica' : 'dicas'}`].filter(Boolean).join(' · ');
+  const botao = (
+      <button type="button" className={'qd-lamp card pl-lamp' + (real ? ' tem' : '')} aria-expanded={aberto} aria-label={'Problemas da planilha: ' + resumo} title="Problemas da planilha" onClick={aoAlternar} onPointerDown={(ev) => ev.stopPropagation()}>
+        <Icone n="lampada" /><span>Verificação</span>{real > 0 && <em>{real}</em>}{real === 0 && dicas > 0 && <em className="dica">{dicas}</em>}
+      </button>
+  );
   return (
     <>
-      <button type="button" className={'qd-lamp card pl-lamp' + (lista.length ? ' tem' : '')} aria-expanded={aberto} aria-label={'Problemas da planilha: ' + resumo} title="Problemas da planilha" onClick={aoAlternar} onPointerDown={(ev) => ev.stopPropagation()}>
-        <Icone n="lampada" /><span>Problemas</span>{lista.length > 0 && <em>{lista.length}</em>}
-      </button>
+      {alvo ? createPortal(botao, alvo) : botao}
       {aberto && (
         <div className="qd-assist card pl-problemas" role="dialog" aria-label="Problemas da planilha" onPointerDown={(ev) => ev.stopPropagation()} onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); aoAlternar(); } }}>
           <header><b>Problemas · {resumo}</b><button type="button" className="rbi" title="Fechar" aria-label="Fechar a lista de problemas" onClick={aoAlternar}><Icone n="x" /></button></header>
