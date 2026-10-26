@@ -71,7 +71,7 @@ export const DESCRICAO = {
   'inserir.status': 'Coluna com opções de status (ex.: Aberto, Em andamento, Concluído).',
   'inserir.campo': 'Campo de preencher em formulário.',
   'inserir.checklist': 'Lista de itens para marcar.',
-  'inserir.assinatura': 'Linha de assinatura com o nome completo embaixo.',
+  'inserir.assinatura': 'Linha de assinatura com o nome completo embaixo e a rubrica desenhada ou em foto.',
   'inserir.postit': 'Cria um post-it no quadro.',
   'inserir.forma': 'Formas de fluxograma (atividade, decisão, início, entrada/saída).',
   'inserir.processo': 'Atividade: um passo do processo.',

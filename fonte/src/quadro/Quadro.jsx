@@ -15,10 +15,12 @@ import { derivar, mudancasLegenda, alturaLegenda } from './legenda.js';
 import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } from './tarefa.js';
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
+import { JanelaAssinatura } from '../ui/assinatura.jsx';
+import { ASN } from '../nucleo/assinatura.js';
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
-const COM_TEXTO = (it) => it && it.tipo !== 'imagem' && it.tipo !== 'legenda';
+const COM_TEXTO = (it) => it && it.tipo !== 'imagem' && it.tipo !== 'legenda' && it.tipo !== 'assinatura';
 const COM_COR = (it) => it && ['postit', 'processo', 'decisao', 'inicio', 'dados', 'raia'].includes(it.tipo);
 const LIGAVEL = (it) => it && !Q.ehFundo(it) && it.tipo !== 'legenda';
 const NOME_TIPO = (it) => Q.TIPOS_ITEM[it.tipo].nome;
@@ -75,6 +77,7 @@ export function Quadro({ arquivo, cx }) {
   const [assistAberto, setAssistAberto] = useState(false);
   const [timer, setTimer] = useState(false);
   const [janela, setJanela] = useState(null);
+  const [asn, setAsn] = useState(null); /* janela da assinatura: { id (null = nova), inicial } */
   const [area, setArea] = useState({ w: 800, h: 600 });
   const areaRef = useRef(null);
   const imgRef = useRef(null);
@@ -229,7 +232,8 @@ export function Quadro({ arquivo, cx }) {
     if (!selValida.itens.length) { avisoSelecione(); return; }
     clipInterno = Q.copiar(c, selValida.itens);
     marcaClip = clipInterno.itens.map((i) => i.texto).join('\n') || ' ';
-    try { localStorage.setItem('efcdocs:clip-quadro', JSON.stringify(clipInterno)); } catch { /* cheio */ }
+    /* a rubrica não vai para o armazenamento do navegador (fica só no arquivo); colar logo em seguida, na mesma sessão, leva a rubrica */
+    try { localStorage.setItem('efcdocs:clip-quadro', JSON.stringify({ ...clipInterno, marca: marcaClip, itens: clipInterno.itens.map((i) => { if (i.tipo !== 'assinatura') return i; const { rub, ...resto } = i; return resto; }) })); } catch { /* cheio */ }
     try { navigator.clipboard && navigator.clipboard.writeText(marcaClip).catch(() => {}); } catch { /* sem permissão */ }
     if (recortar) {
       aplicarQ(Q.mudancasExcluir(c, selValida.itens), 'Recortar', 'recortou');
@@ -242,7 +246,8 @@ export function Quadro({ arquivo, cx }) {
     const lim = limites(clip.itens);
     const ctr = centroVisivel();
     const dentroDaTela = selValida.itens.length || (lim && Math.abs(lim.x + lim.w / 2 - ctr.x) < area.w / viewRef.current.z / 2);
-    const desl = dentroDaTela ? { x: 24, y: 24 } : { x: Math.round(ctr.x - lim.x - lim.w / 2), y: Math.round(ctr.y - lim.y - lim.h / 2) };
+    const soAssinatura = clip.itens.every((i) => i.tipo === 'assinatura');
+    const desl = dentroDaTela ? (soAssinatura && lim ? { x: Math.round(lim.w + 24), y: 0 } : { x: 24, y: 24 }) : { x: Math.round(ctr.x - lim.x - lim.w / 2), y: Math.round(ctr.y - lim.y - lim.h / 2) };
     const r = Q.colar(c, clip, desl);
     aplicarQ(r.mudancas, 'Colar', 'colou');
     setSel({ itens: r.ids, seta: null });
@@ -340,6 +345,19 @@ export function Quadro({ arquivo, cx }) {
     }
   };
 
+  /* assinatura: cria ou troca nome e rubrica de uma vez (um só Ctrl+Z) */
+  const confirmarAssinatura = (v) => {
+    const alvo = asn && asn.id ? c.itens[asn.id] : null;
+    if (alvo) {
+      const novo = { ...alvo, texto: v.nome };
+      if (v.rub) novo.rub = v.rub; else delete novo.rub;
+      aplicarQ({ ['itens.' + alvo.id]: novo }, 'Assinatura', 'editou');
+      return;
+    }
+    inserir('assinatura', v.rub ? { texto: v.nome, rub: v.rub } : { texto: v.nome });
+    cx.avisar('Assinatura inserida. Toque duas vezes nela para mudar o nome ou a rubrica.', { ic: 'assinatura' });
+  };
+
   const usarModelo = (id) => {
     const m = ModeloPorId[id];
     if (!m) return;
@@ -384,6 +402,7 @@ export function Quadro({ arquivo, cx }) {
       }
       case 'inserir.forma': setJanela('formas'); return true;
       case 'inserir.imagem': imgRef.current && imgRef.current.click(); return true;
+      case 'inserir.assinatura': setAsn({ id: null, inicial: {} }); return true;
       case 'inserir.link': pedirLink(); return true;
       case 'inserir.seta':
         if (vista === 'kanban') setVista('quadro');
@@ -478,7 +497,9 @@ export function Quadro({ arquivo, cx }) {
   /* ---------- edição de texto ---------- */
   const comecarEdicao = (it) => {
     if (somenteLeitura && cx.travado && cx.chamarFaixa) cx.chamarFaixa();
-    if (somenteLeitura || !COM_TEXTO(it)) return;
+    if (somenteLeitura) return;
+    if (it.tipo === 'assinatura') { setSel({ itens: [it.id], seta: null }); setAsn({ id: it.id, inicial: { nome: it.texto, rub: it.rub } }); return; }
+    if (!COM_TEXTO(it)) return;
     setSel({ itens: [it.id], seta: null });
     setEditando({ id: it.id, valor: it.texto || '' });
   };
@@ -604,7 +625,7 @@ export function Quadro({ arquivo, cx }) {
     const z = viewRef.current.z;
     if (g.tipo === 'pan') setView({ ...g.v0, x: g.v0.x + dx, y: g.v0.y + dy });
     else if (g.tipo === 'mover') setArrasto({ tipo: 'mover', ids: g.ids, ...encaixar(g.ids, dx / z, dy / z, z, ev.altKey) });
-    else if (g.tipo === 'tamanho') setArrasto({ tipo: 'tamanho', id: g.id, w: Math.max(40, Math.round(g.w0 + dx / z)), h: Math.max(30, Math.round(g.h0 + dy / z)) });
+    else if (g.tipo === 'tamanho') { const mn = c.itens[g.id] && c.itens[g.id].tipo === 'assinatura' ? { w: ASN.W_MIN, h: ASN.H_MIN } : { w: 40, h: 30 }; setArrasto({ tipo: 'tamanho', id: g.id, w: Math.max(mn.w, Math.round(g.w0 + dx / z)), h: Math.max(mn.h, Math.round(g.h0 + dy / z)) }); }
     else if (g.tipo === 'ligar') {
       const p = paraMundo(ev.clientX, ev.clientY);
       const alvo = itemNoPonto(Q.listaItens(c).filter((i) => LIGAVEL(i)), p, g.de);
@@ -745,7 +766,8 @@ export function Quadro({ arquivo, cx }) {
       if (img) { ev.preventDefault(); escolherImagem(img); return; }
       const texto = dt.getData('text/plain');
       const interno = clipInterno || (() => { try { return JSON.parse(localStorage.getItem('efcdocs:clip-quadro') || 'null'); } catch { return null; } })();
-      if (interno && (!texto || texto === marcaClip)) { ev.preventDefault(); colarClip(interno); return; }
+      const marca = clipInterno ? marcaClip : (interno && interno.marca);
+      if (interno && (!texto || texto === marca)) { ev.preventDefault(); colarClip(interno); return; }
       if (texto && texto.trim()) {
         ev.preventDefault();
         const linhas = texto.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -808,6 +830,7 @@ export function Quadro({ arquivo, cx }) {
       if (its.length === 1) {
         const it = its[0];
         if (COM_TEXTO(it)) botoes.push({ id: 'editar', ic: 'renomear', titulo: 'Escrever (Enter)', fazer: () => comecarEdicao(it) });
+        if (it.tipo === 'assinatura') botoes.push({ id: 'editar', ic: 'assinatura', titulo: 'Nome e rubrica (Enter)', fazer: () => comecarEdicao(it) });
         if (LIGAVEL(it)) {
           botoes.push({ id: 'proximo', ic: 'conector', titulo: 'Próximo passo já ligado (Tab)', fazer: () => proximo(it.id) });
           botoes.push({ id: 'ligar', ic: 'seta', titulo: 'Ligar com seta: toque depois no destino', fazer: () => setModo({ tipo: 'seta', de: it.id }) });
@@ -990,7 +1013,7 @@ export function Quadro({ arquivo, cx }) {
           {faixaCores && (
             <CoresCelular cor={(itensSel.find(COM_COR) || {}).cor}
               aoCor={(id) => mudarCampo({ cor: id }, 'Cor', selValida.itens.filter((i) => COM_COR(c.itens[i])))}
-              aoEditar={itensSel.length === 1 && COM_TEXTO(itensSel[0]) ? () => comecarEdicao(itensSel[0]) : null} />
+              aoEditar={itensSel.length === 1 && (COM_TEXTO(itensSel[0]) || itensSel[0].tipo === 'assinatura') ? () => comecarEdicao(itensSel[0]) : null} />
           )}
 
           {cx.cel && editando && !somenteLeitura && (
@@ -1042,6 +1065,7 @@ export function Quadro({ arquivo, cx }) {
         for (const id of selValida.itens) { const it = c.itens[id]; if (COM_TEXTO(it)) mud['itens.' + id] = { ...it, fonte: { ...(it.fonte || {}), cor: hex === '#1f2328' ? undefined : hex } }; }
         aplicarQ(mud, 'Cor da fonte', 'formatou');
       }} aoFechar={() => setJanela(null)} />}
+      {asn && <JanelaAssinatura inicial={asn.inicial} titulo={asn.id ? 'Editar assinatura' : 'Nova assinatura'} confirmar={asn.id ? 'Salvar' : 'Inserir'} aoConfirmar={confirmarAssinatura} aoFechar={() => setAsn(null)} />}
       {janela === 'modelos' && <JanelaModelos aoEscolher={usarModelo} aoFechar={() => setJanela(null)} />}
       {janela === 'formas' && <JanelaFormas aoEscolher={(t) => inserir(t, t === 'inicio' ? { texto: 'Início' } : {})} aoFechar={() => setJanela(null)} />}
       {janela === 'localizar' && (

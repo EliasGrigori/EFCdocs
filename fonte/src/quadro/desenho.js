@@ -2,6 +2,7 @@
    Usa a mesma geometria da tela, então setas e formas saem no mesmo lugar. */
 
 import { COR, TIPOS_ITEM, porZ, listaSetas } from './modelo.js';
+import { medidas, encaixarRubrica } from '../nucleo/assinatura.js';
 import { pontosSeta, contornoForma, limites, meioDoCaminho } from './geometria.js';
 import { resumoTarefa, hojeISO } from './tarefa.js';
 import { derivar, MEDIDAS } from './legenda.js';
@@ -202,6 +203,34 @@ function desenharTarefa(ctx, it, r) {
   ctx.restore();
 }
 
+/** Assinatura: linha, nome completo embaixo e a rubrica apoiada na linha (as medidas vêm do núcleo, iguais às da tela). */
+function desenharAssinatura(ctx, it, opcoes) {
+  const m = medidas(it.w, it.h, it.texto);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(it.x, it.y, it.w, it.h);
+  ctx.strokeStyle = '#d0d5dd';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(it.x + 0.5, it.y + 0.5, it.w - 1, it.h - 1);
+  const rub = opcoes.imagens && opcoes.imagens.get('rub:' + it.id);
+  if (rub) {
+    const e = encaixarRubrica(rub.naturalWidth || rub.width, rub.naturalHeight || rub.height, m.caixaRub);
+    if (e) ctx.drawImage(rub, it.x + e.x, it.y + e.y, e.w, e.h);
+  }
+  ctx.strokeStyle = '#1f2328';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(it.x + 6, it.y + m.linhaY + 0.75);
+  ctx.lineTo(it.x + it.w - 6, it.y + m.linhaY + 0.75);
+  ctx.stroke();
+  let t = it.texto || '';
+  ctx.font = `600 ${m.fonte}px ${FONTE}`;
+  ctx.fillStyle = '#1f2328';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  while (t.length > 1 && ctx.measureText(t).width > it.w - 12) t = t.slice(0, -2).trimEnd() + '…';
+  ctx.fillText(t, it.x + it.w / 2, it.y + m.nomeY);
+}
+
 function desenharItem(ctx, it, opcoes) {
   const cor = COR[it.cor] || '#ffffff';
   ctx.save();
@@ -221,6 +250,7 @@ function desenharItem(ctx, it, opcoes) {
     ctx.restore();
     return;
   }
+  if (it.tipo === 'assinatura') { desenharAssinatura(ctx, it, opcoes); ctx.restore(); return; }
   if (it.tipo === 'imagem') {
     const img = opcoes.imagens && opcoes.imagens.get(it.id);
     if (img) ctx.drawImage(img, it.x, it.y, it.w, it.h);
@@ -343,12 +373,13 @@ export function marcaDemo(ctx) {
 /** Carrega as imagens do quadro (para o canvas). */
 export async function carregarImagens(c) {
   const mapa = new Map();
-  const lista = Object.values(c.itens).filter((it) => it.tipo === 'imagem' && it.src);
+  const lista = Object.values(c.itens).filter((it) => (it.tipo === 'imagem' && it.src) || (it.tipo === 'assinatura' && it.rub));
   await Promise.all(lista.map((it) => new Promise((ok) => {
     const img = new Image();
-    img.onload = () => { mapa.set(it.id, img); ok(); };
+    const chave = it.tipo === 'assinatura' ? 'rub:' + it.id : it.id;
+    img.onload = () => { mapa.set(chave, img); ok(); };
     img.onerror = () => ok();
-    img.src = it.src;
+    img.src = it.tipo === 'assinatura' ? it.rub : it.src;
   })));
   return mapa;
 }

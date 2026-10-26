@@ -2,7 +2,7 @@
    Uso: node scripts/testar-navegador.mjs <endereço> [pasta-dos-prints]
    O endereço precisa servir o dist/ na raiz e o v0.2.0 em /v020/ (mesma origem, para o teste de compatibilidade). */
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 
 const BASE = process.argv[2] || 'http://localhost:8731/';
 const PRINTS = process.argv[3] || null;
@@ -82,10 +82,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.4.4.2', async () => {
+await caso('abre sem erro, rodapé mostra v0.4.6.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.4.4.2'), 'rodapé sem v0.4.4');
+  certo((await p.locator('.foot').innerText()).includes('v0.4.6.1'), 'rodapé sem v0.4.6.1');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1257,7 +1257,7 @@ await ctx.close();
 await caso('v0.4.2: função que parece outra não troca nem apaga: grava com #NOME?; só erro de digitação pede troca', async () => {
   await novaPlanilha(p);
   await digitarEm(p, 'A1', ['1', '2', '3']);
-  for (const [ref, f] of [['C1', '=CORREL(A1:A3;A1:A3)'], ['C2', '=MODO(A1:A3)'], ['C3', '=TETO(A1;5)'], ['C4', '=NÃOD(A1)']]) {
+  for (const [ref, f] of [['C1', '=INCLINAÇÃO(A1:A3;A1:A3)'], ['C2', '=DESVQ(A1:A3)'], ['C3', '=PADRONIZAR(A1;5)'], ['C4', '=NÃOD(A1)']]) {
     await celula(p, ref);
     await p.keyboard.type(f);
     await p.waitForTimeout(100);
@@ -1390,7 +1390,7 @@ const montarExemplo = async (p) => {
   await digitarEm(p, 'G1', ['Meta', '=F2*1,15', '=F3*1,15']);
   await digitarEm(p, 'H1', ['Total', '=SOMA(F2:F5)']);
 };
-await caso('v0.4.3: LAMBDA grava e mostra #NOME?; CORREL na prévia diz "pode gravar sem medo"; PROVC sugere PROCV', async () => {
+await caso('v0.4.3: LAMBDA grava e mostra #NOME?; INCLINAÇÃO na prévia diz "pode gravar sem medo"; PROVC sugere PROCV', async () => {
   await novaPlanilha(p);
   await celula(p, 'A1');
   await p.keyboard.type('=LAMBDA(x;x*2)(4)');
@@ -1402,7 +1402,7 @@ await caso('v0.4.3: LAMBDA grava e mostra #NOME?; CORREL na prévia diz "pode gr
   igual((await fxTexto(p)).trim(), '=LAMBDA(x;x*2)(4)');
   igual(await celula(p, 'A1'), '#NOME?');
   await celula(p, 'B1');
-  await p.keyboard.type('=CORREL(A1:A3;A1:A3)');
+  await p.keyboard.type('=INCLINAÇÃO(A1:A3;A1:A3)');
   await p.waitForTimeout(150);
   const pr = await p.locator('.pl-previa').innerText();
   certo(/Pode gravar sem medo/.test(pr) && !/grafia/.test(pr), 'prévia: ' + pr);
@@ -1857,7 +1857,9 @@ await caso('v0.4.4: Início sem título repetido nem parágrafo; Novo compacto; 
   igual(await p.locator('.filtro-p').count(), 0, 'Esc devia fechar o painel do filtro');
   /* o filtro continua igual ao voltar para a página */
   await p.click('.rail a[href="#/planilha"]');
+  await p.waitForFunction(() => document.querySelectorAll('[data-novo]').length === 1);
   await p.click('.rail a[href="#/"]');
+  await p.waitForFunction(() => document.querySelectorAll('[data-novo]').length === 3);
   await p.waitForSelector('.filtro-b');
   certo((await p.locator('.filtro-b').innerText()).includes('Nome (A a Z)'), await p.locator('.filtro-b').innerText());
   await print(p, '60-inicio-compacto');
@@ -1865,6 +1867,7 @@ await caso('v0.4.4: Início sem título repetido nem parágrafo; Novo compacto; 
 await caso('v0.4.4: lista de Planilhas com um botão Nova planilha e o filtro; Documentos com o aviso numa linha só', async () => {
   await p.click('.rail a[href="#/planilha"]');
   await p.waitForSelector('[data-novo=planilha]');
+  await p.waitForFunction(() => document.querySelectorAll('[data-novo]').length === 1); // espera a troca de página (o Início tem três)
   igual(await p.locator('[data-novo]').count(), 1);
   certo((await p.locator('[data-novo=planilha]').innerText()).includes('Nova planilha'));
   igual(await p.locator('.arq').count(), 1);
@@ -1882,7 +1885,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.4.2'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.4.6.1'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 17);
   await p.locator('.tema-b[data-tema=campo]').click();
@@ -2189,6 +2192,410 @@ await caso('v0.4.4.2: quadro: botão do Exibir chama "Barra de ferramentas"; tex
 });
 await ctx.close();
 
+
+/* ---------- v0.4.5: Assinatura (linha, nome completo embaixo, rubrica desenhada ou em foto) ---------- */
+async function desenharRubrica(p, voltas = 40) {
+  const b = await p.locator('.asn-desenho').boundingBox();
+  await p.mouse.move(b.x + 30, b.y + 80); await p.mouse.down();
+  for (let i = 0; i <= voltas; i++) await p.mouse.move(b.x + 30 + i * 5, b.y + 80 - Math.sin(i / 3) * 25);
+  await p.mouse.up();
+  await p.waitForTimeout(250);
+}
+async function abrirNovaAssinatura(p) {
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await cmd(p, 'inserir.assinatura');
+  await p.waitForSelector('.asn-j');
+}
+const fotoDeTeste = (p) => p.evaluate(() => {
+  const cv = document.createElement('canvas'); cv.width = 600; cv.height = 360;
+  const g = cv.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 600, 0); gr.addColorStop(0, '#f4f4f0'); gr.addColorStop(1, '#bdbdb8');
+  g.fillStyle = gr; g.fillRect(0, 0, 600, 360);
+  g.strokeStyle = '#202840'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(120, 200);
+  for (let x = 120; x <= 480; x += 6) g.lineTo(x, 180 + Math.sin(x / 22) * 40);
+  g.stroke();
+  return cv.toDataURL('image/png').split(',')[1];
+});
+/** Conta pixels de tinta e transparentes de uma imagem (data URL ou arquivo em base64) dentro da página. */
+const contarPixels = (p, src, corAlvo) => p.evaluate(async ([src, corAlvo]) => {
+  const im = new Image(); im.src = src; await im.decode();
+  const cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+  const g = cv.getContext('2d'); g.drawImage(im, 0, 0);
+  const d = g.getImageData(0, 0, cv.width, cv.height).data;
+  let tinta = 0, transp = 0, alvo = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] > 200) tinta++;
+    if (d[i + 3] === 0) transp++;
+    if (corAlvo && d[i + 3] > 200 && Math.abs(d[i] - corAlvo[0]) < 40 && Math.abs(d[i + 1] - corAlvo[1]) < 40 && Math.abs(d[i + 2] - corAlvo[2]) < 40) alvo++;
+  }
+  return { w: im.naturalWidth, h: im.naturalHeight, tinta, transp, alvo, a0: d[3] };
+}, [src, corAlvo || null]);
+
+({ ctx, p } = await novaPagina());
+await caso('v0.4.5 quadro: Assinatura pela faixa Inserir: nome é obrigatório, uma palavra só avisa, desenhar mostra a prévia e Inserir põe a peça', async () => {
+  await p.goto(BASE);
+  await p.waitForSelector('.foot');
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await abrirNovaAssinatura(p);
+  await p.click('[data-asn=pronto]');
+  certo((await p.locator('.asn-j .erro-t').innerText()).includes('nome completo'), 'sem aviso de nome vazio');
+  igual(await p.locator('.qi-assinatura').count(), 0, 'inseriu sem nome');
+  await p.fill('[data-asn=nome]', 'Elias');
+  certo((await p.locator('.asn-aviso').innerText()).includes('Só um nome'), 'sem aviso de nome incompleto');
+  await p.fill('[data-asn=nome]', 'José Elias Florêncio Beserra');
+  igual(await p.locator('.asn-aviso').count(), 0, 'o aviso devia sumir com o nome completo');
+  igual(await p.locator('[data-asn=previa] .asn-rub').count(), 0, 'prévia com rubrica sem desenhar');
+  await desenharRubrica(p);
+  igual(await p.locator('[data-asn=previa] .asn-rub').count(), 1, 'a prévia não mostrou a rubrica');
+  await print(p, 'v045-01-janela');
+  await p.click('[data-asn=pronto]');
+  await p.waitForSelector('.qi-assinatura');
+  igual(await p.locator('.asn-j').count(), 0, 'janela não fechou');
+  certo((await p.locator('.qi-assinatura .asn-nome').innerText()).includes('José Elias Florêncio Beserra'));
+  igual(await p.locator('.qi-assinatura .asn-rub').count(), 1);
+  igual(await p.locator('.qi-assinatura').getAttribute('data-cod'), null, 'assinatura ganhou código Q');
+  await print(p, 'v045-02-quadro');
+});
+await caso('v0.4.5 quadro: um Ctrl+Z desfaz a assinatura inteira (peça, nome e rubrica)', async () => {
+  await p.keyboard.press('Escape');
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(250);
+  igual(await p.locator('.qi-assinatura').count(), 0);
+  await p.keyboard.press('Control+y');
+  await p.waitForTimeout(250);
+  igual(await p.locator('.qi-assinatura .asn-rub').count(), 1, 'refazer não trouxe a rubrica');
+});
+await caso('v0.4.5 quadro: dois cliques abrem a janela na rubrica atual; trocar o nome salva; "Só a linha" tira a rubrica; um Ctrl+Z volta', async () => {
+  await p.locator('.qi-assinatura').dblclick();
+  await p.waitForSelector('.asn-j');
+  igual((await p.locator('[data-asn-modo][aria-selected=true]').innerText()).trim(), 'Atual');
+  igual(await p.locator('[data-asn=nome]').inputValue(), 'José Elias Florêncio Beserra');
+  await p.fill('[data-asn=nome]', 'Maria da Silva Souza');
+  await p.click('[data-asn-modo=nenhuma]');
+  await p.click('[data-asn=pronto]');
+  await p.waitForTimeout(250);
+  certo((await p.locator('.qi-assinatura .asn-nome').innerText()).includes('Maria da Silva Souza'));
+  igual(await p.locator('.qi-assinatura .asn-rub').count(), 0, 'a rubrica devia sair');
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(250);
+  certo((await p.locator('.qi-assinatura .asn-nome').innerText()).includes('José Elias'), 'desfazer não voltou o nome');
+  igual(await p.locator('.qi-assinatura .asn-rub').count(), 1, 'desfazer não voltou a rubrica');
+});
+await caso('v0.4.5 quadro: foto do papel vira rubrica com fundo transparente; o controle "Traço" e a cor mudam o resultado', async () => {
+  await p.locator('.qi-assinatura').dblclick();
+  await p.waitForSelector('.asn-j');
+  await p.click('[data-asn-modo=foto]');
+  const b64 = await fotoDeTeste(p);
+  await p.locator('[data-asn=arquivo]').setInputFiles({ name: 'rubrica.png', mimeType: 'image/png', buffer: Buffer.from(b64, 'base64') });
+  await p.waitForSelector('[data-asn=traco]');
+  await p.waitForFunction(() => document.querySelector('[data-asn=previa] .asn-rub')?.src.startsWith('data:image/png'));
+  await p.waitForTimeout(300);
+  const src = await p.locator('[data-asn=previa] .asn-rub').getAttribute('src');
+  const a = await contarPixels(p, src, [29, 58, 138]);
+  certo(a.tinta > 200, 'quase sem tinta: ' + JSON.stringify(a));
+  certo(a.transp > a.w * a.h * 0.3, 'fundo não ficou transparente: ' + JSON.stringify(a));
+  igual(a.a0, 0, 'canto da imagem não é transparente');
+  certo(a.alvo > a.tinta * 0.8, 'a tinta não é azul: ' + JSON.stringify(a));
+  certo(a.w <= 600 && a.h <= 200, 'passou de 600 x 200: ' + a.w + 'x' + a.h);
+  await p.locator('.asn-foto .chipb:has-text("Preto")').click();
+  await p.waitForTimeout(350);
+  const preto = await contarPixels(p, await p.locator('[data-asn=previa] .asn-rub').getAttribute('src'), [31, 35, 40]);
+  certo(preto.alvo > preto.tinta * 0.8, 'trocar a cor para preto não valeu: ' + JSON.stringify(preto));
+  /* foto sem nada escrito: avisa */
+  const branca = await p.evaluate(() => { const cv = document.createElement('canvas'); cv.width = 200; cv.height = 100; const g = cv.getContext('2d'); g.fillStyle = '#f0f0f0'; g.fillRect(0, 0, 200, 100); return cv.toDataURL('image/png').split(',')[1]; });
+  await p.locator('[data-asn=arquivo]').setInputFiles({ name: 'branca.png', mimeType: 'image/png', buffer: Buffer.from(branca, 'base64') });
+  await p.waitForSelector('.asn-aviso[role=alert]');
+  certo((await p.locator('.asn-aviso[role=alert]').innerText()).includes('Não achei traços'));
+  await print(p, 'v045-03-foto');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.asn-j').count(), 0, 'Esc não fechou a janela');
+});
+await caso('v0.4.5 quadro: a rubrica sai no PNG do quadro; copiar não deixa a rubrica no armazenamento do navegador, e colar na mesma sessão a leva', async () => {
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarImagem')]);
+  const arq = readFileSync(await dl.path());
+  const a = await contarPixels(p, 'data:image/png;base64,' + arq.toString('base64'), [29, 58, 138]);
+  certo(a.alvo > 150, 'não achei a rubrica azul no PNG: ' + JSON.stringify(a));
+  /* o PDF paisagem também sai com a assinatura (o desenho é o mesmo do PNG) */
+  const [dlPdf] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarPDF')]);
+  const pdf = readFileSync(await dlPdf.path());
+  igual(pdf.subarray(0, 5).toString(), '%PDF-', 'o PDF não é um PDF');
+  certo(pdf.length > 8000, 'PDF pequeno demais: ' + pdf.length);
+  await p.locator('.qi-assinatura').click();
+  await p.click('.tabs .tab:has-text("Página Inicial")');
+  await cmd(p, 'editar.copiar');
+  const guardado = await p.evaluate(() => localStorage.getItem('efcdocs:clip-quadro') || '');
+  certo(guardado.includes('"assinatura"') && !guardado.includes('data:image/png'), 'a rubrica foi parar no localStorage');
+  await cmd(p, 'editar.colar');
+  await p.waitForTimeout(250);
+  igual(await p.locator('.qi-assinatura').count(), 2);
+  igual(await p.locator('.qi-assinatura .asn-rub').count(), 2, 'a cópia perdeu a rubrica');
+  const cods = await p.locator('.qi-assinatura').evaluateAll((l) => l.map((e) => e.dataset.cod || ''));
+  certo(cods.every((x) => x === ''), 'cópia ganhou código Q: ' + cods);
+});
+await caso('v0.4.5 quadro: tamanho mínimo; a barra da peça tem o botão de nome e rubrica; excluir pela lixeira', async () => {
+  const it = p.locator('.qi-assinatura').last(); /* a cópia colada fica por cima */
+  await it.click();
+  await p.waitForSelector('.qd-barra');
+  certo(await p.locator('.qd-barra [data-acao=editar]').count() >= 1, 'sem botão de nome e rubrica na barra');
+  const alca = await caixa(p, '.qd-alca');
+  await arrastar(p, meio(alca), { x: alca.x - 400, y: alca.y - 300 });
+  const b = await it.boundingBox();
+  certo(b.width >= 139 && b.height >= 63, 'passou do tamanho mínimo: ' + b.width + 'x' + b.height);
+  await p.locator('.qd-barra [data-acao=excluir]').first().click();
+  await p.waitForTimeout(250);
+  igual(await p.locator('.qi-assinatura').count(), 1);
+});
+await caso('v0.4.5 perfil Leitor: não insere assinatura no quadro', async () => {
+  await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'perfil');
+  await p.locator('.opcoes .chipb:has-text("Leitor")').click();
+  await p.keyboard.press('Escape');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  certo(await p.locator('[data-cmd="inserir.assinatura"]').first().isDisabled(), 'o Leitor pode inserir assinatura');
+  await p.locator('.qi-assinatura').last().dblclick();
+  await p.waitForTimeout(250);
+  igual(await p.locator('.asn-j').count(), 0, 'o Leitor abriu a edição da assinatura');
+  await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'perfil');
+  await p.locator('.opcoes .chipb:has-text("Admin")').click();
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.5 planilha: Assinatura pela faixa Inserir cai na célula escolhida, arrasta, acompanha a linha inserida e o desfazer, e rola com a grade', async () => {
+  await novaPlanilha(p);
+  await celula(p, 'B3');
+  await abrirNovaAssinatura(p);
+  await p.fill('[data-asn=nome]', 'Maria da Silva Souza');
+  await desenharRubrica(p);
+  await p.click('[data-asn=pronto]');
+  await p.waitForSelector('.pl-obj');
+  const cv = await p.locator('.pl-cv').boundingBox();
+  const r1 = await p.locator('.pl-obj').boundingBox();
+  /* B3: x = 46 + 80, y = 24 + 2 * 22, mais a folga de 4 px */
+  certo(Math.abs(r1.x - (cv.x + 46 + 80 + 4)) <= 3 && Math.abs(r1.y - (cv.y + 24 + 44 + 4)) <= 3, 'não caiu em B3: ' + JSON.stringify(r1) + ' grade ' + JSON.stringify(cv));
+  igual(Math.round(r1.width), 280);
+  certo((await p.locator('.pl-obj .asn-nome').innerText()).includes('Maria da Silva Souza'));
+  await print(p, 'v045-04-planilha');
+  /* arrastar para a célula D8 e conferir que a âncora mudou (inserir uma linha acima desce 22 px) */
+  await arrastar(p, { x: r1.x + 100, y: r1.y + 40 }, { x: r1.x + 100 + 160, y: r1.y + 40 + 110 });
+  const r2 = await p.locator('.pl-obj').boundingBox();
+  certo(Math.abs(r2.x - (r1.x + 160)) <= 6 && Math.abs(r2.y - (r1.y + 110)) <= 12, 'arrastar não moveu: ' + JSON.stringify([r1, r2]));
+  await p.keyboard.press('Escape');
+  await p.click('.tabs .tab:has-text("Página Inicial")');
+  await cmd(p, 'planilha.inserirLinha');
+  await p.waitForTimeout(300);
+  const r3 = await p.locator('.pl-obj').boundingBox();
+  certo(Math.abs(r3.y - (r2.y + 22)) <= 1.5, 'não desceu uma linha: ' + (r3.y - r2.y));
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(300);
+  const r4 = await p.locator('.pl-obj').boundingBox();
+  certo(Math.abs(r4.y - r2.y) <= 1.5, 'desfazer não voltou');
+  /* rola a grade 220 px: a assinatura sobe junto */
+  await p.locator('.pl-rol').evaluate((el) => { el.scrollTop = 220; });
+  await p.waitForTimeout(300);
+  const r5 = await p.locator('.pl-obj').boundingBox();
+  certo(Math.abs((r4.y - r5.y) - 220) <= 4, 'não rolou junto: ' + (r4.y - r5.y));
+  await p.locator('.pl-rol').evaluate((el) => { el.scrollTop = 0; });
+});
+await caso('v0.4.5 planilha: escolher mostra a barra com editar e excluir; Delete exclui e o desfazer traz de volta; Enter abre a janela; sobrevive a recarregar a página', async () => {
+  await p.waitForTimeout(200);
+  const r = await p.locator('.pl-obj').boundingBox();
+  await p.mouse.click(r.x + 60, r.y + 20);
+  await p.waitForTimeout(200);
+  igual(await p.locator('.pl-obj.sel').count(), 1);
+  igual(await p.locator('.pl-obj-barra button').count(), 2);
+  igual(await p.locator('.pl-obj-alca').count(), 1);
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('.asn-j');
+  igual(await p.locator('[data-asn=nome]').inputValue(), 'Maria da Silva Souza');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
+  /* mudar o tamanho pela alça (canto de baixo à direita) */
+  const alca = await p.locator('.pl-obj-alca').boundingBox();
+  await arrastar(p, meio(alca), { x: alca.x + alca.width / 2 + 60, y: alca.y + alca.height / 2 + 30 });
+  const t = await p.locator('.pl-obj').boundingBox();
+  certo(Math.abs(t.width - 340) <= 3 && Math.abs(t.height - 126) <= 3, 'tamanho depois da alça: ' + t.width + 'x' + t.height);
+  /* recarrega: a assinatura continua lá, com a rubrica */
+  await p.waitForTimeout(600);
+  await p.reload();
+  await p.waitForSelector('.pl-cv');
+  await p.waitForSelector('.pl-obj');
+  await p.waitForTimeout(1500); /* o app ainda assenta logo depois de recarregar */
+  igual(await p.locator('.pl-obj .asn-rub').count(), 1, 'a rubrica não sobreviveu ao recarregar');
+  const r2 = await p.locator('.pl-obj').boundingBox();
+  await p.mouse.click(r2.x + 60, r2.y + 20);
+  await p.keyboard.press('Delete');
+  await p.waitForTimeout(250);
+  igual(await p.locator('.pl-obj').count(), 0, 'Delete não excluiu');
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(250);
+  igual(await p.locator('.pl-obj').count(), 1, 'desfazer não trouxe de volta');
+});
+await caso('v0.4.5 planilha: duplicar a aba leva a assinatura; perfil Leitor vê mas não insere nem exclui', async () => {
+  await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'perfil');
+  await p.locator('.opcoes .chipb:has-text("Leitor")').click();
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-obj').count(), 1, 'o Leitor devia ver a assinatura');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  certo(await p.locator('[data-cmd="inserir.assinatura"]').first().isDisabled(), 'o Leitor pode inserir');
+  const r = await p.locator('.pl-obj').boundingBox();
+  await p.mouse.click(r.x + 60, r.y + 20);
+  await p.keyboard.press('Delete');
+  await p.waitForTimeout(200);
+  igual(await p.locator('.pl-obj').count(), 1, 'o Leitor excluiu');
+  igual(await p.locator('.pl-obj-alca').count(), 0, 'o Leitor tem a alça de tamanho');
+  await p.locator('.topbar [aria-label="Opções"]').click();
+  await abrirSecao(p, 'perfil');
+  await p.locator('.opcoes .chipb:has-text("Admin")').click();
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.5 celular: a janela da assinatura cabe na tela (sem rolar até os botões) e o desenho com o dedo funciona', async () => {
+  await ctx.close();
+  ({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true }));
+  await p.goto(BASE + '#/postits');
+  await p.waitForSelector('[data-novo=postits]');
+  await p.locator('[data-novo=postits]').tap();
+  await p.waitForSelector('.qd');
+  await p.locator('.tabs .tab:has-text("Inserir")').tap();
+  await p.locator('[data-cmd="inserir.assinatura"]').first().tap();
+  await p.waitForSelector('.asn-j');
+  const j = await p.locator('.asn-j').boundingBox();
+  certo(j.y >= 0 && j.y + j.height <= 780, 'janela passou da tela: ' + JSON.stringify(j));
+  const pronto = await p.locator('[data-asn=pronto]').boundingBox();
+  certo(pronto.y + pronto.height <= 780 && pronto.y >= 0, 'botão Inserir fora da tela');
+  await p.fill('[data-asn=nome]', 'Ana Paula Lima');
+  const b = await p.locator('.asn-desenho').boundingBox();
+  /* dedo: eventos de toque */
+  await p.evaluate(([x, y]) => {
+    const el = document.querySelector('.asn-desenho');
+    const ev = (t, dx, dy) => el.dispatchEvent(new PointerEvent(t, { pointerId: 7, pointerType: 'touch', clientX: x + dx, clientY: y + dy, bubbles: true, cancelable: true, isPrimary: true, buttons: t === 'pointerup' ? 0 : 1 }));
+    ev('pointerdown', 0, 0);
+    for (let i = 1; i <= 25; i++) ev('pointermove', i * 6, Math.sin(i / 3) * 20);
+    ev('pointerup', 150, 0);
+  }, [b.x + 40, b.y + 70]);
+  await p.waitForTimeout(250);
+  igual(await p.locator('[data-asn=previa] .asn-rub').count(), 1, 'o dedo não desenhou');
+  await print(p, 'v045-05-celular');
+  await p.locator('[data-asn=pronto]').tap();
+  await p.waitForSelector('.qi-assinatura');
+});
+await ctx.close();
+
+
+/* ---------- v0.4.6: primeiro bloco de funções ---------- */
+({ ctx, p } = await novaPagina());
+await caso('v0.4.6: TETO, ARREDMULTB, MODO, PERCENTIL, QUARTIL, ORDEM e CORREL calculam na tela e gravam sem #NOME?', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['1', '2', '2', '3', '4']);
+  await digitarEm(p, 'B1', ['2', '4', '4', '6', '8']);
+  const casos = [['D1', '=TETO(2,1;0,5)', '2,5'], ['D2', '=ARREDMULTB(3,7;2)', '2'], ['D3', '=MODO(A1:A5)', '2'], ['D4', '=PERCENTIL(A1:A5;0,5)', '2'],
+    ['D5', '=QUARTIL(A1:A5;3)', '3'], ['D6', '=ORDEM(4;A1:A5)', '1'], ['D7', '=CORREL(A1:A5;B1:B5)', '1']];
+  for (const [ref, f] of casos) { await celula(p, ref); await p.keyboard.type(f); await p.keyboard.press('Enter'); await p.waitForTimeout(80); }
+  for (const [ref, f, v] of casos) {
+    igual(await celula(p, ref), v, 'valor de ' + f);
+    igual((await fxTexto(p)).trim(), f, 'fórmula de ' + ref);
+  }
+  await print(p, 'v046-01-funcoes');
+});
+await caso('v0.4.6: FREQUÊNCIA derrama a contagem de cada faixa e o Explicar entende a conta', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['1', '2', '3', '4', '5', '6']);
+  await digitarEm(p, 'B1', ['2', '4']);
+  await celula(p, 'C1'); await p.keyboard.type('=FREQUÊNCIA(A1:A6;B1:B2)'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  igual(await celula(p, 'C1'), '2'); igual(await celula(p, 'C2'), '2'); igual(await celula(p, 'C3'), '2');
+  igual(await celula(p, 'C4'), '', 'derramou demais');
+  await celula(p, 'D1'); await p.keyboard.type('=CORREL(A1:A6;A1:A6)'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  await celula(p, 'D1');
+  await p.click('.tabs .tab:has-text("Fórmulas")');
+  await p.locator('[data-cmd="formula.explicar"]').first().click();
+  await p.waitForSelector('.pl-jexp');
+  const t = await p.locator('.pl-jexp').innerText();
+  certo(/orrela/.test(t) && !/ainda não calcula/.test(t), 'Explicar sem a conta: ' + t);
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.6: o autocompletar oferece as funções novas e a lista de funções as mostra', async () => {
+  await novaPlanilha(p);
+  await celula(p, 'A1');
+  for (const [pref, nome] of [['=TET', 'TETO'], ['=FREQ', 'FREQUÊNCIA'], ['=CORR', 'CORREL'], ['=ARREDM', 'ARREDMULTB']]) {
+    await p.keyboard.type(pref);
+    await p.waitForTimeout(150);
+    const lista = await p.locator('.pl-sug, .pl-ajuda').allInnerTexts();
+    certo(lista.join(' ').includes(nome), pref + ' não ofereceu ' + nome + ': ' + lista.join(' | '));
+    await p.keyboard.press('Escape');
+    await p.keyboard.press('Escape');
+    await celula(p, 'A1');
+  }
+});
+
+/* ---------- v0.4.6.1: o que o Grok achou na v0.4.5 e na v0.4.6 ---------- */
+({ ctx, p } = await novaPagina());
+await caso('v0.4.6.1 quadro: depois de recarregar, o Ctrl+V cola a assinatura (linha e nome, sem rubrica) ao lado da original, e não um post-it', async () => {
+  await p.goto(BASE);
+  await p.waitForSelector('.foot');
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await abrirNovaAssinatura(p);
+  await p.fill('[data-asn=nome]', 'Maria da Silva Souza');
+  igual((await p.locator('[data-asn=contador]').innerText()).trim(), '20/120', 'contador do nome');
+  await desenharRubrica(p);
+  await p.click('[data-asn=pronto]');
+  await p.waitForSelector('.qi-assinatura');
+  const r0 = await p.locator('.qi-assinatura').boundingBox();
+  await p.keyboard.press('Control+c');
+  await p.waitForTimeout(150);
+  await p.reload();
+  await p.waitForSelector('.qi-assinatura');
+  await p.waitForTimeout(1200);
+  /* depois de recarregar o que foi copiado só existe no armazenamento; o texto da área de transferência do sistema é o nome */
+  await p.evaluate(() => {
+    const dt = new DataTransfer(); dt.setData('text/plain', 'Maria da Silva Souza');
+    document.body.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  });
+  await p.waitForTimeout(300);
+  igual(await p.locator('.qi-assinatura').count(), 2, 'não colou uma assinatura');
+  igual(await p.locator('.qi-postit').count(), 0, 'colou um post-it');
+  igual(await p.locator('.qi-assinatura .asn-rub').count(), 1, 'a cópia não devia levar a rubrica depois de recarregar');
+  const r = await p.locator('.qi-assinatura').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().x).sort((a, b) => a - b));
+  certo(r[1] - r[0] >= 250, 'a cópia ficou em cima da original: ' + (r[1] - r[0]));
+  await print(p, 'v0461-01-colar');
+});
+await caso('v0.4.6.1 planilha: ao digitar =TET não aparece o "Não sei o que é"; ao fechar a lista, aparece', async () => {
+  await novaPlanilha(p);
+  await celula(p, 'A1');
+  await p.keyboard.type('=TET');
+  await p.waitForTimeout(200);
+  certo((await p.locator('.pl-sug').innerText()).includes('TETO'), 'sem a sugestão TETO');
+  igual(await p.locator('.pl-prob-l.erro').count(), 0, 'o aviso vermelho apareceu junto das sugestões');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
+  await p.keyboard.press('Escape');
+});
+await caso('v0.4.6.1 o aviso com Desfazer some quando a pessoa segue em frente (clica em outro lugar), sem esperar o temporizador', async () => {
+  await p.goto(BASE);
+  await p.waitForSelector('.foot');
+  await p.click('.rail a[href="#/postits"]');
+  await p.click('[data-novo=postits]');
+  await p.waitForSelector('.qd-vazio');
+  await cmd(p, 'inserir.postit');
+  await p.waitForSelector('.qi-postit');
+  await p.keyboard.press('Escape');
+  await p.locator('.qi-postit').click();
+  await p.keyboard.press('Delete');
+  await p.waitForSelector('.toast button');
+  await p.mouse.click(700, 500);
+  await p.waitForTimeout(200);
+  igual(await p.locator('.toast button').count(), 1, 'sumiu cedo demais (antes de 2,5 s)');
+  await p.waitForTimeout(2500);
+  await p.mouse.click(720, 520);
+  await p.waitForTimeout(200);
+  igual(await p.locator('.toast button').count(), 0, 'o aviso ficou depois de seguir em frente');
+});
 
 await navegador.close();
 const ok = resultados.filter((r) => r.ok).length;

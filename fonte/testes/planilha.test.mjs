@@ -500,7 +500,7 @@ import { ERRO_EXPLICA } from '../src/planilha/valores.js';
 
 test('v0.4.2: só sugere troca de função quando a grafia é bem parecida (E1/N24)', () => {
   /* os casos do relatório do Grok: nada de trocar CORREL por CORRESP etc. */
-  for (const f of ['CORREL', 'TENDÊNCIA', 'MODO', 'TETO', 'FREQUÊNCIA', 'NÃOD', 'MÉDIAA', 'DIST.NORM.N', 'TEXTOANTES']) {
+  for (const f of ['INCLINAÇÃO', 'TENDÊNCIA', 'DESVQ', 'PADRONIZAR', 'MÉDIA.GEOMÉTRICA', 'NÃOD', 'MÉDIAA', 'DIST.NORM.N', 'TEXTOANTES']) {
     assert.equal(funcaoParecida(f), null, f);
     const d = diagnosticar(`${f}(A1)`);
     assert.ok(d.every((x) => !x.troca && x.nivel !== 'erro'), f + ' deveria só avisar');
@@ -508,19 +508,19 @@ test('v0.4.2: só sugere troca de função quando a grafia é bem parecida (E1/N
   assert.equal(funcaoParecida('SOMAA').pt, 'SOMA');
   assert.equal(funcaoParecida('PROCVV').pt, 'PROCV');
   assert.equal(diagnosticar('SOMAA(A1)')[0].troca.novo, 'SOMA');
-  assert.ok(funcaoDoExcelQueFalta('CORREL') && funcaoDoExcelQueFalta('correl') && funcaoDoExcelQueFalta('TREND'));
+  assert.ok(funcaoDoExcelQueFalta('INCLINAÇÃO') && funcaoDoExcelQueFalta('inclinação') && funcaoDoExcelQueFalta('TREND'));
   assert.ok(!funcaoDoExcelQueFalta('SOMA') && !funcaoDoExcelQueFalta('XYZW'));
-  assert.match(diagnosticar('CORREL(A1:A3;B1:B3)')[0].msg, /ainda não sabe calcular/);
+  assert.match(diagnosticar('INCLINAÇÃO(A1:A3;B1:B3)')[0].msg, /ainda não sabe calcular/);
   assert.match(diagnosticar('XYZW(1)')[0].msg, /Não conheço a função XYZW/);
 });
 
 test('v0.4.2: função desconhecida fica guardada e a célula mostra #NOME? (nunca some)', () => {
   const c = planilhaVazia();
   const id = c.ordem[0];
-  c.abas[id].cel.A1 = { f: paraGuardar('CORREL(B1:B3;C1:C3)') };
+  c.abas[id].cel.A1 = { f: paraGuardar('INCLINAÇÃO(B1:B3;C1:C3)') };
   const m = new Motor(c);
   assert.equal(String(m.valor(id, 0, 0)), '#NOME?');
-  assert.equal(paraMostrar(c.abas[id].cel.A1.f), 'CORREL(B1:B3;C1:C3)');
+  assert.equal(paraMostrar(c.abas[id].cel.A1.f), 'INCLINAÇÃO(B1:B3;C1:C3)');
 });
 
 test('v0.4.2: #DIV/0! explica com o exemplo do SEERRO', () => {
@@ -556,7 +556,7 @@ const exemplo = () => montar({
   A3: 'L-013', B3: 0.3, C3: '=SE(E(B3>=0,5;B3<=2);"OK";"Ajustar")', E3: 4, F3: '=E3/D3', G3: '=F3*1,15',
   A4: 'L-014', B4: '1,4', C4: '=SE(E(B4>=0,5;B4<=2);"OK";"Ajustar")', D4: 5, E4: 5, F4: '=E4/D5',
   A5: 'L-015', B5: 2, C5: '=SE(E(B5>=0,5;B5<=2);"OK";"Ajustar")', D5: 4, E5: 4, F5: '=E5/D5',
-  J2: '=PROCV("l-012 ";A2:C5;3;0)', K2: '=CORREL(B2:B5;D2:D5)', L2: '=B4*2',
+  J2: '=PROCV("l-012 ";A2:C5;3;0)', K2: '=INCLINAÇÃO(B2:B5;D2:D5)', L2: '=B4*2',
 });
 const pos = (k) => { const p = /^([A-Z]+)(\d+)$/.exec(k); return [+p[2] - 1, numCol(p[1])]; };
 
@@ -574,7 +574,7 @@ test('v0.4.3: LAMBDA chamada na hora grava, não trava o Enter e mostra #NOME?',
 test('v0.4.3: duas letras trocadas também sugerem a troca (PROVC → PROCV)', () => {
   assert.equal(funcaoParecida('PROVC').pt, 'PROCV');
   assert.equal(funcaoParecida('SOMSE').pt, 'SOMASE');
-  assert.equal(funcaoParecida('CORREL'), null);
+  assert.equal(funcaoParecida('INCLINAÇÃO'), null);
   const d = diagnosticar('PROVC(A1;B1:C9;2;0)');
   assert.ok(d.some((p) => p.rotulo === 'Usar PROCV'));
 });
@@ -631,7 +631,7 @@ test('v0.4.3: PL13 lista de problemas da planilha (erros, texto, vizinhas, núme
   const fixo = l.find((p) => p.id.startsWith('fixo'));
   assert.match(fixo.texto, /=F2\*1,15 \(e em mais 1 fórmula de G2:G3\)/);
   assert.deepEqual(fixo.acoes[0].celulas.map((x) => x.l), [1, 2]);
-  assert.match(l.find((p) => p.id === 'falta:CORREL').texto, /CORREL é uma função que o EFCdocs ainda não calcula/);
+  assert.match(l.find((p) => p.id === 'falta:INCLINAÇÃO').texto, /INCLINAÇÃO é uma função que o EFCdocs ainda não calcula/);
   assert.equal(X.trocarNumeroPorNome('F2*1.15', 1.15, 'Fator'), 'F2*Fator');
   assert.equal(X.formulaDeCima('E3/D3'), 'E4/D4');
   assert.equal(X.formaRelativa(lerGuardada('E2/D2'), 1, 5), X.formaRelativa(lerGuardada('E3/D3'), 2, 5));

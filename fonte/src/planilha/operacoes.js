@@ -3,6 +3,7 @@
 import { chave, lerChave, MAX_COL, MAX_LIN, letraCol, textoFaixa, normalFaixa } from './ref.js';
 import { reescrever, deslocar, ajustarEstrutura, renomearAbaNaArvore, excluirAbaNaArvore, renomearNomeNaArvore, paraMostrar, lerGuardada, escrever, mapearRefs } from './formula.js';
 import { indiceEstilo, estiloDe, abaVazia, mescladas, valorGuardado, paraGuardarValor } from './modelo.js';
+import { ajustarObjetosEstrutura } from './objetos.js';
 import { continuarSerie } from './entrada.js';
 import { ehFormatoData } from './formato.js';
 
@@ -366,6 +367,8 @@ export function estrutura(c, abaId, eixo, i, n) {
     }
     mud[`conteudo.abas.${abaId}.mesc`] = nova;
   }
+  /* 3b) objetos sobre a grade (assinatura) descem/sobem junto com a célula em que estão presos */
+  if (aba.objs && aba.objs.length) mud[`conteudo.abas.${abaId}.objs`] = ajustarObjetosEstrutura(aba.objs, eixo, i, n);
   /* 4) nomes definidos que apontam para a aba */
   const nomes = { ...c.nomes };
   let nomesMudaram = false;

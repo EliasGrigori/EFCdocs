@@ -91,7 +91,7 @@ export const COMANDOS = [
   C('inserir.status', 'Coluna de status', 'status', { sin: ['ok não ok', 'situação'], chega: V6, mods: ['planilha'] }),
   C('inserir.campo', 'Campo do formulário', 'campo', { sin: ['campo travado', 'preencher'], chega: V7, mods: ['docx'] }),
   C('inserir.checklist', 'Checklist', 'validacao', { sin: ['lista de verificação', 'caixa de marcar'], chega: V7, mods: ['docx'] }),
-  C('inserir.assinatura', 'Assinatura', 'assinatura', { sin: ['assinar', 'aprovar'], chega: V7, mods: ['docx'] }),
+  C('inserir.assinatura', 'Assinatura', 'assinatura', { sin: ['assinar', 'aprovar', 'rubrica', 'linha de assinatura', 'visto'], chega: porModulo(null, V7, null), mods: ['planilha', 'docx', 'postits'], acao: 'quadro.editar' }),
   C('inserir.postit', 'Post-it', 'postit', { sin: ['nota adesiva', 'cartão', 'adicionar post-it'], mods: ['postits'], acao: 'quadro.editar' }),
   C('inserir.forma', 'Formas', 'forma', { sin: ['retângulo', 'losango', 'decisão', 'fluxograma', 'círculo'], mods: ['postits'], acao: 'quadro.editar' }),
   C('inserir.processo', 'Forma: atividade (etapa)', 'processo', { sin: ['retângulo', 'etapa', 'processo', 'atividade', 'fluxograma'], mods: ['postits'], acao: 'quadro.editar' }),

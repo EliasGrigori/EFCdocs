@@ -1,0 +1,55 @@
+/* EFCdocs — Assinatura (v0.4.5): bloco (linha + nome + rubrica) e janela da rubrica. Cantos retos, sem enfeite. */
+.asn { position: relative; overflow: hidden; color: #1f2328; font-family: inherit; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+.asn-fundo { background: #fff; border: 1px solid #d0d5dd; }
+.asn-rub { position: absolute; object-fit: contain; object-position: center bottom; pointer-events: none; display: block; }
+.asn-linha { position: absolute; height: 0; border-top: 1.5px solid #1f2328; pointer-events: none; }
+.asn-nome { position: absolute; left: 6px; right: 6px; text-align: center; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+
+/* peça no quadro */
+.qi-assinatura { background: transparent; }
+.qi-assinatura .asn { width: 100%; height: 100%; }
+
+/* janela */
+/* a janela não rola por inteiro: o corpo rola e os botões ficam sempre à vista */
+/* o fundo deixa 10vh em cima e 16px embaixo: a janela cabe no que sobra */
+.janela.asn-j { width: min(520px, 100%); max-height: min(calc(90vh - 16px), 760px); max-height: min(calc(100dvh - max(10vh, 16px) - 16px), 760px); overflow: hidden; }
+.asn-j .asn-corpo { display: grid; gap: 12px; align-content: start; overflow: auto; min-height: 0; flex: 1 1 auto; }
+.asn-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+@media (min-width: 860px) {
+  .janela.asn-j { width: min(820px, 100%); }
+  .asn-j .asn-corpo { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; }
+  .asn-desenho { height: 140px; }
+}
+.asn-bloco { display: grid; gap: 8px; }
+.asn-rot { font-size: 13px; font-weight: 600; }
+.asn-desenho {
+  width: 100%; height: 150px; display: block; background: #fff; border: 1px solid var(--border-light);
+  border-radius: var(--r-ctl); cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.asn-ferr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.asn-esp { flex: 1; }
+.asn-gota { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 1px solid rgba(0,0,0,.3); vertical-align: -1px; }
+.asn-foto { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.asn-foto .btn svg { width: 16px; height: 16px; margin-right: 6px; }
+.asn-ctl { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+.asn-ctl input[type=range] { width: 100%; min-width: 0; accent-color: var(--primary); }
+.asn-cont { display: block; text-align: right; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.asn-dica { margin: 0; font-size: 12.5px; color: var(--text-muted); }
+.asn-aviso { margin: 0; padding: 7px 10px; font-size: 12.5px; font-weight: 600; background: var(--warn-soft); border: 1px solid var(--warn); border-radius: var(--r-ctl); color: var(--text); }
+.asn-previa { display: flex; justify-content: center; padding: 12px; background: var(--surface-2); border: 1px solid var(--border-light); border-radius: var(--r-ctl); overflow: auto; }
+.asn-previa .asn { flex: none; }
+.asn-privado { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+.asn-privado svg { width: 14px; height: 14px; flex: none; }
+
+/* objeto sobre a grade da planilha */
+.pl-objs { position: absolute; overflow: hidden; pointer-events: none; z-index: 4; }
+.pl-obj { position: absolute; pointer-events: auto; touch-action: none; cursor: move; box-sizing: border-box; }
+.pl-obj .asn { width: 100%; height: 100%; }
+.pl-obj.sel { outline: 2px solid var(--primary); outline-offset: 0; }
+.pl-obj-alca { position: absolute; right: -6px; bottom: -6px; width: 12px; height: 12px; background: var(--primary); border: 1px solid #fff; cursor: nwse-resize; touch-action: none; }
+.pl-obj-barra { position: absolute; display: flex; gap: 2px; padding: 2px; background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--r-ctl); box-shadow: 0 4px 12px #00000040; pointer-events: auto; z-index: 6; }
+.pl-obj-barra .iconbtn { width: 30px; height: 30px; }
+@media (pointer: coarse) {
+  .pl-obj-alca { width: 20px; height: 20px; right: -10px; bottom: -10px; }
+  .pl-obj-barra .iconbtn { width: 38px; height: 38px; }
+}

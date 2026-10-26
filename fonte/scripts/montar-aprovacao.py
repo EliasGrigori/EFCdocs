@@ -1,52 +1,53 @@
-"""EFCdocs — monta a página de aprovação da v0.4.4.2 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.4.6 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" """
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.4.4.2'
+VERSAO = 'v0.4.6'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-G1, G2, G3 = 'A. Os dois erros que o Grok achou na v0.4.4.1', 'B. Retoques', 'C. Decisões'
+G1, G2, G3 = 'A. Funções novas', 'B. Ajuda e limites', 'C. Decisões'
 ITENS = [
-    ('Q01', 'Conta que dá número numa célula de data', G1,
-     '<p>Se uma conta dá um número pequeno (0,9 ou 18) numa célula formatada como <b>data</b>, a tela mostrava "31/12/1899" e parecia que a conta tinha quebrado. Agora, ao confirmar a conta, uma janela pergunta <b>uma vez</b>: "Esta conta deu 0,9, mas a célula está formatada como data e mostraria 31/12/1899." com três botões: <b>Mostrar como número</b> (a célula passa a mostrar 0,9), <b>Deixar como data</b> e <b>Cancelar</b> (volta a editar). Datas de verdade (ex.: =G2+1 com G2 data) <b>não</b> perguntam. Se a célula já ficou assim, o Explicar agora diz: "Agora mostra 31/12/1899 (a célula está formatada como data; a conta deu 0,9)".</p>',
-     'É assim que você quer? (A outra ideia era trocar sozinho o formato, sem perguntar.)',
-     [('Antes', 'antes-pc-numero-em-data'), ('Depois', 'depois-pc-numero-em-data'), ('Antes: Explicar', 'antes-pc-explicar'), ('Depois: Explicar (célula já mostrando 0,9)', 'depois-pc-explicar')], 'par'),
-    ('Q02', 'Aba "só para ver": a faixa de cima pisca quando você tenta digitar', G1,
-     '<p>Na aba "só para ver" o aviso de baixo some em poucos segundos, e quem digita ficava sem saber por que nada acontece. Agora, a cada tentativa de digitar (ou de editar um texto no quadro), a <b>faixa de cima</b> ("Aberto em outra aba. Aqui fica só para ver.") <b>pisca</b> por um instante, além do aviso de baixo. Quem prefere menos movimento no aparelho vê um contorno no lugar da animação. Nada é gravado, como antes.</p>',
-     '', [('Antes', 'antes-pc-so-ver'), ('Depois (faixa piscando)', 'depois-pc-so-ver')], 'par'),
-    ('Q03', 'Aviso com Desfazer: some mais certo e fica atrás do fundo das janelas', G2,
-     '<ul><li>O aviso "foi para a lixeira · Desfazer" ficava nítido por cima do fundo embaçado. Agora fica <b>atrás</b> do fundo (embaçado junto com o resto) quando uma janela abre.</li>'
-     '<li>Some ao <b>trocar de página</b> (se já estava na tela há mais de 1,5 s) e dura 8 segundos no máximo.</li>'
-     '<li>No meu teste ele some sozinho em cerca de 8 segundos; o Grok viu mais de 30, o que sugere que o navegador dele atrasava os temporizadores. Se ainda acontecer no seu aparelho, me diga.</li></ul>',
-     '', [('Antes', 'antes-pc-aviso-atras-do-fundo'), ('Depois', 'depois-pc-aviso-atras-do-fundo')], 'par'),
-    ('Q04', 'Listas: contagem igual e data no pé do cartão', G2,
-     '<ul><li>A contagem agora é igual em todas as listas e fica <b>ao lado do filtro</b>: "4 arquivos" no Início, "4 planilhas" em Planilhas, "2 quadros" em Quadros.</li>'
-     '<li>A <b>data</b> fica presa no pé do cartão, então cartões vizinhos com nome de uma ou de duas linhas ficam com as datas na mesma altura.</li></ul>',
-     '', [('Antes: Planilhas', 'antes-pc-planilhas'), ('Depois: Planilhas', 'depois-pc-planilhas'), ('Antes: Início', 'antes-pc-inicio'), ('Depois: Início', 'depois-pc-inicio')], 'par'),
-    ('Q05', 'Lixeira: "Apagar para sempre" com borda e frase mais clara', G2,
-     '<p>O botão ganhou <b>borda e fundo vermelho claro</b> e a altura do Restaurar, para parecer botão e não link. A frase de cima agora é: "Aqui ficam os arquivos apagados. Restaure ou apague para sempre." (saiu o "fica anotado no histórico").</p>',
-     '', [('Antes', 'antes-pc-lixeira'), ('Depois', 'depois-pc-lixeira')], 'par'),
-    ('Q06', 'Quadro: nome do botão e texto da forma no meio', G2,
-     '<ul><li>Em Exibir, o botão agora se chama <b>Barra de ferramentas</b>, igual ao comando do Ctrl+K.</li>'
-     '<li>Na forma Início/Fim (e Atividade, Entrada/Saída e Decisão), o texto que você escreve fica <b>no meio</b> da caixa, como na forma desenhada, e não grudado no alto.</li></ul>',
-     '', [('Antes (computador)', 'antes-pc-quadro-forma'), ('Depois (computador)', 'depois-pc-quadro-forma'), ('Antes (celular)', 'antes-cel-quadro-forma'), ('Depois (celular)', 'depois-cel-quadro-forma')], 'par'),
-    ('Q07', 'O que mais incomoda?', G3,
-     '<p>Esta versão é só ajuste. Ficou como estava: cores dos temas, faixa de botões, celular deitado (fica para depois, como combinado) e a janela sobre outra janela (o Grok não conseguiu abrir uma sobre a outra para testar).</p>',
-     'Ainda tem alguma tela que incomoda (cite qual e o quê)? Se não, sigo para a Assinatura.', [], ''),
-    ('Q08', 'Publicação e próxima versão', G3,
-     '<p>Se aprovar, publico a <b>v0.4.4.2</b> no GitHub. Próxima: <b>v0.4.5 Assinatura</b> (Sonnet 5.5 · alto): linha em branco com o nome completo embaixo, rubrica desenhada com o mouse ou o dedo, ou foto; primeiro no quadro, depois Docx e Planilha. A imagem fica só no arquivo, no aparelho.</p>',
-     'Pode publicar a v0.4.4.2 e seguir para a Assinatura?', [], ''),
+    ('S01', 'TETO e ARREDMULTB: arredondar para um múltiplo', G1,
+     '<p><b>TETO(2,1;0,5) = 2,5</b> arredonda para cima até o próximo múltiplo; <b>ARREDMULTB(17;5) = 15</b> arredonda para baixo. Seguem as regras do Excel: negativos (TETO(-2,5;2) = -2; ARREDMULTB(-2,5;2) = -4), múltiplo 0 (TETO dá 0; ARREDMULTB dá #DIV/0!) e sinais trocados (#NÚM!). Sem o ruído do computador (TETO(0,3;0,1) dá 0,3 e não 0,30000000000000004). Também funcionam sobre uma faixa inteira (derramam).</p>',
+     'Para o dia a dia (calibração, lote em caixas de 5, tolerância de 0,5), faltou alguma variação (por exemplo o ARRED.MULT, que arredonda para o múltiplo mais perto)?',
+     [('Antes: #NOME?', 'antes-planilha-funcoes'), ('Depois: valores certos', 'depois-planilha-funcoes')], 'par'),
+    ('S02', 'MODO, PERCENTIL, QUARTIL e ORDEM (os nomes que mais se usam)', G1,
+     '<p>O EFCdocs já tinha MODO.ÚNICO, PERCENTIL.INC, QUARTIL.INC e ORDEM.EQ. Agora os <b>nomes antigos</b>, que são os que a maioria digita e que aparecem nos arquivos do Excel, também funcionam e dão <b>o mesmo resultado</b>: MODO (o valor que mais se repete; sem repetido dá #N/D), PERCENTIL (0 a 1), QUARTIL (0 a 4) e ORDEM (posição, 0 = do maior para o menor; empate fica na mesma posição). Na hora de salvar um .xlsx (v0.5.0) o nome sai como o Excel espera.</p>',
+     '', [('Antes: #NOME?', 'antes-planilha-funcoes'), ('Depois', 'depois-planilha-funcoes')], 'par'),
+    ('S03', 'CORREL: o quanto duas colunas andam juntas', G1,
+     '<p>Dá um número de <b>-1 a 1</b>: perto de 1, as duas colunas sobem juntas (ex.: cloro e peso); perto de -1, uma sobe e a outra desce; perto de 0, não têm relação. Pares em que um lado é texto ou vazio ficam de fora (como no Excel); colunas de tamanhos diferentes dão #N/D; um par só, ou uma coluna sem variação, dá #DIV/0!. O <b>Explicar</b> descreve a conta com o nome das colunas e o que significa.</p>',
+     '', [('Antes: Explicar não sabia', 'antes-explicar-correl'), ('Depois: Explicar com o nome das colunas', 'depois-explicar-correl')], 'par'),
+    ('S04', 'FREQUÊNCIA: quantos valores cabem em cada faixa', G1,
+     '<p>Digite os <b>limites</b> das faixas (ex.: 1; 1,5; 2) e <b>=FREQUÊNCIA(A2:A9;G2:G4)</b>: aparece uma <b>coluna</b> com quantos valores caem até 1, entre 1 e 1,5, entre 1,5 e 2 e <b>acima de 2</b> (uma linha a mais do que os limites). Texto e vazios não contam. A soma da coluna é o total de números. Dica de uso: é a base de um histograma ou de "quantas amostras ficaram fora do limite".</p>',
+     'Preferia que a coluna do FREQUÊNCIA já saísse com um rótulo ao lado (ex.: "até 1", "de 1 a 1,5")? Isso fica para quando tiver gráfico (v0.6.0), a não ser que você peça antes.',
+     [('Antes: #NOME?', 'antes-planilha-frequencia'), ('Depois: a contagem derrama', 'depois-planilha-frequencia')], 'par'),
+    ('S05', 'Ajuda ao digitar', G2,
+     '<ul><li>Ao digitar <b>=QUART</b>, <b>=TET</b>, <b>=CORR</b> ou <b>=FREQ</b> aparecem as funções novas, com o que cada argumento é e um exemplo.</li>'
+     '<li>Elas saíram da lista de "função que o EFCdocs ainda não calcula", então deixam de aparecer em <b>Problemas</b> e de dar o aviso amarelo.</li></ul>',
+     '', [('Antes', 'antes-autocompletar'), ('Depois', 'depois-autocompletar')], 'par'),
+    ('S06', 'O que ainda não calcula (para você saber)', G2,
+     '<p>Continuam fora, avisando com clareza ("ainda não sabe calcular"): <b>TETO.MAT, ARREDMULTB.MAT, ARRED.MULT</b>, ORDEM.MED, INCLINAÇÃO, INTERCEPÇÃO, TENDÊNCIA, PREVISÃO, DIST.NORM.N e outras estatísticas. Entram em versões seguintes, se você pedir.</p>',
+     'Quer algum desses antes do v0.5.0 (abrir e salvar Excel)? Se não, sigo direto.', [], ''),
+    ('S07', 'O que mais incomoda?', G3,
+     '<p>Esta versão só mexe em funções: nada de tela mudou.</p>',
+     'Ainda tem alguma tela que incomoda (cite qual e o quê)?', [], ''),
+    ('S08', 'Publicação: a v0.4.5 e a v0.4.6 juntas, ou uma de cada vez?', G3,
+     '<p>A <b>v0.4.6 foi feita em cima da v0.4.5 (Assinatura)</b>, que ainda espera a sua aprovação (itens R01 a R09). Opções: (1) publicar as duas num só passo, depois que você aprovar as duas páginas; (2) publicar a v0.4.5 primeiro e a v0.4.6 em seguida (dois commits). Nada vai ao GitHub antes da sua resposta.</p>',
+     'Pode publicar? Como prefere: as duas juntas (recomendo, é o mesmo trabalho) ou uma de cada vez?', [], ''),
+    ('S09', 'Próxima versão', G3,
+     '<p>Próxima: <b>v0.5.0 (Opus 5.5 · alto)</b>, abrir e salvar arquivos do Excel (.xlsx), com relatório do que não foi aproveitado e teste de ida e volta. Para isso preciso de <b>3 a 5 arquivos .xlsx reais</b> (com os dados trocados, sem nomes, senhas nem números verdadeiros): uma planilha simples, uma com fórmulas, uma com formatação e colunas largas, uma com várias abas e, se tiver, uma com gráfico ou tabela dinâmica. Antes dela posso fazer versões pequenas dos menus N01 a N16 que sobraram.</p>',
+     'Quer a v0.5.0 já, ou antes alguma versão pequena de menus?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
     f'<div class="nums"><span>{sys.argv[4]} testes de regras</span><span>{sys.argv[5]} testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>A v0.4.4.1 já está no GitHub, aprovada por você. Esta é uma versão pequena em cima dela.</li>'
-    '<li>Traz os 2 erros e os 7 retoques que o Grok achou na v0.4.4.1. A decisão do número em célula de data foi a sugestão do Grok (perguntar uma vez).</li>'
-    '<li>Nada vai ao GitHub antes da sua resposta. Nada a configurar no Firebase.</li>'
+    '<li>A v0.4.6 é o <b>primeiro bloco de funções</b>: TETO, ARREDMULTB, MODO, PERCENTIL, QUARTIL, ORDEM, CORREL e FREQUÊNCIA, com a ajuda ao digitar e o Explicar.</li>'
+    '<li>Foi feita em cima da v0.4.5 (Assinatura), que ainda aguarda a sua aprovação. Nada foi publicado.</li>'
+    '<li>Nada a configurar no Firebase. Só funções: nenhuma tela mudou.</li>'
     '</ul>'
 )
 
@@ -72,7 +73,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'número em célula de data, aviso na aba só para ver e retoques')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'TETO, ARREDMULTB, MODO, PERCENTIL, QUARTIL, ORDEM, CORREL e FREQUÊNCIA')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

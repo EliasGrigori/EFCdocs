@@ -12,6 +12,8 @@
      seq: n                      último número usado nos códigos Q-001, Q-002...
    } */
 
+import { limparNome, rubricaValida, ASN } from '../nucleo/assinatura.js';
+
 export const CORES = [
   ['amarelo', '#fde68a', 'Amarelo'], ['verde', '#bbf7d0', 'Verde'], ['azul', '#bfdbfe', 'Azul'],
   ['rosa', '#fbcfe8', 'Rosa'], ['laranja', '#fed7aa', 'Laranja'], ['lilas', '#ddd6fe', 'Lilás'],
@@ -35,6 +37,8 @@ export const TIPOS_ITEM = {
   pagina: { nome: 'Página', w: 560, h: 380, cor: null },
   legenda: { nome: 'Legenda', w: 340, h: 120, cor: null },
   imagem: { nome: 'Imagem', w: 240, h: 180, cor: null },
+  /* v0.4.5: linha de assinatura. texto = nome completo (embaixo da linha); rub = rubrica em PNG (fica só no arquivo) */
+  assinatura: { nome: 'Assinatura', w: ASN.W, h: ASN.H, cor: null },
 };
 export const FORMAS = ['processo', 'decisao', 'inicio', 'dados'];
 /** Fundo do quadro: não se liga com seta, não entra na seleção em área e carrega o que está dentro quando se arrasta. */
@@ -70,6 +74,13 @@ export function normalizarQuadro(c) {
     if (!it || !it.id || !TIPOS_ITEM[it.tipo]) continue;
     const t = TIPOS_ITEM[it.tipo];
     itens[it.id] = { ...it, x: num(it.x, 0), y: num(it.y, 0), w: num(it.w, t.w), h: num(it.h, t.h), z: num(it.z, 0), texto: String(it.texto ?? '') };
+    if (it.tipo === 'assinatura') {
+      /* nome limpo; a rubrica só vale se for um PNG em texto do tamanho esperado (nunca um endereço de fora) */
+      const a = itens[it.id];
+      a.texto = limparNome(a.texto);
+      a.w = Math.max(ASN.W_MIN, a.w); a.h = Math.max(ASN.H_MIN, a.h);
+      if (!rubricaValida(a.rub)) delete a.rub;
+    }
   }
   const setas = {};
   for (const s of lista(c.setas)) {
@@ -192,6 +203,7 @@ export function colar(c, clip, deslocamento = { x: 24, y: 24 }) {
     const id = idCurto();
     mapa[orig.id] = id;
     const it = { ...structuredClone(orig), id, x: Math.round(orig.x + deslocamento.x), y: Math.round(orig.y + deslocamento.y), z: ehFundo(orig) ? orig.z : ++z };
+    if (it.tipo === 'assinatura' && !rubricaValida(it.rub)) delete it.rub; /* o que vem da área de transferência não é confiável */
     delete it.cod;
     if (t.codigo) it.cod = codigo(++seq);
     if (t.kanban) {

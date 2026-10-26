@@ -58,7 +58,7 @@ export const CampoFormula = forwardRef(function CampoFormula({ valor, cursor, ao
 export function AjudaFormula({ ctxCursor, sugest, selSug, aoEscolher, problemas, aoCorrigir, aoCorrigirTudo, previa, etiquetas, estilo, aoFecharSugestoes }) {
   const f = ctxCursor && ctxCursor.funcao;
   const sig = f ? assinatura(f, ctxCursor.arg) : null;
-  const erros = problemas.filter((p) => p.nivel === 'erro');
+  const erros = problemas.filter((p) => p.nivel === 'erro' && !(sugest.length && p.rotulo === 'Pôr aspas')); /* "Não sei o que é TET" só depois de fechar a lista de sugestões */
   const outros = problemas.filter((p) => p.nivel !== 'erro');
   const nada = !sig && !sugest.length && !problemas.length && !previa && !(etiquetas && etiquetas.length);
   if (nada) return null;

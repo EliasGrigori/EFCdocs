@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icone, Janela } from '../ui/comum.jsx';
 import { CORES, COR, CORES_FONTE, TIPOS_ITEM, FORMAS } from './modelo.js';
+import { AssinaturaView } from '../ui/assinatura.jsx';
 import { pontosSeta, caminhoSVG, meioDoCaminho, contornoForma } from './geometria.js';
 import { MODELOS } from './modelos.js';
 import { NOTA_GUT, NIVEIS_GUT, valorGut, nivelGut, prazoValido, resumoTarefa } from './tarefa.js';
@@ -89,10 +90,11 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa }) {
     <div className={classe} data-item={it.id} data-cod={it.cod || undefined} style={style}>
       {forma && <FormaSvg it={it} />}
       {it.tipo === 'imagem' && (it.src ? <img src={it.src} alt={it.texto || 'Imagem'} draggable="false" /> : <span className="qi-semimg"><Icone n="imagem" /></span>)}
+      {it.tipo === 'assinatura' && <AssinaturaView nome={it.texto} rub={it.rub} w={it.w} h={it.h} />}
       {it.tipo === 'raia' && <div className="qi-raia-h"><span>{escondeTexto ? '' : it.texto}</span></div>}
       {it.tipo === 'pagina' && <div className="qi-pg-h"><span>{escondeTexto ? '' : it.texto}</span></div>}
       {it.tipo === 'legenda' && <LegendaView it={it} />}
-      {!['imagem', 'raia', 'pagina', 'legenda'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : <span className="qi-clamp" style={{ WebkitLineClamp: linhasQueCabem(it, !!tarefa) }}>{it.texto}</span>}</div>}
+      {!['imagem', 'raia', 'pagina', 'legenda', 'assinatura'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : <span className="qi-clamp" style={{ WebkitLineClamp: linhasQueCabem(it, !!tarefa) }}>{it.texto}</span>}</div>}
       {tarefa && <RodapeTarefa t={tarefa} />}
       {codigos && it.cod && <span className="qi-cod">{it.cod}</span>}
       {(it.nota || it.link) && (

@@ -382,6 +382,7 @@ export const IMPL = {
     const xs = numeros([args[1]], ctx);
     if (ehErro(xs)) return xs;
     const ordem = args[2] && args[2].t !== 'vazio' ? N(ctx.deref(ctx.av(args[2]))) : 0;
+    if (ehErro(ordem)) return ordem;
     if (!xs.includes(n)) return E.NA;
     return 1 + xs.filter((x) => (ordem ? x < n : x > n)).length;
   },
@@ -390,6 +391,52 @@ export const IMPL = {
     const xs = numeros([args[0]], ctx); if (ehErro(xs)) return xs;
     const q = NI(ctx.deref(ctx.av(args[1]))); if (ehErro(q)) return q;
     return q < 0 || q > 4 ? E.NUM : percentilInc(xs, q / 4);
+  },
+
+  /* nomes antigos do Excel (iguais aos novos) */
+  MODE: (args, ctx) => IMPL['MODE.SNGL'](args, ctx),
+  RANK: (args, ctx) => IMPL['RANK.EQ'](args, ctx),
+  PERCENTILE: (args, ctx) => IMPL['PERCENTILE.INC'](args, ctx),
+  QUARTILE: (args, ctx) => IMPL['QUARTILE.INC'](args, ctx),
+  CORREL: (args, ctx) => {
+    if (args.length !== 2) return E.VALOR;
+    const [va, vb] = [ctx.av(args[0]), ctx.av(args[1])];
+    const tem = (v) => ehRef(v) || ehMat(v);
+    if (!tem(va) || !tem(vb)) return E.NA;
+    const A = ctx.mat(va), B = ctx.mat(vb);
+    if (A.linhas !== B.linhas || A.colunas !== B.colunas) return E.NA;
+    /* só entram os pares em que os dois lados são número (texto e vazio saem, como no Excel) */
+    const xs = [], ys = [];
+    for (let i = 0; i < A.linhas; i++) for (let j = 0; j < A.colunas; j++) {
+      const x = A.d[i][j], y = B.d[i][j];
+      if (ehErro(x)) return x;
+      if (ehErro(y)) return y;
+      if (typeof x === 'number' && typeof y === 'number') { xs.push(x); ys.push(y); }
+    }
+    if (xs.length < 2) return E.DIV0;
+    const mx = soma(xs) / xs.length, my = soma(ys) / ys.length;
+    let sxy = 0, sxx = 0, syy = 0;
+    for (let i = 0; i < xs.length; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy; }
+    if (sxx === 0 || syy === 0) return E.DIV0;
+    return Math.max(-1, Math.min(1, sxy / Math.sqrt(sxx * syy)));
+  },
+  FREQUENCY: (args, ctx) => {
+    if (args.length !== 2) return E.VALOR;
+    const dados = numeros([args[0]], ctx); if (ehErro(dados)) return dados;
+    const lim = numeros([args[1]], ctx); if (ehErro(lim)) return lim;
+    /* cada limite conta os valores acima do limite menor anterior e até ele; o último item conta o que passa de todos */
+    const ord = [...new Set(lim)].sort((a, b) => a - b);
+    const conta = new Map(ord.map((x) => [x, 0]));
+    let acima = 0;
+    for (const x of dados) {
+      const alvo = ord.find((l) => x <= l);
+      if (alvo === undefined) acima++; else conta.set(alvo, conta.get(alvo) + 1);
+    }
+    const col = [];
+    const visto = new Set();
+    for (const l of lim) { if (visto.has(l)) col.push(0); else { visto.add(l); col.push(conta.get(l)); } }
+    col.push(acima);
+    return Mat.de(col.length, 1, (i) => col[i]);
   },
 
   /* Lógica (preguiçosas: só calculam o lado que precisa) */
@@ -821,6 +868,19 @@ export const IMPL = {
   ROUND: esc((n, d) => { const x = N(n), k = NI(d); if (ehErro(x)) return x; if (ehErro(k)) return k; return arred(x, k); }),
   ROUNDUP: esc((n, d) => { const x = N(n), k = NI(d); if (ehErro(x)) return x; if (ehErro(k)) return k; return arred(x, k, 'cima'); }),
   ROUNDDOWN: esc((n, d) => { const x = N(n), k = NI(d); if (ehErro(x)) return x; if (ehErro(k)) return k; return arred(x, k, 'baixo'); }),
+  /* TETO e ARREDMULTB (o TETO/ARREDMULTB antigos do Excel): dividir e multiplicar pelo múltiplo; "pre" tira o ruído de 0,1 + 0,2 */
+  CEILING: esc((n, m) => {
+    const x = N(n), s = N(m); if (ehErro(x)) return x; if (ehErro(s)) return s;
+    if (s === 0) return 0;
+    if (x > 0 && s < 0) return E.NUM;
+    return Number((Math.ceil(Number((x / s).toPrecision(14))) * s).toPrecision(15)) + 0;
+  }),
+  FLOOR: esc((n, m) => {
+    const x = N(n), s = N(m); if (ehErro(x)) return x; if (ehErro(s)) return s;
+    if (s === 0) return E.DIV0;
+    if (x > 0 && s < 0) return E.NUM;
+    return Number((Math.floor(Number((x / s).toPrecision(14))) * s).toPrecision(15)) + 0;
+  }),
   TRUNC: esc((n, d) => { const x = N(n), k = d == null ? 0 : NI(d); if (ehErro(x)) return x; if (ehErro(k)) return k; return arred(x, k, 'baixo'); }),
   INT: esc((n) => { const x = N(n); return ehErro(x) ? x : Math.floor(x); }),
   MOD: esc((n, d) => { const x = N(n), y = N(d); if (ehErro(x)) return x; if (ehErro(y)) return y; if (y === 0) return E.DIV0; const r = x - y * Math.floor(x / y); return Math.abs(r) < 1e-12 ? 0 : r; }),

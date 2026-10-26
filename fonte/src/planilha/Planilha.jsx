@@ -21,6 +21,9 @@ import { diagnosticar, corrigir, contextoNoCursor, sugestoes, pedacosColoridos, 
 import { formatoDaFormula } from './formatoAuto.js';
 import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt, numeroGeral } from './valores.js';
 import * as O from './operacoes.js';
+import { objetosDaAba, novaAssinatura, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS } from './objetos.js';
+import { JanelaAssinatura, AssinaturaView } from '../ui/assinatura.jsx';
+import { ASN } from '../nucleo/assinatura.js';
 import { CampoFormula, AjudaFormula } from './EditorFormula.jsx';
 import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, JanelaZeros, JanelaNumeroData, BarraSimbolos, ESTATS } from './partes.jsx';
 
@@ -139,6 +142,14 @@ export function Planilha({ arquivo, cx }) {
   const [selSug, setSelSug] = useState(0);
   const [semSug, setSemSug] = useState(false);
   const [probAberto, setProbAberto] = useState(false);
+  /* v0.4.5: assinatura sobre a grade */
+  const [objSel, setObjSelEstado] = useState(null);
+  const objSelRef = useRef(null);
+  const setObjSel = (id) => { objSelRef.current = id; setObjSelEstado(id); };
+  const [asn, setAsn] = useState(null); /* janela: { id (null = nova), inicial } */
+  const arrObjRef = useRef(null);
+  const [arrObj, setArrObjEstado] = useState(null);
+  const setArrObj = (v) => { arrObjRef.current = v; setArrObjEstado(v); };
   const [listaProb, setListaProb] = useState([]);
   const voltar = useRef([]);
   const extensao = useRef({ l: 0, c: 0 });
@@ -553,6 +564,71 @@ export function Planilha({ arquivo, cx }) {
   confirmarRef.current = confirmar;
 
   const voltarFocoGrade = () => { if (capRef.current) capRef.current.focus({ preventScroll: true }); };
+
+  /* ---------- assinatura sobre a grade (v0.4.5) ---------- */
+  const objs = objetosDaAba(aba);
+  useEffect(() => { setObjSel(null); setArrObj(null); }, [abaId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (objSelRef.current && !objs.some((o) => o.id === objSelRef.current)) setObjSel(null); }, [objs]); // eslint-disable-line react-hooks/exhaustive-deps
+  const gravarObjs = (lista, rotulo) => mudar(mudancaObjetos(abaId, lista), rotulo);
+  const abrirAssinatura = (o) => {
+    if (somenteLeitura) { avisarLeitura(); return; }
+    setObjSel(o.id);
+    setAsn({ id: o.id, inicial: { nome: o.nome, rub: o.rub } });
+  };
+  const excluirObjeto = (o) => {
+    if (somenteLeitura) { avisarLeitura(); return; }
+    if (gravarObjs(semObjeto(objs, o.id), 'Excluir assinatura') !== false) {
+      setObjSel(null);
+      cx.avisar('Assinatura excluída.', { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
+    }
+    voltarFocoGrade();
+  };
+  const confirmarAssinatura = (v) => {
+    const alvo = asn && asn.id ? objs.find((o) => o.id === asn.id) : null;
+    if (alvo) {
+      const lista = objs.map((o) => { if (o.id !== alvo.id) return o; const n = { ...o, nome: v.nome }; if (v.rub) n.rub = v.rub; else delete n.rub; return n; });
+      gravarObjs(lista, 'Assinatura');
+    } else {
+      if (objs.length >= MAX_OBJETOS) { cx.avisar(`No máximo ${MAX_OBJETOS} assinaturas por aba.`, { ic: 'aviso' }); return; }
+      /* entra na célula ativa; se ela não está à vista, na primeira célula que aparece */
+      const aVista = sel.ativa.l >= Math.max(G.cl, G.l0) && sel.ativa.l < G.l1 && sel.ativa.c >= Math.max(G.cc, G.c0) && sel.ativa.c < G.c1;
+      const ancora = aVista ? { l: sel.ativa.l, c: sel.ativa.c } : { l: Math.max(G.cl, G.l0) + 1, c: Math.max(G.cc, G.c0) };
+      const o = novaAssinatura(v, ancora);
+      if (gravarObjs([...objs, o], 'Nova assinatura') !== false) { setObjSel(o.id); cx.avisar('Assinatura inserida. Arraste para mover; dois cliques para mudar o nome ou a rubrica.', { ic: 'assinatura' }); }
+    }
+    setTimeout(voltarFocoGrade, 0);
+  };
+  const aoBaixarObj = (ev, o, modo) => {
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    ev.stopPropagation();
+    ev.preventDefault();
+    setObjSel(o.id);
+    voltarFocoGrade();
+    if (somenteLeitura) { avisarLeitura(); return; }
+    try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* sem captura */ }
+    const r = retDoObjeto(o, G);
+    setArrObj({ id: o.id, modo, px: ev.clientX, py: ev.clientY, r0: r, ...r, moveu: false });
+  };
+  const aoMoverObj = (ev) => {
+    const a = arrObjRef.current;
+    if (!a) return;
+    const dx = ev.clientX - a.px, dy = ev.clientY - a.py;
+    if (!a.moveu && Math.hypot(dx, dy) < (ev.pointerType === 'touch' ? 6 : 3)) return;
+    if (a.modo === 'mover') setArrObj({ ...a, moveu: true, x: a.r0.x + dx, y: a.r0.y + dy });
+    else setArrObj({ ...a, moveu: true, w: Math.max(ASN.W_MIN * z, a.r0.w + dx), h: Math.max(ASN.H_MIN * z, a.r0.h + dy) });
+  };
+  const aoSoltarObj = () => {
+    const a = arrObjRef.current;
+    setArrObj(null);
+    if (!a || !a.moveu) return;
+    const o = objs.find((x) => x.id === a.id);
+    if (!o) return;
+    if (a.modo === 'mover') {
+      /* o canto de cima à esquerda decide a célula; fora da área das células, volta para a borda */
+      const an = ancoraNoPonto(G, Math.max(G.hw + 1, a.x), Math.max(G.hh + 1, a.y));
+      gravarObjs(comObjeto(objs, o.id, an), 'Mover assinatura');
+    } else gravarObjs(comObjeto(objs, o.id, { w: Math.round(a.w / z), h: Math.round(a.h / z) }), 'Mudar o tamanho da assinatura');
+  };
   const cancelar = () => {
     const e = editRef.current;
     flushSync(() => setEdit(null));
@@ -741,6 +817,14 @@ export function Planilha({ arquivo, cx }) {
     if (editRef.current) return;
     const ctrl = ev.ctrlKey || ev.metaKey;
     const k = ev.key;
+    /* assinatura escolhida: Delete exclui, Enter edita, Esc solta; qualquer outra tecla volta para as células */
+    if (objSelRef.current) {
+      const o = objs.find((x) => x.id === objSelRef.current);
+      if (o && (k === 'Delete' || k === 'Backspace')) { ev.preventDefault(); excluirObjeto(o); return; }
+      if (o && (k === 'Enter' || k === 'F2')) { ev.preventDefault(); abrirAssinatura(o); return; }
+      if (k === 'Escape') { setObjSel(null); return; }
+      if (!ctrl && k.length > 1 && k !== 'Shift' && k !== 'Control' && k !== 'Alt' && k !== 'Meta') setObjSel(null);
+    }
     const setas = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
     if (setas[k]) { ev.preventDefault(); andar(setas[k][0], setas[k][1], { estender: ev.shiftKey, pular: ctrl }); return; }
     if (k === 'Tab') { ev.preventDefault(); andar(0, ev.shiftKey ? -1 : 1); return; }
@@ -1397,6 +1481,7 @@ export function Planilha({ arquivo, cx }) {
       case 'planilha.reexibir': return ed(() => { ocultar('l', true); });
       case 'planilha.reexibirColuna': return ed(() => { ocultar('c', true); });
       case 'planilha.novaAba': return ed(novaAbaFn);
+      case 'inserir.assinatura': return ed(() => setAsn({ id: null, inicial: {} }));
       case 'planilha.cabecalho': return ed(() => mudar({ [`conteudo.abas.${abaId}.cab`]: sel.ativa.l }, `Linha ${sel.ativa.l + 1} é o cabeçalho`));
       case 'formula.inserir': return ed(() => setJanela({ tipo: 'funcoes' }));
       case 'formula.autosoma': return ed(() => autoSoma('SOMA'));
@@ -1590,6 +1675,7 @@ export function Planilha({ arquivo, cx }) {
 
   const aoBaixar = (ev) => {
     if (!cvRef.current) return;
+    if (objSelRef.current) setObjSel(null);
     const p = ponto(ev);
     const o = ondeCaiu(G, p.x, p.y);
     const toqueDedo = ev.pointerType === 'touch';
@@ -2013,6 +2099,42 @@ export function Planilha({ arquivo, cx }) {
               onPointerCancel={() => { if (toque.current) { clearTimeout(toque.current.longo); toque.current = null; } setArrasto(null); }} />
           </div>
         </div>
+        {/* assinaturas sobre a grade (v0.4.5) */}
+        {objs.length > 0 && (
+          <div className="pl-objs" style={{ left: G.hw, top: G.hh, width: Math.max(0, tam.W - G.hw), height: Math.max(0, tam.H - G.hh) }}>
+            {objs.map((o) => {
+              const base = retDoObjeto(o, G);
+              const r = arrObj && arrObj.id === o.id ? { x: arrObj.x, y: arrObj.y, w: arrObj.w, h: arrObj.h } : base;
+              const rc = recorteDoObjeto(o, r, G);
+              if (!rc.visivel) return null;
+              const escolhida = objSel === o.id;
+              return (
+                <div key={o.id} className={'pl-obj' + (escolhida ? ' sel' : '')} data-obj={o.id} role="img" aria-label={'Assinatura de ' + o.nome}
+                  style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
+                  onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
+                  onDoubleClick={() => abrirAssinatura(o)}
+                  onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
+                  <div style={{ width: r.w / z, height: r.h / z, transform: `scale(${z})`, transformOrigin: '0 0' }}>
+                    <AssinaturaView nome={o.nome} rub={o.rub} w={Math.round(r.w / z)} h={Math.round(r.h / z)} />
+                  </div>
+                  {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {(() => {
+          const o = objSel && objs.find((x) => x.id === objSel);
+          if (!o || (arrObj && arrObj.moveu)) return null;
+          const r = retDoObjeto(o, G);
+          const topo = r.y - 40 >= G.hh ? r.y - 40 : r.y + r.h + 8;
+          return (
+            <div className="pl-obj-barra" style={{ left: Math.max(4, Math.min(tam.W - 80, r.x)), top: topo }} role="toolbar" aria-label="Assinatura">
+              <button type="button" className="iconbtn" data-obj-ed="1" aria-label="Nome e rubrica" title="Nome e rubrica (Enter)" onClick={() => abrirAssinatura(o)}><Icone n="assinatura" /></button>
+              {!somenteLeitura && <button type="button" className="iconbtn" data-obj-ex="1" aria-label="Excluir assinatura" title="Excluir (Delete)" onClick={() => excluirObjeto(o)}><Icone n="lixeira" /></button>}
+            </div>
+          );
+        })()}
         {/* campo escondido que recebe o teclado da grade (e o colar do celular) */}
         <textarea ref={capRef} className="pl-cap" aria-label={`Célula ${chave(sel.ativa.l, sel.ativa.c)}: ${formatar(valorAtivo, estiloAtivo.nf).t || 'vazia'}`}
           style={{ left: Math.max(0, Math.min(tam.W - 2, G.xDe(sel.ativa.c))), top: Math.max(0, Math.min(tam.H - 2, G.yDe(sel.ativa.l))) }}
@@ -2077,6 +2199,7 @@ export function Planilha({ arquivo, cx }) {
       {menu && <MenuFlutuante x={menu.x} y={menu.y} itens={menu.itens} aoFechar={() => setMenu(null)} />}
       <PortalPainel alvo={cx.alvoPainel}>{secaoPainel}</PortalPainel>
 
+      {asn && <JanelaAssinatura inicial={asn.inicial} titulo={asn.id ? 'Editar assinatura' : 'Nova assinatura'} confirmar={asn.id ? 'Salvar' : 'Inserir'} aoConfirmar={confirmarAssinatura} aoFechar={() => { setAsn(null); setTimeout(voltarFocoGrade, 0); }} />}
       {janela && janela.tipo === 'corFonte' && <JanelaCor titulo="Cor da fonte" semCor="Automática" aoEscolher={(hex) => formatarSel((e) => ({ ...e, cor: hex || undefined }), 'Cor da fonte')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'fundo' && <JanelaCor titulo="Cor de preenchimento" semCor="Sem preenchimento" aoEscolher={(hex) => formatarSel((e) => ({ ...e, fundo: hex || undefined }), 'Cor de preenchimento')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'corAba' && <JanelaCor titulo="Cor da aba" semCor="Sem cor" aoEscolher={(hex) => mudar({ [`conteudo.abas.${janela.id}.cor`]: hex || undefined }, 'Cor da aba')} aoFechar={() => setJanela(null)} />}

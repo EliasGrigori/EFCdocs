@@ -33,7 +33,7 @@ const FAIXAS = {
     { id: 'inserir', nome: 'Inserir', grupos: [
       { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['lin', ['planilha.inserirLinha', 'planilha.inserirColuna'], 2]] },
       { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
-      { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.grafico']] },
+      { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.grafico'], ['g', 'inserir.assinatura']] },
       { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
     { id: 'formulas', nome: 'Fórmulas', grupos: [
       { nome: 'Funções', itens: [['g', 'formula.inserir'], ['g', 'formula.autosoma']] },
@@ -74,7 +74,7 @@ const FAIXAS = {
     { id: 'inserir', nome: 'Inserir', grupos: [
       { nome: 'Quadro', itens: [['g', 'inserir.postit'], ['g', 'inserir.seta'], ['g', 'inserir.proximo'], ['g', 'inserir.texto'], ['g', 'inserir.pagina'], ['g', 'inserir.legenda']] },
       { nome: 'Fluxograma', itens: [['g', 'inserir.forma'], ['col', ['inserir.processo', 'inserir.decisao', 'inserir.inicio']], ['col', ['inserir.dados']], ['g', 'inserir.modelo']] },
-      { nome: 'Objetos', itens: [['g', 'inserir.imagem'], ['g', 'inserir.link'], ['g', 'inserir.grafico']] }] },
+      { nome: 'Objetos', itens: [['g', 'inserir.imagem'], ['g', 'inserir.assinatura'], ['g', 'inserir.link'], ['g', 'inserir.grafico']] }] },
     { id: 'organizar', nome: 'Organizar', grupos: [
       { nome: 'Visões', itens: [['g', 'organizar.quadro'], ['g', 'organizar.kanban'], ['g', 'organizar.raias']] },
       { nome: 'Ordem', itens: [['col', ['organizar.frente', 'organizar.tras']]] },

@@ -1,10 +1,11 @@
 /* EFCdocs — Planilha: o arquivo (abas, células, estilos, nomes) e as mudanças que viram desfazer.
    conteudo = { v:1, ordem:[ids], abas:{ id:{ id, nome, cor, oculta, cel:{ B12:{ v, f, s } }, larg:{col:px}, alt:{lin:px},
-                ocL:{lin:1}, ocC:{col:1}, zeros:{col:'t'|'n'} (escolha lembrada para códigos com zero na frente), cong:{l,c}, mesc:['A1:C1'], cab } }, estilos:[{...}], nomes:{ chave:{ n, ref } }, seq }
+                ocL:{lin:1}, ocC:{col:1}, objs:[{ id, tipo:'assinatura', l, c, dx, dy, w, h, nome, rub? }] (v0.4.5, ver objetos.js), zeros:{col:'t'|'n'} (escolha lembrada para códigos com zero na frente), cong:{l,c}, mesc:['A1:C1'], cab } }, estilos:[{...}], nomes:{ chave:{ n, ref } }, seq }
    Célula: v = valor digitado (número, texto, lógico ou { e:'#N/A' }); f = fórmula guardada como no Excel (inglês, sem "=");
    s = número do estilo em "estilos". Linhas e colunas guardadas a partir de 0. */
 import { chave, lerChave, letraCol, MAX_COL, MAX_LIN, normalFaixa } from './ref.js';
 import { erroPorCodigo, Erro } from './valores.js';
+import { normalizarObjetos } from './objetos.js';
 
 export const LARG_PADRAO = 80; // px a 100% (o Excel usa 64 px; aqui um pouco mais largo para o toque)
 export const ALT_PADRAO = 22;
@@ -35,7 +36,11 @@ export function normalizarPlanilha(c) {
   }
   const out = { v: 1, ordem: [], abas: {}, estilos: Array.isArray(c.estilos) && c.estilos.length ? c.estilos : [{}], nomes: c.nomes || {}, seq: c.seq || 2 };
   const ordem = Array.isArray(c.ordem) ? c.ordem.filter((id) => c.abas && c.abas[id]) : Object.keys(c.abas || {});
-  for (const id of ordem) out.abas[id] = { cel: {}, ...c.abas[id], id };
+  for (const id of ordem) {
+    out.abas[id] = { cel: {}, ...c.abas[id], id };
+    /* v0.4.5: objetos sobre a grade (assinatura); o que vier quebrado ou com imagem estranha é descartado */
+    if (out.abas[id].objs !== undefined) { const lista = normalizarObjetos(out.abas[id].objs); if (lista.length) out.abas[id].objs = lista; else delete out.abas[id].objs; }
+  }
   out.ordem = ordem;
   if (!out.ordem.length) return planilhaVazia();
   return out;

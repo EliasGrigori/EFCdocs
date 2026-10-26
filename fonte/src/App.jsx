@@ -116,6 +116,17 @@ export function App() {
   /* o aviso com Desfazer não acompanha a troca de página (só some o que já estava na tela há um tempo) */
   useEffect(() => { setAvisos((l) => (l.some((a) => a.acao && Date.now() - a.id > 1500) ? l.filter((a) => !a.acao || Date.now() - a.id <= 1500) : l)); }, [rota]);
   const tirarAviso = useCallback((id) => setAvisos((l) => l.filter((a) => a.id !== id)), []);
+  /* o aviso com Desfazer também sai quando a pessoa segue em frente (clica ou digita em outro lugar), sem depender só do temporizador */
+  useEffect(() => {
+    const seguir = (ev) => {
+      if (ev.target && ev.target.closest && ev.target.closest('.toasts')) return;
+      if (ev.type === 'keydown' && (ev.ctrlKey || ev.metaKey || ['Control', 'Shift', 'Alt', 'Meta'].includes(ev.key))) return;
+      setAvisos((l) => (l.some((a) => a.acao && Date.now() - a.id > 2500) ? l.filter((a) => !a.acao || Date.now() - a.id <= 2500) : l));
+    };
+    addEventListener('pointerdown', seguir, true);
+    addEventListener('keydown', seguir, true);
+    return () => { removeEventListener('pointerdown', seguir, true); removeEventListener('keydown', seguir, true); };
+  }, []);
 
   const recarregar = useCallback(async () => {
     try { setFichas(await banco.fichas()); } catch { avisar('Não foi possível ler os arquivos deste aparelho.', { ic: 'aviso' }); }

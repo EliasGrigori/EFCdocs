@@ -50,6 +50,12 @@ export const FUNCOES = [
   F('RANK.EQ', 'ORDEM.EQ', 'est', 'A posição de um número na lista.', ['núm|o número', 'ref|a lista', '[ordem]|0 = do maior para o menor; 1 = do menor para o maior'], '=ORDEM.EQ(B2;$B$2:$B$25)'),
   F('PERCENTILE.INC', 'PERCENTIL.INC', 'est', 'O valor no percentil pedido (0 a 1).', ['matriz|a faixa', 'k|ex.: 0,9 para o percentil 90'], '=PERCENTIL.INC(B2:B25;0,9)'),
   F('QUARTILE.INC', 'QUARTIL.INC', 'est', 'O quartil pedido (0 a 4).', ['matriz|a faixa', 'quarto|1 = 1º quartil, 2 = mediana, 3 = 3º quartil'], '=QUARTIL.INC(B2:B25;3)'),
+  F('MODE', 'MODO', 'est', 'O número que mais se repete (nome antigo do MODO.ÚNICO, igual).', ['núm1|número ou faixa', '[núm2]...|mais números'], '=MODO(B2:B25)'),
+  F('RANK', 'ORDEM', 'est', 'A posição de um número na lista (nome antigo do ORDEM.EQ, igual).', ['núm|o número', 'ref|a lista', '[ordem]|0 = do maior para o menor; 1 = do menor para o maior'], '=ORDEM(B2;$B$2:$B$25)'),
+  F('PERCENTILE', 'PERCENTIL', 'est', 'O valor no percentil pedido, de 0 a 1 (nome antigo do PERCENTIL.INC, igual).', ['matriz|a faixa', 'k|ex.: 0,9 para o percentil 90'], '=PERCENTIL(B2:B25;0,9)'),
+  F('QUARTILE', 'QUARTIL', 'est', 'O quartil pedido, de 0 a 4 (nome antigo do QUARTIL.INC, igual).', ['matriz|a faixa', 'quarto|1 = 1º quartil, 2 = mediana, 3 = 3º quartil'], '=QUARTIL(B2:B25;3)'),
+  F('CORREL', 'CORREL', 'est', 'Correlação entre duas colunas, de -1 a 1: perto de 1 elas sobem juntas; perto de -1, uma sobe e a outra desce.', ['matriz1|a primeira coluna', 'matriz2|a segunda coluna, do mesmo tamanho'], '=CORREL(B2:B25;C2:C25)'),
+  F('FREQUENCY', 'FREQUÊNCIA', 'mat', 'Conta quantos valores caem em cada faixa e mostra uma coluna com as contagens (derrama; uma linha a mais, para o que passa do último limite).', ['dados|os valores', 'intervalos|os limites das faixas, do menor para o maior, ex.: 0,5; 1; 1,5'], '=FREQUÊNCIA(B2:B25;E2:E4)'),
 
   /* Lógica */
   F('IF', 'SE', 'log', 'Faz um teste e mostra um valor se der certo e outro se não.', ['teste_lógico|a pergunta, ex.: B2>=0,5', 'valor_se_verdadeiro|o que aparece quando o teste dá certo', '[valor_se_falso]|o que aparece quando não dá'], '=SE(B2>=0,5;"OK";"Ajustar")'),
@@ -138,6 +144,8 @@ export const FUNCOES = [
   F('ROUND', 'ARRED', 'num', 'Arredonda para as casas pedidas.', ['núm|o número', 'núm_dígitos|quantas casas depois da vírgula'], '=ARRED(B2;2)'),
   F('ROUNDUP', 'ARREDONDAR.PARA.CIMA', 'num', 'Arredonda sempre para cima.', ['núm|o número', 'núm_dígitos|quantas casas'], '=ARREDONDAR.PARA.CIMA(B2;0)'),
   F('ROUNDDOWN', 'ARREDONDAR.PARA.BAIXO', 'num', 'Arredonda sempre para baixo.', ['núm|o número', 'núm_dígitos|quantas casas'], '=ARREDONDAR.PARA.BAIXO(B2;0)'),
+  F('CEILING', 'TETO', 'num', 'Arredonda para cima, até o próximo múltiplo.', ['núm|o número', 'significância|o múltiplo, ex.: 0,5 ou 10'], '=TETO(B2;0,5)'),
+  F('FLOOR', 'ARREDMULTB', 'num', 'Arredonda para baixo, até o múltiplo de baixo.', ['núm|o número', 'significância|o múltiplo, ex.: 0,5 ou 10'], '=ARREDMULTB(B2;0,5)'),
   F('TRUNC', 'TRUNCAR', 'num', 'Corta as casas decimais sem arredondar.', ['núm|o número', '[núm_dígitos]|quantas casas ficam'], '=TRUNCAR(B2;1)'),
   F('INT', 'INT', 'num', 'Arredonda para baixo até o inteiro.', ['núm|o número'], '=INT(B2)'),
   F('MOD', 'MOD', 'num', 'O resto da divisão.', ['núm|o número', 'divisor|por quanto dividir'], '=MOD(LIN();2)'),
@@ -203,8 +211,8 @@ export function distancia(a, b) {
 
 /* Funções que existem no Excel e o EFCdocs ainda não calcula (pt-BR / inglês). Servem para NÃO sugerir
    uma troca errada (CORREL não é CORRESP) e para dizer "ainda não sei calcular". */
-const DO_EXCEL_FALTAM = `CORREL CORREL|TENDÊNCIA TREND|FREQUÊNCIA FREQUENCY|MODO MODE|TETO CEILING|TETO.MAT CEILING.MATH|ARREDMULTB FLOOR|ARREDMULTB.MAT FLOOR.MATH|ARRED.MULT MROUND
-PERCENTIL PERCENTILE|QUARTIL QUARTILE|ORDEM RANK|ORDEM.MED RANK.AVG|INCLINAÇÃO SLOPE|INTERCEPÇÃO INTERCEPT|PREVISÃO FORECAST|PREVISÃO.LINEAR FORECAST.LINEAR|TESTE.T T.TEST
+const DO_EXCEL_FALTAM = `TENDÊNCIA TREND|TETO.MAT CEILING.MATH|ARREDMULTB.MAT FLOOR.MATH|ARRED.MULT MROUND
+ORDEM.MED RANK.AVG|INCLINAÇÃO SLOPE|INTERCEPÇÃO INTERCEPT|PREVISÃO FORECAST|PREVISÃO.LINEAR FORECAST.LINEAR|TESTE.T T.TEST
 DIST.NORM.N NORM.DIST|INV.NORM.N NORM.INV|DIST.NORMP.N NORM.S.DIST|INV.NORMP.N NORM.S.INV|PADRONIZAR STANDARDIZE|INT.CONFIANÇA CONFIDENCE|INT.CONFIANÇA.NORM CONFIDENCE.NORM|CURT KURT|DISTORÇÃO SKEW|DESV.MÉDIO AVEDEV|DESVQ DEVSQ
 MÉDIA.GEOMÉTRICA GEOMEAN|MÉDIA.HARMÔNICA HARMEAN|MODO.MULT MODE.MULT|VAR VAR|DESVPADA STDEVA|MÁXIMOA MAXA|MÍNIMOA MINA|MÉDIAA AVERAGEA|COVARIAÇÃO.P COVARIANCE.P|RSQ RSQ|PEARSON PEARSON
 TEXTOANTES TEXTBEFORE|TEXTODEPOIS TEXTAFTER|DIVIDIRTEXTO TEXTSPLIT|EMPILHARV VSTACK|EMPILHARH HSTACK|TOMAR TAKE|DESCARTAR DROP|ESCOLHERCOLS CHOOSECOLS|ESCOLHERLINS CHOOSEROWS|ORGANIZARCOLS WRAPCOLS|ORGANIZARLINS WRAPROWS|PARACOL TOCOL|PARALIN TOROW|EXPANDIR EXPAND
