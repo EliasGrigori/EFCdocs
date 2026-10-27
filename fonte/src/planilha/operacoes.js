@@ -5,6 +5,7 @@ import { reescrever, deslocar, ajustarEstrutura, renomearAbaNaArvore, excluirAba
 import { indiceEstilo, estiloDe, abaVazia, mescladas, valorGuardado, paraGuardarValor } from './modelo.js';
 import { ajustarObjetosEstrutura } from './objetos.js';
 import { continuarSerie } from './entrada.js';
+import { moverRegras } from './regras.js';
 import { ehFormatoData } from './formato.js';
 
 /** Junta mudanças de células de uma aba; com muitas, troca o objeto inteiro (mais rápido e leve). */
@@ -369,6 +370,28 @@ export function estrutura(c, abaId, eixo, i, n) {
   }
   /* 3b) objetos sobre a grade (assinatura) descem/sobem junto com a célula em que estão presos */
   if (aba.objs && aba.objs.length) mud[`conteudo.abas.${abaId}.objs`] = ajustarObjetosEstrutura(aba.objs, eixo, i, n);
+  /* 3c) v0.5.1: faixas da validação, da formatação condicional e dos comentários acompanham as linhas/colunas; as fórmulas das regras também */
+  const mr = moverRegras(aba, eixo, i, n);
+  for (const kk of Object.keys(mr)) mud[`conteudo.abas.${abaId}.${kk}`] = mr[kk];
+  for (const id of c.ordem) {
+    for (const campo of ['val', 'cf']) {
+      const lista = id === abaId && campo in mr ? mr[campo] : c.abas[id][campo];
+      if (!lista || !lista.length) continue;
+      let mudou = false;
+      const nova = lista.map((r) => {
+        let x = r;
+        for (const fk of ['f1', 'f2']) {
+          const f = r[fk];
+          if (!f || (id !== abaId && !f.includes('!')) || (campo === 'val' && r.t === 'list' && f[0] === '"')) continue;
+          let nf = f;
+          try { nf = ajustaAbaMin(f, id); } catch { nf = f; }
+          if (nf !== f) { if (x === r) x = { ...r }; x[fk] = nf; mudou = true; }
+        }
+        return x;
+      });
+      if (mudou) mud[`conteudo.abas.${id}.${campo}`] = nova;
+    }
+  }
   /* 4) nomes definidos que apontam para a aba */
   const nomes = { ...c.nomes };
   let nomesMudaram = false;

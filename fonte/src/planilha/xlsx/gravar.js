@@ -11,6 +11,7 @@ import { valorGuardado, LARG_PADRAO, ALT_PADRAO } from '../modelo.js';
 import { ehErro } from '../valores.js';
 import { Motor } from '../motor.js';
 import { POR_EN } from '../nomesFuncoes.js';
+import { gravarValidacoes, gravarCondicionais, gravarComentarios } from './extras.js';
 
 const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
 const NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
@@ -39,6 +40,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   let assinaturas = 0;
   const novas = new Set(); // funções do Excel 2019/2021/365 (PL21: avisar quem vai abrir num Excel antigo)
   const partes = [];
+  const dxfs = []; // estilos das regras de formatação condicional (v0.5.1)
+  const notas = []; // comentários por aba: { ia, comments, vml }
+  let conversas = 0;
   const abas = c.ordem.map((id) => c.abas[id]);
   const primeiraVisivel = Math.max(0, abas.findIndex((a) => !a.oculta));
 
@@ -152,7 +156,11 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     let fim = '';
     const mesc = (aba.mesc || []).filter((t) => /^[A-Z]+\d+:[A-Z]+\d+$/.test(t));
     if (mesc.length) fim += `<mergeCells count="${mesc.length}">${mesc.map((t) => `<mergeCell ref="${t}"/>`).join('')}</mergeCells>`;
+    fim += gravarCondicionais(aba.cf, dxfs);
+    fim += gravarValidacoes(aba.val);
     fim += '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>';
+    const co = gravarComentarios(aba.com, ia);
+    if (co) { fim += '<legacyDrawing r:id="rId1"/>'; notas.push({ ia, ...co }); conversas += co.conversas; }
     partes.push({
       nome: `xl/worksheets/sheet${ia + 1}.xml`,
       dados: `${XML_CAB}<worksheet xmlns="${NS}" xmlns:r="${NS_R}">${cab}<sheetData>${corpo.join('')}</sheetData>${fim}</worksheet>`,
@@ -187,10 +195,12 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   const app = `${XML_CAB}<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>EFCdocs</Application></Properties>`;
   const tipos = `${XML_CAB}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+    (notas.length ? '<Default Extension="vml" ContentType="application/vnd.openxmlformats-officedocument.vmlDrawing"/>' : '') +
     `<Override PartName="/xl/workbook.xml" ContentType="${CT}sheet.main+xml"/>` +
     abas.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="${CT}worksheet+xml"/>`).join('') +
     `<Override PartName="/xl/styles.xml" ContentType="${CT}styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="${CT}sharedStrings+xml"/>` +
     (usaMatriz ? `<Override PartName="/xl/metadata.xml" ContentType="${CT}sheetMetadata+xml"/>` : '') +
+    notas.map((n) => `<Override PartName="/xl/comments${n.ia + 1}.xml" ContentType="${CT}comments+xml"/>`).join('') +
     '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
     '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>';
   const relsRaiz = `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
@@ -205,11 +215,17 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     { nome: 'docProps/app.xml', dados: app },
     { nome: 'xl/workbook.xml', dados: wb },
     { nome: 'xl/_rels/workbook.xml.rels', dados: relsWb },
-    { nome: 'xl/styles.xml', dados: gravarEstilos(c.estilos || [{}], c.fonteBase || 'Calibri') },
+    { nome: 'xl/styles.xml', dados: gravarEstilos(c.estilos || [{}], c.fonteBase || 'Calibri', dxfs) },
     { nome: 'xl/sharedStrings.xml', dados: sst },
     ...(usaMatriz ? [{ nome: 'xl/metadata.xml', dados: metadata }] : []),
     ...partes,
+    ...notas.flatMap((n) => [
+      { nome: `xl/comments${n.ia + 1}.xml`, dados: n.comments },
+      { nome: `xl/drawings/vmlDrawing${n.ia + 1}.vml`, dados: n.vml },
+      { nome: `xl/worksheets/_rels/sheet${n.ia + 1}.xml.rels`, dados: `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}vmlDrawing" Target="../drawings/vmlDrawing${n.ia + 1}.vml"/><Relationship Id="rId2" Type="${REL}comments" Target="../comments${n.ia + 1}.xml"/></Relationships>` },
+    ]),
   ];
+  if (conversas) avisos.push(`${conversas === 1 ? 'A conversa de comentários vai' : `As ${conversas} conversas de comentários vão`} como anotação comum no Excel (o texto e as respostas ficam juntos na mesma anotação).`);
   if (assinaturas) avisos.push(`${assinaturas === 1 ? 'A assinatura' : `As ${assinaturas} assinaturas`} sobre a planilha não ${assinaturas === 1 ? 'vai' : 'vão'} no Excel (chega com o Documento, na v0.7.0).`);
   if (novas.size) {
     const l = [...novas].sort();

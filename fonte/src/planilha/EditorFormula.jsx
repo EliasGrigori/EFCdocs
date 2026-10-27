@@ -8,6 +8,7 @@ import { Icone } from '../ui/comum.jsx';
 export const CampoFormula = forwardRef(function CampoFormula({ valor, cursor, aoMudar, aoTecla, aoFocar, aoSair, classe = '', estilo, rotulo, modoTeclado, focar, linhaUnica, fantasma }, ref) {
   const ta = useRef(null);
   const fundo = useRef(null);
+  const selUser = useRef(null); // v0.5.1: trecho selecionado de propósito (Ctrl+A, arrastar): o cursor automático não pode desfazer
   useImperativeHandle(ref, () => ({
     focar: () => ta.current && ta.current.focus(),
     el: () => ta.current,
@@ -16,6 +17,8 @@ export const CampoFormula = forwardRef(function CampoFormula({ valor, cursor, ao
   useLayoutEffect(() => {
     const t = ta.current;
     if (!t || document.activeElement !== t || cursor == null) return;
+    const u = selUser.current;
+    if (u && t.selectionStart === u.s && t.selectionEnd === u.e) return;
     if (t.selectionStart !== cursor || t.selectionEnd !== cursor) {
       try { t.setSelectionRange(cursor, cursor); } catch { /* sem cursor */ }
     }
@@ -46,8 +49,12 @@ export const CampoFormula = forwardRef(function CampoFormula({ valor, cursor, ao
       )}
       <textarea ref={ta} className="ef-campo" value={valor} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off"
         aria-label={rotulo} rows={1} inputMode={modoTeclado || 'text'} wrap={linhaUnica ? 'off' : 'soft'}
-        onChange={(ev) => { aoMudar(ev.target.value, ev.target.selectionStart); }}
-        onSelect={(ev) => { if (ev.target.selectionStart !== cursor) aoMudar(ev.target.value, ev.target.selectionStart, true); sincRolagem(); }}
+        onChange={(ev) => { selUser.current = null; aoMudar(ev.target.value, ev.target.selectionStart); }}
+        onSelect={(ev) => {
+          const { selectionStart: a, selectionEnd: z } = ev.target;
+          if (a !== z) { selUser.current = { s: a, e: z }; if (z !== cursor) aoMudar(ev.target.value, z, true); } else { selUser.current = null; if (a !== cursor) aoMudar(ev.target.value, a, true); }
+          sincRolagem();
+        }}
         onScroll={sincRolagem}
         onKeyDown={aoTecla} onFocus={aoFocar} onBlur={aoSair} />
     </div>

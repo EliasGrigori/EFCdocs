@@ -42,10 +42,9 @@ const FAIXAS = {
       { nome: 'Para o leigo', itens: [['g', 'formula.montar']] }] },
     { id: 'dados', nome: 'Dados', grupos: [
       { nome: 'Classificar e filtrar', itens: [['g', 'dados.classificar'], ['g', 'dados.filtrar']] },
-      { nome: 'Ferramentas', itens: [['g', 'dados.validacao'], ['g', 'dados.duplicados'], ['g', 'dados.dinamica']] },
-      { nome: 'Arquivos', itens: [['g', 'arquivo.abrir'], ['g', 'arquivo.exportarExcel'], ['g', 'arquivo.relatorioExcel']] }] },
+      { nome: 'Ferramentas', itens: [['g', 'dados.validacao'], ['g', 'dados.duplicados'], ['g', 'dados.dinamica']] }] },
     { id: 'revisao', nome: 'Revisão', grupos: [
-      { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar'], ['g', 'arquivo.versoes']] },
+      { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar'], ['g', 'revisao.comentarios'], ['g', 'arquivo.versoes']] },
       { nome: 'Proteger', itens: [['g', 'revisao.travar']] }] },
     { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['col', ['exibir.grade', 'exibir.folhaClara', 'exibir.barraFormula']], ['g', 'exibir.zoom']] }, { nome: 'Linhas e colunas', itens: [['col', ['planilha.ocultarLinha', 'planilha.ocultarColuna', 'planilha.reexibir', 'planilha.reexibirColuna']]] }, ...GRUPOS_EXIBIR] },
   ],
@@ -117,7 +116,7 @@ export const ROTULO_CURTO = {
   'dados.validacao': 'Validação', 'formatar.condicional': 'Destacar regra', 'editar.localizar': 'Localizar',
   'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
   'arquivo.abrir': 'Abrir Excel', 'arquivo.exportarExcel': 'Salvar como Excel', 'arquivo.relatorioExcel': 'O que veio do Excel',
-  'editar.comentar': 'Comentário', 'organizar.temporizador': 'Temporizador', 'revisao.comparar': 'Comparar',
+  'editar.comentar': 'Comentário', 'revisao.comentarios': 'Comentários', 'organizar.temporizador': 'Temporizador', 'revisao.comparar': 'Comparar',
   'revisao.concluir': 'Concluir revisão', 'pagina.cabecalho': 'Cabeçalho do POP', 'pagina.orientacao': 'Orientação',
   'exibir.congelar': 'Congelar', 'exibir.grade': 'Linhas de grade', 'exibir.leitura': 'Modo leitura',
   'exibir.relevo': 'Relevo', 'exibir.mesa': 'Mesa', 'exibir.telaCheia': 'Tela cheia', 'formatar.titulo': 'Título', 'inserir.campo': 'Campo',
@@ -254,12 +253,22 @@ const BARRA_CEL = {
 };
 function BarraCurta({ cx, soIcones, cel, abasAbertas, aoAbas }) {
   const lista = cel ? (BARRA_CEL[cx.mod] || []) : (BARRA_CURTA[cx.mod] || []);
+  /* v0.5.1: no celular, desfazer, refazer e Abas ficam fixos na ponta direita; só o resto rola */
+  const fixos = cel ? lista.filter((id) => id === 'editar.desfazer' || id === 'editar.refazer') : [];
+  const rola = cel ? lista.filter((id) => !fixos.includes(id)) : lista;
+  while (cel && rola.length && rola[rola.length - 1] === '|') rola.pop();
+  const itens = rola.map((id, i) => (id === '|' ? <span className="sep" key={i} /> : <BotaoCmd key={id} id={id} tipo="i" cx={cx} />));
   return (
     <div className={'tbar' + (soIcones ? ' so-icones' : '') + (cel ? ' cel-rapida' : '')} role="toolbar" aria-label="Barra de ferramentas">
-      {lista.map((id, i) => (id === '|' ? <span className="sep" key={i} /> : <BotaoCmd key={id} id={id} tipo="i" cx={cx} />))}
-      <span className="sp" />
+      {cel ? <div className="tbar-rola">{itens}</div> : itens}
+      {!cel && <span className="sp" />}
       {cel
-        ? <button type="button" className={'tlab abas-cel' + (abasAbertas ? ' on' : '')} aria-expanded={abasAbertas} aria-label="Abas da faixa" onClick={aoAbas}><Icone n={abasAbertas ? 'chevronCima' : 'chevronBaixo'} /><span>Abas</span></button>
+        ? (
+          <div className="tbar-fixo">
+            {fixos.map((id) => <BotaoCmd key={id} id={id} tipo="i" cx={cx} />)}
+            <button type="button" className={'tlab abas-cel' + (abasAbertas ? ' on' : '')} aria-expanded={abasAbertas} aria-label="Abas da faixa" onClick={aoAbas}><Icone n={abasAbertas ? 'chevronCima' : 'chevronBaixo'} /><span>Abas</span></button>
+          </div>
+        )
         : <BotaoCmd id="exibir.painel" tipo="t" cx={cx} rotulo="Painel" />}
     </div>
   );

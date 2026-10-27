@@ -6,58 +6,76 @@ import { lerArquivoExcel } from '../planilha/xlsx/abrir.js';
 const n = (x) => Number(x || 0).toLocaleString('pt-BR');
 const kb = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
 
-const VEIO = [
-  'Valores e fórmulas (cada fórmula começa com o último valor que o Excel calculou)',
-  'Formatação: fonte, negrito, cores, preenchimento, bordas, alinhamento e formato de número',
-  'Larguras, alturas, linhas e colunas ocultas, células mescladas e congelar painéis',
-  'Todas as abas (com a cor e as ocultas) e os nomes definidos',
-];
+/** Caixa do relatório: borda, faixa de título e cor própria (verde = veio, vermelho = ficou de fora, amarelo = bom saber, azul = nota). */
+function Caixa({ tom, icone, titulo, qtd, children, dados }) {
+  return (
+    <section className={'rel-caixa ' + tom} {...dados}>
+      <header><Icone n={icone} /><h3>{titulo}</h3>{qtd != null ? <span className="rel-qtd">{n(qtd)}</span> : null}</header>
+      <div className="rel-corpo">{children}</div>
+    </section>
+  );
+}
+const Dest = ({ tom = 'amarelo', children }) => <mark className={'rel-dest ' + tom}>{children}</mark>;
+const plural = (q, um, varios) => (q === 1 ? um : varios);
 
 /** O relatório da importação (também abre depois, em Arquivo › O que veio do Excel). */
 export function RelatorioExcel({ rel }) {
   if (!rel) return null;
-  const cortes = (rel.abas || []).filter((a) => a.cortes && a.cortes.length);
+  const abas = rel.abas || [];
+  const ex = rel.extras || {};
+  const cortes = abas.filter((a) => a.cortes && a.cortes.length);
+  const fora = rel.fora || [];
+  const avisos = rel.avisos || [];
+  const bom = cortes.reduce((t, a) => t + a.cortes.length, 0) + avisos.length + (rel.semCalculo > 0 ? 1 : 0);
+  const veio = [
+    <><b>Valores e fórmulas</b>: cada fórmula começa com o <Dest tom="verde">último valor que o Excel calculou</Dest>.</>,
+    <><b>Formatação</b>: fonte, negrito, cores, preenchimento, bordas, alinhamento e formato de número.</>,
+    <><b>Layout</b>: larguras, alturas, linhas e colunas ocultas, células mescladas e congelar painéis.</>,
+    <><b>Abas</b>: todas, com a cor e as ocultas, e os nomes definidos.</>,
+  ];
+  if (ex.validacoes > 0) veio.push(<><b>Listas suspensas e validação de dados</b>: <Dest tom="verde">{n(ex.validacoes)} {plural(ex.validacoes, 'regra', 'regras')}</Dest>{ex.listas > 0 ? <> ({n(ex.listas)} {plural(ex.listas, 'lista suspensa', 'listas suspensas')})</> : null}.</>);
+  if (ex.condicionais > 0) veio.push(<><b>Cores por regra (formatação condicional)</b>: <Dest tom="verde">{n(ex.condicionais)} {plural(ex.condicionais, 'regra', 'regras')}</Dest>.</>);
+  if (ex.notas > 0) veio.push(<><b>Comentários</b>: <Dest tom="verde">{n(ex.notas)} {plural(ex.notas, 'comentário', 'comentários')}</Dest>{ex.conversas > 0 ? <>, sendo {n(ex.conversas)} {plural(ex.conversas, 'conversa', 'conversas')} do Excel 365 (ao salvar, viram anotações comuns)</> : null}.</>);
   return (
     <div className="rel-excel">
       <div className="rel-nums">
-        <span><b>{n((rel.abas || []).length)}</b> {rel.abas && rel.abas.length === 1 ? 'aba' : 'abas'}</span>
-        <span><b>{n(rel.celulas)}</b> células</span>
-        <span><b>{n(rel.formulas)}</b> fórmulas</span>
-        {rel.bytes ? <span>arquivo de <b>{kb(rel.bytes)}</b></span> : null}
+        <div className="rel-num"><span>Abas</span><b>{n(abas.length)}</b></div>
+        <div className="rel-num"><span>Células</span><b>{n(rel.celulas)}</b></div>
+        <div className="rel-num azul"><span>Fórmulas</span><b>{n(rel.formulas)}</b></div>
+        {rel.bytes ? <div className="rel-num"><span>Arquivo</span><b>{kb(rel.bytes)}</b></div> : null}
       </div>
-      <h3><Icone n="check" /> Veio</h3>
-      <ul className="rel-lista">{VEIO.map((t) => <li key={t}>{t}</li>)}</ul>
-      {rel.fora && rel.fora.length > 0 && (
-        <>
-          <h3><Icone n="aviso" /> Ficou de fora</h3>
-          <ul className="rel-lista rel-fora">
-            {rel.fora.map((f) => <li key={f.item}><b>{f.item}</b>{f.qtd > 1 ? ` (${n(f.qtd)})` : ''}{f.detalhe ? `: ${f.detalhe}` : ''}</li>)}
-          </ul>
-        </>
-      )}
-      {(cortes.length > 0 || (rel.avisos && rel.avisos.length > 0) || rel.semCalculo > 0) && (
-        <>
-          <h3><Icone n="info" /> Bom saber</h3>
+      <Caixa tom="verde" icone="check" titulo="Veio" qtd={veio.length} dados={{ 'data-rel': 'veio' }}>
+        <ul className="rel-lista">{veio.map((t, i) => <li key={i}>{t}</li>)}</ul>
+      </Caixa>
+      {fora.length > 0 && (
+        <Caixa tom="vermelho" icone="aviso" titulo="Ficou de fora" qtd={fora.length} dados={{ 'data-rel': 'fora' }}>
           <ul className="rel-lista">
-            {cortes.map((a) => a.cortes.map((t, i) => <li key={a.nome + i}><b>{a.nome}</b>: {t}.</li>))}
-            {(rel.avisos || []).map((t) => <li key={t}>{t}</li>)}
+            {fora.map((f) => <li key={f.item}><Dest tom="vermelho">{f.item}{f.qtd > 1 ? ` (${n(f.qtd)})` : ''}</Dest>{f.detalhe ? <> {f.detalhe}</> : null}</li>)}
+          </ul>
+        </Caixa>
+      )}
+      {bom > 0 && (
+        <Caixa tom="amarelo" icone="info" titulo="Bom saber" qtd={bom} dados={{ 'data-rel': 'bom' }}>
+          <ul className="rel-lista">
+            {cortes.map((a) => a.cortes.map((t, i) => <li key={a.nome + i}><Dest>{a.nome}</Dest> {t}.</li>))}
+            {avisos.map((t) => <li key={t}>{t}</li>)}
             {rel.semCalculo > 0 && (
               <li>
-                <b>{n(rel.semCalculo)} {rel.semCalculo === 1 ? 'fórmula mostra' : 'fórmulas mostram'} o último valor do Excel</b>: o EFCdocs ainda não calcula
+                <Dest>{n(rel.semCalculo)} {rel.semCalculo === 1 ? 'fórmula mostra' : 'fórmulas mostram'} o último valor do Excel</Dest>: o EFCdocs ainda não calcula
                 {rel.exemplosSemCalculo && rel.exemplosSemCalculo.length ? <> (por exemplo, <code>={rel.exemplosSemCalculo[0].f.replace(/\s+/g, ' ').slice(0, 70)}</code>: {rel.exemplosSemCalculo[0].motivo})</> : null}.
               </li>
             )}
           </ul>
-        </>
+        </Caixa>
       )}
       <details className="rel-abas">
         <summary>Aba por aba</summary>
         <table>
           <thead><tr><th>Aba</th><th>Células</th><th>Fórmulas</th></tr></thead>
-          <tbody>{(rel.abas || []).map((a) => <tr key={a.nome}><td>{a.nome}</td><td>{n(a.celulas)}</td><td>{n(a.formulas)}</td></tr>)}</tbody>
+          <tbody>{abas.map((a) => <tr key={a.nome}><td>{a.nome}</td><td>{n(a.celulas)}</td><td>{n(a.formulas)}</td></tr>)}</tbody>
         </table>
       </details>
-      <p className="rel-nota">O arquivo original continua igual no seu computador. Para devolver ao Excel, use Arquivo › Salvar como Excel.</p>
+      <div className="rel-nota"><Icone n="info" /><span>O arquivo original continua igual no seu computador. Para devolver ao Excel, use <b>Arquivo › Salvar como Excel</b>.</span></div>
     </div>
   );
 }

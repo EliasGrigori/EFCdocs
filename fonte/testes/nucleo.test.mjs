@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.5.0', () => assert.equal(VERSAO, 'v0.5.0'));
+test('versão é v0.5.1', () => assert.equal(VERSAO, 'v0.5.1'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -137,7 +137,8 @@ test('comandos da planilha chegam na v0.4.0 (menos os das próximas versões)', 
   for (const id of ['editar.colar', 'formatar.negrito', 'formatar.moeda', 'formatar.bordas', 'formula.inserir', 'formula.autosoma', 'formula.origem', 'exibir.congelar', 'exibir.grade', 'exibir.zoom'])
     assert.equal(chegaNa(PorId[id], 'planilha'), null, id);
   for (const id of ['formula.explicar', 'formula.fluxo', 'formula.problemas', 'formula.montar']) assert.equal(chegaNa(PorId[id], 'planilha'), null, id + ' já funciona na v0.4.3');
-  assert.equal(chegaNa(PorId['formatar.condicional'], 'planilha'), 'v0.6.0');
+  /* v0.5.1: cor por regra, lista suspensa/validação e comentários já funcionam */
+  for (const id of ['formatar.condicional', 'dados.validacao', 'editar.comentar', 'revisao.comentarios']) assert.equal(chegaNa(PorId[id], 'planilha'), null, id);
   /* v0.5.0: abrir e salvar Excel já funcionam */
   assert.equal(chegaNa(PorId['arquivo.exportarExcel'], 'planilha'), null);
   assert.equal(chegaNa(PorId['arquivo.abrir'], 'planilha'), null);

@@ -10,6 +10,7 @@ import { IMPL, potencia } from './funcoes.js';
 import { POR_EN } from './nomesFuncoes.js';
 import { MAX_COL, MAX_LIN, chave, lerChave, lerEndereco } from './ref.js';
 import { valorGuardado } from './modelo.js';
+import { trocarTabelas } from './xlsx/formulas.js';
 
 const K = (l, c) => l * MAX_COL + c;
 const LC = (k) => [Math.floor(k / MAX_COL), k % MAX_COL];
@@ -55,6 +56,7 @@ export class Motor {
   /* ---------------- índice ---------------- */
   carregar(c) {
     this.c = c;
+    this.rev = (this.rev || 0) + 1; // v0.5.1: a formatação condicional guarda resultados até o valor de alguma célula mudar
     this.idPorNome = new Map();
     for (const id of c.ordem) this.idPorNome.set(c.abas[id].nome.toLowerCase(), id);
     this.form = {}; this.vals = {}; this.spill = {}; this.spillDe = {};
@@ -184,6 +186,7 @@ export class Motor {
 
   valor(abaId, l, c) {
     const k = K(l, c);
+    if (this.ov && this.ov.k === k && this.ov.abaId === abaId) return this.ov.v;
     const fm = this.form[abaId] && this.form[abaId].get(k);
     if (fm) return this.valorFormula(fm);
     const sp = this.spill[abaId] && this.spill[abaId].get(k);
@@ -505,6 +508,16 @@ export class Motor {
       const r = this.avaliar(this.nomesArv.get(k), this.contexto(abaAtual, 0, 0));
       return ehRef(r) ? r : null;
     }
+    /* v0.5.1: INDIRECT("Tabela[Coluna]") e nome de tabela que veio do Excel (a lista suspensa usa muito) */
+    if (this.c.tabelas) {
+      if (this.tabelasDe !== this.c.tabelas) {
+        this.tabelasDe = this.c.tabelas;
+        this.mapaTab = new Map();
+        for (const [kk, tb] of Object.entries(this.c.tabelas)) { const a = this.c.abas[tb.aba]; if (a) this.mapaTab.set(kk, { ...tb, aba: a.nome }); }
+      }
+      const outra = this.mapaTab.size ? trocarTabelas(String(t).trim(), this.mapaTab, { aba: this.c.abas[abaAtual] ? this.c.abas[abaAtual].nome : '', l: 0 }) : null;
+      if (outra && outra !== String(t).trim() && outra.indexOf('[') < 0 && !/#REF!/.test(outra)) return this.refDeTexto(outra, abaAtual);
+    }
     const e = lerEndereco(t);
     if (!e) return null;
     const id = e.aba ? this.abaId(e.aba, abaAtual) : abaAtual;
@@ -645,6 +658,7 @@ export class Motor {
   atualizar(novo) {
     const velho = this.c;
     if (novo === velho) return 0;
+    this.rev = (this.rev || 0) + 1;
     this.limparCacheMat();
     const estrutura = novo.ordem.length !== velho.ordem.length || novo.ordem.some((id, i) => id !== velho.ordem[i] || !velho.abas[id] || velho.abas[id].nome !== novo.abas[id].nome) || novo.nomes !== velho.nomes;
     if (estrutura) { this.carregar(novo); return -1; }
@@ -734,6 +748,14 @@ export class Motor {
     if (ehRef(r)) r = r.unica ? (this.valor(r.abaId, r.l1, r.c1) ?? 0) : this.matriz(r);
     if (ehMat(r)) return { valor: r.d[0] ? (r.d[0][0] ?? 0) : E.CALC, matriz: { linhas: r.linhas, colunas: r.colunas } };
     return { valor: r == null ? 0 : r, arv };
+  }
+
+  /** v0.5.1 (validação personalizada): calcula fn() como se a célula já tivesse o valor novo, sem gravar nada. */
+  comSubstituto(abaId, l, c, valor, fn) {
+    const antes = this.ov;
+    this.ov = { abaId, k: K(l, c), v: valor };
+    this.limparCacheMat();
+    try { return fn(); } finally { this.ov = antes; this.limparCacheMat(); }
   }
 
   /** Avalia um nó qualquer da árvore (para "Explicar esta conta" na v0.4.1). */

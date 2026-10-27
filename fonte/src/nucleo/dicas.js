@@ -11,6 +11,7 @@ export const DESCRICAO = {
   'editar.pincel': 'Copia só o formato (cor, bordas, número) e aplica em outra seleção.',
   'editar.localizar': 'Procura um texto e, se quiser, troca por outro.',
   'editar.comentar': 'Deixa uma observação presa à célula ou ao item.',
+  'revisao.comentarios': 'Lista todos os comentários desta aba para ir direto a cada um.',
   'editar.duplicar': 'Faz uma cópia do que está selecionado, logo ao lado.',
   'editar.excluir': 'Apaga o que está selecionado. Dá para desfazer.',
   'editar.selecionarTudo': 'Seleciona tudo de uma vez.',

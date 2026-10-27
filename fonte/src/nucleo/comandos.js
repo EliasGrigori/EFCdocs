@@ -5,7 +5,7 @@
 
 import { VERSAO } from './modelo.js';
 
-const V4 = 'v0.4.0', V5 = 'v0.5.0', V6 = 'v0.6.0', V7 = 'v0.7.0', V8 = 'v0.8.0';
+const V4 = 'v0.4.0', V5 = 'v0.5.0', V51 = 'v0.5.1', V6 = 'v0.6.0', V7 = 'v0.7.0', V8 = 'v0.8.0';
 const DEPOIS = 'depois da v1.0.0';
 const porModulo = (planilha, docx, postits) => ({ planilha, docx, postits });
 const C = (id, nome, ic, extra = {}) => ({ id, nome, ic, sin: [], mods: ['*'], ...extra });
@@ -39,7 +39,8 @@ export const COMANDOS = [
   C('editar.copiar', 'Copiar', 'copiar', { sin: ['ctrl c'], atalho: 'Ctrl+C', chega: porModulo(V4, V7, null) }),
   C('editar.pincel', 'Pincel de formatação', 'pincel', { sin: ['copiar formato', 'copiar cor'], chega: porModulo(V4, V7, null), acao: 'quadro.editar' }),
   C('editar.localizar', 'Localizar e substituir', 'busca', { sin: ['procurar', 'achar', 'substituir'], chega: porModulo(V4, V7, null) }),
-  C('editar.comentar', 'Comentário', 'comentario', { sin: ['comentar', 'nota', 'observação'], chega: porModulo(V6, V7, null), acao: 'quadro.editar' }),
+  C('editar.comentar', 'Comentário', 'comentario', { sin: ['comentar', 'nota', 'observação'], chega: porModulo(V51, V7, null), acao: 'quadro.editar' }),
+  C('revisao.comentarios', 'Comentários da aba', 'comentario', { sin: ['ver comentários', 'lista de notas', 'anotações'], chega: V51, mods: ['planilha'] }),
   C('editar.duplicar', 'Duplicar', 'dupl', { sin: ['cópia', 'ctrl d'], atalho: 'Ctrl+D', mods: ['postits'], acao: 'quadro.editar' }),
   C('editar.excluir', 'Excluir a seleção', 'lixeira', { sin: ['apagar post-it', 'apagar seta', 'delete', 'remover'], atalho: 'Delete', mods: ['postits'], acao: 'quadro.editar' }),
   C('editar.selecionarTudo', 'Selecionar tudo', 'selecao', { sin: ['ctrl a', 'marcar tudo'], atalho: 'Ctrl+A', mods: ['postits', 'planilha'] }),
@@ -78,7 +79,7 @@ export const COMANDOS = [
   C('formatar.formatoNumero', 'Formato de número', 'formatar', { sin: ['formatar células', 'ctrl 1', 'data', 'hora', 'código de formato'], atalho: 'Ctrl+1', mods: ['planilha'], acao: 'planilha.editar' }),
   C('formatar.fonte', 'Fonte e tamanho', 'titulo', { sin: ['tamanho da letra', 'tipo de letra', 'arial', 'calibri'], mods: ['planilha'], acao: 'planilha.editar' }),
   C('formatar.limpar', 'Limpar formatos', 'x', { sin: ['tirar formatação', 'apagar formato'], mods: ['planilha'], acao: 'planilha.editar' }),
-  C('formatar.condicional', 'Formatação condicional', 'condicional', { sin: ['destacar regra', 'pintar se', 'cor automática'], chega: V6, mods: ['planilha'] }),
+  C('formatar.condicional', 'Formatação condicional', 'condicional', { sin: ['destacar regra', 'pintar se', 'cor automática'], chega: V51, mods: ['planilha'], acao: 'planilha.editar' }),
   C('formatar.lista', 'Lista com marcadores', 'lista', { sin: ['tópicos', 'bolinhas'], chega: V7, mods: ['docx'] }),
   C('formatar.numerada', 'Lista numerada', 'numerada', { sin: ['numeração'], chega: V7, mods: ['docx'] }),
   C('formatar.titulo', 'Estilo título', 'titulo', { sin: ['cabeçalho', 'título 1', 'heading'], chega: V7, mods: ['docx'] }),
@@ -118,7 +119,7 @@ export const COMANDOS = [
 
   C('dados.classificar', 'Classificar', 'classificar', { sin: ['ordenar', 'a-z', 'organizar'], chega: V6, mods: ['planilha'] }),
   C('dados.filtrar', 'Filtrar', 'filtro', { sin: ['filtro', 'mostrar só'], chega: V6, mods: ['planilha'] }),
-  C('dados.validacao', 'Validação de dados', 'validacao', { sin: ['lista suspensa', 'limite de valor', 'regra de entrada'], chega: V6, mods: ['planilha'] }),
+  C('dados.validacao', 'Validação de dados', 'validacao', { sin: ['lista suspensa', 'limite de valor', 'regra de entrada'], chega: V51, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.duplicados', 'Remover duplicados', 'dupl', { sin: ['repetidos'], chega: V6, mods: ['planilha'] }),
   C('dados.dinamica', 'Tabela dinâmica', 'tabela', { sin: ['pivot', 'resumo', 'agrupar'], chega: DEPOIS, mods: ['planilha'] }),
 

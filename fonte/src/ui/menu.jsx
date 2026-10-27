@@ -1,5 +1,5 @@
 /* EFCdocs — menu lateral (igual ao .rail do EFClaudian), gaveta do celular e barra de baixo do celular. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PERFIS } from '../nucleo/perfis.js';
 import { Icone, Marca, irPara } from './comum.jsx';
 
@@ -27,6 +27,15 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
   );
   const recolhido = prefs.menu === 'icones';
   const [novoAberto, setNovoAberto] = useState(false);
+  /* v0.5.1: a lista do Novo fecha com Esc em qualquer lugar e com um clique fora dela */
+  useEffect(() => {
+    if (!novoAberto) return undefined;
+    const tecla = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setNovoAberto(false); } };
+    const fora = (ev) => { if (!(ev.target.closest && ev.target.closest('.novo-drive'))) setNovoAberto(false); };
+    addEventListener('keydown', tecla, true);
+    addEventListener('pointerdown', fora, true);
+    return () => { removeEventListener('keydown', tecla, true); removeEventListener('pointerdown', fora, true); };
+  }, [novoAberto]);
   return (
     <nav className={gaveta ? 'gaveta' : 'rail'} aria-label="Menu principal">
       <div className="brand">

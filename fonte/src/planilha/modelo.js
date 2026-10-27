@@ -47,6 +47,8 @@ export function normalizarPlanilha(c) {
   if (c.importado && typeof c.importado === 'object') out.importado = c.importado;
   if (typeof c.fonteBase === 'string') out.fonteBase = c.fonteBase;
   if (c.calcExcel === true) out.calcExcel = true;
+  /* v0.5.1: tabelas do Excel (só os endereços, para INDIRECT("Tabela[Coluna]") das listas suspensas) */
+  if (c.tabelas && typeof c.tabelas === 'object') out.tabelas = c.tabelas;
   return out;
 }
 

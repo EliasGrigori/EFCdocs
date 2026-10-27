@@ -71,10 +71,37 @@ const EMBUTIDOS_FIXOS = { General: 0, '0': 1, '0.00': 2, '#,##0': 3, '#,##0.00':
 
 const ESPESSURA = { hair: 1, thin: 1, dotted: 1, dashed: 1, dashDot: 1, dashDotDot: 1, medium: 2, mediumDashed: 2, mediumDashDot: 2, mediumDashDotDot: 2, slantDashDot: 2, thick: 3, double: 3 };
 
+/** Um <dxf> (o que a formatação condicional muda) → { fundo, cor, b, i, u, st }. Aceita o <x14:dxf> também. */
+export function lerDxf(dentro, corFn) {
+  const e = {};
+  const f = tag(dentro, 'font');
+  if (f) {
+    const val = (n) => { const t = tag(f.dentro, n); if (!t) return undefined; return t.a.val == null ? true : !(t.a.val === '0' || t.a.val === 'false'); };
+    const b = val('b'), i = val('i'), st = val('strike');
+    if (b !== undefined) e.b = b;
+    if (i !== undefined) e.i = i;
+    if (st !== undefined) e.st = st;
+    const u = tag(f.dentro, 'u');
+    if (u) e.u = u.a.val == null ? true : u.a.val !== 'none';
+    const cr = corFn(f.dentro, 'color');
+    if (cr) e.cor = cr;
+  }
+  const fi = tag(dentro, 'fill');
+  if (fi) {
+    const p = tag(fi.dentro, 'patternFill');
+    if (p) {
+      /* no dxf o Excel guarda a cor do fundo em bgColor (e em fgColor quando o tipo é "solid" sem bgColor) */
+      const fundo = corFn(p.dentro, 'bgColor') || corFn(p.dentro, 'fgColor');
+      if (fundo && p.a.patternType !== 'none') e.fundo = fundo;
+    }
+  }
+  return e;
+}
+
 /** styles.xml → lista de estilos do EFCdocs, um por "xf" (o s="N" da célula). */
 export function lerEstilos(xml, tema) {
   const fmts = { ...FORMATOS_EMBUTIDOS };
-  if (!xml) return { xfs: [{}], fonteBase: { nome: 'Calibri', tam: 11 }, fmts };
+  if (!xml) return { xfs: [{}], fonteBase: { nome: 'Calibri', tam: 11 }, fmts, dxfs: [], corFn: () => null };
   for (const n of tags(tag(xml, 'numFmts')?.dentro || '', 'numFmt')) fmts[+n.a.numFmtId] = n.a.formatCode;
   let indexadas = INDEXADAS;
   const ic = tag(xml, 'indexedColors');
@@ -142,15 +169,25 @@ export function lerEstilos(xml, tema) {
     return e;
   });
   if (!xfs.length) xfs.push({});
-  return { xfs, fonteBase: { nome: base.nome || 'Calibri', tam: base.tam || 11 }, fmts };
+  const dxfs = tags(tag(xml, 'dxfs')?.dentro || '', 'dxf').map((d) => lerDxf(d.dentro, cor));
+  return { xfs, fonteBase: { nome: base.nome || 'Calibri', tam: base.tam || 11 }, fmts, dxfs, corFn: cor };
 }
 
 /* ---------- gravar ---------- */
+/** { fundo, cor, b, i, u, st } → <dxf> (o que a formatação condicional muda). */
+function dxfXml(e) {
+  let f = '';
+  const sn = (k, nome) => (e[k] === true ? `<${nome}/>` : e[k] === false ? `<${nome} val="0"/>` : '');
+  f += sn('b', 'b') + sn('i', 'i') + sn('st', 'strike') + sn('u', 'u');
+  if (e.cor) f += `<color rgb="${hexArgb(e.cor)}"/>`;
+  return '<dxf>' + (f ? `<font>${f}</font>` : '') + (e.fundo ? `<fill><patternFill><bgColor rgb="${hexArgb(e.fundo)}"/></patternFill></fill>` : '') + '</dxf>';
+}
+
 const hexArgb = (h) => 'FF' + String(h).replace('#', '').toUpperCase().padStart(6, '0').slice(-6);
 const LARG_BORDA = { 1: 'thin', 2: 'medium', 3: 'thick' };
 
 /** Estilos do EFCdocs → styles.xml. O estilo N do EFCdocs vira o xf N do Excel. */
-export function gravarEstilos(estilos, fonteBase = 'Calibri') {
+export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = []) {
   const fontes = [], fundos = [], bordas = [], fmts = [], xfs = [];
   const idx = (lista, x) => { const k = JSON.stringify(x); let i = lista.findIndex((y) => y.k === k); if (i < 0) { lista.push({ k, x }); i = lista.length - 1; } return i; };
   idx(fontes, { tam: 11 });
@@ -217,7 +254,7 @@ export function gravarEstilos(estilos, fonteBase = 'Calibri') {
     '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
     `<cellXfs count="${xfs.length}">${xfs.map(xfXml).join('')}</cellXfs>` +
     '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
-    '<dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>' +
+    `<dxfs count="${dxfs.length}">${dxfs.map(dxfXml).join('')}</dxfs><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>` +
     '</styleSheet>';
   return xml;
 }

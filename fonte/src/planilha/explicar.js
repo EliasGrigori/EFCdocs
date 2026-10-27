@@ -9,7 +9,7 @@ import { ehErro, ERRO_EXPLICA, numeroGeral, lerNumeroPt } from './valores.js';
 import { Ref, ehRef, ehMat } from './tipos.js';
 import { chave, lerChave, letraCol, textoFaixa, MAX_COL } from './ref.js';
 import { formatar, ehFormatoData } from './formato.js';
-import { estiloDe } from './modelo.js';
+import { estiloDe, valorGuardado } from './modelo.js';
 
 const MAX_CEL_FAIXA = 5000; // ao procurar o erro dentro de uma faixa, olha no máximo isto
 
@@ -613,9 +613,15 @@ export function problemasDaPlanilha(motor, c, titulo, { max = 200 } = {}) {
   for (const [k, { o, mais }] of origens) {
     const causa = causaDoErro(motor, c, o.origem.abaId, o.origem.l, o.origem.c, titulo);
     if (!causa) continue;
+    /* erro que o Excel já tinha guardado (e continua igual): não é estrago do EFCdocs, então vira aviso */
+    const celO = c.abas[o.origem.abaId].cel[chave(o.origem.l, o.origem.c)];
+    const intacta = !!(c.importado && celO && (celO.lg || celO.da)); // a conta continua como veio do arquivo (editar tira a marca)
+    const guardado = intacta ? valorGuardado(celO) : undefined;
+    const atualO = motor.valor(o.origem.abaId, o.origem.l, o.origem.c);
+    const doExcel = intacta && ehErro(atualO) && (guardado == null || (ehErro(guardado) && String(guardado) === String(atualO)));
     add({
-      id: 'erro:' + k, nivel: 'erro', abaId: o.origem.abaId, l: o.origem.l, c: o.origem.c,
-      texto: `${causa.erroPt}: ${causa.motivo}${mais ? ` Mais ${mais} ${mais === 1 ? 'célula mostra' : 'células mostram'} este erro por causa desta.` : ''}`,
+      id: 'erro:' + k, nivel: doExcel ? 'aviso' : 'erro', abaId: o.origem.abaId, l: o.origem.l, c: o.origem.c,
+      texto: `${doExcel ? 'Já veio do Excel com este erro. ' : ''}${causa.erroPt}: ${causa.motivo}${mais ? ` Mais ${mais} ${mais === 1 ? 'célula mostra' : 'células mostram'} este erro por causa desta.` : ''}`,
       acoes: causa.acoes.filter((a) => a.tipo !== 'ir' || a.alvo.l !== o.origem.l || a.alvo.c !== o.origem.c || a.alvo.abaId !== o.origem.abaId),
     });
   }

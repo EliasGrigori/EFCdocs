@@ -1,9 +1,18 @@
 /* EFCdocs — Planilha: desenho da grade num canvas (só o que aparece na tela, por isso rola leve
    mesmo com muitas linhas) e "onde caiu o toque". */
-import { letraCol, MAX_LIN, MAX_COL, chave } from './ref.js';
+import { letraCol, MAX_LIN, MAX_COL, chave, lerChave } from './ref.js';
 import { formatar } from './formato.js';
 import { estiloDe, mescladas, mesclaEm } from './modelo.js';
 import { ehErro } from './valores.js';
+import { estiloCondicional, estiloComRegras } from './regras.js';
+
+/** Estilo da célula com as regras de cor (formatação condicional) por cima. */
+export function estiloVisto(c, cel, motor, abaId, l, col) {
+  const base = estiloDe(c, cel);
+  const aba = c.abas[abaId];
+  if (!aba || !aba.cf || !aba.cf.length) return base;
+  return estiloComRegras(base, estiloCondicional(motor, c, abaId, l, col));
+}
 
 export const CAB_W = 46, CAB_H = 24; // cabeçalhos (a 100%)
 const PAD = 4;
@@ -108,7 +117,7 @@ export function fonteCanvas(e, z, familia) {
 export function textoCelula(motor, c, abaId, l, col) {
   const cel = c.abas[abaId].cel[chave(l, col)];
   const v = motor.valor(abaId, l, col);
-  const e = estiloDe(c, cel);
+  const e = estiloVisto(c, cel, motor, abaId, l, col);
   const r = formatar(v, e.nf);
   let al = e.al;
   if (!al) al = typeof v === 'number' ? 'd' : typeof v === 'boolean' || ehErro(v) ? 'c' : 'e';
@@ -169,7 +178,7 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc) {
       const w = G.colunas.tam(col) * z;
       if (!w) continue;
       const cel = aba.cel[chave(l, col)];
-      const e = estiloDe(c, cel);
+      const e = estiloVisto(c, cel, motor, abaId, l, col);
       if (e.fundo) { ctx.fillStyle = e.fundo; ctx.fillRect(G.xDe(col), y, w, h); }
     }
   }
@@ -177,7 +186,7 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc) {
   for (const m of mesc) {
     if (m.l2 < la || m.l1 > lb || m.c2 < ca || m.c1 > cb) continue;
     const cel = aba.cel[chave(m.l1, m.c1)];
-    const e = estiloDe(c, cel);
+    const e = estiloVisto(c, cel, motor, abaId, m.l1, m.c1);
     const x = G.xDe(m.c1), y = G.yDe(m.l1), w = G.xDe(m.c2 + 1) - x, h = G.yDe(m.l2 + 1) - y;
     ctx.fillStyle = e.fundo || cores.fundo;
     ctx.fillRect(x, y, w, h);
@@ -202,7 +211,7 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc) {
     for (const m of mesc) {
       if (m.l2 < la || m.l1 > lb || m.c2 < ca || m.c1 > cb) continue;
       const cel = aba.cel[chave(m.l1, m.c1)];
-      const e = estiloDe(c, cel);
+      const e = estiloVisto(c, cel, motor, abaId, m.l1, m.c1);
       const x = G.xDe(m.c1), y = G.yDe(m.l1), w = G.xDe(m.c2 + 1) - x, h = G.yDe(m.l2 + 1) - y;
       ctx.fillStyle = e.fundo || cores.fundo;
       ctx.fillRect(x + 0.5, y + 0.5, w - 1.5, h - 1.5);
@@ -254,6 +263,19 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc) {
       lado('b', x, r(y + h), x + w, r(y + h));
       lado('l', r(x), y, r(x), y + h);
       lado('r', r(x + w), y, r(x + w), y + h);
+    }
+  }
+  /* comentários: triângulo vermelho no canto de cima, à direita (como o Excel) */
+  if (aba.com) {
+    for (const k of Object.keys(aba.com)) {
+      const q = lerChave(k);
+      if (!q || q.l < la || q.l > lb || q.c < ca || q.c > cb) continue;
+      if (!G.linhas.tam(q.l) || !G.colunas.tam(q.c)) continue;
+      const m = mesc.length ? mesclaEm(mesc, q.l, q.c) : null;
+      const xd = G.xDe(m ? m.c2 + 1 : q.c + 1), yt = G.yDe(q.l);
+      const t = Math.max(5, 6 * z);
+      ctx.fillStyle = '#c00000';
+      ctx.beginPath(); ctx.moveTo(xd, yt); ctx.lineTo(xd - t, yt); ctx.lineTo(xd, yt + t); ctx.closePath(); ctx.fill();
     }
   }
 }

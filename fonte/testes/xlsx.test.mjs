@@ -131,7 +131,12 @@ test('xlsx: abre a amostra: abas, cor, oculta, congelar, larguras, mescladas, no
   assert.ok(col.cel.E1041 && !col.cel.E1043);
   assert.match(r.abas[0].cortes[0], /linhas 1\.042 a 6\.000/);
   const fora = r.fora.map((x) => x.item);
-  for (const item of ['Comentários e anotações', 'Formatação condicional', 'Validação de dados (listas suspensas)']) assert.ok(fora.includes(item), item);
+  /* v0.5.1: validação, formatação condicional e comentários passam a vir */
+  for (const item of ['Comentários e anotações', 'Formatação condicional', 'Validação de dados (listas suspensas)']) assert.ok(!fora.includes(item), item);
+  assert.equal(r.extras.validacoes, 1); assert.equal(r.extras.condicionais, 1); assert.equal(r.extras.notas, 1);
+  assert.deepEqual(col.val[0], { fx: 'B2:B41', t: 'list', f1: '"Entrada,Reservatório,Rede 1,Rede 2,Bebedouro"' });
+  assert.equal(col.cf[0].t, 'cellIs'); assert.equal(col.cf[0].op, 'greaterThan'); assert.equal(col.cf[0].e.fundo, '#f4cccc');
+  assert.equal(col.com.B2.t, 'Ponto de entrada da água');
   assert.match(r.avisos.join(' '), /TAB_COLETAS\[Cloro \(mg\/L\)\] virou Coletas!\$C\$2:\$C\$41/);
   assert.equal(c.calcExcel, true); assert.equal(c.fonteBase, 'Calibri');
   /* o motor calcula igual ao Excel */
@@ -305,4 +310,25 @@ test('xlsx: célula mesclada encontrada rápido com milhares de mescladas', () =
   assert.equal(mesclaEm(lista, 2, 0), null);
   assert.equal(mesclaEm(lista, 4000, 3).t, 'D1:D5000');
   assert.equal(mesclaEm(lista, 4000, 4), null);
+});
+
+test('xlsx v0.5.1: FILTRO, ÚNICO e CLASSIFICAR salvos sem a marca de matriz dinâmica (LibreOffice) viram matriz dinâmica e derramam', async () => {
+  const NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  const sheet = `<worksheet ${NS}><sheetData>
+    <row r="1"><c r="A1"><v>1</v></c><c r="C1"><f>_xlfn._xlws.FILTER(A1:A4,A1:A4&gt;1)</f></c><c r="D1"><f>_xlfn.UNIQUE(B2:B4)</f></c><c r="E1"><f>A1*2</f></c></row>
+    <row r="2"><c r="A2"><v>5</v></c><c r="B2"><v>7</v></c></row>
+    <row r="3"><c r="A3"><v>3</v></c><c r="B3"><v>7</v></c></row>
+    <row r="4"><c r="A4"><v>2</v></c><c r="B4"><v>8</v></c></row></sheetData></worksheet>`;
+  const wb = `<workbook ${NS}><sheets><sheet name="Dados" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const rels = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';
+  const raiz = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  const zip = criarZip([{ nome: '_rels/.rels', dados: raiz }, { nome: 'xl/workbook.xml', dados: wb }, { nome: 'xl/_rels/workbook.xml.rels', dados: rels }, { nome: 'xl/worksheets/sheet1.xml', dados: sheet }]);
+  const { conteudo: c } = await lerXlsx(await zip);
+  const a = c.abas[c.ordem[0]];
+  assert.equal(a.cel.C1.da, 1, 'FILTER é sempre matriz dinâmica'); assert.equal(a.cel.D1.da, 1, 'UNIQUE também');
+  assert.equal(a.cel.E1.lg, 1, 'conta comum continua como do Excel antigo');
+  const m = new Motor(normalizarPlanilha(c));
+  const id = c.ordem[0];
+  assert.equal(m.valor(id, 0, 2), 5); assert.equal(m.valor(id, 1, 2), 3); assert.equal(m.valor(id, 2, 2), 2, 'FILTRO derrama para baixo');
+  assert.equal(m.valor(id, 0, 3), 7); assert.equal(m.valor(id, 1, 3), 8, 'ÚNICO derrama para baixo');
 });

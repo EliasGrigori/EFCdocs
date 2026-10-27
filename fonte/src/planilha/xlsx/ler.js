@@ -3,7 +3,7 @@
    - Valores, fórmulas (com o último valor que o Excel calculou), estilos, larguras, alturas, ocultas,
      mescladas, congelar painéis, cor e abas ocultas, nomes definidos, tabelas (as fórmulas viram endereços).
    - Não vêm (e o relatório diz): macros, gráficos, tabelas dinâmicas (vêm os valores), imagens, controles,
-     comentários, formatação condicional, validação de dados, filtros, proteção.
+     filtros, proteção. (v0.5.1: validação de dados, formatação condicional e comentários passam a vir.)
    - Linhas no fim que não mostram nada (fórmula copiada até a linha 1.048.576, só formatação ou ocultas com sobra)
      são cortadas, e o relatório diz onde. */
 import { lerZip } from './zip.js';
@@ -13,7 +13,9 @@ import { tirarPrefixos, trocarTabelas } from './formulas.js';
 import { chave, letraCol, lerChave, numCol, MAX_LIN } from '../ref.js';
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
+import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
 import { indiceEstilo, LARG_PADRAO, ALT_PADRAO, NOME_ABA_PADRAO } from '../modelo.js';
+const RX_SO_DINAMICA = /(^|[^\w.])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|RANDARRAY|XLOOKUP|XMATCH|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS|LET|LAMBDA)\(/i;
 
 export const LIMITES = {
   folga: 1000, // linhas vazias (ou de fórmula que dá vazio) que ficam depois do último dado
@@ -54,6 +56,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   const rel = {
     arquivo: nomeArquivo, em: agora.toISOString(), bytes: bytes.length || bytes.byteLength || 0,
     abas: [], fora: [], avisos: [], semCalculo: 0, exemplosSemCalculo: [], celulas: 0, formulas: 0,
+    /* v0.5.1: o que veio de validação de dados, formatação condicional e comentários */
+    extras: { validacoes: 0, listas: 0, condicionais: 0, notas: 0, conversas: 0, respostas: 0, abasComRegras: [] },
   };
   const fora = new Map();
   const juntarFora = (item, qtd = 1, detalhe = '') => { const x = fora.get(item) || { item, qtd: 0, detalhe }; x.qtd += qtd; if (detalhe && !x.detalhe) x.detalhe = detalhe; fora.set(item, x); };
@@ -84,6 +88,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   }
   const tema = lerTema(pTema ? await zip.texto(pTema) : null);
   const est = lerEstilos(pEst ? await zip.texto(pEst) : null, tema);
+  const pessoas = await lerPessoas(zip, relsWb);
 
   /* estilos do EFCdocs (sem repetição) e a ponte xf do Excel → índice do EFCdocs */
   let estilos = [{}];
@@ -151,7 +156,6 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   if (conta(/^xl\/media\//i)) juntarFora('Imagens', conta(/^xl\/media\//i));
   if (conta(/^xl\/(slicers|slicerCaches|timelines|timelineCaches)\//i)) juntarFora('Segmentações de dados e linhas do tempo', conta(/^xl\/(slicers|timelines)\/[^/]+\.xml$/i) || 1);
   if (conta(/^xl\/ctrlProps\//i)) juntarFora('Botões e caixas de controle', conta(/^xl\/ctrlProps\//i));
-  if (conta(/^xl\/(comments\d*|threadedComments\/)/i)) juntarFora('Comentários e anotações', conta(/^xl\/(comments\d*\.xml|threadedComments\/threadedComment\d*\.xml)$/i) || 1);
   if (conta(/^xl\/webextensions\//i)) juntarFora('Suplementos do Office', conta(/^xl\/webextensions\/webextension\d*\.xml$/i) || 1);
   if (conta(/^xl\/externalLinks\//i)) juntarFora('Vínculos com outros arquivos', conta(/^xl\/externalLinks\/externalLink\d*\.xml$/i), 'as fórmulas que usam outro arquivo mostram o último valor');
   if (conta(/^xl\/(connections\.xml|queryTables\/)/i)) juntarFora('Consultas e conexões de dados (Power Query)', 1);
@@ -218,7 +222,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         const cel = {};
         if (x.v !== undefined) cel.v = x.v;
         if (x.f != null) {
-          cel.f = x.f; if (x.da) cel.da = 1; else cel.lg = 1; nForm++;
+          cel.f = x.f; if (x.da || RX_SO_DINAMICA.test(x.f)) cel.da = 1; else cel.lg = 1; nForm++; // FILTRO, ÚNICO, CLASSIFICAR... só existem no Excel novo: sempre matriz dinâmica, mesmo se o arquivo (LibreOffice, etc.) não marcou
           const motivo = checarFormula(x.f);
           if (motivo) avisoFormula(x.f, motivo);
         }
@@ -444,10 +448,26 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       mesc.push(m[1].toUpperCase());
     }
     if (mesc.length) aba.mesc = mesc;
-    const nCond = (resto.match(/<conditionalFormatting\b/g) || []).length + (resto.match(/<x14:conditionalFormatting\b/g) || []).length;
-    if (nCond) juntarFora('Formatação condicional', nCond, 'as cores automáticas por regra não vêm');
-    const nVal = (resto.match(/<dataValidation\b/g) || []).length + (resto.match(/<x14:dataValidation\b/g) || []).length;
-    if (nVal) juntarFora('Validação de dados (listas suspensas)', nVal);
+    /* v0.5.1: validação de dados (listas suspensas), formatação condicional e comentários */
+    if (resto.indexOf('dataValidation') >= 0) {
+      const v = lerValidacoes(resto, conv, F.nome);
+      if (v.val.length) { aba.val = v.val; rel.extras.validacoes += v.val.length; rel.extras.listas += v.val.filter((x) => x.t === 'list').length; }
+      if (v.ignoradas) juntarFora('Validação de dados de tipo desconhecido', v.ignoradas);
+    }
+    if (resto.indexOf('onditionalFormatting') >= 0) {
+      const cf = lerCondicionais(resto, est.dxfs || [], conv, F.nome, est.corFn);
+      if (cf.regras.length) { aba.cf = cf.regras; rel.extras.condicionais += cf.regras.length; }
+      if (cf.fora.escalas) juntarFora('Escalas de cor (formatação condicional)', cf.fora.escalas, 'chegam numa versão próxima; as outras regras da aba vieram');
+      if (cf.fora.barras) juntarFora('Barras de dados (formatação condicional)', cf.fora.barras, 'chegam numa versão próxima');
+      if (cf.fora.icones) juntarFora('Conjuntos de ícones (formatação condicional)', cf.fora.icones, 'chegam numa versão próxima');
+      if (cf.fora.periodo) juntarFora('Regras de datas (hoje, ontem, esta semana...)', cf.fora.periodo);
+      if (cf.fora.outras) juntarFora('Regras de formatação condicional que o EFCdocs não entende', cf.fora.outras);
+    }
+    if (aba.val || aba.cf) rel.extras.abasComRegras.push(F.nome);
+    if (F.rels) {
+      const co = await lerComentarios(zip, F.rels, pessoas);
+      if (Object.keys(co.com).length) { aba.com = co.com; rel.extras.notas += co.notas; rel.extras.conversas += co.conversas; rel.extras.respostas += co.respostas; }
+    }
     const nLink = (resto.match(/<hyperlink\b/g) || []).length;
     if (nLink) juntarFora('Links nas células', nLink, 'o texto vem, o link não');
     if (/<autoFilter\b/.test(resto)) juntarFora('Filtros', 1, 'as linhas escondidas pelo filtro continuam escondidas; os botões de filtro não vêm');
@@ -470,6 +490,14 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
 
   if (abasZero.length) rel.avisos.push(`${abasZero.length === 1 ? `Na aba "${abasZero[0]}"` : `Nas abas ${abasZero.map((n) => `"${n}"`).join(', ')}`}, as linhas não usadas ficavam escondidas no Excel; aqui elas aparecem vazias.`);
   if (tabelas.size) rel.avisos.push(`${tabelas.size === 1 ? 'A tabela' : `As ${tabelas.size} tabelas`} do Excel ${tabelas.size === 1 ? 'virou' : 'viraram'} faixa normal: nas fórmulas, o nome da coluna virou o endereço${exemploTabela ? ` (por exemplo, ${exemploTabela})` : ''}. A conta é a mesma.`);
+
+  /* tabelas: guarda onde ficavam (para INDIRECT("Tabela[Coluna]") nas listas suspensas) */
+  if (tabelas.size) {
+    const porNome = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));
+    const tb = {};
+    for (const [k, t] of tabelas) { const id = porNome.get(String(t.aba).toLowerCase()); if (id) tb[k] = { nome: t.nome, aba: id, l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2, cols: t.cols, cab: t.cab, tot: t.tot }; }
+    if (Object.keys(tb).length) conteudo.tabelas = tb;
+  }
 
   /* abas com nome repetido ou vazio (não deveria acontecer) */
   const vistos = new Set();

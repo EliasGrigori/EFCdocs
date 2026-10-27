@@ -25,6 +25,8 @@ import { objetosDaAba, novaAssinatura, mudancaObjetos, comObjeto, semObjeto, ret
 import { JanelaAssinatura, AssinaturaView } from '../ui/assinatura.jsx';
 import { RelatorioExcel } from '../ui/excel.jsx';
 import { baixarXlsx } from './xlsx/abrir.js';
+import { validacaoEm, listaDaCelula, opcoesLista, valorValido, mensagemDeErro, comentarioEm, textoDoComentario, listaComentarios, tirarDeFaixas, regraToca, textoFaixas } from './regras.js';
+import { JanelaValidacao, JanelaCondicional, JanelaComentario, JanelaComentarios, ListaSuspensa, Balao } from './regrasUi.jsx';
 import { ASN } from '../nucleo/assinatura.js';
 import { CampoFormula, AjudaFormula } from './EditorFormula.jsx';
 import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, JanelaZeros, JanelaNumeroData, BarraSimbolos, ESTATS } from './partes.jsx';
@@ -148,6 +150,8 @@ export function Planilha({ arquivo, cx }) {
   const setEdit = (e) => { editRef.current = typeof e === 'function' ? e(editRef.current) : e; setEditEstado(editRef.current); };
   const [menu, setMenu] = useState(null);
   const [janela, setJanela] = useState(null);
+  const [lista, setLista] = useState(null); // lista suspensa aberta: { l, c, itens, aviso, literal }
+  const [balao, setBalao] = useState(null); // comentário sob o mouse: { l, c }
   const [arrasto, setArrasto] = useState(null);
   const [copia, setCopia] = useState(null);
   const [pincel, setPincel] = useState(null);
@@ -488,7 +492,7 @@ export function Planilha({ arquivo, cx }) {
   };
 
   /** Grava o que foi digitado. mover: [dl, dc] ou null. Devolve false se a fórmula tem erro. */
-  const confirmar = (mover, { preencherTudo = false, zero = null, lembrar = false, numdata = null } = {}) => {
+  const confirmar = (mover, { preencherTudo = false, zero = null, lembrar = false, numdata = null, validado = false } = {}) => {
     let e = editRef.current;
     if (!e) return true;
     if (autoTextoRef.current && autoTextoRef.current.toLowerCase().startsWith(e.texto.toLowerCase())) e = { ...e, texto: autoTextoRef.current };
@@ -548,6 +552,20 @@ export function Planilha({ arquivo, cx }) {
           });
           return false;
         }
+      }
+    }
+    /* validação de dados (v0.5.1): só vale para o que é digitado; conta e colagem passam, como no Excel */
+    if (!validado && r.f == null && !r.vazio && !preencherTudo) {
+      const reg = validacaoEm(abaE, e.l, e.c);
+      if (reg && reg.t !== 'any' && reg.me && !valorValido(motor, c, e.abaId, reg, e.l, e.c, r.v, texto)) {
+        const m = mensagemDeErro(reg);
+        setJanela({
+          tipo: 'valerro', titulo: m.titulo, texto: m.texto, nivel: m.nivel,
+          aoContinuar: () => { setJanela(null); confirmarRef.current(mover, { preencherTudo, zero, lembrar, numdata, validado: true }); },
+          aoVoltar: () => { setJanela(null); setTimeout(() => { const f = (editRef.current && editRef.current.onde === 'barra' ? campoBarra : campoCel).current; if (f) f.focar(); }, 0); },
+          aoCancelar: () => { setJanela(null); setEdit(null); setTimeout(voltarFocoGrade, 0); },
+        });
+        return false;
       }
     }
     const lote = new O.Lote(c);
@@ -844,6 +862,8 @@ export function Planilha({ arquivo, cx }) {
       if (k === 'Escape') { setObjSel(null); return; }
       if (!ctrl && k.length > 1 && k !== 'Shift' && k !== 'Control' && k !== 'Alt' && k !== 'Meta') setObjSel(null);
     }
+    if (k === 'ArrowDown' && ev.altKey && listaDaCelula(aba, sel.ativa.l, sel.ativa.c)) { ev.preventDefault(); abrirLista(); return; }
+    if (k === 'F2' && ev.shiftKey && !somenteLeitura) { ev.preventDefault(); setJanela({ tipo: 'comentario', l: sel.ativa.l, c: sel.ativa.c }); return; }
     const setas = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
     if (setas[k]) { ev.preventDefault(); andar(setas[k][0], setas[k][1], { estender: ev.shiftKey, pular: ctrl }); return; }
     if (k === 'Tab') { ev.preventDefault(); andar(0, ev.shiftKey ? -1 : 1); return; }
@@ -1470,6 +1490,61 @@ export function Planilha({ arquivo, cx }) {
   };
 
   /* ---------- comandos da faixa ---------- */
+  /* ---------- v0.5.1: lista suspensa, validação de dados, formatação condicional e comentários ---------- */
+  const faixasDoAlvo = (j) => (j && j.faixas ? j.faixas : sel.faixas).map((f) => normalFaixa(f));
+  const abrirLista = () => {
+    if (somenteLeitura || editRef.current) return;
+    const { l, c: col } = sel.ativa;
+    const reg = listaDaCelula(aba, l, col);
+    if (!reg) return;
+    const r = opcoesLista(motor, c, abaId, reg, l, col);
+    setBalao(null);
+    setLista({ l, c: col, itens: r.itens, aviso: r.erro || null, literal: !!r.literal });
+  };
+  const escolherDaLista = (it) => {
+    if (!lista) return;
+    const { l, c: col } = lista;
+    const k = chave(l, col);
+    const atual = aba.cel[k] || {};
+    const est = estiloDe(c, atual);
+    const lote = new O.Lote(c);
+    const nova = { ...atual };
+    delete nova.v; delete nova.f; delete nova.da; delete nova.lg;
+    let v = it.v;
+    if (lista.literal) { const r = lerEntrada(it.t, est.nf || 'General'); v = r.v !== undefined ? r.v : it.t; }
+    nova.v = paraGuardarValor(v);
+    lote.por(abaId, k, nova);
+    setLista(null);
+    aplicarLote(lote, `Escolher da lista em ${k}`);
+    setTimeout(voltarFocoGrade, 0);
+  };
+  const aplicarValidacao = (regra) => {
+    const alvo = faixasDoAlvo(janela);
+    const antes = (aba.val || []).map((r) => { const fx = tirarDeFaixas(r.fx, alvo); return fx ? { ...r, fx } : null; }).filter(Boolean);
+    mudar({ [`conteudo.abas.${abaId}.val`]: [{ ...regra, fx: textoFaixas(alvo) }, ...antes] }, 'Validação de dados');
+  };
+  const limparValidacao = () => {
+    const alvo = faixasDoAlvo(janela);
+    const resto = (aba.val || []).map((r) => { const fx = tirarDeFaixas(r.fx, alvo); return fx ? { ...r, fx } : null; }).filter(Boolean);
+    mudar({ [`conteudo.abas.${abaId}.val`]: resto.length ? resto : undefined }, 'Limpar validação de dados');
+  };
+  const salvarCondicionais = (regras) => mudar({ [`conteudo.abas.${abaId}.cf`]: regras.length ? regras : undefined }, 'Formatação condicional');
+  const nomeDoAutor = () => { try { return localStorage.getItem('efcdocs.autor') || ''; } catch { return ''; } };
+  const guardarAutor = (a) => { try { if (a) localStorage.setItem('efcdocs.autor', a); } catch { /* sem armazenamento */ } };
+  const salvarComentario = (l, col, obj) => {
+    guardarAutor(obj.a);
+    const k = chave(l, col);
+    mudar({ [`conteudo.abas.${abaId}.com`]: { ...(aba.com || {}), [k]: obj } }, `Comentário em ${k}`);
+  };
+  const excluirComentario = (l, col) => {
+    const k = chave(l, col);
+    const resto = { ...(aba.com || {}) };
+    delete resto[k];
+    mudar({ [`conteudo.abas.${abaId}.com`]: Object.keys(resto).length ? resto : undefined }, `Excluir comentário de ${k}`);
+  };
+  useEffect(() => { setLista(null); }, [sel.ativa.l, sel.ativa.c, abaId]);
+  useEffect(() => { if (edit) { setLista(null); setBalao(null); } }, [edit]);
+
   const trata = (id) => {
     const ed = (fn) => { if (somenteLeitura) { cx.avisar('Seu perfil não permite esta ação.', { ic: 'aviso' }); return true; } fn(); return true; };
     switch (id) {
@@ -1535,6 +1610,10 @@ export function Planilha({ arquivo, cx }) {
       case 'exibir.folhaClara': setPrefs((p) => ({ ...p, folhaClara: !p.folhaClara })); cx.avisar(prefs.folhaClara ? 'A grade volta a seguir o tema.' : 'Folha clara: a grade fica branca neste aparelho.', { ic: 'tema' }); return true;
       case 'exibir.zoom': setJanela({ tipo: 'zoom' }); return true;
       case 'exibir.barraFormula': alternarFx(); return true;
+      case 'dados.validacao': return ed(() => setJanela({ tipo: 'validacao' }));
+      case 'formatar.condicional': return ed(() => setJanela({ tipo: 'condicional' }));
+      case 'editar.comentar': return ed(() => setJanela({ tipo: 'comentario', l: sel.ativa.l, c: sel.ativa.c }));
+      case 'revisao.comentarios': setJanela({ tipo: 'comentarios' }); return true;
       case 'arquivo.exportarExcel': salvarExcel(); return true;
       case 'arquivo.relatorioExcel':
         if (c.importado) setJanela({ tipo: 'relExcel' });
@@ -1800,6 +1879,8 @@ export function Planilha({ arquivo, cx }) {
       const o = ondeCaiu(G, p.x, p.y);
       const cur = o.tipo === 'bordaCol' ? 'col-resize' : o.tipo === 'bordaLin' ? 'row-resize' : pertoDaAlca(p) ? 'crosshair' : o.tipo === 'col' ? 's-resize' : o.tipo === 'lin' ? 'e-resize' : 'cell';
       if (cvRef.current.style.cursor !== cur) cvRef.current.style.cursor = cur;
+      const temC = o.tipo === 'cel' && aba.com && aba.com[chave(o.l, o.c)];
+      setBalao((b) => (temC ? (b && b.l === o.l && b.c === o.c ? b : { l: o.l, c: o.c }) : b ? null : b));
       return;
     }
     rolarNaBorda(p);
@@ -1900,6 +1981,10 @@ export function Planilha({ arquivo, cx }) {
     if (o && o.tipo === 'cel' && !sel.faixas.some((f) => { const n = normalFaixa(f); return n.l1 <= o.l && o.l <= n.l2 && n.c1 <= o.c && o.c <= n.c2; })) selecionar(o.l, o.c, { semRolar: true });
     const quemUsa = motor.dependentes(abaId, sel.ativa.l, sel.ativa.c).length;
     const ro = somenteLeitura;
+    const fora = o && o.tipo === 'cel' && !sel.faixas.some((f) => { const n = normalFaixa(f); return n.l1 <= o.l && o.l <= n.l2 && n.c1 <= o.c && o.c <= n.c2; });
+    const alvoCel = o && o.tipo === 'cel' ? { l: o.l, c: o.c } : sel.ativa;
+    const alvoFaixas = fora ? [{ l1: o.l, c1: o.c, l2: o.l, c2: o.c }] : null;
+    const temCom = !!comentarioEm(aba, alvoCel.l, alvoCel.c);
     const linhasInteiras = faixa.c1 === 0 && faixa.c2 === MAX_COL - 1;
     const colunasInteiras = faixa.l1 === 0 && faixa.l2 === MAX_LIN - 1;
     setMenu({
@@ -1922,6 +2007,11 @@ export function Planilha({ arquivo, cx }) {
         '-',
         !ro && { nome: 'Formato de número...', ic: 'formatar', atalho: 'Ctrl+1', fazer: () => setJanela({ tipo: 'formato' }) },
         !ro && { nome: 'Dar nome...', ic: 'renomear', fazer: darNome },
+        !ro && { nome: 'Validação de dados...', ic: 'validacao', fazer: () => setJanela({ tipo: 'validacao', faixas: alvoFaixas }) },
+        !ro && { nome: 'Formatação condicional...', ic: 'condicional', fazer: () => setJanela({ tipo: 'condicional', faixas: alvoFaixas }) },
+        !ro && { nome: temCom ? 'Editar comentário...' : 'Novo comentário...', ic: 'comentario', fazer: () => setJanela({ tipo: 'comentario', l: alvoCel.l, c: alvoCel.c }) },
+        !ro && temCom && { nome: 'Excluir comentário', ic: 'lixeira', fazer: () => excluirComentario(alvoCel.l, alvoCel.c) },
+        ro && temCom && { nome: 'Ver comentário', ic: 'comentario', fazer: () => setJanela({ tipo: 'comentario', l: alvoCel.l, c: alvoCel.c }) },
         motor.formula(abaId, sel.ativa.l, sel.ativa.c) && { nome: ehErro(motor.valor(abaId, sel.ativa.l, sel.ativa.c)) ? 'Por que deu erro?' : 'Explicar esta conta', ic: 'explicar', fazer: () => setJanela({ tipo: 'explicar' }) },
         { nome: `De onde vem / quem usa${quemUsa ? ` (${quemUsa})` : ''}`, ic: 'origem', fazer: () => setJanela({ tipo: 'origem' }) },
         !ro && { nome: `Linha ${sel.ativa.l + 1} é o cabeçalho`, ic: 'titulo', fazer: () => trata('planilha.cabecalho'), dica: 'Os títulos desta linha aparecem junto das referências nas fórmulas' },
@@ -2248,6 +2338,46 @@ export function Planilha({ arquivo, cx }) {
             <CampoFormula ref={campoCel} {...campoProps('celula')} classe="celula" rotulo={'Editando ' + chave(edit.l, edit.c)} focar={edit.onde === 'celula'} />
           </div>
         )}
+        {/* v0.5.1: seta da lista suspensa, balão do aviso e balão de comentário */}
+        {(() => {
+          if (edit) return null;
+          const { l: al, c: ac } = sel.ativa;
+          const mA = mesclaEm(mesc, al, ac);
+          const x0 = G.xDe(mA ? mA.c1 : ac), x1 = G.xDe(mA ? mA.c2 + 1 : ac + 1), y0 = G.yDe(mA ? mA.l1 : al), y1 = G.yDe(mA ? mA.l2 + 1 : al + 1);
+          const visivel = x1 > G.hw + 24 && x0 < tam.W && y1 > G.hh && y0 < tam.H;
+          const reg = visivel ? validacaoEm(aba, al, ac) : null;
+          const temSeta = visivel && !somenteLeitura && listaDaCelula(aba, al, ac);
+          const maxX = tam.W - 8;
+          const pos = (xb, yb, larg) => ({ x: Math.max(G.hw, Math.min(xb, maxX - larg)), y: Math.max(G.hh, Math.min(yb, tam.H - 90)) });
+          let aviso = null;
+          if (reg && reg.mi && (reg.mit || reg.mim) && !lista) { const q = pos(x0, y1 + 3, 250); aviso = <Balao x={q.x} y={q.y} tipo="aviso" titulo={reg.mit} texto={reg.mim} />; }
+          let cb = null;
+          const alvoBalao = balao || (cel && aba.com && aba.com[chave(al, ac)] ? { l: al, c: ac } : null);
+          const cm = alvoBalao && comentarioEm(aba, alvoBalao.l, alvoBalao.c);
+          if (cm && !janela) {
+            const mB = mesclaEm(mesc, alvoBalao.l, alvoBalao.c);
+            const q = pos(G.xDe(mB ? mB.c2 + 1 : alvoBalao.c + 1) + 6, G.yDe(alvoBalao.l), 270);
+            cb = <Balao x={q.x} y={q.y} tipo="com" titulo={cm.a} texto={cm.t} respostas={cm.r} maxW={270} />;
+          }
+          const largLista = Math.max(120, x1 - x0);
+          const abaixo = y1 + Math.min(220, ((lista && lista.itens.length) || 1) * 26 + 8) <= tam.H;
+          return (
+            <>
+              {temSeta && (
+                <button type="button" className="pl-seta-lista" data-lista-seta aria-label="Abrir a lista da célula" title="Abrir a lista (Alt+↓)" tabIndex={-1}
+                  style={{ left: Math.min(x1, tam.W) - 19, top: y0 + 1, height: Math.max(14, y1 - y0 - 2) }}
+                  onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); if (lista) setLista(null); else abrirLista(); }}><Icone n="chevronBaixo" /></button>
+              )}
+              {aviso}
+              {cb}
+              {lista && lista.l === al && lista.c === ac && (
+                <ListaSuspensa x={Math.max(G.hw, x0)} y={abaixo ? y1 : Math.max(G.hh, y0 - Math.min(220, lista.itens.length * 26 + 8))} w={largLista} itens={lista.itens} aviso={lista.aviso}
+                  atual={textoCelula(motor, c, abaId, al, ac).t}
+                  aoEscolher={escolherDaLista} aoFechar={() => { setLista(null); setTimeout(voltarFocoGrade, 0); }} />
+              )}
+            </>
+          );
+        })()}
         {!cel && ajuda && <div className="pl-ajuda-ancora">{ajuda}</div>}
         {cel && !edit && !somenteLeitura && (<>{alcaCel('a')}{alcaCel('b')}</>)}
         {!cel || !edit ? <PainelProblemas alvo={cel ? null : cx.alvoRodape} lista={listaProb} aberto={probAberto} aoAlternar={() => { if (probAberto) setTimeout(voltarFocoGrade, 0); setProbAberto(!probAberto); }} somenteLeitura={somenteLeitura}
@@ -2300,6 +2430,33 @@ export function Planilha({ arquivo, cx }) {
       {janela && janela.tipo === 'congelar' && <JanelaCongelar ativa={sel.ativa} cong={cong} aoEscolher={(v) => mudar({ [`conteudo.abas.${abaId}.cong`]: v && (v.l || v.c) ? v : undefined }, v ? 'Congelar painéis' : 'Descongelar painéis')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'funcoes' && <JanelaFuncoes aoEscolher={(f) => { if (editRef.current && editRef.current.texto.startsWith('=')) inserirNoCursor(f.pt + '('); else comecarEdicao({ texto: '=' + f.pt + '(', modo: 'entrar' }); }} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'numdata' && <JanelaNumeroData valor={janela.valor} mostra={janela.mostra} aoEscolher={janela.aoEscolher} aoFechar={janela.aoFechar} />}
+      {janela && janela.tipo === 'validacao' && (
+        <JanelaValidacao faixaTexto={textoFaixas(faixasDoAlvo(janela))} inicial={validacaoEm(aba, (janela.faixas ? janela.faixas[0].l1 : sel.ativa.l), (janela.faixas ? janela.faixas[0].c1 : sel.ativa.c))}
+          aoAplicar={aplicarValidacao} aoLimpar={limparValidacao} aoFechar={() => setJanela(null)} />
+      )}
+      {janela && janela.tipo === 'condicional' && (
+        <JanelaCondicional lista={aba.cf || []} faixaTexto={textoFaixas(faixasDoAlvo(janela))} selecao={(r) => regraToca(r, faixasDoAlvo(janela))}
+          aoSalvar={salvarCondicionais} aoFechar={() => setJanela(null)} />
+      )}
+      {janela && janela.tipo === 'comentario' && (
+        <JanelaComentario chaveCel={chave(janela.l, janela.c)} inicial={comentarioEm(aba, janela.l, janela.c)} nomeInicial={nomeDoAutor()} somenteLeitura={somenteLeitura}
+          aoSalvar={(o) => salvarComentario(janela.l, janela.c, o)} aoExcluir={() => excluirComentario(janela.l, janela.c)} aoFechar={() => setJanela(null)} />
+      )}
+      {janela && janela.tipo === 'comentarios' && <JanelaComentarios lista={listaComentarios(aba)} aoIr={(l, col) => irPara({ abaId, l, c: col })} aoFechar={() => setJanela(null)} />}
+      {janela && janela.tipo === 'valerro' && (
+        <Janela titulo={janela.titulo} aoFechar={janela.aoVoltar} classe="rg-jan" rodape={janela.nivel === 'stop' ? (
+          <><button type="button" className="btn sm" data-valerro-cancelar onClick={janela.aoCancelar}>Cancelar</button><button type="button" className="btn sm primary" data-valerro-voltar onClick={janela.aoVoltar}>Tentar de novo</button></>
+        ) : janela.nivel === 'warning' ? (
+          <><button type="button" className="btn sm" data-valerro-voltar onClick={janela.aoVoltar}>Não, voltar</button><button type="button" className="btn sm primary" data-valerro-continuar onClick={janela.aoContinuar}>Sim, continuar</button></>
+        ) : (
+          <><button type="button" className="btn sm" data-valerro-cancelar onClick={janela.aoCancelar}>Cancelar</button><button type="button" className="btn sm primary" data-valerro-continuar onClick={janela.aoContinuar}>OK</button></>
+        )}>
+          <div className="janela-c rg-corpo" data-valerro={janela.nivel}>
+            <p className="rg-msg">{janela.texto}</p>
+            {janela.nivel === 'warning' && <p className="rg-sub">Quer continuar assim mesmo?</p>}
+          </div>
+        </Janela>
+      )}
       {janela && janela.tipo === 'zero' && <JanelaZeros codigos={janela.codigos} colunas={janela.colunas} colar={!!janela.colar} aoEscolher={janela.aoEscolher} aoFechar={janela.aoFechar} />}
       {janela && janela.tipo === 'nomes' && (
         <JanelaNomes c={c} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoNovo={darNome}

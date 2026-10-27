@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.5.0', async () => {
+await caso('abre sem erro, rodapé mostra v0.5.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.5.0'), 'rodapé sem v0.5.0');
+  certo((await p.locator('.foot').innerText()).includes('v0.5.1'), 'rodapé sem v0.5.1');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1893,7 +1893,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.5.0'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.5.1'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -2863,7 +2863,7 @@ await caso('v0.5.0: Início e o botão Novo do menu têm "Abrir do Excel"', asyn
 await caso('v0.5.0: abrir a amostra: relatório antes de abrir (o que veio, o que ficou de fora, o corte do fim)', async () => {
   await abrirAmostra(p);
   const t = await p.locator('.rel-excel').innerText();
-  for (const x of ['3 abas', 'VEIO', 'FICOU DE FORA', 'Formatação condicional', 'Validação de dados', 'Comentários', 'linhas 1.042 a 6.000', 'TAB_COLETAS[Cloro (mg/L)] virou Coletas!$C$2:$C$41']) certo(t.toUpperCase().includes(x.toUpperCase()), 'faltou no relatório: ' + x);
+  for (const x of ['3', 'ABAS', 'VEIO', 'BOM SABER', 'Formatação condicional', 'Validação de dados', 'Comentários', 'linhas 1.042 a 6.000', 'TAB_COLETAS[Cloro (mg/L)] virou Coletas!$C$2:$C$41']) certo(t.toUpperCase().includes(x.toUpperCase()), 'faltou no relatório: ' + x);
   await print(p, 'v050-relatorio');
   await p.click('[data-excel-abrir]');
   await p.waitForSelector('.pl-cv');
@@ -2891,7 +2891,7 @@ await caso('v0.5.0: Arquivo › O que veio do Excel mostra o relatório de novo'
   await p.keyboard.press('Escape');
 });
 await caso('v0.5.0: Salvar como Excel baixa um .xlsx que abre de novo igual (fórmulas, valores e estilos)', async () => {
-  await p.click('.tabs .tab:has-text("Dados")');
+  await p.click('.tabs .tab:has-text("Arquivo")');
   const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
   igual(dl.suggestedFilename(), 'amostra-qualidade.xlsx');
   const caminho = await dl.path();
@@ -2930,6 +2930,230 @@ await caso('v0.5.0: arquivo que não é Excel mostra o motivo (e o .xls antigo e
   certo((await p.locator('.erro-excel').innerText()).includes('Excel'), 'devia dizer que não é arquivo do Excel');
   await p.keyboard.press('Escape');
 });
+
+/* ---------- v0.5.1: listas suspensas, validação, cores por regra, comentários, relatório novo e achados do Grok ---------- */
+const abrirAmostraNaPlanilha = async (p) => {
+  await abrirAmostra(p);
+  await p.click('[data-excel-abrir]');
+  await p.waitForSelector('.pl-cv');
+  await p.waitForTimeout(250);
+};
+/* conta pixels de uma cor (r,g,b) no canvas da planilha */
+const contarCor = (p, r, g, b) => p.evaluate(([r, g, b]) => {
+  const cv = document.querySelector('.pl-cv');
+  const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+  let n = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i] === r && d[i + 1] === g && d[i + 2] === b) n++;
+  return n;
+}, [r, g, b]);
+await caso('v0.5.1 E02: o relatório antes de abrir tem caixas (Veio verde, Bom saber amarelo) e conta regras, listas e comentários', async () => {
+  await abrirAmostra(p);
+  const rel = await p.locator('.rel-excel').innerText();
+  for (const x of ['1 regra', 'lista suspensa', 'Cores por regra', 'Comentários']) certo(rel.includes(x), 'faltou: ' + x);
+  igual(await p.locator('.rel-caixa.verde[data-rel=veio]').count(), 1);
+  igual(await p.locator('.rel-caixa.amarelo[data-rel=bom]').count(), 1);
+  certo((await p.locator('.rel-caixa').first().evaluate((e) => getComputedStyle(e).borderTopLeftRadius)) === '0px', 'caixa com canto reto');
+  await print(p, 'v051-relatorio');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.5.1: a cor da aba que veio do Excel aparece na aba (faixa embaixo e fundo suave)', async () => {
+  await abrirAmostraNaPlanilha(p);
+  const cor = await p.locator('.pl-aba[data-aba=Coletas]').evaluate((e) => getComputedStyle(e, '::before').backgroundColor);
+  igual(cor, 'rgb(31, 122, 70)');
+  igual(await p.locator('.pl-aba[data-aba=Coletas]').evaluate((e) => getComputedStyle(e, '::before').height), '5px');
+});
+await caso('v0.5.1: lista suspensa: seta na célula, abre com clique e com Alt+Seta, escolhe pelo teclado, e Desfazer volta', async () => {
+  await celula(p, 'B3');
+  igual(await p.locator('[data-lista-seta]').count(), 1);
+  await p.locator('[data-lista-seta]').click();
+  igual(await p.locator('[data-lista-item]').count(), 5);
+  igual((await p.locator('[data-lista-item]').allInnerTexts()).join('|'), 'Entrada|Reservatório|Rede 1|Rede 2|Bebedouro');
+  await print(p, 'v051-lista');
+  await p.keyboard.press('Escape');
+  igual(await p.locator('[data-lista]').count(), 0, 'Esc fecha');
+  await p.waitForTimeout(200);
+  await p.keyboard.press('Alt+ArrowDown');
+  await p.waitForSelector('[data-lista]');
+  await p.keyboard.type('Bebe');
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'B3'), 'Bebedouro');
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'B3'), 'Reservatório');
+});
+await caso('v0.5.1: Ctrl+A dentro da célula em edição seleciona todo o texto (e digitar troca tudo)', async () => {
+  await celula(p, 'H2');
+  await p.keyboard.type('abc'); await p.keyboard.press('Control+a'); await p.keyboard.type('x'); await p.keyboard.press('Enter');
+  await p.waitForTimeout(120);
+  igual(await celula(p, 'H2'), 'x');
+  await celula(p, 'H2'); await p.keyboard.press('Delete');
+});
+await caso('v0.5.1: a célula sem lista não mostra seta', async () => {
+  await celula(p, 'D3');
+  igual(await p.locator('[data-lista-seta]').count(), 0);
+});
+await caso('v0.5.1: cor por regra: C2:C41 acima de 2 fica rosa (como no Excel) e some quando o valor volta', async () => {
+  const antes = await contarCor(p, 244, 204, 204);
+  igual(antes, 0, 'nenhum valor acima de 2 ainda');
+  await celula(p, 'C3');
+  await p.keyboard.type('3'); await p.keyboard.press('Enter');
+  await p.waitForTimeout(200);
+  certo((await contarCor(p, 244, 204, 204)) > 200, 'a célula C3 devia ficar rosa');
+  await print(p, 'v051-cor');
+  await celula(p, 'C3');
+  await p.keyboard.type('0,7'); await p.keyboard.press('Enter');
+  await p.waitForTimeout(200);
+  igual(await contarCor(p, 244, 204, 204), 0);
+});
+await caso('v0.5.1: Formatação condicional: janela com a regra que veio do Excel, nova regra "texto contém" e cor aplicada', async () => {
+  await p.click('.tabs .tab:has-text("Página Inicial"), .tabs .tab:has-text("Início")').catch(() => {});
+  await cmd(p, 'formatar.condicional');
+  await p.waitForSelector('[data-condicional]');
+  igual(await p.locator('[data-regra]').count(), 1);
+  certo((await p.locator('[data-regra]').innerText()).includes('maior que 2'), 'descrição da regra');
+  await p.click('[data-cond-nova]');
+  await p.selectOption('[data-cond-tipo]', 'containsText');
+  await p.fill('[data-cond-tx]', 'Rede');
+  await p.fill('[data-cond-fx]', 'B2:B41');
+  await p.click('[data-realce="Amarelo"]');
+  await print(p, 'v051-condicional');
+  await p.click('[data-cond-ok]');
+  igual(await p.locator('[data-regra]').count(), 2);
+  igual(await p.locator('[data-regra]').first().innerText().then((t) => t.includes('Rede')), true, 'a nova regra vem em cima (mais força)');
+  await p.click('[data-cond-aplicar]');
+  await p.waitForTimeout(250);
+  certo((await contarCor(p, 255, 235, 156)) > 500, 'Rede 1 e Rede 2 ficam amarelos');
+});
+await caso('v0.5.1: Validação de dados: número entre 1 e 10 barra o 50 (Tentar de novo), aceita o 5, e "Informar" deixa passar', async () => {
+  await celula(p, 'D2:D10');
+  await p.click('.tabs .tab:has-text("Dados")');
+  await cmd(p, 'dados.validacao');
+  await p.waitForSelector('[data-validacao]');
+  await p.selectOption('[data-val-tipo]', 'whole');
+  await p.fill('[data-val-f1]', '1');
+  await p.fill('[data-val-f2]', '10');
+  await p.click('[data-val-aplicar]');
+  await celula(p, 'D3');
+  await p.keyboard.type('50'); await p.keyboard.press('Enter');
+  await p.waitForSelector('[data-valerro=stop]');
+  await print(p, 'v051-validacao-erro');
+  await p.click('[data-valerro-voltar]');
+  await p.waitForTimeout(200);
+  await p.keyboard.press('Control+a');
+  await p.keyboard.type('5'); await p.keyboard.press('Enter');
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'D3'), '5');
+  /* a lista da amostra não pede alerta de erro: qualquer texto passa, como no Excel */
+  await celula(p, 'B4');
+  await p.keyboard.type('Livre'); await p.keyboard.press('Enter');
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'B4'), 'Livre');
+});
+await caso('v0.5.1: Validação com alerta "Avisar" pergunta se continua; "Sim, continuar" grava e "Não, voltar" mantém a edição', async () => {
+  await celula(p, 'E2');
+  await p.click('.tabs .tab:has-text("Dados")');
+  await cmd(p, 'dados.validacao');
+  await p.selectOption('[data-val-tipo]', 'decimal');
+  await p.fill('[data-val-f1]', '0');
+  await p.fill('[data-val-f2]', '5');
+  await p.click('.rg-aba:has-text("Alerta de erro")');
+  await p.selectOption('.rg-form select', 'warning');
+  await p.click('[data-val-aplicar]');
+  await celula(p, 'E2');
+  await p.keyboard.type('9'); await p.keyboard.press('Enter');
+  await p.waitForTimeout(400);
+  await p.waitForSelector('[data-valerro=warning]');
+  await p.click('[data-valerro-voltar]');
+  igual(await p.locator('[data-valerro]').count(), 0);
+  await p.waitForTimeout(200); /* o foco volta ao campo da célula logo depois */
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('[data-valerro=warning]');
+  await p.click('[data-valerro-continuar]');
+  await p.waitForTimeout(150);
+  igual(await celula(p, 'E2'), '9');
+});
+await caso('v0.5.1: comentário: o balão aparece ao passar o mouse, e a janela cria, edita e exclui', async () => {
+  await celula(p, 'B2');
+  /* varre a linha 2 (a linha 1 é alta: cabeçalho da planilha) até o mouse cair em B2, onde está o comentário */
+  const pos = await p.evaluate(() => { const c = document.querySelector('.pl-cv').getBoundingClientRect(); return { x: c.left, y: c.top }; });
+  for (let dx = 60; dx < 520; dx += 12) {
+    await p.mouse.move(pos.x + dx, pos.y + 75);
+    if (await p.locator('[data-balao=com]').count()) break;
+  }
+  await p.waitForSelector('[data-balao=com]');
+  certo((await p.locator('[data-balao=com]').innerText()).includes('Ponto de entrada da água'));
+  await print(p, 'v051-balao');
+  await p.mouse.move(pos.x + 700, pos.y + 400);
+  await p.waitForTimeout(100);
+  igual(await p.locator('[data-balao=com]').count(), 0);
+  await celula(p, 'B5');
+  await p.keyboard.press('Shift+F2');
+  await p.waitForSelector('[data-comentario]');
+  await p.fill('[data-com-texto]', 'Conferir o ponto com o laboratório.');
+  await p.click('[data-com-salvar]');
+  await p.waitForTimeout(150);
+  certo((await contarCor(p, 192, 0, 0)) > 10, 'triângulo vermelho dos comentários');
+  await celula(p, 'B5');
+  await p.keyboard.press('Shift+F2');
+  await p.waitForSelector('[data-comentario]');
+  igual(await p.locator('[data-com-texto]').inputValue(), 'Conferir o ponto com o laboratório.');
+  await p.click('[data-com-excluir]');
+  await p.waitForTimeout(150);
+  await celula(p, 'B5');
+  await p.keyboard.press('Shift+F2');
+  await p.waitForSelector('[data-comentario]');
+  igual(await p.locator('[data-com-texto]').inputValue(), '', 'excluído');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.5.1: Revisão › Comentários da aba lista e leva até a célula', async () => {
+  await p.click('.tabs .tab:has-text("Revisão")');
+  await cmd(p, 'revisao.comentarios');
+  await p.waitForSelector('[data-comentarios]');
+  certo((await p.locator('[data-comentarios]').innerText()).includes('B2'));
+  await p.locator('[data-comentarios] .rg-item').first().click();
+  await p.waitForTimeout(150);
+  certo((await p.locator('.pl-nome').inputValue()).startsWith('B2'));
+});
+await caso('v0.5.1: salvar como Excel leva a lista, a regra de cor, o comentário e a validação nova (e reabre igual)', async () => {
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const { conteudo: c, relatorio } = await lerXlsxNode(new Uint8Array(readFileSync(await dl.path())));
+  const col = c.abas[c.ordem[0]];
+  certo(col.val.some((r) => r.t === 'list' && r.fx === 'B2:B41'), 'lista suspensa');
+  certo(col.val.some((r) => r.t === 'whole' && r.fx === 'D2:D10'), 'número inteiro em D2:D10');
+  certo(col.cf.length === 2 && col.cf.some((r) => r.t === 'containsText' && r.tx === 'Rede'), 'duas regras de cor');
+  igual(col.com.B2.t, 'Ponto de entrada da água');
+  igual(Object.keys(col.com).length, 1, 'só o B2 (o outro foi excluído)');
+  void relatorio;
+});
+await caso('v0.5.1: a Verificação diz "Já veio do Excel" no erro que o arquivo já trazia (e não como estrago do app)', async () => {
+  await p.locator('.pl-aba:has-text("Resumo")').click();
+  await p.waitForTimeout(150);
+  await p.locator('.qd-lamp').click();
+  await p.waitForSelector('.pl-prob-tx');
+  certo((await p.locator('.pl-prob-tx').first().innerText()).includes('Já veio do Excel'), 'devia marcar a origem');
+  certo((await p.locator('.qd-lamp').getAttribute('aria-label')).includes('1 aviso'), 'conta como aviso, não como erro');
+  await print(p, 'v051-verificacao');
+});
+await caso('v0.5.1: Dados não repete Abrir e Salvar como Excel (ficam em Arquivo)', async () => {
+  await p.click('.tabs .tab:has-text("Dados")');
+  igual(await p.locator('[data-cmd="arquivo.exportarExcel"]').count(), 0);
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  igual(await p.locator('[data-cmd="arquivo.exportarExcel"]').count() > 0, true);
+});
+await caso('v0.5.1: o menu "Novo" fecha com Esc e com um clique fora', async () => {
+  await p.goto(BASE + '#/');
+  await p.waitForSelector('.novo-drive-b');
+  await p.click('.novo-drive-b');
+  await p.waitForSelector('.novo-drive-m');
+  await p.keyboard.press('Escape');
+  igual(await p.locator('.novo-drive-m').count(), 0, 'Esc');
+  await p.click('.novo-drive-b');
+  await p.waitForSelector('.novo-drive-m');
+  await p.mouse.click(700, 500);
+  igual(await p.locator('.novo-drive-m').count(), 0, 'clique fora');
+});
 await ctx.close();
 ({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }));
 await caso('v0.5.0 celular: abrir do Excel pelo Início e ver o relatório sem rolagem lateral', async () => {
@@ -2944,6 +3168,15 @@ await caso('v0.5.0 celular: abrir do Excel pelo Início e ver o relatório sem r
   await p.locator('[data-excel-abrir]').tap();
   await p.waitForSelector('.pl-cv');
   igual(await celula(p, 'B2'), 'Entrada');
+});
+
+await caso('v0.5.1 celular: desfazer, refazer e Abas ficam dentro da tela, fixos na barra rápida', async () => {
+  await p.goto(BASE + '#/');
+  await abrirAmostraNaPlanilha(p).catch(async () => { await p.waitForSelector('.pl-cv'); });
+  const fora = await p.evaluate(() => [...document.querySelectorAll('.tbar.cel-rapida button')].filter((b) => { const r = b.getBoundingClientRect(); return r.width && (r.right > innerWidth + 1 || r.left < -1); }).length);
+  igual(fora, 0, 'botões fora da tela');
+  for (const rot of ['Desfazer', 'Refazer', 'Abas da faixa']) igual(await p.locator(`.tbar-fixo [aria-label^="${rot}"], .tbar-fixo button[title^="${rot}"]`).count() > 0, true, rot);
+  await print(p, 'v051-celular-barra');
 });
 
 await navegador.close();
