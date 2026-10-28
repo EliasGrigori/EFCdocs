@@ -1,7 +1,8 @@
 /* EFCdocs — topo: nome do arquivo, busca, faixa tipo Excel (opção A) e barra curta (opção B). */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { PorId, chegaNa, valeNoModulo, textoChega } from '../nucleo/comandos.js';
-import { ROTULOS } from '../nucleo/prefs.js';
+import { ROTULOS, DICA_ESTILO, estiloDaFaixa } from '../nucleo/prefs.js';
+import { MAPA as ICONE_FAIXA } from './iconesFaixa.js';
 import { validarNome } from '../nucleo/modelo.js';
 import { Icone, usarEsc } from './comum.jsx';
 import { dicaDoComando } from '../nucleo/dicas.js';
@@ -19,7 +20,14 @@ const GRUPOS_EXIBIR = [
   { nome: 'Layout', itens: [['g', 'exibir.painel'], ['col', ['exibir.layoutA', 'exibir.layoutB']]] },
   { nome: 'Aparência', itens: [['col', ['exibir.tema', 'exibir.relevo', 'exibir.mesa']], ['g', 'exibir.telaCheia']] },
 ];
-const GRUPO_TRANSFERENCIA = { nome: 'Área de transferência', itens: [['lin', ['editar.colar', 'editar.recortar', 'editar.copiar', 'editar.pincel']]] };
+const GRUPO_TRANSFERENCIA = { nome: 'Área de transferência', itens: [['g', 'editar.colar'], ['col', ['editar.recortar', 'editar.copiar', 'editar.pincel']]] };
+
+/* v0.6.2: o botão principal de cada aba (um só, cheio de cor nos estilos B e E) */
+const PRINCIPAL = {
+  planilha: { arquivo: 'arquivo.exportarExcel', inicio: 'editar.colar', inserir: 'inserir.grafico', layout: 'impressao.configurar', formulas: 'formula.inserir', dados: 'dados.validacao', revisao: 'editar.comentar', exibir: 'exibir.congelar' },
+  docx: { arquivo: 'arquivo.exportarWord', inicio: 'editar.colar', inserir: 'inserir.tabela', layout: 'pagina.margens', revisao: 'editar.comentar', exibir: 'exibir.leitura' },
+  postits: { arquivo: 'arquivo.exportarImagem', inicio: 'editar.colar', inserir: 'inserir.postit', organizar: 'organizar.kanban', revisao: 'editar.comentar', exibir: 'exibir.ajustar' },
+};
 
 const FAIXAS = {
   planilha: [ABA_ARQUIVO,
@@ -135,8 +143,9 @@ export const ROTULO_CURTO = {
   'planilha.ocultarColuna': 'Ocultar colunas', 'planilha.reexibir': 'Reexibir linhas', 'planilha.reexibirColuna': 'Reexibir colunas', 'formula.inserir': 'Inserir função', 'formula.autosoma': 'AutoSoma',
 };
 
-/** Botão de comando. tipo: g grande · s pequeno · i só ícone · t ícone e texto */
-export function BotaoCmd({ id, tipo = 'g', cx, rotulo }) {
+/** Botão de comando. tipo: g grande · s pequeno · i só ícone · t ícone e texto.
+    prim = botão principal da aba · soIcone = estilo E (o nome fica só na dica, mas continua para quem usa leitor de tela) */
+export function BotaoCmd({ id, tipo = 'g', cx, rotulo, prim, soIcone }) {
   const cmd = PorId[id];
   if (!cmd) return null;
   const chega = chegaNa(cmd, cx.mod);
@@ -146,25 +155,27 @@ export function BotaoCmd({ id, tipo = 'g', cx, rotulo }) {
   const nota = [chega ? textoChega(chega).replace(/^c/, 'C') + '.' : '', bloq || ''].filter(Boolean).join(' ');
   const titulo = cmd.nome + (info.atalho ? ` (${info.atalho})` : '') + (nota ? ` — ${nota}` : '');
   const classe = { g: 'rbb', s: 'rbs', i: 'rbi', t: 'tlab' }[tipo] + (ligado ? ' on' : '') + (chega ? ' futuro' : '');
+  const ic = ICONE_FAIXA[id] ? 'n:' + ICONE_FAIXA[id] : cmd.ic;
   return (
-    <button type="button" className={classe} aria-label={tipo === 'i' ? titulo : undefined} data-nota={nota || undefined}
-      aria-pressed={ligado ? true : undefined} disabled={!!bloq} data-cmd={id} data-fam={id.split('.')[0]} onClick={() => cx.executar(id)}>
-      <Icone n={cmd.ic} />
-      {tipo !== 'i' && <span>{rotulo || cmd.nome}</span>}
+    <button type="button" className={classe} aria-label={tipo === 'i' ? titulo : undefined} data-nota={nota || undefined} title={soIcone && tipo !== 'i' ? titulo : undefined}
+      aria-pressed={ligado ? true : undefined} disabled={!!bloq} data-cmd={id} data-fam={id.split('.')[0]} data-prim={prim ? '' : undefined} onClick={() => cx.executar(id)}>
+      {tipo === 'g' ? <span className="q"><Icone n={ic} /></span> : <Icone n={ic} />}
+      {tipo !== 'i' && <span className="rot">{rotulo || cmd.nome}</span>}
     </button>
   );
 }
 
-function GrupoFaixa({ g, cx }) {
+function GrupoFaixa({ g, cx, prim, soIcone }) {
+  const b = { cx, prim: undefined, soIcone };
   return (
     <div className="rb-g" role="group" aria-label={g.nome}>
       <div className="rb-i">
         {g.itens.map(([tipo, x, colunas], j) => tipo === 'g'
-          ? <BotaoCmd key={j} id={x} cx={cx} rotulo={ROTULO_CURTO[x]} />
+          ? <BotaoCmd key={j} id={x} {...b} prim={x === prim} rotulo={ROTULO_CURTO[x]} />
           : tipo === 'col'
-            ? <div className="rb-col" key={j}>{x.map((id) => <BotaoCmd key={id} id={id} tipo="s" cx={cx} rotulo={ROTULO_CURTO[id]} />)}</div>
+            ? <div className="rb-col" key={j}>{x.map((id) => <BotaoCmd key={id} id={id} tipo="s" {...b} rotulo={ROTULO_CURTO[id]} />)}</div>
             : <div className="rb-lin" key={j} style={{ gridTemplateColumns: `repeat(${colunas || (x.length <= 4 ? x.length : Math.ceil(x.length / 2))}, 28px)` }}>
-              {x.map((id) => <BotaoCmd key={id} id={id} tipo="i" cx={cx} />)}
+              {x.map((id) => <BotaoCmd key={id} id={id} tipo="i" {...b} />)}
             </div>)}
       </div>
       <div className="rb-n">{g.nome}</div>
@@ -173,9 +184,10 @@ function GrupoFaixa({ g, cx }) {
 }
 
 /* A faixa nunca passa da tela: o que não cabe vai para "Mais" (as larguras dos grupos são medidas e guardadas) */
-function Faixa({ aba, cx, flutua, cel }) {
+function Faixa({ aba, cx, flutua, cel, estilo }) {
   const abas = abasDoModulo(cx.mod);
   const atual = abas.find((a) => a.id === aba) || abas[1];
+  const prim = (PRINCIPAL[cx.mod] || {})[atual.id];
   const ref = useRef(null);
   const larguras = useRef({});
   const [larg, setLarg] = useState(0);
@@ -198,13 +210,13 @@ function Faixa({ aba, cx, flutua, cel }) {
     ro.observe(el);
     return () => ro.disconnect();
   }, [flutua]);
-  useLayoutEffect(() => { setEst({ corte: null, medir: true }); setMaisAberto(false); }, [atual.id, cx.mod, larg, cel]);
+  useLayoutEffect(() => { setEst({ corte: null, medir: true }); setMaisAberto(false); }, [atual.id, cx.mod, larg, cel, estilo]);
   useLayoutEffect(() => {
     if (!est.medir || !ref.current) return;
     if (cel) { setEst({ corte: null, medir: false }); return; }
     const gs = [...ref.current.querySelectorAll(':scope > .rb-g')];
-    gs.forEach((g, i) => { larguras.current[atual.id + ':' + i] = g.offsetWidth; });
-    const w = gs.map((_, i) => larguras.current[atual.id + ':' + i] || 0);
+    gs.forEach((g, i) => { larguras.current[atual.id + ':' + estilo + ':' + i] = g.offsetWidth; });
+    const w = gs.map((_, i) => larguras.current[atual.id + ':' + estilo + ':' + i] || 0);
     const disp = ref.current.clientWidth - 16;
     let corte = null;
     if (w.reduce((a, b) => a + b, 0) > disp) {
@@ -225,9 +237,9 @@ function Faixa({ aba, cx, flutua, cel }) {
   const naFaixa = corte == null ? atual.grupos : atual.grupos.slice(0, corte);
   const noMais = corte == null ? [] : atual.grupos.slice(corte);
   return (
-    <div className={'ribbon' + (flutua ? ' flutua' : '') + (cel ? '' : ' ajustada')} role="toolbar" aria-label={'Faixa ' + atual.nome} data-aba={atual.id} ref={ref} onScroll={cel ? medirLados : undefined}>
+    <div className={'ribbon' + (flutua ? ' flutua' : '') + (cel ? '' : ' ajustada')} data-estilo={estilo} role="toolbar" aria-label={'Faixa ' + atual.nome} data-aba={atual.id} ref={ref} onScroll={cel ? medirLados : undefined}>
       {cel && lados.esq && <button type="button" className="rb-rolar esq" aria-label="Ver os botões anteriores" onClick={() => rolar(-1)}><Icone n="setaEsq" /></button>}
-      {naFaixa.map((g, i) => <GrupoFaixa g={g} cx={cx} key={atual.id + i} />)}
+      {naFaixa.map((g, i) => <GrupoFaixa g={g} cx={cx} prim={prim} soIcone={estilo === 'E'} key={atual.id + i} />)}
       {cel && lados.dir && <button type="button" className="rb-rolar dir" aria-label="Tem mais botões: ver os próximos" data-dica="Tem mais|Arraste a faixa para o lado ou toque aqui para ver os outros botões." onClick={() => rolar(1)}><Icone n="setaDir" /></button>}
       {!cel && (
         <button type="button" className="rb-recolher" data-faixa-recolher={flutua ? 'fixar' : 'recolher'}
@@ -241,7 +253,7 @@ function Faixa({ aba, cx, flutua, cel }) {
           <button type="button" className="rbb rb-mais" aria-expanded={maisAberto} aria-label="Mais comandos" data-dica="Mais comandos|Os grupos que não cabem na largura da tela ficam aqui." onClick={() => setMaisAberto(!maisAberto)}>
             <Icone n="mais" /><span>Mais</span>
           </button>
-          {maisAberto && <div className="rb-mais-painel card" role="group" aria-label="Mais comandos">{noMais.map((g, i) => <GrupoFaixa g={g} cx={cx} key={'m' + i} />)}</div>}
+          {maisAberto && <div className="rb-mais-painel card" role="group" aria-label="Mais comandos">{noMais.map((g, i) => <GrupoFaixa g={g} cx={cx} prim={prim} soIcone={estilo === 'E'} key={'m' + i} />)}</div>}
         </div>
       )}
     </div>
@@ -306,7 +318,7 @@ function OpcoesFaixa({ prefs, cx, cel, compacto }) {
         <Icone n={prefs.faixa === 'tudo' ? 'chevronCima' : 'chevronBaixo'} />
       </button>
       {aberto && (
-        <div ref={menu} className="faixa-menu" role="menu" aria-label="Opções de exibição da faixa" style={{ position: 'fixed', top: aberto.top, right: aberto.right }} data-esc-local>
+        <div ref={menu} className="faixa-menu" role="menu" aria-label="Opções de exibição da faixa" style={{ position: 'fixed', top: aberto.top, right: aberto.right, maxHeight: Math.max(160, innerHeight - aberto.top - 8), overflowY: 'auto' }} data-esc-local>
           <span className="faixa-menu-cab">Faixa de cima</span>
           {['tudo', 'abas', 'oculta'].map((m) => (
             <button key={m} type="button" role="menuitemradio" aria-checked={prefs.faixa === m} data-faixa-modo={m} className={'faixa-menu-it' + (prefs.faixa === m ? ' on' : '')}
@@ -319,6 +331,16 @@ function OpcoesFaixa({ prefs, cx, cel, compacto }) {
             <button type="button" role="menuitemcheckbox" aria-checked={!compacto} data-topo-alterna className="faixa-menu-it" onClick={() => { cx.executar(compacto ? 'exibir.topoCompleto' : 'exibir.topoCompacto'); setAberto(null); }}>
               <Icone n={compacto ? 'topoCompleto' : 'topoCompacto'} /><span>{compacto ? 'Mostrar a linha do título' : 'Juntar o título com as abas (mais espaço)'}</span>
             </button>
+          </>}
+          {prefs.faixa !== 'oculta' && prefs.layout === 'A' && cx.setPref && <>
+            <span className="faixa-menu-sep" />
+            <span className="faixa-menu-cab">Estilo da faixa</span>
+            {['auto', 'B', 'C', 'D', 'E'].map((e) => (
+              <button key={e} type="button" role="menuitemradio" aria-checked={(prefs.estilo || 'auto') === e} data-faixa-estilo={e} className={'faixa-menu-it' + ((prefs.estilo || 'auto') === e ? ' on' : '')} title={e === 'auto' ? 'B no computador, E no celular' : DICA_ESTILO[e]}
+                onClick={() => { cx.setPref('estilo', e); setAberto(null); }}>
+                <span className="faixa-menu-letra">{e === 'auto' ? 'Auto' : e}</span><span>{ROTULOS.estilo[e]}</span>{(prefs.estilo || 'auto') === e && <Icone n="check" className="ok" />}
+              </button>
+            ))}
           </>}
           <span className="faixa-menu-dica">Ctrl+F1 mostra ou esconde a faixa</span>
         </div>
@@ -426,7 +448,7 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
       )}
       {celRapida && <BarraCurta cx={cx} cel abasAbertas={celAbas} aoAbas={() => setCelAbas(!celAbas)} />}
       {abasNav}
-      {mostraFaixa && <Faixa aba={aba} cx={cx} flutua={prefs.faixa !== 'tudo'} cel={cel} />}
+      {mostraFaixa && <Faixa aba={aba} cx={cx} flutua={prefs.faixa !== 'tudo'} cel={cel} estilo={estiloDaFaixa(prefs, cel)} />}
       {temArquivo && !layoutA && prefs.faixa !== 'oculta' && <BarraCurta cx={cx} soIcones={prefs.faixa === 'abas'} />}
     </header>
   );

@@ -599,6 +599,11 @@ export function Planilha({ arquivo, cx }) {
     const nfNovo = r.nf || (r.f != null ? formatoDaFormula(r.f, nfDaRef(e.abaId)) : null);
     if (nfNovo && (!est.nf || /^general$/i.test(est.nf))) { const s = lote.estilo({ ...est, nf: nfNovo }); if (s) nova.s = s; }
     if (numdata === 'n') { const s = lote.estilo({ ...est, nf: 'General' }); if (s) nova.s = s; }
+    /* Alt+Enter: texto com linha nova liga a quebra de texto da célula (como o Excel), senão a quebra se perde na tela e no PDF */
+    if (r.f == null && !r.vazio && typeof r.v === 'string' && r.v.includes('\n') && !est.qb) {
+      const base = nova.s ? estiloDe({ estilos: lote.estilos }, nova) : est;
+      const s = lote.estilo({ ...base, qb: true }); if (s) nova.s = s;
+    }
     /* grava e devolve o teclado para a grade na mesma hora (quem digita rápido não perde letra) */
     flushSync(() => {
       setEdit(null);
@@ -2680,10 +2685,10 @@ export function Planilha({ arquivo, cx }) {
 
       {asn && <JanelaAssinatura inicial={asn.inicial} titulo={asn.id ? 'Editar assinatura' : 'Nova assinatura'} confirmar={asn.id ? 'Salvar' : 'Inserir'} aoConfirmar={confirmarAssinatura} aoFechar={() => { setAsn(null); setTimeout(voltarFocoGrade, 0); }} />}
       {janela && janela.tipo === 'corFonte' && <JanelaCor titulo="Cor da fonte" icone="corfonte" semCor="Automática" valor={estiloAtivo.cor} cores={coresDaPlanilha(c)} aoPegar={() => pegarCor('cor')} leitura={{ fundo: estiloAtivo.fundo }}
-        trocar={{ de: estiloAtivo.cor, rotulo: estiloAtivo.cor ? 'esta cor de letra' : 'letra automática' }} aoTrocar={(hex) => { const r = trocarCorNaAba(O, c, abaId, 'cor', estiloAtivo.cor, hex); aplicarLote(r.lote, `Trocar a cor da letra em ${r.n} células`); }}
+        trocar={{ de: estiloAtivo.cor, rotulo: estiloAtivo.cor ? 'com esta cor de letra' : 'com letra automática' }} aoTrocar={(hex) => { const r = trocarCorNaAba(O, c, abaId, 'cor', estiloAtivo.cor, hex); aplicarLote(r.lote, `Trocar a cor da letra em ${r.n} células`); }}
         aoEscolher={(hex) => formatarSel((e) => ({ ...e, cor: hex || undefined }), 'Cor da fonte')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'fundo' && <JanelaCor titulo="Cor de preenchimento" icone="balde" semCor="Sem preenchimento" valor={estiloAtivo.fundo} cores={coresDaPlanilha(c)} aoPegar={() => pegarCor('fundo')} leitura={{ letra: estiloAtivo.cor }}
-        trocar={{ de: estiloAtivo.fundo, rotulo: estiloAtivo.fundo ? 'este preenchimento' : 'sem preenchimento' }} aoTrocar={(hex) => { const r = trocarCorNaAba(O, c, abaId, 'fundo', estiloAtivo.fundo, hex); aplicarLote(r.lote, `Trocar o preenchimento em ${r.n} células`); }}
+        trocar={{ de: estiloAtivo.fundo, rotulo: estiloAtivo.fundo ? 'com este preenchimento' : 'sem preenchimento' }} aoTrocar={(hex) => { const r = trocarCorNaAba(O, c, abaId, 'fundo', estiloAtivo.fundo, hex); aplicarLote(r.lote, `Trocar o preenchimento em ${r.n} células`); }}
         aoEscolher={(hex) => formatarSel((e) => ({ ...e, fundo: hex || undefined }), 'Cor de preenchimento')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'corAba' && <JanelaCor titulo="Cor da aba" icone="cor" semCor="Sem cor" valor={c.abas[janela.id] && c.abas[janela.id].cor} cores={coresDaPlanilha(c)} aoEscolher={(hex) => mudar({ [`conteudo.abas.${janela.id}.cor`]: hex || undefined }, 'Cor da aba')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'formato' && <JanelaFormato atual={estiloAtivo.nf} exemplo={typeof valorAtivo === 'number' ? valorAtivo : undefined} aoAplicar={(cod) => formatarSel((e) => ({ ...e, nf: /^general$/i.test(cod) ? undefined : cod }), 'Formato de número')} aoFechar={() => setJanela(null)} />}

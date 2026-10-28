@@ -2334,11 +2334,12 @@ svg {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: max(10vh, 16px) 16px 16px;
+  padding: max(5vh, 12px) 12px 12px;
 }
 .janela {
   width: min(460px, 100%);
-  max-height: 80vh;
+  max-height: calc(100vh - max(5vh, 12px) - 12px);
+  max-height: calc(100dvh - max(5vh, 12px) - 12px);
   overflow: auto;
   background: var(--surface);
   border: 1px solid var(--border-light);

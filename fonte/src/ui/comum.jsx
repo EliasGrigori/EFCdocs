@@ -1,12 +1,15 @@
 /* EFCdocs — peças comuns da tela: ícone, janelas, avisos, rotas e datas. */
 import { useEffect, useRef, useState } from 'react';
 import { ICONES } from './icones.js';
+import { NOVOS } from './iconesFaixa.js';
 
+/* n = nome do ícone; "n:nome" usa os ícones novos da faixa (v0.6.2: traço fino 1,6 e uma parte com toque de cor). */
 export function Icone({ n, className, titulo }) {
+  const novo = typeof n === 'string' && n.startsWith('n:');
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden={titulo ? undefined : true} role={titulo ? 'img' : undefined} aria-label={titulo} className={className}
-      dangerouslySetInnerHTML={{ __html: ICONES[n] || '' }} />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={novo ? 1.6 : 1.8} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden={titulo ? undefined : true} role={titulo ? 'img' : undefined} aria-label={titulo} className={(novo ? 'ic-novo ' : '') + (className || '') || undefined}
+      dangerouslySetInnerHTML={{ __html: (novo ? NOVOS[n.slice(2)] : ICONES[n]) || '' }} />
   );
 }
 

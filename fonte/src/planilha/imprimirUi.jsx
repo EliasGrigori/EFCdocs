@@ -1,7 +1,7 @@
 /* EFCdocs v0.6.0 — janela "Imprimir e PDF" da planilha (estilo Camadas): configurar página com prévia ao vivo. */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Janela, Icone } from '../ui/comum.jsx';
-import { PAPEIS, MARGENS, normalizarImp, lerIntervalo } from './impressao.js';
+import { PAPEIS, MARGENS, CM, normalizarImp, lerIntervalo } from './impressao.js';
 import { svgDaPagina } from './paginaDesenho.js';
 
 const CAMPOS = [['&[Página]', 'Página'], ['&[Páginas]', 'Total de páginas'], ['&[Data]', 'Data'], ['&[Hora]', 'Hora'], ['&[Aba]', 'Aba'], ['&[Arquivo]', 'Arquivo']];
@@ -30,6 +30,58 @@ export function JanelaImprimir({ imp0, selecaoTexto, temVariasAbas, secao, gerar
   const fazer = async (qual) => {
     setOcupado(qual);
     try { if (qual === 'pdf') await aoPdf(imp, alvo); else await aoImprimir(imp, alvo); } finally { setOcupado(''); }
+  };
+  /* v0.6.2 (P02): margens arrastáveis na prévia — 4 linhas tracejadas que se puxam com o mouse/dedo ou com as setas do teclado */
+  const pgAtual = n ? r.paginas[Math.min(pag, n - 1)] : null;
+  const folhaRef = useRef(null);
+  const arr = useRef(null);
+  const [arrK, setArrK] = useState(null);
+  const limiteMarg = (k, m) => {
+    if (!pgAtual) return 10;
+    const Wcm = pgAtual.W / CM, Hcm = pgAtual.H / CM;
+    const resto = k === 't' ? Hcm - m.b : k === 'b' ? Hcm - m.t : k === 'l' ? Wcm - m.r : Wcm - m.l;
+    return Math.max(0, Math.min(10, resto - 2));
+  };
+  const poeMarg = (k, v) => {
+    setImp((x) => {
+      const lim = limiteMarg(k, x.marg);
+      const nv = Math.max(0, Math.min(lim, Math.round(v * 20) / 20));
+      setTxtM((t) => ({ ...t, [k]: cmTx(nv) }));
+      return normalizarImp({ ...x, marg: { ...x.marg, [k]: nv } });
+    });
+    setMargPers(true);
+  };
+  const guiaDown = (k) => (ev) => {
+    if (!folhaRef.current || !pgAtual) return;
+    ev.preventDefault();
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    arr.current = { k, x0: ev.clientX, y0: ev.clientY, v0: imp.marg[k], rect: folhaRef.current.getBoundingClientRect() };
+    setArrK(k);
+  };
+  const guiaMove = (ev) => {
+    const a = arr.current;
+    if (!a || !pgAtual) return;
+    const horiz = a.k === 'l' || a.k === 'r';
+    const dPt = horiz ? ((ev.clientX - a.x0) / a.rect.width) * pgAtual.W : ((ev.clientY - a.y0) / a.rect.height) * pgAtual.H;
+    const sinal = a.k === 't' || a.k === 'l' ? 1 : -1;
+    poeMarg(a.k, a.v0 + (sinal * dPt) / CM);
+  };
+  const guiaUp = () => { arr.current = null; setArrK(null); };
+  const guiaTecla = (k) => (ev) => {
+    const passo = ev.shiftKey ? 0.5 : 0.1;
+    const dir = { ArrowUp: k === 't' ? -1 : k === 'b' ? 1 : 0, ArrowDown: k === 't' ? 1 : k === 'b' ? -1 : 0, ArrowLeft: k === 'l' ? -1 : k === 'r' ? 1 : 0, ArrowRight: k === 'l' ? 1 : k === 'r' ? -1 : 0 }[ev.key];
+    if (!dir) return;
+    ev.preventDefault();
+    poeMarg(k, imp.marg[k] + dir * passo);
+  };
+  const GUIAS = [['t', 'Em cima', 'h'], ['b', 'Embaixo', 'h'], ['l', 'Esquerda', 'v'], ['r', 'Direita', 'v']];
+  const posGuia = (k) => {
+    if (!pgAtual) return {};
+    const m = imp.marg;
+    if (k === 't') return { top: (m.t * CM / pgAtual.H) * 100 + '%' };
+    if (k === 'b') return { top: ((pgAtual.H - m.b * CM) / pgAtual.H) * 100 + '%' };
+    if (k === 'l') return { left: (m.l * CM / pgAtual.W) * 100 + '%' };
+    return { left: ((pgAtual.W - m.r * CM) / pgAtual.W) * 100 + '%' };
   };
   const [focoCR, setFocoCR] = useState({ onde: 'rod', lado: 'c' });
   const inserirCampo = (onde, lado, campo) => muda({ [onde]: { ...imp[onde], [lado]: (imp[onde][lado] ? imp[onde][lado] + ' ' : '') + campo } });
@@ -105,6 +157,12 @@ export function JanelaImprimir({ imp0, selecaoTexto, temVariasAbas, secao, gerar
               </select>
             </label>
             {imp.escala.modo === 'pct' && <label className="rg-campo"><span>Tamanho</span><span className="rg-linha"><input type="number" min="10" max="400" value={imp.escala.pct} data-imp-pct style={{ width: 90 }} onChange={(ev) => muda({ escala: { ...imp.escala, pct: +ev.target.value } })} /> % do normal</span></label>}
+            {r.esc < 0.5 && (
+              <p className="imp-aviso-esc" role="status" data-imp-aviso-escala>
+                <Icone n="aviso" />
+                <span>A letra ficou em <b>{Math.round(r.esc * 100)}%</b> do tamanho normal e pode ficar pequena demais para ler. Tente deixar a página deitada (paisagem), usar mais páginas ou imprimir só uma parte.</span>
+              </p>
+            )}
             {imp.escala.modo === 'paginas' && (
               <label className="rg-campo"><span>Caber em</span>
                 <span className="rg-linha"><input type="number" min="0" max="50" value={imp.escala.largura} style={{ width: 64 }} onChange={(ev) => muda({ escala: { ...imp.escala, largura: +ev.target.value } })} /> de largura ×
@@ -152,7 +210,19 @@ export function JanelaImprimir({ imp0, selecaoTexto, temVariasAbas, secao, gerar
                 <button type="button" className="iconbtn" aria-label="Próxima página" disabled={pag >= n - 1} onClick={() => setPag(pag + 1)}><Icone n="setaDir" /></button>
               </span>
             </div>
-            <div className="imp-folha" data-imp-previa dangerouslySetInnerHTML={{ __html: svg }} />
+            <div className="imp-folha" data-imp-previa>
+              <div className="imp-pagina" ref={folhaRef} style={pgAtual ? { aspectRatio: `${pgAtual.W} / ${pgAtual.H}`, maxWidth: `calc(58vh * ${pgAtual.W / pgAtual.H})` } : undefined}>
+                <div className="imp-svg" dangerouslySetInnerHTML={{ __html: svg }} />
+                {pgAtual && GUIAS.map(([k, nome, dir]) => (
+                  <div key={k} className={'imp-guia ' + dir + (arrK === k ? ' on' : '')} style={posGuia(k)} data-imp-guia={k} role="slider" tabIndex={0}
+                    aria-label={`Margem ${nome.toLowerCase()}: ${cmTx(imp.marg[k])} cm. Arraste ou use as setas.`} aria-valuemin={0} aria-valuemax={10} aria-valuenow={imp.marg[k]}
+                    onPointerDown={guiaDown(k)} onPointerMove={guiaMove} onPointerUp={guiaUp} onPointerCancel={guiaUp} onKeyDown={guiaTecla(k)}>
+                    <span className="imp-guia-tip">{nome}: {cmTx(imp.marg[k])} cm</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="rg-dica imp-dica-marg">Puxe as linhas tracejadas para mudar as margens (setas do teclado: 0,1 cm).</p>
           </section>
         </div>
       </div>

@@ -30,7 +30,7 @@
 @media (prefers-reduced-motion: reduce) { .janela { animation: none; } }
 .janela-h {
   position: sticky; top: 0; z-index: 2;
-  gap: 12px; padding: 14px 12px 12px 18px;
+  gap: 10px; padding: 10px 10px 10px 16px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 9%, var(--surface)), var(--surface));
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
@@ -43,10 +43,10 @@
 }
 .janela-ic svg { width: 18px; height: 18px; }
 .janela-h .iconbtn { width: 32px; height: 32px; border-radius: var(--r-ctl); }
-.janela-c { padding: 14px 18px 16px; gap: 12px; }
+.janela-c { padding: 12px 16px 14px; gap: 10px; }
 .janela-r {
   position: sticky; bottom: 0; z-index: 2;
-  padding: 12px 18px; gap: 8px; align-items: center;
+  padding: 10px 16px; gap: 8px; align-items: center;
   border-top: 1px solid var(--border); background: var(--surface-2);
 }
 /* alertas da validação: o quadrinho do ícone ganha a cor do nível */
@@ -233,7 +233,7 @@ body.pegando-cor .pl-cv { cursor: crosshair !important; }
 .imp-nav { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
 .imp-nav .iconbtn { width: 28px; height: 28px; }
 .imp-folha { display: grid; place-items: center; padding: 14px; border-radius: var(--r-ctl); background: color-mix(in srgb, var(--text) 8%, var(--surface-2)); max-height: 64vh; overflow: auto; }
-.imp-folha svg { display: block; width: 100%; height: auto; max-height: 60vh; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.15), 0 8px 24px rgba(0,0,0,.18); }
+.imp-folha svg { display: block; width: 100%; height: auto; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.15), 0 8px 24px rgba(0,0,0,.18); }
 @media (max-width: 860px) { .imp-corpo { grid-template-columns: 1fr; } .imp-previa-col { position: static; order: -1; } .imp-chks { grid-template-columns: 1fr; } .imp-cr { grid-template-columns: 1fr; } }
 
 /* ---------- v0.6.1: editor de gráficos (prévia grande à esquerda, partes à direita) ---------- */
@@ -317,3 +317,114 @@ body.pegando-cor .pl-cv { cursor: crosshair !important; }
 .faixa-menu-it .ok { margin-left: auto; color: var(--primary); }
 .faixa-menu-sep { height: 1px; margin: 4px 6px; background: var(--border); }
 .faixa-menu-dica { padding: 4px 10px 2px; font-size: 11.5px; color: var(--text-dim); }
+
+/* ---------- v0.6.2: ícones novos (traço fino, uma cor, toque suave) e a faixa nos estilos B, C, D e E ---------- */
+.ribbon, .tbar { --ic-tinta: var(--text); --ic-toque: color-mix(in srgb, var(--primary) 22%, transparent); }
+svg.ic-novo .t { fill: var(--ic-toque, color-mix(in srgb, var(--primary) 22%, transparent)); }
+svg.ic-novo .f { fill: currentColor; stroke: none; }
+svg.ic-novo .barra { stroke: var(--primary); }
+.ribbon [data-fam] svg.ic-novo, .tbar [data-fam] svg.ic-novo { color: var(--ic-tinta); }
+.ribbon [data-fam].on svg.ic-novo, .tbar [data-fam].on svg.ic-novo { color: var(--primary); }
+.rbb .q { display: contents; }
+.ribbon .rbb:disabled svg.ic-novo { opacity: .45; }
+
+/* B · Camadas + botão principal (padrão no computador) */
+.ribbon[data-estilo=B] { padding: 5px 6px 4px; gap: 5px; background: color-mix(in srgb, var(--surface) 55%, var(--surface-2)); }
+.ribbon[data-estilo=B] .rb-g { padding: 3px 4px 2px; border: 1px solid color-mix(in srgb, var(--border) 75%, transparent); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--sh-1); }
+.ribbon[data-estilo=B] .rb-n { padding-top: 1px; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; }
+.ribbon[data-estilo=B] .rbb:hover:not(:disabled), .ribbon[data-estilo=B] .rbs:hover:not(:disabled), .ribbon[data-estilo=B] .rbi:hover:not(:disabled) { background: var(--surface); box-shadow: var(--sh-2); transform: translateY(-1px); }
+.ribbon[data-estilo=B] .rbb.on, .ribbon[data-estilo=B] .rbs.on, .ribbon[data-estilo=B] .rbi.on { background: var(--primary-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 28%, transparent); }
+.ribbon[data-estilo=B] [data-prim], .ribbon[data-estilo=E] [data-prim], .ribbon[data-estilo=B] [data-prim].on, .ribbon[data-estilo=E] [data-prim].on { background: var(--primary); color: var(--on-primary); box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 2px 6px color-mix(in srgb, var(--primary) 38%, transparent); }
+.ribbon[data-estilo=B] [data-prim]:hover:not(:disabled), .ribbon[data-estilo=E] [data-prim]:hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 88%, #000); color: var(--on-primary); }
+.ribbon[data-estilo=B] [data-prim] svg.ic-novo, .ribbon[data-estilo=E] [data-prim] svg.ic-novo, .ribbon[data-estilo=B] [data-prim].on svg.ic-novo, .ribbon[data-estilo=E] [data-prim].on svg.ic-novo { color: var(--on-primary); --ic-toque: rgba(255,255,255,.22); }
+
+/* C · Linha fina */
+.ribbon[data-estilo=C] { min-height: 0; padding: 4px 6px 3px; }
+.ribbon[data-estilo=C] .rb-g { padding: 0 8px; }
+.ribbon[data-estilo=C] svg.ic-novo { stroke-width: 1.4; }
+.ribbon[data-estilo=C] .rb-n { padding-top: 2px; font-size: 10.5px; }
+.ribbon[data-estilo=C] .rbb { font-weight: 500; border-radius: 6px; }
+.ribbon[data-estilo=C] .rbb:hover:not(:disabled), .ribbon[data-estilo=C] .rbs:hover:not(:disabled), .ribbon[data-estilo=C] .rbi:hover:not(:disabled) { background: var(--surface-3); }
+.ribbon[data-estilo=C] .rbb.on, .ribbon[data-estilo=C] .rbs.on, .ribbon[data-estilo=C] .rbi.on { background: var(--primary-soft); }
+.ribbon[data-estilo=C] .rbb.on::before, .ribbon[data-estilo=C] .rbi.on::before { content: ""; position: absolute; left: 25%; right: 25%; bottom: 1px; height: 2px; border-radius: 2px; background: var(--primary); }
+.ribbon[data-estilo=C] [data-prim] { font-weight: 700; color: var(--primary); }
+.ribbon[data-estilo=C] [data-prim] svg.ic-novo { color: var(--primary); }
+
+/* D · Ícone em quadrinho */
+.ribbon[data-estilo=D] { padding: 5px 8px 3px; gap: 2px; }
+.ribbon[data-estilo=D] .rb-g { padding: 0 6px; }
+.ribbon[data-estilo=D] .rb-n { padding-top: 2px; font-size: 10.5px; }
+.ribbon[data-estilo=D] .rbb { font-weight: 500; padding: 2px 4px 3px; }
+.ribbon[data-estilo=D] .rbb .q { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: color-mix(in srgb, var(--primary) 11%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent); transition: transform .12s, box-shadow .12s; }
+.ribbon[data-estilo=D] .rbb .q svg { width: 20px; height: 20px; }
+.ribbon[data-estilo=D] .rbb:hover:not(:disabled) { background: transparent; }
+.ribbon[data-estilo=D] .rbb:hover:not(:disabled) .q { transform: translateY(-1px); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent), var(--sh-2); }
+.ribbon[data-estilo=D] .rbb.on { background: transparent; }
+.ribbon[data-estilo=D] .rbb.on .q { background: var(--primary-soft); box-shadow: inset 0 0 0 1.5px var(--primary); }
+.ribbon[data-estilo=D] .rbs:hover:not(:disabled), .ribbon[data-estilo=D] .rbi:hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+.ribbon[data-estilo=D] .rbs.on, .ribbon[data-estilo=D] .rbi.on { background: color-mix(in srgb, var(--primary) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent); }
+.ribbon[data-estilo=D] [data-prim] { font-weight: 700; }
+.ribbon[data-estilo=D] [data-prim] .q, .ribbon[data-estilo=D] [data-prim].on .q { background: var(--primary); box-shadow: 0 2px 6px color-mix(in srgb, var(--primary) 40%, transparent); }
+.ribbon[data-estilo=D] [data-prim] svg.ic-novo, .ribbon[data-estilo=D] [data-prim].on svg.ic-novo { color: var(--on-primary); --ic-toque: rgba(255,255,255,.24); }
+
+/* E · Compacta (padrão no celular e em tela pequena): só ícones; o botão principal mostra o nome */
+.ribbon[data-estilo=E] { min-height: 0; padding: 4px 8px; align-items: center; gap: 0; }
+.ribbon[data-estilo=E] .rb-g { flex-direction: row; align-items: center; padding: 0 6px; }
+.ribbon[data-estilo=E] .rb-i { align-items: center; gap: 2px; }
+.ribbon[data-estilo=E] .rb-n { display: none; }
+.ribbon[data-estilo=E] .rb-col, .ribbon[data-estilo=E] .rb-lin { display: flex; flex-direction: row; gap: 2px; }
+.ribbon[data-estilo=E] .rbb, .ribbon[data-estilo=E] .rbs { flex-direction: row; align-items: center; justify-content: center; gap: 6px; height: 32px; min-width: 32px; max-width: none; padding: 0 6px; border-radius: var(--r-chip); }
+.ribbon[data-estilo=E] .rbi { width: 32px; height: 32px; }
+.ribbon[data-estilo=E] .rbb svg, .ribbon[data-estilo=E] .rbs svg, .ribbon[data-estilo=E] .rbi svg { width: 20px; height: 20px; }
+.ribbon[data-estilo=E] .rbb .rot, .ribbon[data-estilo=E] .rbs .rot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.ribbon[data-estilo=E] [data-prim] { padding: 0 11px 0 8px; font-size: 12.5px; font-weight: 600; }
+.ribbon[data-estilo=E] [data-prim] .rot { position: static; width: auto; height: auto; clip: auto; clip-path: none; overflow: visible; }
+.ribbon[data-estilo=E] .rbb:hover:not(:disabled), .ribbon[data-estilo=E] .rbs:hover:not(:disabled), .ribbon[data-estilo=E] .rbi:hover:not(:disabled) { background: var(--surface-3); }
+.ribbon[data-estilo=E] .rbb.on, .ribbon[data-estilo=E] .rbs.on, .ribbon[data-estilo=E] .rbi.on { background: var(--primary-soft); }
+.ribbon[data-estilo=E] .rb-mais { height: 32px; min-width: 40px; }
+.ribbon[data-estilo=E] .futuro::after { right: 2px; top: 2px; }
+.faixa-menu-letra { flex: none; min-width: 26px; height: 22px; padding: 0 4px; display: grid; place-items: center; border-radius: 6px; background: var(--primary-soft); color: var(--primary); font-size: 11px; font-weight: 700; }
+.app.cel .ribbon[data-estilo=E] .rbb, .app.cel .ribbon[data-estilo=E] .rbs { height: 40px; min-width: 40px; width: auto; }
+.app.cel .ribbon[data-estilo=E] .rbi { width: 40px; height: 40px; }
+.app.cel .ribbon[data-estilo=E] .rb-g { border-right: 1px solid var(--border); }
+.ribbon[data-estilo=B] [data-prim].on, .ribbon[data-estilo=E] [data-prim].on { outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent); outline-offset: 1px; }
+
+/* v0.6.2: aviso de escala pequena no Imprimir */
+.imp-aviso-esc { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 0; padding: 8px 10px; border-radius: var(--r-ctl); background: var(--warn-soft); color: var(--text); font-size: 12px; line-height: 1.4; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 30%, transparent); }
+.imp-aviso-esc svg { flex: none; width: 16px; height: 16px; color: var(--warn); margin-top: 1px; }
+
+/* v0.6.2: campo com rótulo dentro de janela (antes o rótulo colava no campo) */
+.janela .campo { display: grid; gap: 5px; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.janela .campo input, .janela .campo select { font-weight: 400; color: var(--text); min-height: 34px; padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--r-ctl); background: var(--surface); }
+.janela .campo input:focus, .janela .campo select:focus { outline: 0; border-color: var(--primary); box-shadow: var(--anel); }
+.janela .rg-campo.campo { grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; }
+.loc-jan { width: min(460px, calc(100vw - 20px)); }
+.loc-msg { margin: 0; padding: 8px 10px; border-radius: var(--r-ctl); background: var(--info-soft, var(--surface-2)); font-size: 12.5px; }
+
+/* v0.6.2 (P02): margens arrastáveis na prévia */
+.imp-pagina { position: relative; width: 100%; margin: 0 auto; }
+.imp-svg, .imp-svg svg { width: 100%; height: 100%; display: block; }
+.imp-guia { position: absolute; z-index: 3; touch-action: none; }
+.imp-guia.h { left: 0; right: 0; height: 16px; margin-top: -8px; cursor: ns-resize; }
+.imp-guia.v { top: 0; bottom: 0; width: 16px; margin-left: -8px; cursor: ew-resize; }
+.imp-guia::before { content: ''; position: absolute; border: 0 dashed var(--primary); opacity: .75; }
+.imp-guia.h::before { left: 0; right: 0; top: 7px; border-top-width: 1.5px; }
+.imp-guia.v::before { top: 0; bottom: 0; left: 7px; border-left-width: 1.5px; }
+.imp-guia::after { content: ''; position: absolute; background: var(--primary); border-radius: 3px; box-shadow: 0 0 0 2px var(--surface); }
+.imp-guia.h::after { left: calc(50% - 14px); top: 4px; width: 28px; height: 8px; }
+.imp-guia.v::after { top: calc(50% - 14px); left: 4px; width: 8px; height: 28px; }
+.imp-guia:hover::before, .imp-guia.on::before, .imp-guia:focus-visible::before { opacity: 1; border-color: var(--primary-strong, var(--primary)); }
+.imp-guia:focus-visible { outline: 0; }
+.imp-guia:focus-visible::after { box-shadow: var(--anel); }
+.imp-guia-tip { display: none; position: absolute; z-index: 4; padding: 2px 8px; border-radius: var(--r-chip); background: var(--text); color: var(--surface); font-size: 11.5px; white-space: nowrap; pointer-events: none; }
+.imp-guia.h .imp-guia-tip { left: 50%; top: 14px; transform: translateX(-50%); }
+.imp-guia[data-imp-guia=b] .imp-guia-tip { top: -22px; }
+.imp-guia[data-imp-guia=r] .imp-guia-tip { left: auto; right: 14px; }
+.imp-guia.v .imp-guia-tip { top: 50%; left: 14px; transform: translateY(-50%); }
+.imp-guia:hover .imp-guia-tip, .imp-guia.on .imp-guia-tip, .imp-guia:focus-visible .imp-guia-tip { display: block; }
+.imp-dica-marg { margin: 0; font-size: 12px; }
+
+/* v0.6.2: a faixa não muda de altura ao trocar de aba (a grade não pula), como no Excel; só "Exibir", que tem mais botões empilhados, passa disso */
+.ribbon[data-estilo=B] { min-height: 110px; }
+.ribbon[data-estilo=C] { min-height: 102px; }
+.ribbon[data-estilo=D] { min-height: 106px; }

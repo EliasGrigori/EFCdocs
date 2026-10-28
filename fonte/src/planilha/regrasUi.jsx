@@ -412,7 +412,7 @@ export function JanelaCondicional({ lista, faixaTexto, selecao, aoSalvar, aoFech
   const salvarRegra = (r) => { setRegras((l) => (l.some((x) => x.id === r.id) ? l.map((x) => (x.id === r.id ? r : x)) : [r, ...l])); setModo(null); };
   const mudou = JSON.stringify(regras) !== JSON.stringify(lista);
   return (
-    <Janela titulo="Formatação condicional" icone="condicional" subtitulo={faixaTexto ? 'Seleção: ' + faixaTexto : undefined} aoFechar={aoFechar} classe={'rg-jan rg-larga' + (modo ? ' rg-form-on' : '')} rodape={modo ? null : (
+    <Janela titulo="Formatação condicional" icone="condicional" subtitulo={faixaTexto ? 'Seleção: ' + faixaTexto : undefined} aoFechar={modo ? () => setModo(null) : aoFechar} classe={'rg-jan rg-larga' + (modo ? ' rg-form-on' : '')} rodape={modo ? null : (
       <>
         <button type="button" className="btn sm" data-cond-limpar-aba disabled={!regras.length} onClick={() => setRegras([])}>Limpar todas da aba</button>
         <span style={{ flex: 1 }} />

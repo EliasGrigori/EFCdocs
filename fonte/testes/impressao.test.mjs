@@ -99,3 +99,37 @@ test('impressão: vai para o Excel (margens, papel, escala, títulos, área, cab
   assert.deepEqual(imp, a.imp);
   assert.ok(!relatorio.fora.some((x) => /impress/i.test(x.item)));
 });
+
+/* ---------- v0.6.2: correções do Grok no PDF ---------- */
+test('PDF v0.6.2: data um pouco larga não vira #### (a letra encolhe), número muito largo ainda vira #', () => {
+  const mk = (t, larg) => ({
+    tamCol: () => larg, tamLin: () => 20,
+    celula: (l, c) => (l === 0 && c === 0 ? { t, v: 46000, al: 'd', e: {} } : { t: '', e: {} }),
+    mescla: () => null, objetos: [], aba: 'A', arquivo: 'x', agora: new Date(2026, 9, 28),
+  });
+  const pg = (f) => paginar({}, { l1: 0, c1: 0, l2: 0, c2: 0 }, f.tamCol, f.tamLin);
+  const f1 = mk('28/10/2026', 66); /* 66 px (49,5 pt): cabe com a letra a 90% */
+  const t1 = desenharPaginas(pg(f1), f1)[0].ops.filter((o) => o.k === 'text' && o.t.includes('2026'));
+  assert.equal(t1.length, 1, 'a data aparece inteira');
+  const f2 = mk('28/10/2026', 30);
+  const t2 = desenharPaginas(pg(f2), f2)[0].ops.filter((o) => o.k === 'text' && /^#+$/.test(o.t));
+  assert.equal(t2.length, 1, 'coluna estreita demais: ###');
+  const t3 = desenharPaginas(pg(f1), f1)[0].ops.find((o) => o.k === 'text' && o.t === '28/10/2026');
+  assert.ok(t3.size <= 11 * 0.9 + 0.01, 'letra na mesma proporção da tela (90%)');
+});
+
+test('PDF v0.6.2: linha nova (Alt+Enter) vira linhas separadas, e a mesclada cortada pela página não repete o texto', () => {
+  const f = {
+    tamCol: () => 80, tamLin: () => 20,
+    celula: (l, c) => (l === 0 && c === 0 ? { t: 'um\ndois', v: 'um\ndois', al: 'e', e: {} } : l === 2 && c === 1 ? { t: 'Mesclada', v: 'Mesclada', al: 'c', e: { fundo: '#eeeeee' } } : { t: '', e: {} }),
+    mescla: (l, c) => (l >= 2 && l <= 59 && c >= 1 && c <= 2 ? { l1: 2, c1: 1, l2: 59, c2: 2 } : null),
+    objetos: [], aba: 'A', arquivo: 'x', agora: new Date(2026, 9, 28),
+  };
+  const pg = paginar({}, { l1: 0, c1: 0, l2: 59, c2: 2 }, f.tamCol, f.tamLin);
+  const pags = desenharPaginas(pg, f);
+  assert.equal(pags.length, 2);
+  const t0 = pags[0].ops.filter((o) => o.k === 'text').map((o) => o.t);
+  assert.ok(t0.includes('um') && t0.includes('dois'), 'duas linhas');
+  assert.equal(pags.flatMap((p) => p.ops.filter((o) => o.k === 'text' && o.t === 'Mesclada')).length, 1, 'texto da mesclada uma vez só');
+  assert.ok(pags[1].ops.some((o) => o.k === 'rect' && o.fill === '#eeeeee'), 'o fundo continua na página seguinte');
+});

@@ -305,15 +305,22 @@ export function JanelaLocalizar({ aoAchar, aoSubstituir, aoFechar, somenteLeitur
   const [novo, setNovo] = useState('');
   const [msg, setMsg] = useState('');
   return (
-    <Janela titulo="Localizar e substituir" icone="busca" aoFechar={aoFechar}>
+    <Janela titulo="Localizar e substituir" icone="busca" subtitulo={somenteLeitura ? 'Só procurar (arquivo somente leitura)' : 'Acha em todas as abas'} aoFechar={aoFechar} classe="rg-jan loc-jan"
+      rodape={(
+        <>
+          <button type="button" className="btn sm" onClick={aoFechar}>Fechar</button>
+          <span style={{ flex: 1 }} />
+          {!somenteLeitura && <button type="button" className="btn sm" data-loc-trocar disabled={!q} onClick={() => setMsg(aoSubstituir(q, novo))}>Trocar todos</button>}
+          <button type="button" className="btn sm primary" data-loc-achar disabled={!q} onClick={() => setMsg(aoAchar(q))}>Achar o próximo</button>
+        </>
+      )}>
       <div className="janela-c">
-        <label className="campo">Procurar<input value={q} onChange={(ev) => setQ(ev.target.value)} onKeyDown={(ev) => { if (ev.key === 'Enter' && q) setMsg(aoAchar(q)); }} /></label>
-        {!somenteLeitura && <label className="campo">Trocar por<input value={novo} onChange={(ev) => setNovo(ev.target.value)} /></label>}
-        <div className="chips">
-          <button type="button" className="btn sm primary" disabled={!q} onClick={() => setMsg(aoAchar(q))}>Achar o próximo</button>
-          {!somenteLeitura && <button type="button" className="btn sm" disabled={!q} onClick={() => setMsg(aoSubstituir(q, novo))}>Trocar todos</button>}
-        </div>
-        {msg && <p role="status">{msg}</p>}
+        <section className="rg-cartao">
+          <span className="rg-cab">O que procurar</span>
+          <label className="campo rg-campo"><span>Procurar</span><input value={q} data-foco data-loc-q onChange={(ev) => setQ(ev.target.value)} onKeyDown={(ev) => { if (ev.key === 'Enter' && q) setMsg(aoAchar(q)); }} /></label>
+          {!somenteLeitura && <label className="campo rg-campo"><span>Trocar por</span><input value={novo} data-loc-novo onChange={(ev) => setNovo(ev.target.value)} /></label>}
+        </section>
+        {msg && <p role="status" className="loc-msg" data-loc-msg>{msg}</p>}
       </div>
     </Janela>
   );

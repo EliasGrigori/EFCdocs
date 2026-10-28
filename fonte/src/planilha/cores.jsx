@@ -117,7 +117,12 @@ export function PainelCores({ rotulo, valor, aoMudar, semCor = 'Sem cor', cores 
     const fundo = 'letra' in leitura ? atual : norm(leitura.fundo) || '#ffffff';
     const letra = 'letra' in leitura ? norm(leitura.letra) || '#000000' : atual;
     const r = contraste(fundo, letra);
-    ler = { bom: r >= 4.5, t: r >= 4.5 ? `Leitura boa (${r.toFixed(1).replace('.', ',')}:1)` : `Leitura fraca (${r.toFixed(1).replace('.', ',')}:1): use uma ${'letra' in leitura ? 'letra mais escura ou um fundo mais claro' : 'letra mais escura'}` };
+    /* o conselho afasta as duas cores: fundo escuro pede letra mais clara (e fundo claro, letra mais escura); mexendo no fundo, letra clara pede fundo mais escuro e letra escura, fundo mais claro */
+    const claro = (h) => contraste(h, '#000000') > contraste(h, '#ffffff');
+    const conselho = 'letra' in leitura
+      ? (claro(letra) ? 'um fundo mais escuro' : 'um fundo mais claro')
+      : (claro(fundo) ? 'uma letra mais escura' : 'uma letra mais clara');
+    ler = { bom: r >= 4.5, t: r >= 4.5 ? `Leitura boa (${r.toFixed(1).replace('.', ',')}:1)` : `Leitura fraca (${r.toFixed(1).replace('.', ',')}:1): use ${conselho}` };
   }
   return (
     <div className="cr-painel" role="group" aria-label={rotulo || 'Cores'} data-cores>
@@ -151,7 +156,7 @@ export function PainelCores({ rotulo, valor, aoMudar, semCor = 'Sem cor', cores 
       {trocar && aoTrocar && (
         <label className="cr-trocar">
           <input type="checkbox" checked={trocarTudo} onChange={(ev) => { const x = ev.target.checked; setTrocarTudo(x); (x ? aoTrocar : aoMudar)(atual || undefined); }} data-cr-trocar />
-          <Icone n="trocarCor" /><span>Trocar na aba toda: as células com {trocar.de ? <i className="cr-mini" style={{ background: trocar.de }} /> : null}<b>{trocar.rotulo}</b> recebem a cor escolhida</span>
+          <Icone n="trocarCor" /><span>Trocar na aba toda: as células {trocar.de ? <i className="cr-mini" style={{ background: trocar.de }} /> : null}<b>{trocar.rotulo}</b> passam a ter a cor escolhida</span>
         </label>
       )}
       {ler && <span className={'cr-ler ' + (ler.bom ? 'bom' : 'fraca')} data-cr-leitura={ler.bom ? 'boa' : 'fraca'}>{ler.t}</span>}

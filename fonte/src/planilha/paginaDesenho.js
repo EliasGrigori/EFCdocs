@@ -6,6 +6,8 @@ import { letraCol } from './ref.js';
 import { larguraHelvetica } from './impressaoPdf.js';
 
 const largTexto = (t, pt, b) => larguraHelvetica(t, pt, b);
+/* na tela a letra é pt*(4/3)*0,9 px dentro da coluna; no papel a mesma proporção evita ####/corte que só aparecia no PDF */
+const FATOR_FONTE = 0.9;
 const corOk = (c) => (typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c) ? c : null);
 
 /**
@@ -59,17 +61,18 @@ export function desenharPaginas(pg, fonte) {
       if (corOk(e.fundo)) ops.push({ k: 'rect', x: cx, y: cy, w: cw, h: ch, fill: e.fundo });
       if (imp.grade) ops.push({ k: 'rectL', x: cx, y: cy, w: cw, h: ch, cor: '#c9d1d9', w2: 0.4 });
       if (e.bd) bordas.push({ e, x: cx, y: cy, w: cw, h: ch });
-      if (cel.t !== '' && cel.t != null) textos.push({ cel, e, x: cx, y: cy, w: cw, h: ch, l, c, m });
+      const cantoAqui = !m || (p.lins.includes(m.l1) && p.cols.includes(m.c1));
+      if (cantoAqui && cel.t !== '' && cel.t != null) textos.push({ cel, e, x: cx, y: cy, w: cw, h: ch, l, c, m });
     }
     /* texto: transborda para as vizinhas vazias (à esquerda/direita), como no Excel; com quebra, fica na célula */
     const vazia = (l, c) => { const q = fonte.celula(l, c); return !q.t && !fonte.mescla(l, c); };
     for (const tx of textos) {
       const { cel, e } = tx;
-      const pt = (e.tam || 11) * esc;
+      const pt = (e.tam || 11) * esc * FATOR_FONTE;
       const cor = corOk(cel.cor) || corOk(e.cor) || '#000000';
       const pad = 2 * esc;
       const base = { size: pt, bold: !!e.b, italic: !!e.i, cor, under: !!e.u, strike: !!e.st };
-      if (e.qb) {
+      if (e.qb || String(cel.t).includes('\n')) {
         const linhas = quebrar(String(cel.t), tx.w - pad * 2, pt, e.b);
         const alturaL = pt * 1.2;
         const tot = linhas.length * alturaL;
@@ -89,9 +92,14 @@ export function desenharPaginas(pg, fonte) {
         if (cel.al === 'd' || cel.al === 'c') for (let k = idx - 1; k >= 0 && cx2 - cx1 < precisa; k--) { if (!vazia(tx.l, p.cols[k])) break; cx1 -= tc(p.cols[k]); }
       }
       const yy = e.av === 't' ? tx.y + pad + pt * 0.85 : e.av === 'm' || e.av === 'c' ? tx.y + tx.h / 2 + pt * 0.35 : tx.y + tx.h - pad - pt * 0.12;
-      /* número que não cabe vira ### (como no Excel) */
+      /* número ou data que não cabe: encolhe a letra até 70%; só então vira ### (como no Excel) */
       let t = String(cel.t);
-      if (typeof cel.v === 'number' && precisa > tx.w) t = '#'.repeat(Math.max(1, Math.floor((tx.w - pad * 2) / (pt * 0.55))));
+      if (typeof cel.v === 'number' && precisa > tx.w) {
+        const util2 = tx.w - pad * 2;
+        const f = Math.max(0.7, util2 / Math.max(1, largTexto(t, pt, e.b)));
+        if (largTexto(t, pt * f, e.b) <= util2 + 0.01) base.size = pt * f;
+        else t = '#'.repeat(Math.max(1, Math.floor(util2 / (pt * 0.55))));
+      }
       const xx = cel.al === 'c' ? (cx1 + cx2) / 2 : cel.al === 'd' ? cx2 - pad : cx1 + pad;
       ops.push({ k: 'text', x: xx, y: yy, t, anchor: cel.al === 'c' ? 'middle' : cel.al === 'd' ? 'end' : 'start', clip: { x: cx1, y: tx.y, w: cx2 - cx1, h: tx.h }, ...base });
     }

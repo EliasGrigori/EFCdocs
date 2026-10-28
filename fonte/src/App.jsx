@@ -533,7 +533,7 @@ export function App() {
   }, [opcoes]);
 
   const cx = {
-    mod, executar, bloqueado, ligado, demo,
+    mod, executar, bloqueado, ligado, demo, setPref,
     abrir: (id) => irPara('arq/' + id),
     perguntarNome, lixeira: mandarLixeira, restaurar, excluirDeVez, criarCom,
     renomear: (nome) => { const a = abertoRef.current; if (a && nome !== a.arquivo.ficha.nome) renomearArquivo(a.arquivo.ficha, nome); },

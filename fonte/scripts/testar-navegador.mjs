@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.1', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.2', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.1'), 'rodapé sem v0.6.1');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.2'), 'rodapé sem v0.6.2');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -942,7 +942,7 @@ await caso('v0.4.0: congelar a linha de cima e Folha clara', async () => {
   await print(p, '35-planilha-congelada');
   await cmd(p, 'exibir.folhaClara');
   await p.waitForTimeout(150);
-  const px = await p.locator('.pl-cv').evaluate((cv) => { const d = cv.getContext('2d').getImageData(cv.width - 20, cv.height - 20, 1, 1).data; return [d[0], d[1], d[2]]; });
+  const px = await p.locator('.pl-cv').evaluate((cv) => { const d = cv.getContext('2d').getImageData(cv.width - 80, cv.height - 80, 60, 60).data; const m = new Map(); for (let i = 0; i < d.length; i += 4) { const k = d[i] + ',' + d[i + 1] + ',' + d[i + 2]; m.set(k, (m.get(k) || 0) + 1); } const top = [...m.entries()].sort((a, b) => b[1] - a[1])[0][0]; return top.split(',').map(Number); }); /* cor que mais aparece (uma linha de grade pode cair no pixel por causa da altura da faixa) */
   igual(px.join(','), '255,255,255', 'folha clara não ficou branca');
   await cmd(p, 'exibir.folhaClara');
   await p.locator('.pl-rol').evaluate((e) => { e.scrollTop = 0; });
@@ -1303,7 +1303,7 @@ await caso('v0.4.2: sem prévia de #VALOR! enquanto faltam partes na função', 
   certo((await p.locator('.pl-previa').innerText()).includes('6'), 'prévia sumiu na conta completa');
   await p.keyboard.press('Escape');
 });
-await caso('v0.4.2: faixa não passa da tela em 1366 px, Copiar/Colar/Recortar só com ícone, Reexibir colunas', async () => {
+await caso('v0.4.2: faixa não passa da tela em 1366 px, Copiar/Colar/Recortar com ícone e nome, Reexibir colunas', async () => {
   for (const aba of ['Página Inicial', 'Inserir', 'Fórmulas', 'Dados', 'Revisão', 'Exibir']) {
     await p.click(`.tabs .tab:has-text("${aba}")`);
     await p.waitForTimeout(120);
@@ -1311,10 +1311,11 @@ await caso('v0.4.2: faixa não passa da tela em 1366 px, Copiar/Colar/Recortar s
     certo(m[0] <= m[1] + 1 && !m[2], `faixa ${aba}: ${m}`);
   }
   await p.click('.tabs .tab:has-text("Página Inicial")');
+  /* v0.6.2: Colar é o botão principal (grande, com nome) e Copiar/Recortar levam o nome ao lado do ícone; todos com aria-label e ícone */
   for (const id of ['editar.colar', 'editar.copiar', 'editar.recortar']) {
     const b = p.locator(`.ribbon [data-cmd="${id}"]`);
-    igual((await b.innerText()).trim(), '', 'texto no botão ' + id);
-    certo(!!(await b.getAttribute('aria-label')), 'sem aria-label ' + id);
+    certo(!!(await b.getAttribute('aria-label')) || !!(await b.innerText()).trim(), 'sem nome acessível ' + id);
+    igual(await b.locator('svg').count() >= 1, true, 'sem ícone ' + id);
   }
   /* ocultar a coluna B e reexibir pela faixa */
   const vizinha = async () => { await celula(p, 'A1'); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(80); return p.locator('.pl-nome').inputValue(); };
@@ -1580,7 +1581,8 @@ await caso('v0.4.3: quadro: dica do Colar fala de post-it, Ctrl+B põe negrito n
   const d = await p.locator('.dica-cmd').innerText();
   certo(/post-it/.test(d) && !/Excel|fórmula/.test(d), d);
   await p.mouse.move(600, 500);
-  igual(await p.locator('.ribbon .rbb').count(), 0, 'o quadro ainda tem botões grandes na Página Inicial');
+  /* v0.6.2: só o botão principal (Colar) é grande */
+  igual(await p.locator('.ribbon .rbb:not([data-prim])').count(), 0, 'o quadro ainda tem botões grandes na Página Inicial');
   await p.click('.tabs .tab:has-text("Inserir")');
   await cmd(p, 'inserir.postit');
   await p.waitForSelector('.qi-postit');
@@ -1894,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.1'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.2'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -2804,12 +2806,12 @@ await caso('v0.4.9: menu como o do Drive: botão Novo com as três opções, Meu
   await p.click('.novo-drive-m button:has-text("Planilha")');
   await p.waitForSelector('.pl-cv');
 });
-await caso('v0.4.9: ícones da faixa coloridos por família e maiores', async () => {
+await caso('v0.6.2: ícones da faixa de uma cor só (com toque suave), grandes e a faixa baixa', async () => {
   const cor = (sel) => p.locator(sel + ' svg').first().evaluate((e) => getComputedStyle(e).color);
   const neg = await cor('[data-cmd="formatar.negrito"]'), copi = await cor('[data-cmd="editar.copiar"]'), auto = await cor('[data-cmd="formula.autosoma"]');
-  certo(neg !== copi && copi !== auto && neg !== auto, 'cores iguais: ' + [neg, copi, auto].join(' | '));
+  certo(neg === copi && copi === auto, 'uma cor só: ' + [neg, copi, auto].join(' | '));
   const lado = await p.locator('.rbb svg').first().evaluate((e) => e.getBoundingClientRect().width);
-  certo(lado >= 25, 'ícone grande pequeno: ' + lado);
+  certo(lado >= 22, 'ícone grande pequeno: ' + lado);
   const ribb = await p.locator('.ribbon').boundingBox();
   certo(ribb.height < 120, 'faixa alta demais: ' + ribb.height);
 });
@@ -3461,6 +3463,104 @@ await caso('v0.6.1: mescladas que atravessam a linha do congelamento não pintam
   await print(p, 'v061-congelada');
 });
 
+/* ---------- v0.6.2 ---------- */
+await caso('v0.6.2: estilos da faixa B, C, D e E (menu da faixa e Opções) e ícones novos em todos os botões grandes', async () => {
+  await p.goto(BASE + '#/'); await abrirAmostraNaPlanilha(p);
+  igual(await p.locator('.ribbon').getAttribute('data-estilo'), 'B', 'no computador o automático é B');
+  for (const e of ['C', 'D', 'E', 'B']) {
+    await p.click('[data-opcoes-faixa]'); await p.click(`[data-faixa-estilo=${e}]`); await p.waitForTimeout(250);
+    igual(await p.locator('.ribbon').getAttribute('data-estilo'), e, 'estilo ' + e);
+    certo(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'rolagem lateral no estilo ' + e);
+    if (e !== 'B') await print(p, 'v062-faixa-' + e);
+  }
+  certo((await p.locator('.ribbon .rbb .q svg.ic-novo, .ribbon .rbb .q .ic-novo').count()) > 3, 'ícones novos na faixa');
+  /* um botão principal por aba (Colar, na Página Inicial) */
+  igual(await p.locator('.ribbon [data-prim]').count() >= 1, true, 'botão principal');
+});
+await caso('v0.6.2: Opções › Estilo da faixa troca a faixa e guarda a escolha', async () => {
+  await p.keyboard.press('Escape');
+  await p.locator('[aria-label="Opções"]').first().click();
+  await p.waitForSelector('.opcoes');
+  await abrirSecao(p, 'tela');
+  certo(/Estilo da faixa/.test(await p.locator('.opcoes').innerText()), 'linha Estilo da faixa nas Opções');
+  await p.locator('.opcoes button:has-text("D · Quadrinho")').click(); await p.waitForTimeout(200);
+  igual(await p.locator('.ribbon').getAttribute('data-estilo'), 'D', 'a faixa mudou para D');
+  await p.locator('.opcoes button:has-text("Automático")').first().click(); await p.waitForTimeout(200);
+  igual(await p.locator('.ribbon').getAttribute('data-estilo'), 'B', 'Automático volta para B no computador');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.6.2: Alt+Enter liga a quebra de texto da célula', async () => {
+  await p.keyboard.press('Escape');
+  await celula(p, 'H2');
+  await p.keyboard.type('linha um'); await p.keyboard.press('Alt+Enter'); await p.keyboard.type('linha dois'); await p.keyboard.press('Enter'); await p.waitForTimeout(120);
+  await celula(p, 'H2');
+  igual(await p.locator('[data-cmd="formatar.quebrar"]').first().getAttribute('aria-pressed'), 'true', 'Quebrar texto ligado');
+});
+await caso('v0.6.2: Esc na Nova regra volta para a lista de regras (não fecha tudo)', async () => {
+  await celula(p, 'C2');
+  await cmd(p, 'formatar.condicional');
+  await p.waitForSelector('[data-cond-nova]'); await p.click('[data-cond-nova]'); await p.waitForTimeout(150);
+  igual(await p.locator('[data-cond-nova]').count(), 0, 'formulário aberto');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+  igual(await p.locator('[data-cond-nova]').count(), 1, 'voltou para a lista');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+  igual(await p.locator('[data-condicional]').count(), 0, 'o 2º Esc fecha a janela');
+});
+await caso('v0.6.2: Localizar e substituir com subtítulo, campos com espaço e rodapé', async () => {
+  await cmd(p, 'editar.localizar');
+  await p.waitForSelector('[data-loc-q]');
+  certo(await p.locator('.loc-jan .janela-r [data-loc-achar]').count() === 1, 'botão principal no rodapé');
+  const gap = await p.evaluate(() => { const l = document.querySelector('.loc-jan label.campo'); const i = l.querySelector('input'); const sp = l.querySelector('span').getBoundingClientRect(); return i.getBoundingClientRect().left - sp.right; });
+  certo(gap >= 4, 'rótulo não encosta no campo: ' + gap);
+  await print(p, 'v062-localizar');
+  await p.keyboard.type('Entrada'); await p.click('[data-loc-achar]'); await p.waitForTimeout(100);
+  certo(/encontrad/.test(await p.locator('[data-loc-msg]').innerText()), 'achou');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.6.2: aviso de leitura: fundo escuro pede letra mais clara; "sem preenchimento" lê direito', async () => {
+  await celula(p, 'A1'); /* cabeçalho com fundo azul-petróleo escuro */
+  await cmd(p, 'formatar.corFonte');
+  await p.waitForSelector('[data-cores]');
+  await p.locator('[data-cores] .cr-amostras button').first().click(); /* preto */
+  await p.waitForTimeout(150);
+  const aviso = await p.locator('[data-cr-leitura]').first().innerText();
+  certo(/fraca/i.test(aviso) && /mais clara/.test(aviso), 'conselho certo: ' + aviso);
+  const txt = await p.locator('[data-cores]').first().innerText();
+  certo(!/as células com sem/.test(txt), 'texto sem o erro de português');
+  await p.keyboard.press('Escape');
+  await celula(p, 'C2');
+  await cmd(p, 'formatar.preenchimento');
+  await p.waitForSelector('[data-cores]');
+  certo(/células\s+(sem|com)/.test(await p.locator('[data-cores]').first().innerText()), 'frase "as células sem/com ..."');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.6.2: Imprimir: margens arrastáveis na prévia (mouse e setas) e aviso de escala pequena', async () => {
+  await p.keyboard.press('Control+p'); await p.waitForSelector('[data-imprimir-janela]');
+  const g = p.locator('[data-imp-guia=t]'); const bb = await g.boundingBox();
+  const antes = +(await g.getAttribute('aria-valuenow'));
+  await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.mouse.down(); await p.mouse.move(bb.x + bb.width / 2, bb.y + 50, { steps: 5 }); await p.mouse.up();
+  const depois = +(await g.getAttribute('aria-valuenow'));
+  certo(depois > antes + 1, `margem de cima subiu: ${antes} → ${depois}`);
+  igual(await p.locator('[data-imp-margens]').inputValue(), 'pers', 'vira Personalizadas');
+  await g.focus(); await p.keyboard.press('ArrowUp');
+  certo(Math.abs(+(await g.getAttribute('aria-valuenow')) - (depois - 0.1)) < 0.011, 'seta mexe 0,1 cm');
+  await print(p, 'v062-imprimir-margens');
+  /* escala pequena: pct 20% */
+  await p.selectOption('[data-imp-escala]', 'pct'); await p.fill('[data-imp-pct]', '20'); await p.waitForTimeout(150);
+  igual(await p.locator('[data-imp-aviso-escala]').count(), 1, 'aviso de letra pequena');
+  await p.fill('[data-imp-pct]', '80'); await p.waitForTimeout(150);
+  igual(await p.locator('[data-imp-aviso-escala]').count(), 0, 'sem aviso em 80%');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.6.2: janelas cabem na tela em 1366×800 (cabeçalho e rodapé sempre à vista)', async () => {
+  for (const termo of ['Localizar e substituir', 'Validação de dados', 'Formatação condicional', 'Nomes']) {
+    await p.keyboard.press('Control+k'); await p.keyboard.type(termo); await p.waitForTimeout(200); await p.keyboard.press('Enter'); await p.waitForTimeout(350);
+    const m = await p.locator('.janela').last().evaluate((e) => { const r = e.getBoundingClientRect(); return { topo: r.top, base: r.bottom, h: innerHeight }; });
+    certo(m.topo >= 0 && m.base <= m.h + 1, `${termo}: ${JSON.stringify(m)}`);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+  }
+});
+
 await ctx.close();
 ({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }));
 await caso('v0.5.0 celular: abrir do Excel pelo Início e ver o relatório sem rolagem lateral', async () => {
@@ -3509,6 +3609,16 @@ await caso('v0.6.1 celular: o gráfico nasce dentro da tela e o aviso diz "toque
   const box = await p.locator('.pl-obj-gr').last().boundingBox();
   certo(box.x >= 0 && box.x + box.width <= 391, 'dentro da tela: ' + JSON.stringify(box));
   certo(/toque duas vezes/.test(await p.locator('.toasts').innerText().catch(() => '')), 'aviso para o toque');
+});
+
+await caso('v0.6.2 celular: faixa no estilo E (compacta) por padrão e janelas dentro da tela', async () => {
+  if (!(await p.locator('.pl-cv').count())) { await p.goto(BASE + '#/'); await abrirAmostraNaPlanilha(p).catch(async () => { await p.waitForSelector('.pl-cv'); }); }
+  await p.locator('.tbar-fixo [aria-label^="Abas da faixa"], .tbar-fixo button[title^="Abas da faixa"]').first().tap().catch(() => {});
+  await p.waitForTimeout(300);
+  const est = await p.locator('.ribbon').first().getAttribute('data-estilo').catch(() => null);
+  igual(est, 'E', 'no celular o automático é E');
+  certo(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'rolagem lateral');
+  await print(p, 'v062-celular-faixa');
 });
 
 await navegador.close();

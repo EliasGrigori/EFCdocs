@@ -7,10 +7,10 @@ import { criarBanco, bancoNaMemoria, LIMITE_DEMO } from '../src/nucleo/banco.js'
 import { criarArquivo, validarNome, carimbar, ativos, naLixeira, maisRecentes, novoId, VERSAO, TIPOS } from '../src/nucleo/modelo.js';
 import { COMANDOS, PorId, chegaNa, valeNoModulo, buscarComandos, versaoMaior } from '../src/nucleo/comandos.js';
 import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
-import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
+import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS, estiloDaFaixa } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.6.1', () => assert.equal(VERSAO, 'v0.6.1'));
+test('versão é v0.6.2', () => assert.equal(VERSAO, 'v0.6.2'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -239,4 +239,13 @@ test('v0.4.9 (L09): temas claros e escuros pelo fundo; os principais têm 3 de c
   for (const id of ['dark', 'ocean', 'petroleo', 'ouro']) assert.ok(escuros.includes(id), id + ' devia ser escuro');
   assert.equal(TEMAS_DESTAQUE.filter((id) => ehTemaClaro(id)).length, 3);
   assert.equal(TEMAS_DESTAQUE.filter((id) => !ehTemaClaro(id)).length, 3);
+});
+
+test('v0.6.2: estilo da faixa: Automático é B no computador e E no celular; B, C, D e E valem; lixo volta ao padrão', () => {
+  assert.equal(prefsPadrao().estilo, 'auto');
+  assert.equal(estiloDaFaixa({ estilo: 'auto' }, false), 'B');
+  assert.equal(estiloDaFaixa({ estilo: 'auto' }, true), 'E');
+  for (const e of ['B', 'C', 'D', 'E']) { assert.equal(normalizarPrefs({ estilo: e }).estilo, e); assert.equal(estiloDaFaixa({ estilo: e }, true), e); }
+  assert.equal(normalizarPrefs({ estilo: 'Z' }).estilo, 'auto');
+  assert.equal(normalizarPrefs({}).estilo, 'auto');
 });

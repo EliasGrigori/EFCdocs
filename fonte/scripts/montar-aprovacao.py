@@ -1,73 +1,77 @@
-"""EFCdocs — monta a página de aprovação da v0.6.1 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.6.2 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" <testes-de-regras> <testes-no-navegador>"""
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.6.1'
+VERSAO = 'v0.6.2'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-GX, GE, GV, GC, GD = 'A. Gráficos do Excel com a cara original (seu pedido, F6)', 'B. Editor de gráficos (F5)', 'C. Velocímetro', 'D. Correções e os seus dois pedidos de hoje', 'E. Decisões'
+GR, GG, GJ, GD = 'A. Faixa de cima nova e ícones novos (seu pedido principal)', 'B. Correções do Grok na v0.6.0', 'C. Janelas e margens', 'D. Decisões e lembretes'
 ITENS = [
-    ('X01', 'Velocímetro do Excel aparece como no Excel', GX,
-     '<p>Antes, o EFCdocs lia só o tipo, as séries e uma cor de cada gráfico; o velocímetro (rosca com metade invisível + pizza que faz o ponteiro) virava uma pizza colorida. Agora ele lê <b>tudo</b>: cor de cada fatia (também as cores do tema do Excel, com mais claro e mais escuro), <b>fatia invisível</b>, <b>giro</b>, <b>furo</b> e a rosca junto com a pizza. Amostra inventada que imita o seu arquivo (os seus arquivos não entram aqui).</p>',
-     'Ficou como no seu Excel?', [('Antes (v0.6.0)', 'antes-velo'), ('Depois', 'depois-velo')], 'um'),
-    ('X02', 'Painel escuro: fundo, contorno, brilho, degradê, R$, linha curva e eixo da direita', GX,
-     '<p><b>Fundo escuro</b> do gráfico, barras <b>só com contorno</b> e brilho, colunas em <b>degradê</b>, rótulos e eixos em <b>R$</b> (o formato do Excel), linha <b>curva</b> com marcadores e tracejado, <b>eixo da direita</b> com mínimo −0,2 e máximo 1, legenda com item escondido, títulos e letras com tamanho, cor e negrito. Barras deitadas com a 1ª categoria embaixo, como o Excel.</p>',
-     'Algum detalhe do seu painel ainda diferente?', [('Antes (v0.6.0)', 'antes-painel'), ('Depois', 'depois-painel')], 'um'),
-    ('X03', 'Pizza com muitas fatias nas cores do tema', GX,
-     '<p>Sem cor escrita no arquivo, o Excel pinta pelas cores do <b>tema</b> (e repete mais escuras e mais claras depois da 6ª). Agora é igual; as porcentagens pequenas vão para fora da fatia.</p>', '',
-     [('Antes (v0.6.0)', 'antes-resumo'), ('Depois', 'depois-resumo')], 'par'),
-    ('X04', 'Salvar como Excel: o gráfico do Excel volta IGUAL', GX,
-     '<p>O mais importante: ao salvar, cada gráfico que veio do Excel e <b>não foi mexido</b> aqui volta <b>exatamente como veio</b> (por dentro, o mesmo XML do gráfico; conferido nos 7 gráficos da amostra, no teste e no navegador). Se você mexer num gráfico, só ele é refeito, agora com toda a formatação. Inserir linhas acima dos dados e renomear a aba também funcionam (as referências acompanham). Na imagem: o arquivo salvo aberto no <b>LibreOffice</b>, com um estilo mudado ("Gasto por ponto"), os gráficos do Excel intactos, um velocímetro e um semáforo feitos aqui. Falta o seu <b>Excel de verdade</b>.</p>',
-     'Abre igual no seu Excel? (lembrete do F05)', [('Arquivo salvo, aberto no LibreOffice', 'lo-salvo')], 'um'),
-    ('E01', 'Editor novo: prévia grande e seis partes', GE,
-     '<p>Como você pediu: fácil e diferente do Excel, mas com as funções de lá. <b>Dois cliques</b> no gráfico abrem a janela larga: <b>prévia grande à esquerda</b> com os <b>estilos rápidos</b> embaixo, e à direita seis partes: <b>Tipo e dados, Estilo, Séries, Eixos, Textos, Fundo</b>. Cancelar não muda nada; Salvar muda; Ctrl+Z volta.</p>',
-     'A organização está boa?', [('Antes (v0.6.0)', 'antes-editor'), ('Depois', 'depois-editor')], 'um'),
-    ('E02', 'Clique na parte que quer mudar', GE,
-     '<p>Clicou numa <b>barra</b> da prévia: abre <b>Séries</b> já com aquela série e aquele ponto. Clicou no <b>eixo</b>: abre Eixos. Título ou legenda: Textos. Fundo: Fundo. Em Séries: tipo da série (colunas, linha, área) e <b>eixo da direita</b>; preenchimento (cor, <b>degradê</b>, nenhum); contorno (cor, espessura, tracejado); linha <b>curva</b>; marcador; <b>brilho</b> e <b>sombra</b>; números na série (valor, %, categoria, nome; onde ficam; formato <b>R$, %, data</b>; letra); <b>linha de tendência</b>; e <b>cor de cada ponto</b>, com a opção <b>invisível</b> (o truque do velocímetro).</p>',
-     '', [('Clicou na coluna: Séries', 'depois-editor-series')], 'um'),
-    ('E03', 'Estilos rápidos, layout rápido, cores e semáforo', GE,
-     '<p>Os 6 estilos da proposta, aprovados: <b>Clássico, Limpo, Apresentação, Escuro, Semáforo da qualidade e Mínimo</b>: um clique muda tudo junto. Também: <b>Layout rápido</b> (5), <b>Cores</b> (8 conjuntos) e o <b>Semáforo</b> em qualquer gráfico (meta, faixa "perto" em %, maior ou menor é melhor). No Excel, o semáforo vai como a cor de cada barra. Em gráfico que veio do Excel, o formato dos números (R$, %) continua ao trocar o estilo.</p>',
-     'Os estilos estão bonitos? Algum que você quer diferente?', [('Os 6 estilos (dados inventados)', 'estilos-grade'), ('Aba Estilo do editor', 'depois-editor-estilo')], 'um'),
-    ('E04', 'Eixos, Textos e Fundo', GE,
-     '<p><b>Eixos</b>: mostrar/esconder, nome, <b>mínimo, máximo e de quanto em quanto</b>, formato, ordem ao contrário, grade, linha do eixo, letra. <b>Textos</b>: título (letra, cor, alinhamento), <b>legenda</b> em 5 posições, letra do gráfico. <b>Fundo</b>: cor, degradê ou nenhum, borda, cantos arredondados, área do desenho, <b>espaço entre barras</b> e sobreposição, <b>giro e furo</b> da pizza e da rosca.</p>',
-     '', [('Eixos (eixo da direita)', 'depois-editor-eixos'), ('Textos', 'depois-editor-textos'), ('Fundo', 'depois-editor-fundo')], 'par'),
-    ('E05', 'Editor no celular', GE, '<p>A prévia fica em cima e as partes embaixo, sem rolagem lateral.</p>', '',
-     [('Celular (390×844)', 'depois-cel-editor')], 'par'),
-    ('V01', 'Velocímetro do EFCdocs', GV,
-     '<p>Tipo novo em Inserir › Gráfico (e para o Painel, depois): escolha <b>uma célula</b>, diga a <b>meta</b>, o mínimo, o máximo e se "melhor é mais alto ou mais baixo"; as cores (vermelho, amarelo, verde) saem da meta. No Excel, vai do jeito que o Excel faz velocímetro (rosca com metade invisível + pizza ponteiro).</p>',
-     'Quer faixas com mais cores, como as 16 do seu arquivo?', [('Inserir gráfico › Velocímetro', 'depois-velocimetro-janela'), ('Na planilha', 'depois-velocimetro-grade')], 'um'),
-    ('C01', 'Correções do Grok nos gráficos', GC,
-     '<ul><li>Uma célula só escolhida: a região <b>para nos dados</b> (antes ia até a linha 403 por causa das fórmulas vazias).</li><li><b>Empilhado</b> e <b>100%</b> em Colunas, Barras e Área.</li><li>O gráfico <b>nasce inteiro na tela</b> (à direita dos dados, menor, embaixo ou no meio da tela); no celular o aviso diz <b>"toque duas vezes"</b>.</li><li>No Excel: <b>datas como datas</b> (o LibreOffice mostrava número), sem linha vazia escondida, Meta como linha separada; gráficos feitos pelo <b>openpyxl</b> agora abrem; a contagem do "Ficou de fora" está certa.</li><li><b>Coluna ou linha oculta</b>: fica fora do gráfico, como no Excel, e o editor avisa ("1 oculta fora"), com a opção de mostrar.</li><li>Zoom 200%: conferi que o gráfico fica preso às mesmas células (cresce a partir do canto, como as células).</li></ul>',
-     '', [], ''),
-    ('C02', 'Lista suspensa por faixa (erro crítico do Grok)', GC,
-     '<p>Lista por faixa digitada sem $ (A2:A10): a 2ª linha <b>perdia o 1º item</b>. Agora a faixa vale igual para todas as linhas e é salva travada ($A$2:$A$10), como o Excel faz quando você escolhe com o mouse. E <b>renomear a aba</b> de onde vem a lista não deixa mais a lista vazia (também vale para as regras de cor).</p>', '', [], ''),
-    ('C03', 'Botão da faixa como no Excel (seu pedido de hoje)', GC,
-     '<p>Antes eram dois botões, e o menu do "v" ficava escondido dentro da linha das abas: a faixa não voltava. Agora é <b>um botão só</b>, como as "Opções de exibição da faixa" do Excel: <b>Mostrar a faixa sempre</b>, <b>Só as abas</b> (a faixa aparece ao clicar numa aba), <b>Esconder a faixa e as abas</b> e <b>Juntar o título com as abas</b>. O menu flutua por cima de tudo; <b>Ctrl+F1</b> mostra ou esconde; Esc fecha.</p>',
-     'Ficou como você queria?', [('Antes (v0.6.0): o menu não aparece', 'antes-faixa-menu'), ('Depois', 'depois-faixa-menu')], 'par'),
-    ('C04', 'Parte congelada com mescladas (seu pedido de hoje)', GC,
-     '<p>Reproduzi com uma planilha inventada no mesmo arranjo (linhas 1 a 7 congeladas, cinzas mescladas que atravessam a linha do congelamento). Ao rolar, a mesclada era desenhada com altura "ao contrário" e o cinza pintava por cima do título. Agora cada parte da mesclada fica no seu lugar: a congelada parada, a de baixo rolando. Também: texto comprido não passa mais por cima de mesclada nem apaga o fundo cinza da vizinha.</p>',
-     'Confere no seu arquivo de potabilidade?', [('Antes (v0.6.0), depois de rolar', 'antes-congelada'), ('Depois, depois de rolar', 'depois-congelada')], 'um'),
-    ('D01', 'Lembretes que não ficam para trás', GD,
-     '<ul><li><b>ECharts</b>: o motor de gráficos continua o nosso (agora com a formatação do Excel toda). Dá para trocar pelo ECharts quando você quiser.</li><li><b>F05 · Excel de verdade</b>: falta o seu retorno de como os arquivos salvos aqui abrem no Excel (gráficos, Layout da Página).</li></ul>',
-     '', [], ''),
-    ('D02', 'Botões que faltam agora dizem "chega na v0.6.3"', GD,
-     '<p>Seguindo o plano combinado (v0.6.2 faixa, ícones e correções; v0.6.3 botões; v0.6.4 Painel), Tabela, Imagem, Link, Botão de aba, Coluna de status, Classificar, Filtrar, Remover duplicados, Ortografia e Travar modelo dizem "chega na v0.6.3".</p>', '', [], ''),
-    ('P01', 'Publicação da v0.6.1', GD,
-     '<p>Depois da sua aprovação, publico a v0.6.1 no GitHub (commit só com esta versão). Os seus arquivos não vão para o GitHub nem para os pacotes (só amostras inventadas). <b>Nada a configurar no Firebase.</b></p>',
+    ('R01', 'Quatro estilos de faixa para você escolher', GR,
+     '<p>A faixa de cima agora tem <b>quatro estilos</b>: <b>B · Camadas</b> (cartões suaves, o que vai no computador), <b>C · Linha fina</b> (só um traço entre os grupos), <b>D · Quadrinho</b> (cada botão num quadrinho) e <b>E · Compacta</b> (só o ícone, botões maiores para o dedo; vai no celular). Em <b>Automático</b> o app escolhe: B no computador e E no celular. Você troca no botão da faixa (o de "Opções de exibição") ou em <b>Opções › Estilo da faixa</b>, e a escolha fica guardada.</p>',
+     'Qual estilo você quer como padrão no computador: B, C, D ou E? (Pode comentar misturas, ex.: "C com os ícones do D".)',
+     [('Antes (v0.6.1)', 'antes-faixa-inicio'), ('B · Camadas', 'depois-faixa-B-inicio'), ('C · Linha fina', 'depois-faixa-C-inicio'), ('D · Quadrinho', 'depois-faixa-D-inicio'), ('E · Compacta', 'depois-faixa-E-inicio')], 'um'),
+    ('R02', 'Ícones novos: uma cor, com um toque suave', GR,
+     '<p>Cada comando tem <b>um ícone só</b> (antes alguns repetiam o mesmo desenho), todos em <b>uma cor</b> com um <b>toque suave de cor</b> no detalhe principal (o "traço com toque de cor" que você escolheu). Valem para as abas Página Inicial, Inserir, Dados, Layout, Fórmulas, Revisão e Exibir, e também no Documento e nos Quadros.</p>',
+     'Os ícones estão claros? Algum que você não entendeu ou quer diferente?',
+     [('Antes: Inserir', 'antes-faixa-inserir'), ('Depois: Inserir', 'depois-faixa-B-inserir'), ('Antes: Dados', 'antes-faixa-dados'), ('Depois: Dados', 'depois-faixa-B-dados')], 'par'),
+    ('R03', 'Um botão principal em cada aba', GR,
+     '<p>Cada aba tem um <b>botão principal</b> maior e com cor (Colar na Página Inicial, Gráfico em Inserir, Validação em Dados...). Junto, a <b>Área de transferência</b> (Colar, Recortar, Copiar, Pincel) ficou como no Excel.</p>',
+     'Os botões principais ajudam ou atrapalham?',
+     [('Antes', 'antes-faixa-inicio'), ('Depois (B)', 'depois-faixa-B-inicio')], 'um'),
+    ('R04', 'Menu da faixa com a escolha do estilo', GR,
+     '<p>No mesmo botão das opções da faixa (o do canto, que também esconde a faixa ou deixa só as abas) agora há a lista <b>Estilo da faixa</b>. Esc fecha o menu.</p>', '',
+     [('Menu', 'depois-faixa-menu')], 'um'),
+    ('R05', 'Celular: faixa Compacta por padrão', GR,
+     '<p>No celular o estilo <b>E</b> vem por padrão: só ícones, botões de 40 px que o dedo acerta, sem rolagem lateral da página. O botão <b>Abas</b> abre e fecha a faixa.</p>',
+     'Ficou fácil de usar com o dedo?',
+     [('Antes (v0.6.1)', 'antes-cel-faixa'), ('Depois (E)', 'depois-cel-faixa')], 'par'),
+    ('G01', 'PDF: datas "####", texto cortado, Alt+Enter e mesclada', GG,
+     '<p>Usei uma planilha inventada (<code>amostra-impressao.xlsx</code>) com datas em coluna estreita, texto longo, uma célula com <b>Alt+Enter</b> e uma mesclada que atravessa a quebra de página. Causa: no papel a letra saía <b>11% maior</b> que na tela dentro da mesma coluna. Agora a proporção é a da tela; data que ainda não cabe <b>encolhe a letra (até 70%)</b> antes de virar "####"; a quebra de linha do Alt+Enter <b>aparece no PDF</b> (e a célula já liga "Quebrar texto" sozinha, como o Excel); e o texto da mesclada sai <b>uma vez só</b>, na página onde ela começa.</p>',
+     'No PDF a Data, o texto e a mesclada ficaram bons?',
+     [('Antes (v0.6.1): ######## e texto cortado', 'pdf-antes-1'), ('Depois: datas inteiras e texto completo', 'pdf-depois-1')], 'par'),
+    ('G02', 'Aviso quando a letra fica pequena demais', GG,
+     '<p>"Aba toda numa página" ou uma porcentagem muito baixa podia reduzir a letra a 10% <b>sem avisar</b>. Agora, abaixo de 50%, aparece um aviso no cartão "Ajustar ao papel" dizendo quanto ficou e o que tentar (deitar a página, usar mais páginas ou imprimir só uma parte).</p>', '',
+     [('Antes', 'antes-escala'), ('Depois', 'depois-escala')], 'par'),
+    ('G03', 'Esc na "Nova regra" volta para a lista', GG,
+     '<p>Na Formatação condicional, o Esc dentro da <b>Nova regra</b> (inclusive depois de "Pegar de uma célula") fechava tudo. Agora volta para a <b>lista de regras</b>; o segundo Esc fecha a janela. Vale também para o clique fora.</p>',
+     'Esse caminho do Esc está natural?', [], ''),
+    ('G04', 'Localizar e substituir arrumado', GG,
+     '<p>Antes: sem rodapé e com os nomes colados nos campos. Agora no estilo Camadas: subtítulo, <b>cartão</b> com os campos e rótulos com espaço, botões no <b>rodapé</b> (Fechar à esquerda; Trocar todos e Achar o próximo à direita), o campo já com o cursor e Enter para achar.</p>', '',
+     [('Antes', 'antes-localizar'), ('Depois', 'depois-localizar')], 'par'),
+    ('G05', 'Aviso de leitura certo no fundo escuro e frase corrigida', GG,
+     '<p>Letra preta sobre fundo escuro dizia "use uma letra mais <b>escura</b>" (ao contrário). Agora o conselho olha as cores: fundo escuro pede <b>letra mais clara</b>; fundo claro, letra mais escura; mexendo no fundo, letra clara pede fundo mais escuro e letra escura pede fundo mais claro. A frase "as células com sem preenchimento" virou "as células <b>sem</b> preenchimento passam a ter a cor escolhida".</p>', '',
+     [('Antes: conselho ao contrário', 'antes-leitura'), ('Depois', 'depois-leitura')], 'par'),
+    ('J01', 'Janelas mais compactas (E01)', GJ,
+     '<p>As janelas começam mais perto do topo (5% da altura, antes 10%), têm cabeçalho, margens e rodapé mais enxutos e <b>nunca passam da tela</b>: o que sobra rola por dentro, com o título e os botões sempre à vista. Conferi 10 janelas em 1366×800 e 1366×600. Se pudesse ser ainda um pouco maior em tela grande, me diga.</p>',
+     'Ficaram no tamanho bom? (Em um notebook pequeno, 1366×600, como abaixo.)',
+     [('Antes: Validação de dados', 'antes-janela-pequena'), ('Depois', 'depois-janela-pequena')], 'par'),
+    ('J02', 'Margens arrastáveis na prévia do Imprimir (P02)', GJ,
+     '<p>Na prévia da página aparecem <b>quatro linhas tracejadas</b> (margens de cima, de baixo, da esquerda e da direita). Você <b>puxa com o mouse ou com o dedo</b> e a prévia, as páginas e os números de "Margens" acompanham na hora (a lista muda para "Personalizadas"). Com o teclado: foco na linha e setas (0,1 cm; com Shift, 0,5 cm). Nunca deixa a área de impressão sumir.</p>',
+     'Dá para ajustar a margem do jeito que você imaginava?',
+     [('Antes: só números', 'antes-imprimir'), ('Depois: linhas para puxar', 'depois-imprimir')], 'par'),
+    ('D01', 'Aba "Gráfico" que aparece sozinha: v0.6.3?', GD,
+     '<p>Você aprovou a ideia (F5): ao clicar num gráfico, surge uma aba <b>Gráfico</b> na faixa (Editar, Estilo rápido, Cores, Semáforo, Excluir), como no Excel. Ela mexe em comandos e seleção, por isso proponho entregar na <b>v0.6.3</b>, junto dos 10 botões que faltam, para não misturar com a faixa nova.</p>',
+     'Pode ficar para a v0.6.3?', [], ''),
+    ('D02', 'Lembretes que não ficam para trás', GD,
+     '<ul><li><b>Editor de gráficos (seu comentário E02)</b>: quando fecharmos a lista de botões, eu reviso o que dá para acrescentar ao editor e te mostro.</li><li><b>ECharts</b>: o motor de gráficos continua o nosso; dá para trocar pelo ECharts quando você quiser.</li><li><b>F05 · Excel de verdade</b>: falta o seu retorno de como os arquivos salvos aqui abrem no Excel (principalmente os gráficos).</li></ul>', '', [], ''),
+    ('P01', 'Publicação da v0.6.2', GD,
+     '<p>Depois da sua aprovação, publico a v0.6.2 no GitHub (commit só com esta versão). Os seus arquivos não vão para o GitHub nem para os pacotes (só amostras inventadas). <b>Nada a configurar no Firebase.</b></p>',
      'Pode publicar? (diga se quer algum ajuste antes)', [], ''),
-    ('P02', 'Próxima versão', GD,
-     '<p><b>v0.6.2 · Sonnet 5.5 · alto</b>: a faixa nova (estilos B, C, D e E à sua escolha; Compacta no celular) e os ícones novos de uma cor com toque suave; as outras correções do Grok (PDF com datas "####", texto longo e quebra de linha, mesclada cortada, Esc no Pegar de uma célula, Localizar, textos); janelas compactas (E01) e margens arrastáveis na prévia de impressão (P02).</p>',
-     'Pode ser essa a próxima?', [], ''),
+    ('P02', 'Próximas versões', GD,
+     '<p><b>v0.6.3 · Sonnet 5.5 · alto</b>: os 10 botões que faltam (Tabela, Imagem, Link, Botão de aba, Coluna de status, Classificar, Filtrar, Duplicados, Ortografia e Travar) e, se você concordar, a aba Gráfico. <b>v0.6.4 · Opus 5.5 · alto</b>: o Painel, numa versão só dele.</p>',
+     'Pode ser essa a ordem?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
     f'<div class="nums"><span>{sys.argv[4]} testes de regras</span><span>{sys.argv[5]} testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>A v0.6.1 faz os <b>gráficos do Excel</b> aparecerem como no Excel (velocímetro, painel escuro, R$, degradê...) e <b>voltarem iguais</b> ao salvar.</li>'
-    '<li>Traz o <b>editor de gráficos</b> novo (clique na parte que quer mudar), os <b>6 estilos rápidos</b>, o <b>velocímetro</b>, as correções do Grok nos gráficos e na lista suspensa, e os seus dois pedidos de hoje (<b>botão da faixa</b> e <b>parte congelada</b>).</li>'
+    '<li>A v0.6.2 traz a <b>faixa nova</b> em quatro estilos (você escolhe) e os <b>ícones novos</b> de uma cor com toque suave; no celular vai o estilo Compacta.</li>'
+    '<li>Corrige o que o Grok achou na v0.6.0: <b>PDF</b> (datas "####", texto cortado, Alt+Enter, mesclada), aviso de letra pequena, Esc na Nova regra, Localizar e substituir e o conselho de leitura das cores.</li>'
+    '<li>As <b>janelas ficaram mais compactas</b> e dá para <b>puxar as margens na prévia do Imprimir</b>.</li>'
     '<li>Os prints usam só amostras inventadas; os seus arquivos não foram para o GitHub nem para os pacotes. Nada a configurar no Firebase.</li>'
     '</ul>'
 )
@@ -94,7 +98,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Gráficos do Excel, editor de gráficos, velocímetro')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Faixa nova, ícones novos e correções do PDF')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

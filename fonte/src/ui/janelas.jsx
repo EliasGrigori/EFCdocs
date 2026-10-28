@@ -118,6 +118,8 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
           <small className="op-dica">Faixa tipo Excel: abas com botões grandes em cima. Barra curta: uma linha de ícones e o painel de detalhes ao lado.</small>
           <div className="op-linha"><span title="Ctrl+F1 alterna entre mostrar tudo e só as abas">{prefs.layout === 'B' ? 'Barra curta' : 'Faixa'}</span>{chips('faixa', ['tudo', 'abas', 'oculta'], nomesFaixa)}</div>
           <small className="op-dica">Quanto da faixa fica à mostra. "Só as abas" ganha espaço; um toque numa aba mostra a faixa por um momento.</small>
+          <div className="op-linha"><span>Estilo da faixa</span>{chips('estilo', ['auto', 'B', 'C', 'D', 'E'], ROTULOS.estilo)}</div>
+          <small className="op-dica">Automático usa B no computador e a Compacta (E) no celular. B: cartões e botão principal. C: linha fina. D: ícones em quadrinhos. E: só ícones.</small>
           <div className="op-linha"><span>Menu lateral</span>{chips('menu', ['completo', 'icones', 'oculto'], ROTULOS.menu)}</div>
           <small className="op-dica">O menu da esquerda com nomes, só com ícones ou escondido (uma setinha na borda traz de volta).</small>
           <div className="op-linha"><span>Barra de cima</span>{chips('topo', ['completo', 'compacto'], ROTULOS.topo)}</div>

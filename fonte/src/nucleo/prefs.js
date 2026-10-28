@@ -30,6 +30,7 @@ export const OPCOES = {
   faixa: ['tudo', 'abas', 'oculta'],
   menu: ['completo', 'icones', 'oculto'],
   topo: ['completo', 'compacto'],
+  estilo: ['auto', 'B', 'C', 'D', 'E'],
   perfil: ['admin', 'editor', 'operador', 'leitor'],
 };
 
@@ -39,7 +40,17 @@ export const ROTULOS = {
   faixaB: { tudo: 'Mostrar a barra', abas: 'Barra só com ícones', oculta: 'Esconder' },
   menu: { completo: 'Completo', icones: 'Só ícones', oculto: 'Escondido' },
   topo: { completo: 'Completa', compacto: 'Só as abas' },
+  estilo: { auto: 'Automático', B: 'B · Camadas', C: 'C · Linha fina', D: 'D · Quadrinho', E: 'E · Compacta' },
 };
+
+/* v0.6.2: estilo da faixa. "Automático" = B no computador e E (compacta) no celular e em tela pequena. */
+export const DICA_ESTILO = {
+  B: 'Cada grupo num cartão, com o botão principal da aba cheio de cor.',
+  C: 'Linha fina: sem cartões, só traços separando os grupos.',
+  D: 'Cada ícone grande dentro de um quadrinho de cor suave.',
+  E: 'Compacta: só ícones numa linha, para sobrar mais planilha.',
+};
+export const estiloDaFaixa = (prefs, cel) => (prefs.estilo && prefs.estilo !== 'auto' ? prefs.estilo : (cel ? 'E' : 'B'));
 
 /* Tema padrão (até a v0.2.0 era Claro, ou Escuro se o aparelho estivesse no escuro).
    v0.3.0: o Petróleo virou o padrão (C11 aprovado). Quem já escolheu um tema continua com o seu. */
@@ -50,7 +61,7 @@ export const TEMA_PADRAO = 'papel';
 export function prefsPadrao(escuro = false) {
   return {
     tema: TEMA_PADRAO,
-    relevo: true, mesa: true, layout: 'A', faixa: 'tudo', menu: 'completo', topo: 'completo', painel: false, perfil: 'admin',
+    relevo: true, mesa: true, layout: 'A', faixa: 'tudo', menu: 'completo', topo: 'completo', estilo: 'auto', painel: false, perfil: 'admin',
   };
 }
 
