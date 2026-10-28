@@ -454,6 +454,21 @@ export function estrutura(c, abaId, eixo, i, n) {
     if (!lista || !lista.some((o) => o.tipo === 'grafico')) continue;
     let mudou = false;
     const nova = lista.map((o) => {
+      if (o.tipo === 'grafico' && o.g.t === 'excel' && o.g.plano) {
+        /* v0.6.1: gráfico que veio do Excel: cada referência das séries acompanha */
+        let mexeu = false;
+        const plano = JSON.parse(JSON.stringify(o.g.plano));
+        for (const G of plano.grupos || []) for (const S of G.series || []) for (const k of ['nome', 'cats', 'vals']) {
+          const r = S[k] && S[k].ref;
+          if (!r || (r.aba || id) !== abaId) continue;
+          const fs = faixasDe(r.fx).map((f) => moverFaixa(f, eixo, i, n)).filter(Boolean);
+          const nfx = fs.length ? textoFaixas(fs) : r.fx;
+          if (nfx !== r.fx) { r.fx = nfx; mexeu = true; }
+        }
+        if (!mexeu) return o;
+        mudou = true;
+        return { ...o, g: { ...o.g, plano } };
+      }
       if (o.tipo !== 'grafico' || ((o.g.dados.aba || id) !== abaId)) return o;
       const fs = faixasDe(o.g.dados.fx).map((f) => moverFaixa(f, eixo, i, n)).filter(Boolean);
       const fx = fs.length ? textoFaixas(fs) : o.g.dados.fx;
@@ -524,6 +539,21 @@ export function renomearAba(c, abaId, novo) {
       if (nf !== x.f) { cel[ch] = { ...x, f: nf }; mudou = true; }
     }
     if (mudou) mud[`conteudo.abas.${id}.cel`] = cel;
+    /* v0.6.1 (Grok): a fonte da lista suspensa e as regras de cor que apontam para a aba renomeada acompanham */
+    for (const campo of ['val', 'cf']) {
+      const lista = aba[campo];
+      if (!lista || !lista.length) continue;
+      let mexeu = false;
+      const nova = lista.map((r) => {
+        const o = { ...r };
+        for (const k of ['f1', 'f2']) {
+          if (typeof r[k] !== 'string' || !r[k].includes('!')) continue;
+          try { const nf = reescrever(r[k], (a) => renomearAbaNaArvore(a, velho, novo)); if (nf !== r[k]) { o[k] = nf; mexeu = true; } } catch { /* fica */ }
+        }
+        return o;
+      });
+      if (mexeu) mud[`conteudo.abas.${id}.${campo}`] = nova;
+    }
   }
   const nomes = {};
   let nm = false;

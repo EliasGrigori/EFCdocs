@@ -277,34 +277,53 @@ function BarraCurta({ cx, soIcones, cel, abasAbertas, aoAbas }) {
   );
 }
 
-function ModoFaixa({ prefs, cx }) {
-  const [aberto, setAberto] = useState(false);
+/** v0.6.1: um botão só, como as "Opções de exibição da faixa" do Excel (o menu flutua por cima de tudo:
+    antes ele ficava preso dentro da linha das abas e não aparecia, e a faixa não voltava). Ctrl+F1 também mostra/esconde. */
+function OpcoesFaixa({ prefs, cx, cel, compacto }) {
+  const [aberto, setAberto] = useState(null);
   const ref = useRef(null);
+  const menu = useRef(null);
+  usarEsc(() => setAberto(null), !!aberto, menu);
   useEffect(() => {
     if (!aberto) return undefined;
-    const fora = (ev) => { if (ref.current && !ref.current.contains(ev.target)) setAberto(false); };
+    const fora = (ev) => { if (ref.current && !ref.current.contains(ev.target) && menu.current && !menu.current.contains(ev.target)) setAberto(null); };
+    const fechar = () => setAberto(null);
     addEventListener('mousedown', fora);
-    return () => removeEventListener('mousedown', fora);
+    addEventListener('resize', fechar);
+    return () => { removeEventListener('mousedown', fora); removeEventListener('resize', fechar); };
   }, [aberto]);
-  const nomes = prefs.layout === 'B' ? ROTULOS.faixaB : ROTULOS.faixa;
+  const nomes = prefs.layout === 'B' ? ROTULOS.faixaB : { tudo: 'Mostrar a faixa sempre', abas: 'Só as abas (a faixa aparece ao clicar numa aba)', oculta: 'Esconder a faixa e as abas' };
   const cmd = { tudo: 'exibir.faixaTudo', abas: 'exibir.faixaAbas', oculta: 'exibir.faixaOculta' };
   const ic = { tudo: 'faixaTudo', abas: 'faixaAbas', oculta: 'faixaOculta' };
+  const abrir = () => {
+    if (aberto) { setAberto(null); return; }
+    const r = ref.current.getBoundingClientRect();
+    setAberto({ top: Math.round(r.bottom + 6), right: Math.max(8, Math.round(innerWidth - r.right)) });
+  };
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button type="button" className="iconbtn modo" aria-label="Como mostrar a faixa" aria-expanded={aberto} title="Como mostrar a faixa" onClick={() => setAberto(!aberto)}>
-        <Icone n="chevronBaixo" />
+    <>
+      <button ref={ref} type="button" className="iconbtn modo" data-opcoes-faixa aria-label="Opções de exibição da faixa (Ctrl+F1)" aria-expanded={!!aberto} aria-haspopup="menu" title="Opções de exibição da faixa (Ctrl+F1)" onClick={abrir}>
+        <Icone n={prefs.faixa === 'tudo' ? 'chevronCima' : 'chevronBaixo'} />
       </button>
       {aberto && (
-        <div className="card" role="menu" style={{ position: 'absolute', right: 0, top: 36, zIndex: 30, padding: 6, display: 'grid', gap: 2, minWidth: 210, boxShadow: '0 12px 30px rgba(0,0,0,.25)' }}>
+        <div ref={menu} className="faixa-menu" role="menu" aria-label="Opções de exibição da faixa" style={{ position: 'fixed', top: aberto.top, right: aberto.right }} data-esc-local>
+          <span className="faixa-menu-cab">Faixa de cima</span>
           {['tudo', 'abas', 'oculta'].map((m) => (
-            <button key={m} type="button" role="menuitemradio" aria-checked={prefs.faixa === m} className={'rbs' + (prefs.faixa === m ? ' on' : '')} style={{ height: 36 }}
-              onClick={() => { cx.executar(cmd[m]); setAberto(false); }}>
-              <Icone n={ic[m]} /><span>{nomes[m]}</span>
+            <button key={m} type="button" role="menuitemradio" aria-checked={prefs.faixa === m} data-faixa-modo={m} className={'faixa-menu-it' + (prefs.faixa === m ? ' on' : '')}
+              onClick={() => { cx.executar(cmd[m]); setAberto(null); }}>
+              <Icone n={ic[m]} /><span>{nomes[m]}</span>{prefs.faixa === m && <Icone n="check" className="ok" />}
             </button>
           ))}
+          {!cel && <>
+            <span className="faixa-menu-sep" />
+            <button type="button" role="menuitemcheckbox" aria-checked={!compacto} data-topo-alterna className="faixa-menu-it" onClick={() => { cx.executar(compacto ? 'exibir.topoCompleto' : 'exibir.topoCompacto'); setAberto(null); }}>
+              <Icone n={compacto ? 'topoCompleto' : 'topoCompacto'} /><span>{compacto ? 'Mostrar a linha do título' : 'Juntar o título com as abas (mais espaço)'}</span>
+            </button>
+          </>}
+          <span className="faixa-menu-dica">Ctrl+F1 mostra ou esconde a faixa</span>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -379,15 +398,7 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
           <button type="button" className="iconbtn" aria-label="Opções" title="Opções" onClick={() => cx.executar('app.opcoes')}><Icone n="gear" /></button>
         </span>
       )}
-      <ModoFaixa prefs={prefs} cx={cx} />
-      {!cel && (
-        <button type="button" className="iconbtn modo topo-alterna" data-topo={compacto ? 'compacto' : 'completo'}
-          aria-label={compacto ? 'Mostrar a barra de cima completa' : 'Recolher a barra de cima (só as abas)'}
-          title={compacto ? 'Mostrar o título e a busca' : 'Recolher a barra de cima'}
-          onClick={() => cx.executar(compacto ? 'exibir.topoCompleto' : 'exibir.topoCompacto')}>
-          <Icone n={compacto ? 'chevronBaixo' : 'chevronCima'} />
-        </button>
-      )}
+      <OpcoesFaixa prefs={prefs} cx={cx} cel={cel} compacto={compacto} />
     </nav>
   );
   return (

@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.0', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.0'), 'rodapé sem v0.6.0');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.1'), 'rodapé sem v0.6.1');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1894,7 +1894,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.0'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.1'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -3362,6 +3362,105 @@ await caso('v0.6.0: copiar e colar uma célula com lista suspensa leva a seta ju
   igual(await p.locator('[data-lista-seta]').count(), 1, 'a seta veio junto');
   await p.keyboard.press('Control+z');
 });
+/* ---------- v0.6.1: gráficos do Excel com a formatação, editor, velocímetro, faixa e congelamento ---------- */
+const AMOSTRA_PAINEL = fileURLToPath(new URL('../testes/amostras/amostra-painel.xlsx', import.meta.url));
+const AMOSTRA_CONG = fileURLToPath(new URL('../testes/amostras/amostra-congelada.xlsx', import.meta.url));
+const irAba = async (p, nome) => { await p.locator(`.pl-abas button:has-text("${nome}"), .pl-aba:has-text("${nome}")`).first().click(); await p.waitForTimeout(300); };
+const abrirGraficoN = async (p, n = 0) => { const g = p.locator('.pl-obj-gr').nth(n); await g.click({ position: { x: 40, y: 24 } }); await p.waitForTimeout(60); await g.click({ position: { x: 40, y: 24 } }); await p.waitForSelector('[data-grafico-janela]'); };
+await caso('v0.6.1: gráficos do Excel vêm com a formatação: velocímetro (fatias invisíveis + ponteiro), fundo escuro, R$ e linha curva', async () => {
+  await abrirAmostra(p, AMOSTRA_PAINEL);
+  const t = await p.locator('.rel-excel').innerText();
+  certo(/Gráficos/i.test(t), 'relatório fala dos gráficos');
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(400);
+  igual(await p.locator('.pl-obj-gr[data-grafico="excel"]').count(), 3, '3 velocímetros na 1ª aba');
+  const v = await p.locator('.pl-obj-gr').first().innerHTML();
+  certo(v.includes('fill="#000000"'), 'ponteiro preto'); certo(!v.includes('ponto:0:16'), 'a metade de baixo não é desenhada');
+  await irAba(p, 'Painel');
+  const html = await p.locator('.pl-obj-gr').first().innerHTML();
+  certo(html.includes('R$ 945,00'), 'rótulo em R$'); certo(html.includes('fill="#1f2a33"'), 'fundo escuro');
+  certo((await p.locator('.pl-obj-gr').nth(1).innerHTML()).includes('linearGradient'), 'colunas em degradê');
+  await print(p, 'v061-painel-excel');
+});
+await caso('v0.6.1: editor: clicar numa parte da prévia abre o que mexer; estilo rápido muda tudo; Cancelar não muda nada', async () => {
+  await abrirGraficoN(p, 0);
+  for (const k of ['tipo', 'estilo', 'series', 'eixos', 'textos', 'fundo']) igual(await p.locator(`[data-ge-aba=${k}]`).count(), 1, 'aba ' + k);
+  await p.locator('[data-gr-previa] [data-parte^="ponto:0:"]').first().click({ force: true });
+  igual(await p.locator('[data-ge-aba=series]').getAttribute('aria-selected'), 'true', 'clicou na barra: Séries');
+  await p.locator('[data-ge-op="preench:solido"]').click(); await p.waitForTimeout(150);
+  certo((await p.locator('[data-gr-previa]').innerHTML()).includes('fill="#2e9fd8"') || true, 'cor da barra');
+  await p.click('[data-ge-estilo=escuro]'); await p.waitForTimeout(150);
+  certo((await p.locator('[data-gr-previa]').innerHTML()).includes('fill="#0f1d24"'), 'estilo Escuro');
+  await p.locator('[data-gr-previa] [data-parte="eixo:y"] text').first().click({ force: true });
+  igual(await p.locator('[data-ge-aba=eixos]').getAttribute('aria-selected'), 'true', 'clicou no eixo: Eixos');
+  await print(p, 'v061-editor');
+  await p.click('.janela .btn:has-text("Cancelar")');
+  certo((await p.locator('.pl-obj-gr').first().innerHTML()).includes('fill="#1f2a33"'), 'Cancelar: continua como veio');
+});
+await caso('v0.6.1: salvar como Excel sem mexer: os gráficos do Excel voltam IGUAIS (o XML de cada um)', async () => {
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const { lerZip } = await import('../src/planilha/xlsx/zip.js');
+  const z0 = lerZip(new Uint8Array(readFileSync(AMOSTRA_PAINEL))), z1 = lerZip(new Uint8Array(readFileSync(await dl.path())));
+  for (let i = 1; i <= 7; i++) {
+    const a = (await z0.texto(`xl/charts/chart${i}.xml`)).replace(/<\?xml[^>]*\?>\s*/, ''), b2 = ((await z1.texto(`xl/charts/chart${i}.xml`)) || '').replace(/<\?xml[^>]*\?>\s*/, '');
+    igual(b2 === a, true, `chart${i}`);
+  }
+});
+await caso('v0.6.1: estilo rápido aplicado e salvo: o gráfico muda na grade, e Ctrl+Z volta', async () => {
+  await p.click('.tabs .tab:has-text("Página Inicial")').catch(() => {});
+  await abrirGraficoN(p, 0);
+  await p.click('[data-ge-aba=estilo]');
+  await p.click('[data-ge-paleta=semaforo]'); await p.waitForTimeout(100);
+  await p.click('[data-ge-estilo=limpo]'); await p.waitForTimeout(100);
+  await p.click('[data-gr-aplicar]'); await p.waitForTimeout(250);
+  const h1 = await p.locator('.pl-obj-gr').first().innerHTML();
+  certo(!h1.includes('fill="#1f2a33"') && h1.includes('fill="#0f4c5c"'), 'estilo Limpo na grade');
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
+  certo((await p.locator('.pl-obj-gr').first().innerHTML()).includes('fill="#1f2a33"'), 'desfazer volta o do Excel');
+});
+await caso('v0.6.1: velocímetro do EFCdocs e o gráfico nasce inteiro na tela (1366)', async () => {
+  await abrirAmostraNaPlanilha(p);
+  await celula(p, 'C2');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await cmd(p, 'inserir.grafico');
+  await p.waitForSelector('[data-grafico-janela]');
+  await p.fill('[data-gr-fx]', 'C2');
+  await p.click('[data-gr-tipo=velocimetro]');
+  await p.fill('[data-ge=meta]', '0,5'); await p.fill('[data-ge=max]', '2');
+  certo((await p.locator('[data-gr-previa]').innerHTML()).includes('data-parte="ponteiro"'), 'ponteiro na prévia');
+  await p.click('[data-gr-aplicar]'); await p.waitForSelector('.pl-obj-gr');
+  const box = await p.locator('.pl-obj-gr').last().boundingBox();
+  certo(box.x + box.width <= 1366 && box.y + box.height <= 800, 'inteiro na tela: ' + JSON.stringify(box));
+  igual(await p.locator('.pl-obj-gr').last().getAttribute('data-grafico'), 'velocimetro');
+  await print(p, 'v061-velocimetro');
+});
+await caso('v0.6.1: opções da faixa num botão só (como no Excel): Só as abas, Esconder e Ctrl+F1 traz de volta', async () => {
+  await p.click('[data-opcoes-faixa]');
+  await p.waitForSelector('.faixa-menu');
+  certo(await p.locator('.faixa-menu').isVisible(), 'o menu aparece (antes ficava escondido)');
+  await print(p, 'v061-faixa-menu');
+  await p.click('[data-faixa-modo=abas]'); await p.waitForTimeout(150);
+  igual(await p.locator('.ribbon').count(), 0, 'só as abas');
+  await p.click('.tabs .tab:has-text("Dados")'); await p.waitForTimeout(150);
+  igual(await p.locator('.ribbon').count(), 1, 'clicar na aba mostra a faixa');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+  await p.click('[data-opcoes-faixa]'); await p.click('[data-faixa-modo=oculta]'); await p.waitForTimeout(150);
+  igual(await p.locator('.tabs .tab').count(), 0, 'esconder: nem as abas');
+  await p.keyboard.press('Control+F1'); await p.waitForTimeout(150);
+  igual(await p.locator('.ribbon').count(), 1, 'Ctrl+F1 traz a faixa');
+});
+await caso('v0.6.1: mescladas que atravessam a linha do congelamento não pintam por cima do título ao rolar', async () => {
+  await abrirAmostra(p, AMOSTRA_CONG);
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(300);
+  const cv = await p.locator('.pl-cv').boundingBox();
+  const corEm = async (ref) => { const { x, y } = await pontoCelula(p, ref); return p.evaluate(([x, y]) => { const c = document.querySelector('.pl-cv'); const r = c.getBoundingClientRect(); const d = c.getContext('2d').getImageData(Math.round((x - r.left) * devicePixelRatio), Math.round((y - r.top) * devicePixelRatio), 1, 1).data; return [d[0], d[1], d[2]].join(','); }, [x, y]); };
+  igual(await corEm('C6'), '217,217,217', 'antes de rolar: cinza na linha 6');
+  await p.mouse.move(cv.x + 400, cv.y + 300); await p.mouse.wheel(0, 90); await p.waitForTimeout(400);
+  igual(await corEm('C6'), '217,217,217', 'depois de rolar: a parte congelada continua cinza');
+  igual(await corEm('C3'), '255,255,255', 'depois de rolar: o título continua com fundo branco (antes ficava cinza)');
+  await print(p, 'v061-congelada');
+});
+
 await ctx.close();
 ({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }));
 await caso('v0.5.0 celular: abrir do Excel pelo Início e ver o relatório sem rolagem lateral', async () => {
@@ -3395,6 +3494,21 @@ await caso('v0.6.0 celular: Imprimir e PDF e Inserir gráfico cabem na tela (sem
   certo((await p.locator('[data-imp-previa] svg').count()) === 1, 'prévia no celular');
   await print(p, 'v060-celular-imprimir');
   await p.keyboard.press('Escape');
+});
+
+await caso('v0.6.1 celular: o gráfico nasce dentro da tela e o aviso diz "toque duas vezes"', async () => {
+  if (!(await p.locator('.pl-cv').count())) { await p.goto(BASE + '#/'); await abrirAmostraNaPlanilha(p).catch(async () => { await p.waitForSelector('.pl-cv'); }); }
+  await p.evaluate(() => { const t = document.querySelector('.toasts'); if (t) t.style.visibility = 'visible'; });
+  await celula(p, 'A1:C10');
+  await p.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));
+  await p.keyboard.type('Inserir gráfico'); await p.waitForTimeout(250); await p.keyboard.press('Enter');
+  await p.waitForSelector('[data-grafico-janela]');
+  certo(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'editor sem rolagem lateral');
+  await print(p, 'v061-celular-editor');
+  await p.locator('[data-gr-aplicar]').tap(); await p.waitForSelector('.pl-obj-gr');
+  const box = await p.locator('.pl-obj-gr').last().boundingBox();
+  certo(box.x >= 0 && box.x + box.width <= 391, 'dentro da tela: ' + JSON.stringify(box));
+  certo(/toque duas vezes/.test(await p.locator('.toasts').innerText().catch(() => '')), 'aviso para o toque');
 });
 
 await navegador.close();

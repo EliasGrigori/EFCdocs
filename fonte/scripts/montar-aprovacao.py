@@ -1,79 +1,74 @@
-"""EFCdocs — monta a página de aprovação da v0.6.0 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.6.1 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" <testes-de-regras> <testes-no-navegador>"""
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.6.0'
+VERSAO = 'v0.6.1'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-GE, GG, GP, GO, GD = 'A. Estilo Camadas (o que você escolheu)', 'B. Gráficos', 'C. Imprimir e PDF', 'D. Outras novidades', 'E. Decisões'
+GX, GE, GV, GC, GD = 'A. Gráficos do Excel com a cara original (seu pedido, F6)', 'B. Editor de gráficos (F5)', 'C. Velocímetro', 'D. Correções e os seus dois pedidos de hoje', 'E. Decisões'
 ITENS = [
-    ('E01', 'Janelas no estilo Camadas, em todo o app', GE,
-     '<p>Como você escolheu (C · Camadas): cantos de <b>12 px</b>, cabeçalho com o <b>ícone num quadrinho</b> e faixa suave, <b>rodapé</b> numa faixa clara com os botões, cada parte num <b>cartão</b>, sombra em camadas. Botões e campos com 8 px. Vale para <b>todas</b> as janelas (Formatação condicional, Validação, Comentário, Cores, Abrir Excel, Opções, Inserir função, Localizar, Assinatura...). O padrão virou a habilidade <b>efcdocs-estilo-camadas</b> (você salvou pelo cartão).</p>',
-     'Ficou como na proposta? Alguma janela que você quer ver de perto?',
-     [('Antes (v0.5.1)', 'antes-condicional'), ('Depois: Formatação condicional › Nova regra', 'depois-condicional')], 'um'),
-    ('E02', 'Painel de cores com os 6 módulos', GE,
-     '<p>Em Cor de preenchimento, Cor da fonte, Cor da aba e na Formatação condicional: abas <b>Paleta / Desta planilha / Recentes</b>; <b>Pegar de uma célula</b> (a janela some, você toca na célula, a cor vem); <b>copiar o código</b> (ícone sobre a amostra e botão Copiar); <b>Trocar na aba toda</b> (todas as células com a cor da célula ativa mudam de uma vez; um Ctrl+Z volta); <b>aviso de leitura</b> (diz se a letra fica legível no fundo). Escolha e <b>Aplicar</b>, ou dois cliques na amostra.</p>',
-     'Os módulos estão fáceis de usar?',
-     [('Antes (v0.5.1)', 'antes-cor'), ('Depois: Paleta e aviso de leitura', 'depois-cor'), ('Desta planilha', 'depois-cor-doc'), ('Pegar de uma célula', 'depois-contagotas')], 'par'),
-    ('E03', 'Cor da aba: ponto de cor', GE, '<p>Como você escolheu (formato 2): um ponto da cor antes do nome da aba.</p>', '',
-     [('Antes', 'antes-aba'), ('Depois', 'depois-aba')], 'par'),
-    ('E04', 'Esc fecha uma janela por vez', GE,
-     '<p>Janela sobre janela (ou menu sobre janela): o <b>Esc fecha só a de cima</b> e o teclado volta para a de baixo. Exemplo testado: Cor de preenchimento › Pegar de uma célula › Esc (sai do conta-gotas, a janela continua) › Esc (fecha a janela). Vale para menus, listas, menu Novo e botão direito.</p>', '', [], ''),
-    ('G01', 'Inserir gráfico: recomendado, miniaturas e prévia ao vivo', GG,
-     '<p>Escolha as células (pode incluir os títulos e a coluna dos nomes) › <b>Inserir › Gráfico</b>. A janela olha os dados e <b>recomenda</b> o tipo (datas + números = linha; nomes + um número = colunas/Pareto; só números = histograma), mostra <b>3 miniaturas</b>, todos os tipos e a <b>prévia ao vivo</b>. Com uma célula só escolhida, pega a região em volta (como o Excel). Opções: título, títulos dos eixos, legenda, mostrar valores, empilhado, <b>meta</b>, cores das séries.</p>',
-     'Faltou alguma opção que você usa no Excel?',
-     [('Inserir gráfico (dados de Coletas)', 'depois-grafico-janela'), ('Os 11 tipos (desenho do EFCdocs)', 'graficos-tipos')], 'um'),
-    ('G02', 'Carta de controle e Pareto (os da Qualidade)', GG,
-     '<p><b>Carta de controle</b> de valores individuais: média, <b>LSC e LIC</b> calculados (média ± 3σ pela amplitude móvel; dá para escrever os seus), meta tracejada, <b>pontos fora em vermelho</b>, e o rodapé da janela diz "Média · σ · N fora dos limites". <b>Pareto</b>: barras em ordem, linha do <b>% acumulado</b> e a linha dos <b>80%</b>.</p>',
-     'A carta e o Pareto estão do jeito que a Qualidade usa?',
-     [('Carta de controle com meta', 'depois-grafico-controle'), ('Pareto', 'depois-grafico-pareto')], 'um'),
-    ('G03', 'O gráfico na planilha', GG,
-     '<p>Fica sobre a grade, ao lado dos dados: <b>arraste</b> para mover, puxe o canto para o <b>tamanho</b>, <b>dois cliques</b> editam, Delete exclui, Ctrl+Z desfaz cada passo. Mudou um valor: o gráfico redesenha. Inseriu linhas ou colunas: a faixa dos dados acompanha.</p>', '',
-     [('Gráfico ao lado dos dados', 'depois-grafico-grade')], 'um'),
-    ('G04', 'Gráfico vai para o Excel como gráfico do Excel (e volta)', GG,
-     '<p>Salvar como Excel grava um <b>gráfico nativo do Excel</b> (editável, ligado às células) nos 11 tipos. Pareto, carta e histograma vão como colunas/linhas com os valores calculados escritos no gráfico. Conferi abrindo no <b>LibreOffice</b> (imagem ao lado); falta o seu <b>Excel de verdade</b>. Abrir de novo no EFCdocs traz o gráfico igual. Gráficos <b>feitos no Excel</b> (colunas, barras, linha, área, pizza, rosca, dispersão, combinado) agora <b>vêm</b> ao abrir; radar, bolhas, cascata, funil e mapa ficam no relatório com o motivo.</p>',
-     'Abre no seu Excel? (lembrete do F05 da v0.5.1: o seu retorno do "Salvar como Excel" também)',
-     [('Arquivo salvo pelo EFCdocs aberto no LibreOffice', 'excel-lo')], 'um'),
-    ('P01', 'Imprimir e PDF com prévia (Ctrl+P)', GP,
-     '<p>Como você pediu (D01 da v0.5.0, "toda a função de paginar, cabeçalhos de impressão, redimensionar"): papel (A4, Carta, Ofício), <b>retrato/paisagem</b>, <b>margens</b> (Normal, Estreita, Larga, Personalizadas), <b>escala</b> (Tamanho real, Aba toda numa página, Todas as colunas numa página, Todas as linhas, Caber em N páginas, Porcentagem), <b>títulos de impressão</b> (linhas no topo e colunas à esquerda repetem em toda página), <b>cabeçalho e rodapé</b> com Página, Total, Data, Hora, Aba e Arquivo, linhas de grade, letras e números, centralizar, ordem das páginas. A <b>prévia</b> mostra página por página.</p>',
-     'Falta alguma opção do Excel que você usa?',
-     [('Antes: "chega na v0.6.0"', 'antes-pdf'), ('Depois: Imprimir e PDF', 'depois-imprimir'), ('2ª página repete o título', 'depois-imprimir-p2')], 'um'),
-    ('P02', 'PDF com texto de verdade', GP,
-     '<p><b>Baixar PDF</b> gera o PDF aqui mesmo, sem internet: <b>texto de verdade</b> (dá para selecionar e procurar), cores, bordas, mescladas, gráficos nítidos, cabeçalho e rodapé. <b>Imprimir</b> abre o diálogo do navegador com as mesmas páginas. Tudo que sai do sistema continua sendo Excel, com o PDF como exceção para impressão (como combinado no D01 da v0.5.1).</p>', '',
-     [('Página 1 do PDF (paisagem, título repetido, colunas numa página)', 'pdf-pagina')], 'um'),
-    ('P03', 'Aba nova da faixa: Layout da Página', GP,
-     '<p>Como no Excel: <b>Margens, Orientação, Definir área de impressão</b> (a seleção), <b>Inserir quebra de página</b> (antes da célula escolhida), <b>Imprimir títulos</b>, Limpar área, Remover quebras, Cabeçalho e rodapé, <b>Ajustar à página</b>, Configurar página e Exportar PDF. Tudo isso vai para o Excel (Layout da Página do Excel mostra igual) e volta ao abrir; antes, as "áreas de impressão" dos seus arquivos ficavam de fora (eram 37).</p>', '',
-     [('Faixa Layout da Página', 'depois-faixa-layout')], 'um'),
-    ('O01', 'Baixar o original', GO,
-     '<p><b>Arquivo › Baixar o original</b> devolve o arquivo do Excel <b>exatamente como veio</b> (bytes iguais), sem as mudanças feitas aqui: com macros, imagens, tabelas dinâmicas e tudo que o EFCdocs ainda não traz. Fica guardado só no aparelho onde o arquivo foi aberto (a partir desta versão).</p>', '',
-     [('Faixa Arquivo', 'depois-faixa-arquivo')], 'um'),
-    ('O02', 'Copiar e colar leva a lista suspensa, a cor por regra e o comentário', GO,
-     '<p>A limitação da v0.5.1 foi resolvida: copiar uma célula com lista suspensa e colar em outra leva a <b>seta</b>; a regra de cor e o comentário também vão. Recortar tira da origem.</p>', '', [], ''),
-    ('O03', 'Relatório do Excel e celular', GO,
-     '<p>O relatório antes de abrir conta os <b>gráficos</b> que vieram. No celular, Imprimir e PDF cabe na tela (prévia em cima, opções embaixo).</p>', '',
-     [('Relatório', 'depois-relatorio'), ('Celular: Imprimir e PDF', 'depois-cel-imprimir')], 'par'),
-    ('D01', 'Gráficos com motor próprio (sem ECharts)', GD,
-     '<p>Você escolheu na conversa: o npm e os CDNs estão fechados aqui, então os gráficos são desenhados por um <b>motor próprio em SVG</b> (como o leitor de Excel). Fica leve (o app cresceu uns 60 KB) e no estilo Camadas. Se um dia quiser ECharts, dá para trocar sem mexer no resto (o desenho é uma peça só).</p>', '', [], ''),
-    ('D02', 'Botões que ficam para a v0.6.1', GD,
-     '<p>No plano antigo, a v0.6.0 também tinha: Tabela, Imagem, Link, Botão de aba, Coluna de status, Classificar, Filtrar, Remover duplicados, Ortografia e Travar modelo. Para não atrasar gráficos e impressão, eles agora dizem <b>"chega na v0.6.1"</b>, junto com a fase 2 dos gráficos (gauge, mapa de calor, cascata, funil, Gantt, minigráfico na célula).</p>',
-     'Pode ser? Quais destes você quer primeiro?', [], ''),
-    ('V01', 'Publicação da v0.6.0', GD,
-     '<p>Depois da sua aprovação, publico a v0.6.0 no GitHub (commit só com esta versão). Os seus arquivos não vão para o GitHub nem para os pacotes (só a amostra inventada). <b>Nada a configurar no Firebase.</b> O relatório do Grok da v0.5.1 ainda não chegou; ele entra junto com o desta.</p>',
+    ('X01', 'Velocímetro do Excel aparece como no Excel', GX,
+     '<p>Antes, o EFCdocs lia só o tipo, as séries e uma cor de cada gráfico; o velocímetro (rosca com metade invisível + pizza que faz o ponteiro) virava uma pizza colorida. Agora ele lê <b>tudo</b>: cor de cada fatia (também as cores do tema do Excel, com mais claro e mais escuro), <b>fatia invisível</b>, <b>giro</b>, <b>furo</b> e a rosca junto com a pizza. Amostra inventada que imita o seu arquivo (os seus arquivos não entram aqui).</p>',
+     'Ficou como no seu Excel?', [('Antes (v0.6.0)', 'antes-velo'), ('Depois', 'depois-velo')], 'um'),
+    ('X02', 'Painel escuro: fundo, contorno, brilho, degradê, R$, linha curva e eixo da direita', GX,
+     '<p><b>Fundo escuro</b> do gráfico, barras <b>só com contorno</b> e brilho, colunas em <b>degradê</b>, rótulos e eixos em <b>R$</b> (o formato do Excel), linha <b>curva</b> com marcadores e tracejado, <b>eixo da direita</b> com mínimo −0,2 e máximo 1, legenda com item escondido, títulos e letras com tamanho, cor e negrito. Barras deitadas com a 1ª categoria embaixo, como o Excel.</p>',
+     'Algum detalhe do seu painel ainda diferente?', [('Antes (v0.6.0)', 'antes-painel'), ('Depois', 'depois-painel')], 'um'),
+    ('X03', 'Pizza com muitas fatias nas cores do tema', GX,
+     '<p>Sem cor escrita no arquivo, o Excel pinta pelas cores do <b>tema</b> (e repete mais escuras e mais claras depois da 6ª). Agora é igual; as porcentagens pequenas vão para fora da fatia.</p>', '',
+     [('Antes (v0.6.0)', 'antes-resumo'), ('Depois', 'depois-resumo')], 'par'),
+    ('X04', 'Salvar como Excel: o gráfico do Excel volta IGUAL', GX,
+     '<p>O mais importante: ao salvar, cada gráfico que veio do Excel e <b>não foi mexido</b> aqui volta <b>exatamente como veio</b> (por dentro, o mesmo XML do gráfico; conferido nos 7 gráficos da amostra, no teste e no navegador). Se você mexer num gráfico, só ele é refeito, agora com toda a formatação. Inserir linhas acima dos dados e renomear a aba também funcionam (as referências acompanham). Na imagem: o arquivo salvo aberto no <b>LibreOffice</b>, com um estilo mudado ("Gasto por ponto"), os gráficos do Excel intactos, um velocímetro e um semáforo feitos aqui. Falta o seu <b>Excel de verdade</b>.</p>',
+     'Abre igual no seu Excel? (lembrete do F05)', [('Arquivo salvo, aberto no LibreOffice', 'lo-salvo')], 'um'),
+    ('E01', 'Editor novo: prévia grande e seis partes', GE,
+     '<p>Como você pediu: fácil e diferente do Excel, mas com as funções de lá. <b>Dois cliques</b> no gráfico abrem a janela larga: <b>prévia grande à esquerda</b> com os <b>estilos rápidos</b> embaixo, e à direita seis partes: <b>Tipo e dados, Estilo, Séries, Eixos, Textos, Fundo</b>. Cancelar não muda nada; Salvar muda; Ctrl+Z volta.</p>',
+     'A organização está boa?', [('Antes (v0.6.0)', 'antes-editor'), ('Depois', 'depois-editor')], 'um'),
+    ('E02', 'Clique na parte que quer mudar', GE,
+     '<p>Clicou numa <b>barra</b> da prévia: abre <b>Séries</b> já com aquela série e aquele ponto. Clicou no <b>eixo</b>: abre Eixos. Título ou legenda: Textos. Fundo: Fundo. Em Séries: tipo da série (colunas, linha, área) e <b>eixo da direita</b>; preenchimento (cor, <b>degradê</b>, nenhum); contorno (cor, espessura, tracejado); linha <b>curva</b>; marcador; <b>brilho</b> e <b>sombra</b>; números na série (valor, %, categoria, nome; onde ficam; formato <b>R$, %, data</b>; letra); <b>linha de tendência</b>; e <b>cor de cada ponto</b>, com a opção <b>invisível</b> (o truque do velocímetro).</p>',
+     '', [('Clicou na coluna: Séries', 'depois-editor-series')], 'um'),
+    ('E03', 'Estilos rápidos, layout rápido, cores e semáforo', GE,
+     '<p>Os 6 estilos da proposta, aprovados: <b>Clássico, Limpo, Apresentação, Escuro, Semáforo da qualidade e Mínimo</b>: um clique muda tudo junto. Também: <b>Layout rápido</b> (5), <b>Cores</b> (8 conjuntos) e o <b>Semáforo</b> em qualquer gráfico (meta, faixa "perto" em %, maior ou menor é melhor). No Excel, o semáforo vai como a cor de cada barra. Em gráfico que veio do Excel, o formato dos números (R$, %) continua ao trocar o estilo.</p>',
+     'Os estilos estão bonitos? Algum que você quer diferente?', [('Os 6 estilos (dados inventados)', 'estilos-grade'), ('Aba Estilo do editor', 'depois-editor-estilo')], 'um'),
+    ('E04', 'Eixos, Textos e Fundo', GE,
+     '<p><b>Eixos</b>: mostrar/esconder, nome, <b>mínimo, máximo e de quanto em quanto</b>, formato, ordem ao contrário, grade, linha do eixo, letra. <b>Textos</b>: título (letra, cor, alinhamento), <b>legenda</b> em 5 posições, letra do gráfico. <b>Fundo</b>: cor, degradê ou nenhum, borda, cantos arredondados, área do desenho, <b>espaço entre barras</b> e sobreposição, <b>giro e furo</b> da pizza e da rosca.</p>',
+     '', [('Eixos (eixo da direita)', 'depois-editor-eixos'), ('Textos', 'depois-editor-textos'), ('Fundo', 'depois-editor-fundo')], 'par'),
+    ('E05', 'Editor no celular', GE, '<p>A prévia fica em cima e as partes embaixo, sem rolagem lateral.</p>', '',
+     [('Celular (390×844)', 'depois-cel-editor')], 'par'),
+    ('V01', 'Velocímetro do EFCdocs', GV,
+     '<p>Tipo novo em Inserir › Gráfico (e para o Painel, depois): escolha <b>uma célula</b>, diga a <b>meta</b>, o mínimo, o máximo e se "melhor é mais alto ou mais baixo"; as cores (vermelho, amarelo, verde) saem da meta. No Excel, vai do jeito que o Excel faz velocímetro (rosca com metade invisível + pizza ponteiro).</p>',
+     'Quer faixas com mais cores, como as 16 do seu arquivo?', [('Inserir gráfico › Velocímetro', 'depois-velocimetro-janela'), ('Na planilha', 'depois-velocimetro-grade')], 'um'),
+    ('C01', 'Correções do Grok nos gráficos', GC,
+     '<ul><li>Uma célula só escolhida: a região <b>para nos dados</b> (antes ia até a linha 403 por causa das fórmulas vazias).</li><li><b>Empilhado</b> e <b>100%</b> em Colunas, Barras e Área.</li><li>O gráfico <b>nasce inteiro na tela</b> (à direita dos dados, menor, embaixo ou no meio da tela); no celular o aviso diz <b>"toque duas vezes"</b>.</li><li>No Excel: <b>datas como datas</b> (o LibreOffice mostrava número), sem linha vazia escondida, Meta como linha separada; gráficos feitos pelo <b>openpyxl</b> agora abrem; a contagem do "Ficou de fora" está certa.</li><li><b>Coluna ou linha oculta</b>: fica fora do gráfico, como no Excel, e o editor avisa ("1 oculta fora"), com a opção de mostrar.</li><li>Zoom 200%: conferi que o gráfico fica preso às mesmas células (cresce a partir do canto, como as células).</li></ul>',
+     '', [], ''),
+    ('C02', 'Lista suspensa por faixa (erro crítico do Grok)', GC,
+     '<p>Lista por faixa digitada sem $ (A2:A10): a 2ª linha <b>perdia o 1º item</b>. Agora a faixa vale igual para todas as linhas e é salva travada ($A$2:$A$10), como o Excel faz quando você escolhe com o mouse. E <b>renomear a aba</b> de onde vem a lista não deixa mais a lista vazia (também vale para as regras de cor).</p>', '', [], ''),
+    ('C03', 'Botão da faixa como no Excel (seu pedido de hoje)', GC,
+     '<p>Antes eram dois botões, e o menu do "v" ficava escondido dentro da linha das abas: a faixa não voltava. Agora é <b>um botão só</b>, como as "Opções de exibição da faixa" do Excel: <b>Mostrar a faixa sempre</b>, <b>Só as abas</b> (a faixa aparece ao clicar numa aba), <b>Esconder a faixa e as abas</b> e <b>Juntar o título com as abas</b>. O menu flutua por cima de tudo; <b>Ctrl+F1</b> mostra ou esconde; Esc fecha.</p>',
+     'Ficou como você queria?', [('Antes (v0.6.0): o menu não aparece', 'antes-faixa-menu'), ('Depois', 'depois-faixa-menu')], 'par'),
+    ('C04', 'Parte congelada com mescladas (seu pedido de hoje)', GC,
+     '<p>Reproduzi com uma planilha inventada no mesmo arranjo (linhas 1 a 7 congeladas, cinzas mescladas que atravessam a linha do congelamento). Ao rolar, a mesclada era desenhada com altura "ao contrário" e o cinza pintava por cima do título. Agora cada parte da mesclada fica no seu lugar: a congelada parada, a de baixo rolando. Também: texto comprido não passa mais por cima de mesclada nem apaga o fundo cinza da vizinha.</p>',
+     'Confere no seu arquivo de potabilidade?', [('Antes (v0.6.0), depois de rolar', 'antes-congelada'), ('Depois, depois de rolar', 'depois-congelada')], 'um'),
+    ('D01', 'Lembretes que não ficam para trás', GD,
+     '<ul><li><b>ECharts</b>: o motor de gráficos continua o nosso (agora com a formatação do Excel toda). Dá para trocar pelo ECharts quando você quiser.</li><li><b>F05 · Excel de verdade</b>: falta o seu retorno de como os arquivos salvos aqui abrem no Excel (gráficos, Layout da Página).</li></ul>',
+     '', [], ''),
+    ('D02', 'Botões que faltam agora dizem "chega na v0.6.3"', GD,
+     '<p>Seguindo o plano combinado (v0.6.2 faixa, ícones e correções; v0.6.3 botões; v0.6.4 Painel), Tabela, Imagem, Link, Botão de aba, Coluna de status, Classificar, Filtrar, Remover duplicados, Ortografia e Travar modelo dizem "chega na v0.6.3".</p>', '', [], ''),
+    ('P01', 'Publicação da v0.6.1', GD,
+     '<p>Depois da sua aprovação, publico a v0.6.1 no GitHub (commit só com esta versão). Os seus arquivos não vão para o GitHub nem para os pacotes (só amostras inventadas). <b>Nada a configurar no Firebase.</b></p>',
      'Pode publicar? (diga se quer algum ajuste antes)', [], ''),
-    ('V02', 'Próxima versão', GD,
-     '<p>Opção 1: <b>v0.6.1 · Sonnet 5.5 · alto</b>: os botões do D02 (Classificar, Filtrar, Tabela, Imagem, Link...) e a fase 2 dos gráficos. Opção 2: <b>v0.7.0 · Opus 5.5 · alto</b>: Documento (Docx) com assinatura, como no plano.</p>',
-     'Qual vem primeiro?', [], ''),
+    ('P02', 'Próxima versão', GD,
+     '<p><b>v0.6.2 · Sonnet 5.5 · alto</b>: a faixa nova (estilos B, C, D e E à sua escolha; Compacta no celular) e os ícones novos de uma cor com toque suave; as outras correções do Grok (PDF com datas "####", texto longo e quebra de linha, mesclada cortada, Esc no Pegar de uma célula, Localizar, textos); janelas compactas (E01) e margens arrastáveis na prévia de impressão (P02).</p>',
+     'Pode ser essa a próxima?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
     f'<div class="nums"><span>{sys.argv[4]} testes de regras</span><span>{sys.argv[5]} testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>A v0.6.0 traz o <b>estilo Camadas</b> em todo o app (com o painel de cores de 6 módulos, a aba com ponto de cor e o Esc em pilha), os <b>gráficos</b> (11 tipos, carta de controle e Pareto, nativos no Excel) e o <b>Imprimir e PDF</b> completo da planilha.</li>'
-    '<li>Também: <b>Baixar o original</b>, <b>copiar e colar com as regras</b>, aba <b>Layout da Página</b> e Ctrl+P.</li>'
-    '<li>Os prints usam só a amostra inventada; os seus arquivos não foram para o GitHub nem para os pacotes. Nada a configurar no Firebase.</li>'
+    '<li>A v0.6.1 faz os <b>gráficos do Excel</b> aparecerem como no Excel (velocímetro, painel escuro, R$, degradê...) e <b>voltarem iguais</b> ao salvar.</li>'
+    '<li>Traz o <b>editor de gráficos</b> novo (clique na parte que quer mudar), os <b>6 estilos rápidos</b>, o <b>velocímetro</b>, as correções do Grok nos gráficos e na lista suspensa, e os seus dois pedidos de hoje (<b>botão da faixa</b> e <b>parte congelada</b>).</li>'
+    '<li>Os prints usam só amostras inventadas; os seus arquivos não foram para o GitHub nem para os pacotes. Nada a configurar no Firebase.</li>'
     '</ul>'
 )
 
@@ -99,7 +94,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Estilo Camadas, gráficos, Imprimir e PDF')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Gráficos do Excel, editor de gráficos, velocímetro')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

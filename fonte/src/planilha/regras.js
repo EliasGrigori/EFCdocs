@@ -279,7 +279,9 @@ export function opcoesLista(motor, c, abaId, regra, l, col) {
     const itens = String(s).split(',').map((x) => x.trim()).filter((x) => x !== '').map((x) => ({ v: x, t: x }));
     return { itens, literal: true };
   }
-  const r = calcular(motor, abaId, regra.f1, l, col, l - anc.l, col - anc.c);
+  /* v0.6.1 (Grok): faixa escrita sem $ (A2:A10) não anda célula a célula: senão a 2ª linha perdia o 1º item */
+  const soFaixa = a.t === 'area';
+  const r = calcular(motor, abaId, regra.f1, l, col, soFaixa ? 0 : l - anc.l, soFaixa ? 0 : col - anc.c);
   if (ehErro(r)) return { itens: [], erro: 'A fonte da lista deu erro (' + r.toString() + '). Confira a faixa ou o nome.' };
   const itens = [];
   const juntar = (v, abaFonte, ll, cc) => {

@@ -142,16 +142,18 @@ export function desenhar(p) {
   const fimY = H, fimX = W;
   const colsLivres = [Math.max(G.cc, G.c0), G.c1], linsLivres = [Math.max(G.cl, G.l0), G.l1];
   const colsCong = G.cc ? [0, G.cc - 1] : null, linsCong = G.cl ? [0, G.cl - 1] : null;
-  quad.push({ L: linsLivres, C: colsLivres, x: hw + G.fx, y: hh + G.fy, w: fimX - hw - G.fx, h: fimY - hh - G.fy });
-  if (linsCong) quad.push({ L: linsCong, C: colsLivres, x: hw + G.fx, y: hh, w: fimX - hw - G.fx, h: G.fy });
-  if (colsCong) quad.push({ L: linsLivres, C: colsCong, x: hw, y: hh + G.fy, w: G.fx, h: fimY - hh - G.fy });
-  if (linsCong && colsCong) quad.push({ L: linsCong, C: colsCong, x: hw, y: hh, w: G.fx, h: G.fy });
+  /* reg: as linhas/colunas que cada quadrante mostra (para a mesclada que atravessa a linha do congelamento) */
+  const rLiv = [G.cl, Infinity], rCong = [0, G.cl - 1], cLiv = [G.cc, Infinity], cCong = [0, G.cc - 1];
+  quad.push({ L: linsLivres, C: colsLivres, x: hw + G.fx, y: hh + G.fy, w: fimX - hw - G.fx, h: fimY - hh - G.fy, reg: { L: rLiv, C: cLiv } });
+  if (linsCong) quad.push({ L: linsCong, C: colsLivres, x: hw + G.fx, y: hh, w: fimX - hw - G.fx, h: G.fy, reg: { L: rCong, C: cLiv } });
+  if (colsCong) quad.push({ L: linsLivres, C: colsCong, x: hw, y: hh + G.fy, w: G.fx, h: fimY - hh - G.fy, reg: { L: rLiv, C: cCong } });
+  if (linsCong && colsCong) quad.push({ L: linsCong, C: colsCong, x: hw, y: hh, w: G.fx, h: G.fy, reg: { L: rCong, C: cCong } });
 
   for (const q of quad) {
     if (q.w <= 0 || q.h <= 0) continue;
     ctx.save();
     ctx.beginPath(); ctx.rect(q.x, q.y, q.w, q.h); ctx.clip();
-    desenharCelulas(p, q.L, q.C, mesc);
+    desenharCelulas(p, q.L, q.C, mesc, q.reg);
     desenharSelecao(p, q);
     ctx.restore();
   }
@@ -164,7 +166,17 @@ export function desenhar(p) {
   ctx.restore();
 }
 
-function desenharCelulas(p, [la, lb], [ca, cb], mesc) {
+/** Retângulo da mesclada só com a parte que fica neste quadrante (v0.6.1: antes a mesclada que atravessava
+    a linha do congelamento era desenhada com altura negativa ao rolar e pintava por cima das linhas de cima). */
+function retMescla(G, m, reg) {
+  const l1 = reg ? Math.max(m.l1, reg.L[0]) : m.l1, l2 = reg ? Math.min(m.l2, reg.L[1]) : m.l2;
+  const c1 = reg ? Math.max(m.c1, reg.C[0]) : m.c1, c2 = reg ? Math.min(m.c2, reg.C[1]) : m.c2;
+  if (l2 < l1 || c2 < c1) return null;
+  const x = G.xDe(c1), y = G.yDe(l1);
+  return { x, y, w: G.xDe(c2) + G.colunas.tam(c2) * G.z - x, h: G.yDe(l2) + G.linhas.tam(l2) * G.z - y };
+}
+
+function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
   const { ctx, c, motor, abaId, G, cores, familia } = p;
   const aba = c.abas[abaId];
   const { z } = G;
@@ -187,9 +199,10 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc) {
     if (m.l2 < la || m.l1 > lb || m.c2 < ca || m.c1 > cb) continue;
     const cel = aba.cel[chave(m.l1, m.c1)];
     const e = estiloVisto(c, cel, motor, abaId, m.l1, m.c1);
-    const x = G.xDe(m.c1), y = G.yDe(m.l1), w = G.xDe(m.c2 + 1) - x, h = G.yDe(m.l2 + 1) - y;
+    const R = retMescla(G, m, reg);
+    if (!R) continue;
     ctx.fillStyle = e.fundo || cores.fundo;
-    ctx.fillRect(x, y, w, h);
+    ctx.fillRect(R.x, R.y, R.w, R.h);
   }
   /* linhas de grade */
   if (p.grade) {
@@ -212,9 +225,10 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc) {
       if (m.l2 < la || m.l1 > lb || m.c2 < ca || m.c1 > cb) continue;
       const cel = aba.cel[chave(m.l1, m.c1)];
       const e = estiloVisto(c, cel, motor, abaId, m.l1, m.c1);
-      const x = G.xDe(m.c1), y = G.yDe(m.l1), w = G.xDe(m.c2 + 1) - x, h = G.yDe(m.l2 + 1) - y;
+      const R = retMescla(G, m, reg);
+      if (!R) continue;
       ctx.fillStyle = e.fundo || cores.fundo;
-      ctx.fillRect(x + 0.5, y + 0.5, w - 1.5, h - 1.5);
+      ctx.fillRect(R.x + 0.5, R.y + 0.5, R.w - 1.5, R.h - 1.5);
     }
   }
   /* textos */
@@ -238,8 +252,8 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc) {
       if (!cel && !motor.areaDerramada(abaId, cl, cc)) continue;
       tx = textoCelula(motor, c, abaId, cl, cc);
       if (tx.t === '') continue;
-      const x = G.xDe(cc), yy = G.yDe(cl);
-      const w = m ? G.xDe(m.c2 + 1) - x : w0, hh = m ? G.yDe(m.l2 + 1) - yy : h;
+      let x = G.xDe(cc), yy = G.yDe(cl), w = w0, hh = h;
+      if (m) { const R = retMescla(G, m, reg); if (!R) continue; x = R.x; yy = R.y; w = R.w; hh = R.h; }
       desenharTexto(p, tx, x, yy, w, hh, l, col, aba, mesc);
     }
   }
@@ -349,6 +363,9 @@ function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
         if (aba.cel[chave(l, cc)] && aba.cel[chave(l, cc)].v !== undefined) break;
         if (aba.cel[chave(l, cc)] && aba.cel[chave(l, cc)].f != null) break;
         if (motor.areaDerramada(abaId, l, cc)) break;
+        /* v0.6.1: não passa por cima de mesclada nem apaga o fundo pintado da vizinha */
+        if (mesc.length && mesclaEm(mesc, l, cc)) break;
+        if (aba.cel[chave(l, cc)] && estiloVisto(c, aba.cel[chave(l, cc)], motor, abaId, l, cc).fundo) break;
         x2 += G.colunas.tam(cc) * z;
         cc++;
       }
@@ -357,6 +374,8 @@ function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
       let cc = col - 1;
       while (x1 > xx - pad && cc >= 0 && cc > col - 40) {
         if (aba.cel[chave(l, cc)] && (aba.cel[chave(l, cc)].v !== undefined || aba.cel[chave(l, cc)].f != null)) break;
+        if (mesc.length && mesclaEm(mesc, l, cc)) break;
+        if (aba.cel[chave(l, cc)] && estiloVisto(c, aba.cel[chave(l, cc)], motor, abaId, l, cc).fundo) break;
         x1 -= G.colunas.tam(cc) * z;
         cc--;
       }

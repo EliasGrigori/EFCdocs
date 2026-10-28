@@ -71,7 +71,9 @@ export function JanelaValidacao({ faixaTexto, inicial, aoAplicar, aoLimpar, aoFe
         if (txt.length > 250) return { erro: 'A lista escrita passou de 250 letras (limite do Excel). Ponha os itens numa faixa de células e use "Faixa ou nome".' };
         r.f1 = '"' + txt.replace(/"/g, '""') + '"';
       } else {
-        const a = lerParametro(faixaLista.trim().startsWith('=') ? faixaLista : '=' + faixaLista, 'list');
+        /* v0.6.1: a faixa da lista fica travada ($A$2:$A$10), como o Excel faz ao escolher com o mouse */
+        const ft = faixaLista.trim().replace(/^=/, '').replace(/((?:^|!|:))\$?([A-Za-z]{1,3})\$?(\d+)(?=$|:)/g, (_, p, col, lin) => `${p}$${col.toUpperCase()}$${lin}`);
+        const a = lerParametro('=' + ft, 'list');
         if (a.erro) return { erro: 'A faixa da lista: ' + a.erro };
         r.f1 = a.f;
       }

@@ -10,8 +10,9 @@ export const TIPOS_GRAFICO = [
   ['colunas', 'Colunas'], ['barras', 'Barras'], ['linha', 'Linha'], ['area', 'Área'],
   ['pizza', 'Pizza'], ['rosca', 'Rosca'], ['combinado', 'Colunas + linha'],
   ['pareto', 'Pareto'], ['controle', 'Carta de controle'], ['histograma', 'Histograma'], ['dispersao', 'Dispersão'],
+  ['velocimetro', 'Velocímetro'],
 ];
-export const NOME_TIPO = Object.fromEntries(TIPOS_GRAFICO);
+export const NOME_TIPO = { ...Object.fromEntries(TIPOS_GRAFICO), excel: 'Gráfico do Excel' };
 /* paleta segura para daltonismo (base Okabe-Ito, ajustada ao tom do EFCdocs) */
 export const PALETA_GRAFICO = ['#0f6e8c', '#e09b2d', '#2e8b57', '#c0504d', '#7b5ea7', '#5aa9c9', '#a5762a', '#6b7a86'];
 export const COR_FORA = '#c0392b';
@@ -23,10 +24,13 @@ const ehNum = (v) => typeof v === 'number' && Number.isFinite(v);
  * Lê a faixa e separa títulos, categorias e séries.
  * ler(l, c) → valor da célula · texto(l, c) → como aparece (data formatada, etc.)
  */
-export function dadosDaFaixa(f, ler, texto, porLinhas = false) {
-  const L = f.l2 - f.l1 + 1, C = f.c2 - f.c1 + 1;
+export function dadosDaFaixa(f, ler, texto, porLinhas = false, fmtDe = null, ocultos = null) {
   const m = [];
-  for (let i = 0; i < L; i++) { const r = []; for (let j = 0; j < C; j++) r.push({ v: ler(f.l1 + i, f.c1 + j), t: texto(f.l1 + i, f.c1 + j) }); m.push(r); }
+  /* v0.6.1: como no Excel, linhas e colunas ocultas ficam fora do gráfico (a não ser que ele peça para mostrar) */
+  const ls = [], cs = [];
+  for (let l = f.l1; l <= f.l2; l++) if (!(ocultos && ocultos.l[l]) || l === f.l1) ls.push(l);
+  for (let c = f.c1; c <= f.c2; c++) if (!(ocultos && ocultos.c[c]) || c === f.c1) cs.push(c);
+  for (const l of ls) { const r = []; for (const c of cs) r.push({ v: ler(l, c), t: texto(l, c), l, c }); m.push(r); }
   /* por colunas: cada coluna é uma série; por linhas: cada linha é uma série */
   const g = porLinhas ? m[0].map((_, j) => m.map((r) => r[j])) : m;
   const nL = g.length, nC = nL ? g[0].length : 0;
@@ -47,9 +51,21 @@ export function dadosDaFaixa(f, ler, texto, porLinhas = false) {
     const vals = corpo.map((r) => (ehNum(r[j].v) ? r[j].v : typeof r[j].v === 'boolean' ? +r[j].v : null));
     if (!vals.some((v) => v != null)) continue;
     const nome = cab ? String(g[0][j].t || g[0][j].v || '').trim() || `Série ${series.length + 1}` : `Série ${series.length + 1}`;
-    series.push({ nome, vals, j });
+    /* j: posição na faixa (conta as ocultas, para as referências do Excel) */
+    const cel = corpo.find((r) => ehNum(r[j].v));
+    const jf = porLinhas ? (cel ? cel[j].l - f.l1 : j) : (cel ? cel[j].c - f.c1 : j);
+    const s = { nome, vals, j: jf };
+    if (fmtDe && cel) { const nf = fmtDe(cel[j].l, cel[j].c); if (nf && nf !== 'General') s.fmt = nf; }
+    series.push(s);
   }
-  return { cats, series, temCat, cab, data: !!pareceData };
+  const out = { cats, series, temCat, cab, data: !!pareceData };
+  if (pareceData && temCat) {
+    out.catsNum = corpo.map((r) => (ehNum(r[0].v) ? r[0].v : null));
+    const x0 = corpo.find((r) => ehNum(r[0].v));
+    out.catsFmt = (fmtDe && x0 && fmtDe(x0[0].l, x0[0].c)) || (/:/.test((x0 && x0[0].t) || '') ? (/\//.test(x0[0].t) ? 'dd/mm/yyyy hh:mm' : 'hh:mm') : 'dd/mm/yyyy');
+  }
+  if (ocultos && (ls.length < f.l2 - f.l1 + 1 || cs.length < f.c2 - f.c1 + 1)) out.ocultas = (f.l2 - f.l1 + 1 - ls.length) + (f.c2 - f.c1 + 1 - cs.length);
+  return out;
 }
 
 /** Os 3 tipos que mais combinam com os dados (o primeiro é o recomendado). */
@@ -129,9 +145,15 @@ export function escala(min, max, alvo = 5) {
   return { min: a, max: b, passo, ticks };
 }
 
+/* cópia segura de um objeto que veio de fora (sem funções, com limite de tamanho) */
+function copiaJson(x, max = 400000) {
+  if (!x || typeof x !== 'object') return undefined;
+  try { const s = JSON.stringify(x); if (s.length > max) return undefined; return JSON.parse(s); } catch { return undefined; }
+}
+
 /** Limpa o que veio de arquivo ou de colar. */
 export function normalizarG(g) {
-  const tipos = new Set(TIPOS_GRAFICO.map((t) => t[0]));
+  const tipos = new Set([...TIPOS_GRAFICO.map((t) => t[0]), 'excel']);
   const o = g && typeof g === 'object' ? g : {};
   const op = o.op && typeof o.op === 'object' ? o.op : {};
   const num = (v) => (ehNum(v) ? v : undefined);
@@ -141,13 +163,30 @@ export function normalizarG(g) {
     dados: { aba: o.dados && typeof o.dados.aba === 'string' ? o.dados.aba : '', fx: o.dados && typeof o.dados.fx === 'string' ? o.dados.fx.slice(0, 40) : '' },
     op: {
       legenda: ['dir', 'baixo', 'nao'].includes(op.legenda) ? op.legenda : 'baixo',
-      rotulos: !!op.rotulos, empilhado: !!op.empilhado,
+      rotulos: !!op.rotulos, empilhado: op.empilhado === '100' ? '100' : !!op.empilhado,
       meta: num(op.meta), lsc: num(op.lsc), lic: num(op.lic),
       eixoX: typeof op.eixoX === 'string' ? op.eixoX.slice(0, 60) : '', eixoY: typeof op.eixoY === 'string' ? op.eixoY.slice(0, 60) : '',
       cores: Array.isArray(op.cores) ? op.cores.filter((c) => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 8) : [],
     },
   };
+  /* v0.6.1: velocímetro (mínimo, máximo, faixas, sentido) e dados ocultos */
+  if (num(op.min) !== undefined) out.op.min = op.min;
+  if (num(op.max) !== undefined) out.op.max = op.max;
+  if (op.sentido === 'menor') out.op.sentido = 'menor';
+  if (Array.isArray(op.faixas)) out.op.faixas = op.faixas.filter((f) => f && ehNum(f.ate) && /^#[0-9a-f]{6}$/i.test(f.cor)).slice(0, 12).map((f) => ({ ate: f.ate, cor: f.cor }));
+  if (op.ocultos) out.op.ocultos = true;
   if (o.porLinhas) out.porLinhas = true;
   if (o.xl) out.xl = String(o.xl).slice(0, 40); // tipo original do Excel (quando não temos igual)
+  /* v0.6.1: formatação do editor (fx), estilo rápido e o plano do gráfico que veio do Excel (com o XML original) */
+  const fx = copiaJson(o.fx); if (fx) out.fx = fx;
+  if (typeof o.estilo === 'string') out.estilo = o.estilo.slice(0, 20);
+  if (out.t === 'excel') {
+    const plano = copiaJson(o.plano, 2000000);
+    if (!plano || !Array.isArray(plano.grupos)) { out.t = 'colunas'; }
+    else {
+      out.plano = plano;
+      if (typeof o.xo === 'string' && o.xo.length < 3000000) { out.xo = o.xo; if (typeof o.xoSig === 'string') out.xoSig = o.xoSig; }
+    }
+  }
   return out;
 }

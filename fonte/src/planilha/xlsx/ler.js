@@ -14,7 +14,7 @@ import { chave, letraCol, lerChave, numCol, MAX_LIN } from '../ref.js';
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
-import { lerGraficosAba } from './graficosXlsx.js';
+import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js';
 import { lerImpressaoAba, lerNomesImpressao } from './impressaoXlsx.js';
 import { idObjeto } from '../objetos.js';
 import { indiceEstilo, LARG_PADRAO, ALT_PADRAO, NOME_ABA_PADRAO } from '../modelo.js';
@@ -458,9 +458,10 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     { const imp = lerImpressaoAba(cab, resto, defsImp[F.idx] || {}); if (imp) aba.imp = imp; }
     /* v0.6.0: gráficos da aba */
     if (F.rels && [...F.rels.values()].some((r) => /drawing$/.test(r.tipo))) {
-      const gr = await lerGraficosAba(zip, F.rels, aba, async (parte) => lerRels(await zip.texto(relsDe(parte)), parte));
+      const gr = await lerGraficosAba(zip, F.rels, aba, async (parte) => lerRels(await zip.texto(relsDe(parte)), parte), tema);
       for (const o of gr.objs) { graficosLidos.push({ aba, o }); rel.extras.graficos++; }
-      for (const x of gr.fora) juntarFora('Gráficos', 1, x.motivo); grFora++;
+      for (const x of gr.fora) juntarFora('Gráficos', 1, x.motivo);
+      grFora += gr.fora.length;
     }
 
     /* mescladas, e o que a aba tem que não vem */
@@ -538,13 +539,25 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   /* gráficos: o nome da aba dos dados vira o id da aba */
   {
     const porNome = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));
+    const avisosG = new Set();
+    let soGuardado = 0;
     for (const { aba, o } of graficosLidos) {
+      const { nomeAbaDados, avisos, ...resto } = o; void nomeAbaDados;
+      for (const a of avisos || []) avisosG.add(a);
+      if (o.g.t === 'excel') {
+        /* v0.6.1: gráfico do Excel com a formatação toda; as referências passam a apontar para o id da aba */
+        const g = { ...o.g };
+        soGuardado += ligarRefsAoLivro(g, (nome) => porNome.get(String(nome).toLowerCase()) || null, aba.id);
+        (aba.objs || (aba.objs = [])).push({ id: idObjeto(), ...resto, g });
+        continue;
+      }
       const idAba = o.g.dados.aba ? (conteudo.abas[o.g.dados.aba] ? o.g.dados.aba : porNome.get(String(o.g.dados.aba).toLowerCase())) : null;
       if (o.g.dados.aba && !idAba) { juntarFora('Gráficos', 1, 'os dados estão numa aba que não veio'); rel.extras.graficos--; continue; }
-      const { nomeAbaDados, ...resto } = o; void nomeAbaDados;
       const obj = { id: idObjeto(), ...resto, g: { ...o.g, dados: { ...o.g.dados, aba: idAba && idAba !== aba.id ? idAba : '' } } };
       (aba.objs || (aba.objs = [])).push(obj);
     }
+    if (soGuardado) rel.avisos.push(`Em ${soGuardado === 1 ? 'uma série de gráfico' : `${soGuardado} séries de gráfico`}, os dados vêm de outro arquivo ou de uma aba que não veio: o gráfico mostra os números que o Excel guardou.`);
+    for (const a of avisosG) rel.avisos.push(`Gráficos: ${a}.`);
   }
   conteudo.estilos = estilos;
   if (est.fonteBase && est.fonteBase.nome) conteudo.fonteBase = est.fonteBase.nome;

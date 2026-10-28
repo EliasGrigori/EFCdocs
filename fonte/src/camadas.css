@@ -235,3 +235,85 @@ body.pegando-cor .pl-cv { cursor: crosshair !important; }
 .imp-folha { display: grid; place-items: center; padding: 14px; border-radius: var(--r-ctl); background: color-mix(in srgb, var(--text) 8%, var(--surface-2)); max-height: 64vh; overflow: auto; }
 .imp-folha svg { display: block; width: 100%; height: auto; max-height: 60vh; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.15), 0 8px 24px rgba(0,0,0,.18); }
 @media (max-width: 860px) { .imp-corpo { grid-template-columns: 1fr; } .imp-previa-col { position: static; order: -1; } .imp-chks { grid-template-columns: 1fr; } .imp-cr { grid-template-columns: 1fr; } }
+
+/* ---------- v0.6.1: editor de gráficos (prévia grande à esquerda, partes à direita) ---------- */
+.ge-jan { width: min(1120px, calc(100vw - 20px)); max-height: min(92vh, 920px); display: flex; flex-direction: column; overflow: hidden; }
+/* só o corpo rola: o cabeçalho fica fora, e a prévia e as abas grudam no topo do corpo sem ficar embaixo dele */
+.ge-jan > .janela-h, .ge-jan > .janela-r { flex: none; position: static; }
+.ge-jan > .ge-corpo { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.ge-corpo { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.ge-esq { display: grid; gap: 12px; position: sticky; top: 0; align-content: start; }
+.ge-dir { display: grid; gap: 10px; min-width: 0; }
+.ge-previa-c .rg-cab em { font-style: normal; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-dim); margin-left: 6px; }
+.ge-previa { cursor: pointer; }
+.ge-previa svg rect[data-parte^="ponto"], .ge-previa svg path[data-parte^="ponto"] { pointer-events: all; }
+.ge-previa [data-parte] { transition: opacity .12s; }
+.ge-previa [data-parte]:hover { opacity: .78; }
+.ge-previa [data-parte="fundo"]:hover { opacity: 1; }
+.ge-estilos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ge-est { display: grid; gap: 4px; padding: 5px; border: 1px solid var(--border-light); border-radius: var(--r-card); background: var(--surface); font-size: 12px; font-weight: 600; color: var(--text-muted); box-shadow: var(--sh-1); transition: transform .12s, box-shadow .12s; }
+.ge-est:hover { transform: translateY(-1px); box-shadow: var(--sh-2); color: var(--text); }
+.ge-est.on { border-color: var(--primary); box-shadow: var(--anel); color: var(--primary); }
+.ge-est svg { display: block; width: 100%; height: auto; border-radius: var(--r-chip); }
+.ge-abas { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; padding: 3px; border-radius: var(--r-ctl); background: var(--surface-3); position: sticky; top: 0; z-index: 3; }
+.ge-abas button { display: grid; justify-items: center; gap: 2px; padding: 5px 2px 4px; border-radius: var(--r-chip); font-size: 11.5px; font-weight: 600; color: var(--text-muted); line-height: 1.15; text-align: center; }
+.ge-abas button svg { width: 17px; height: 17px; }
+.ge-abas button[aria-selected=true] { background: var(--surface); color: var(--text); box-shadow: var(--sh-1); }
+.ge-painel { display: grid; gap: 10px; align-content: start; }
+.ge-campo { grid-template-columns: 110px 1fr; align-items: center; }
+.ge-campo .ge-dica { grid-column: 2; font-style: normal; font-size: 11.5px; color: var(--text-dim); }
+.ge-campo input[type=range] { min-height: 0; padding: 0; }
+.ge-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ge-linha select { min-height: 32px; border-radius: var(--r-ctl); border: 1px solid var(--border-light); background: var(--surface); color: var(--text); padding: 0 6px; font: inherit; font-size: 12.5px; }
+.ge-checks .rg-chk { margin-right: 6px; }
+.ge-seg { flex-wrap: wrap; }
+.ge-cor { position: relative; display: inline-flex; }
+.ge-cor-b { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 9px 0 5px; border: 1px solid var(--border-light); border-radius: var(--r-ctl); background: var(--surface); font-size: 12px; font-weight: 600; color: var(--text-muted); box-shadow: var(--sh-1); }
+.ge-cor-b i { width: 20px; height: 20px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18); }
+.ge-cor-b i.vazio, .ge-pt i.vazio { background: repeating-linear-gradient(45deg, var(--surface), var(--surface) 3px, var(--border) 3px, var(--border) 5px) !important; }
+.ge-pop { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; width: 300px; padding: 12px; border-radius: var(--r-jan); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--sh-jan); }
+.ge-dir .ge-pop { left: auto; right: 0; }
+.ge-b { min-width: 32px; justify-content: center; }
+.ge-b.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+.ge-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ge-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 6px; border: 1px solid var(--border-light); border-radius: var(--r-ctl); background: var(--surface); font-size: 12.5px; font-weight: 600; color: var(--text-muted); max-width: 220px; }
+.ge-chip i { flex: none; width: 14px; height: 14px; border-radius: 4px; }
+.ge-chip.on { border-color: var(--primary); color: var(--text); box-shadow: var(--anel); }
+.ge-paletas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ge-pal { display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 5px; border: 1px solid var(--border-light); border-radius: var(--r-ctl); background: var(--surface); font-size: 12.5px; font-weight: 600; color: var(--text-muted); text-align: left; }
+.ge-pal:hover { color: var(--text); box-shadow: var(--sh-2); }
+.ge-pal span { display: inline-flex; gap: 2px; flex: none; }
+.ge-pal i { width: 12px; height: 20px; border-radius: 3px; }
+.ge-pontos { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 4px; max-height: 190px; overflow: auto; }
+.ge-pt { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border: 1px solid var(--border); border-radius: var(--r-chip); background: var(--surface); font-size: 12px; color: var(--text-muted); text-align: left; min-width: 0; }
+.ge-pt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ge-pt i { flex: none; width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15); }
+.ge-pt.on { border-color: var(--primary); box-shadow: var(--anel); color: var(--text); }
+.ge-ponto-ed { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; border-radius: var(--r-ctl); background: var(--surface); border: 1px solid var(--border); }
+.ge-lista-dados { display: grid; gap: 4px; }
+.ge-dado { display: grid; grid-template-columns: 14px auto 1fr; align-items: center; gap: 8px; font-size: 12.5px; }
+.ge-dado i { width: 14px; height: 14px; border-radius: 4px; }
+.ge-dado span { color: var(--text-dim); font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.ge-nota { font-style: normal; color: var(--text-dim); }
+.ge-limpar { justify-self: start; }
+.pl-obj-xl { background: transparent; box-shadow: none; border-radius: 0; }
+.pl-obj-xl.sel { box-shadow: 0 0 0 2px var(--primary); }
+@media (max-width: 820px) {
+  .ge-corpo { grid-template-columns: 1fr; }
+  .ge-esq { position: static; }
+  .ge-estilos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ge-campo { grid-template-columns: 92px 1fr; }
+  .ge-paletas { grid-template-columns: 1fr; }
+  .ge-pop { width: min(300px, calc(100vw - 40px)); }
+}
+
+/* ---------- v0.6.1: opções de exibição da faixa (um botão só, como no Excel) ---------- */
+.faixa-menu { z-index: 60; display: grid; gap: 2px; min-width: 300px; max-width: calc(100vw - 16px); padding: 6px; border-radius: var(--r-card); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--sh-2); }
+.faixa-menu-cab { padding: 4px 8px 2px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim); }
+.faixa-menu-it { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px; border-radius: var(--r-chip); font-size: 13px; text-align: left; color: var(--text); }
+.faixa-menu-it:hover { background: var(--row-hover); }
+.faixa-menu-it.on { background: var(--primary-soft); font-weight: 600; }
+.faixa-menu-it svg { width: 18px; height: 18px; flex: none; color: var(--text-muted); }
+.faixa-menu-it .ok { margin-left: auto; color: var(--primary); }
+.faixa-menu-sep { height: 1px; margin: 4px 6px; background: var(--border); }
+.faixa-menu-dica { padding: 4px 10px 2px; font-size: 11.5px; color: var(--text-dim); }

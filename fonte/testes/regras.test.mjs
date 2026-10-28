@@ -275,3 +275,15 @@ test('xlsx: lista suspensa que usa INDIRECT com o nome da tabela do Excel', asyn
 import { readFileSync } from 'node:fs';
 function readAmostra() { return new Uint8Array(readFileSync(new URL('./amostras/amostra-qualidade.xlsx', import.meta.url))); }
 void enc;
+
+test('v0.6.1 (Grok): lista por faixa sem $ não perde o 1º item nas linhas de baixo; renomear a aba da fonte mantém a lista', async () => {
+  const c = base({ val: [{ fx: 'D1:D4', t: 'list', f1: 'C1:C3', me: 1 }, { fx: 'H1:H4', t: 'list', f1: "Apoio!$A$1:$A$2", me: 1 }] });
+  c.abas.a2 = { nome: 'Apoio', cel: { A1: { v: 'Entrada' }, A2: { v: 'Rede' } } };
+  c.ordem.push('a2');
+  const cn = normalizarPlanilha(c);
+  const m = new Motor(cn);
+  assert.deepEqual(opcoesLista(m, cn, 'a1', cn.abas.a1.val[0], 3, 3).itens.map((x) => x.t), ['Verde', 'Maduro', 'Podre'], 'na 4ª linha continua começando em C1');
+  const { renomearAba } = await import('../src/planilha/operacoes.js');
+  const mud = renomearAba(cn, 'a2', 'Listas da coleta');
+  assert.equal(mud['conteudo.abas.a1.val'][1].f1, "'Listas da coleta'!$A$1:$A$2");
+});

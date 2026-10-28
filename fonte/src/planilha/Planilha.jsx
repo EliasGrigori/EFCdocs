@@ -27,6 +27,7 @@ import { objetosDaAba, novaAssinatura, novoGrafico, GR, mudancaObjetos, comObjet
 import { dadosDaFaixa } from './graficos.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
 import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
+import { lerFaixaDoLivro } from './xlsx/graficosXlsx.js';
 import { svgDoGrafico } from './desenhoGrafico.js';
 import { paginar, normalizarImp, impParaGuardar } from './impressao.js';
 import { desenharPaginas, svgDaPagina } from './paginaDesenho.js';
@@ -661,7 +662,7 @@ export function Planilha({ arquivo, cx }) {
   /* ---------- gráficos (v0.6.0) ---------- */
   const temaGrafico = (() => { try { const v = getComputedStyle(document.body).getPropertyValue('--surface').trim(); const m = /^#([0-9a-f]{6})$/i.exec(v); if (!m) return TEMA_CLARO; const n = parseInt(m[1], 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 128 ? TEMA_CLARO : TEMA_ESCURO; } catch { return TEMA_CLARO; } })();
   /** Lê a faixa dos dados ("A1:C20" ou "Resumo!A1:C20") e devolve { d, erro, fx, aba }. */
-  const lerDadosGrafico = (texto, porLinhas, abaPadrao = abaId) => {
+  const lerDadosGrafico = (texto, porLinhas, abaPadrao = abaId, mostrarOcultos = false) => {
     let t = String(texto || '').trim();
     let abaD = abaPadrao;
     const m = /^(?:'([^']+)'|([^!]+))!(.+)$/.exec(t);
@@ -675,12 +676,17 @@ export function Planilha({ arquivo, cx }) {
     if (!f0) return { erro: t ? 'Diga as células, por exemplo A1:C20.' : '', d: { cats: [], series: [] } };
     const f = normalFaixa(f0);
     if ((f.l2 - f.l1 + 1) > 5000 || (f.c2 - f.c1 + 1) > 60) return { erro: 'Faixa grande demais para um gráfico (até 5.000 linhas e 60 colunas).', d: { cats: [], series: [] } };
-    const d = dadosDaFaixa(f, (l, cc) => { const v = motor.valor(abaD, l, cc); return v && typeof v === 'object' ? null : v; }, (l, cc) => textoCelula(motor, c, abaD, l, cc).t, porLinhas);
-    return { d, fx: textoFaixa(f), aba: abaD };
+    const AD = c.abas[abaD];
+    /* v0.6.1: como no Excel, linhas e colunas ocultas ficam fora (a não ser que o gráfico peça para mostrar) */
+    const ocultos = !mostrarOcultos && AD && (AD.ocL || AD.ocC) ? { l: AD.ocL || {}, c: AD.ocC || {} } : null;
+    const fmtDe = (l, cc) => { const x = AD && AD.cel[chave(l, cc)]; return x ? estiloDe(c, x).nf || null : null; };
+    const d = dadosDaFaixa(f, (l, cc) => { const v = motor.valor(abaD, l, cc); return v && typeof v === 'object' ? null : v; }, (l, cc) => textoCelula(motor, c, abaD, l, cc).t, porLinhas, fmtDe, ocultos);
+    return { d, fx: textoFaixa(f), aba: abaD, ocultas: d.ocultas || 0 };
   };
   /** Região em volta da célula ativa (como o Excel faz ao inserir gráfico com uma célula só escolhida). */
   const regiaoAtual = (l0, c0) => {
-    const tem = (l, cc) => { const x = aba.cel[chave(l, cc)]; return !!x && (x.v !== undefined || x.f !== undefined); };
+    /* v0.6.1 (Grok G01): fórmula que dá vazio não conta, senão a região ia até a linha 403 */
+    const tem = (l, cc) => { const x = aba.cel[chave(l, cc)]; if (!x) return false; if (x.f !== undefined) { const v = motor.valor(abaId, l, cc); return v != null && v !== ''; } return x.v !== undefined && x.v !== ''; };
     let f = { l1: l0, l2: l0, c1: c0, c2: c0 };
     for (let volta = 0; volta < 400; volta++) {
       let cresceu = false;
@@ -701,7 +707,8 @@ export function Planilha({ arquivo, cx }) {
     const ms = mescladas(A);
     const objetos = objetosDaAba(A).map((o) => {
       if (o.tipo === 'grafico') {
-        const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : idA);
+        if (o.g.t === 'excel') return { ...o, svg: svgDoGrafico(o.g, null, { w: o.w, h: o.h, tema: TEMA_CLARO, lerFaixa: lerFaixaDoLivro(c, motor, idA, o.g.plano && o.g.plano.soVisiveis === false) }) };
+        const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : idA, !!o.g.op.ocultos);
         return { ...o, svg: svgDoGrafico(o.g, ld.d, { w: o.w, h: o.h, tema: TEMA_CLARO }) };
       }
       const nome = String(o.nome || '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
@@ -795,14 +802,34 @@ export function Planilha({ arquivo, cx }) {
   const aplicarGrafico = (g, janelaG) => {
     const lista = objetosDaAba(c.abas[abaId]);
     const dadosAba = g.dados.aba && g.dados.aba !== abaId ? g.dados.aba : '';
-    const gg = { ...g, dados: { ...g.dados, aba: dadosAba } };
+    const gg = g.t === 'excel' ? { ...g, xoAbas: (lista.find((x) => x.id === janelaG.id) || {}).g?.xoAbas } : { ...g, dados: { ...g.dados, aba: dadosAba } };
     if (janelaG.id) { gravarObjs(comObjeto(lista, janelaG.id, { g: gg }), 'Editar gráfico'); return; }
     if (lista.length >= MAX_OBJETOS) { cx.avisar(`No máximo ${MAX_OBJETOS} objetos por aba.`, { ic: 'aviso' }); return; }
     const f = janelaG.faixa || normalFaixa(faixa);
     const reg = regiaoAtual(f.l1, f.c1);
-    const ancora = { l: Math.max(G.cl || 0, f.l1, Math.max(G.l0, 0)), c: Math.min(MAX_COL - 1, Math.max(f.c2, reg.c2) + 2) };
-    const o = novoGrafico(gg, ancora);
-    if (gravarObjs([...lista, o], 'Inserir gráfico') !== false) { setObjSel(o.id); cx.avisar('Gráfico inserido. Arraste para mover; puxe o canto para mudar o tamanho; dois cliques para editar.', { ic: 'grafico' }); }
+    /* v0.6.1 (Grok G04 e celular): o gráfico nasce inteiro na parte da tela que está à vista.
+       Primeiro tenta à direita dos dados; se não cabe, fica no meio da tela (como o Excel). */
+    const z = G.z || 1;
+    const visL = (G.W - G.hw) / z, visA = (G.H - G.hh) / z;
+    let w = Math.round(Math.max(GR.W_MIN, Math.min(GR.W, visL - 24)));
+    let h = Math.round(Math.max(GR.H_MIN, Math.min(GR.H, w * GR.H / GR.W, visA - 24)));
+    const cabe = (an, ww, hh) => { const xA = G.xDe(an.c) + 6 * z, yA = G.yDe(an.l) + 6 * z; return xA >= G.hw && xA + ww * z <= G.W - 8 && yA >= G.hh && yA + hh * z <= G.H - 4; };
+    let ancora = { l: Math.max(G.cl || 0, f.l1, Math.max(G.l0, 0)), c: Math.min(MAX_COL - 1, Math.max(f.c2, reg.c2) + 2) };
+    if (!cabe(ancora, w, h)) {
+      /* 1) à direita, um pouco menor; 2) embaixo dos dados; 3) no meio da tela */
+      const sobra = (G.W - 8 - G.xDe(ancora.c) - 6 * z) / z;
+      const embaixo = { l: Math.min(MAX_LIN - 1, Math.max(f.l2, reg.l2) + 2), c: Math.max(G.cc || 0, f.c1, Math.max(G.c0, 0)) };
+      if (sobra >= 340 && cabe(ancora, Math.round(sobra), Math.round(sobra * GR.H / GR.W))) { w = Math.round(sobra); h = Math.round(sobra * GR.H / GR.W); }
+      else if (cabe(embaixo, w, h)) ancora = embaixo;
+      else {
+        const x0 = G.hw + (G.fx || 0), y0 = G.hh + (G.fy || 0);
+        const cxv = Math.max(x0 + 8, x0 + ((G.W - x0) - w * z) / 2), cyv = Math.max(y0 + 8, y0 + ((G.H - y0) - h * z) / 2);
+        ancora = ancoraNoPonto(G, cxv, cyv);
+      }
+    }
+    const o = novoGrafico(gg, { ...ancora, w, h });
+    const toque = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (gravarObjs([...lista, o], 'Inserir gráfico') !== false) { setObjSel(o.id); cx.avisar(toque ? 'Gráfico inserido. Arraste para mover; puxe o canto para mudar o tamanho; toque duas vezes para editar.' : 'Gráfico inserido. Arraste para mover; puxe o canto para mudar o tamanho; dois cliques para editar.', { ic: 'grafico' }); }
   };
 
   const toqueObj = useRef(null);
@@ -2503,15 +2530,16 @@ export function Planilha({ arquivo, cx }) {
               if (!rc.visivel) return null;
               const escolhida = objSel === o.id;
               if (o.tipo === 'grafico') {
-                const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : abaId);
+                const xl = o.g.t === 'excel';
+                const ld = xl ? { d: null } : lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : abaId, !!o.g.op.ocultos);
                 return (
-                  <div key={o.id} className={'pl-obj pl-obj-gr' + (escolhida ? ' sel' : '')} data-obj={o.id} data-grafico={o.g.t} role="img" aria-label={'Gráfico' + (o.g.titulo ? ': ' + o.g.titulo : '')}
+                  <div key={o.id} className={'pl-obj pl-obj-gr' + (xl ? ' pl-obj-xl' : '') + (escolhida ? ' sel' : '')} data-obj={o.id} data-grafico={o.g.t} role="img" aria-label={'Gráfico' + (o.g.titulo ? ': ' + o.g.titulo : '')}
                     style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
                     onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
                     onDoubleClick={() => abrirGrafico(o)}
                     onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
                     <div style={{ width: r.w / z, height: r.h / z, transform: `scale(${z})`, transformOrigin: '0 0' }}>
-                      <GraficoView g={o.g} dados={ld.d} w={Math.round(r.w / z)} h={Math.round(r.h / z)} tema={temaGrafico} />
+                      <GraficoView g={o.g} dados={ld.d} w={Math.round(r.w / z)} h={Math.round(r.h / z)} tema={temaGrafico} lerFaixa={xl ? lerFaixaDoLivro(c, motor, abaId, o.g.plano && o.g.plano.soVisiveis === false) : undefined} />
                     </div>
                     {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
                   </div>
@@ -2675,10 +2703,11 @@ export function Planilha({ arquivo, cx }) {
       {janela && janela.tipo === 'grafico' && (() => {
         const o = janela.id ? objs.find((x) => x.id === janela.id) : null;
         if (janela.id && !o) return null;
-        const ini = o ? { ...o.g, dados: { ...o.g.dados, fx: (o.g.dados.aba && o.g.dados.aba !== abaId && c.abas[o.g.dados.aba] ? nomeAbaNaFormula(c.abas[o.g.dados.aba].nome) + '!' : '') + o.g.dados.fx } } : null;
+        const ini = o ? (o.g.t === 'excel' ? o.g : { ...o.g, dados: { ...o.g.dados, fx: (o.g.dados.aba && o.g.dados.aba !== abaId && c.abas[o.g.dados.aba] ? nomeAbaNaFormula(c.abas[o.g.dados.aba].nome) + '!' : '') + o.g.dados.fx } }) : null;
         return (
-          <JanelaGrafico inicial={ini} faixaPadrao={janela.fx} tema={temaGrafico}
-            lerDados={(fx, pl) => lerDadosGrafico(fx, pl)}
+          <JanelaGrafico inicial={ini} faixaPadrao={janela.fx} tema={temaGrafico} tamanho={o ? { w: o.w, h: o.h } : null}
+            lerFaixa={lerFaixaDoLivro(c, motor, abaId, !!(o && o.g.plano && o.g.plano.soVisiveis === false))}
+            lerDados={(fx, pl, oc) => lerDadosGrafico(fx, pl, abaId, oc)}
             aoAplicar={(g) => aplicarGrafico(g, janela)}
             aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
         );

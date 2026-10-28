@@ -5,7 +5,7 @@
 
 import { VERSAO } from './modelo.js';
 
-const V4 = 'v0.4.0', V5 = 'v0.5.0', V51 = 'v0.5.1', V6 = 'v0.6.0', V61 = 'v0.6.1', V7 = 'v0.7.0', V8 = 'v0.8.0';
+const V4 = 'v0.4.0', V5 = 'v0.5.0', V51 = 'v0.5.1', V6 = 'v0.6.0', V61 = 'v0.6.3', V7 = 'v0.7.0', V8 = 'v0.8.0';
 const DEPOIS = 'depois da v1.0.0';
 const porModulo = (planilha, docx, postits) => ({ planilha, docx, postits });
 const C = (id, nome, ic, extra = {}) => ({ id, nome, ic, sin: [], mods: ['*'], ...extra });
@@ -87,7 +87,7 @@ export const COMANDOS = [
 
   C('inserir.tabela', 'Tabela', 'tabela', { sin: ['formatar como tabela', 'grade'], chega: porModulo(V61, V7, null), mods: ['planilha', 'docx'] }),
   C('inserir.imagem', 'Imagem', 'imagem', { sin: ['foto', 'figura'], chega: porModulo(V61, V7, null), acao: 'quadro.editar' }),
-  C('inserir.grafico', 'Gráfico', 'grafico', { sin: ['chart', 'colunas', 'pizza', 'barras', 'linhas', 'dashboard'], chega: porModulo(V6, V7, V61) }),
+  C('inserir.grafico', 'Gráfico', 'grafico', { sin: ['inserir gráfico', 'novo gráfico', 'velocímetro', 'chart', 'colunas', 'pizza', 'barras', 'linhas', 'dashboard'], chega: porModulo(V6, V7, V61) }),
   C('inserir.link', 'Link', 'link', { sin: ['hiperlink', 'endereço', 'ir para aba'], chega: porModulo(V61, V7, null), acao: 'quadro.editar' }),
   C('inserir.botao', 'Botão que leva a outra aba', 'botao', { sin: ['botão', 'navegação', 'macro', 'atalho de aba'], chega: V61, mods: ['planilha'] }),
   C('inserir.foto', 'Foto na célula', 'foto', { sin: ['evidência', 'câmera'], chega: V8, mods: ['planilha'] }),

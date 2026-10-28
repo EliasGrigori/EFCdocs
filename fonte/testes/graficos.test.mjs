@@ -127,16 +127,19 @@ test('gráfico: salvar como Excel grava gráfico nativo (colunas com referência
   assert.ok(Math.abs(objs[0].w - 480) <= 1 && Math.abs(objs[0].h - 300) <= 1, `tamanho ${objs[0].w}x${objs[0].h}`);
 });
 
-test('gráfico: um gráfico feito no Excel (sem a marca do EFCdocs) vira gráfico do EFCdocs', () => {
+test('gráfico: um gráfico feito no Excel (sem a marca do EFCdocs) vem com o plano completo', () => {
   const xml = '<c:chartSpace xmlns:c="x" xmlns:a="y"><c:chart><c:title><c:tx><c:rich><a:p><a:r><a:t>Cloro </a:t></a:r><a:r><a:t>diário</a:t></a:r></a:p></c:rich></c:tx></c:title><c:plotArea>' +
     '<c:lineChart><c:grouping val="standard"/><c:ser><c:idx val="0"/><c:tx><c:strRef><c:f>\'Dados 2026\'!$B$1</c:f></c:strRef></c:tx><c:spPr><a:ln><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill></a:ln></c:spPr><c:cat><c:strRef><c:f>\'Dados 2026\'!$A$2:$A$31</c:f></c:strRef></c:cat><c:val><c:numRef><c:f>\'Dados 2026\'!$B$2:$B$31</c:f></c:numRef></c:val></c:ser></c:lineChart>' +
     '</c:plotArea><c:legend><c:legendPos val="r"/></c:legend></c:chart></c:chartSpace>';
   const r = gDoXml(xml);
-  assert.equal(r.g.t, 'linha'); assert.equal(r.g.titulo, 'Cloro diário');
-  assert.equal(r.g.dados.aba, 'Dados 2026'); assert.equal(r.g.dados.fx, 'A1:B31');
-  assert.equal(r.g.op.legenda, 'dir'); assert.deepEqual(r.g.op.cores, ['#ff0000']);
-  assert.match(gDoXml(xml.replace(/lineChart/g, 'radarChart')).fora, /radar/);
-  assert.match(gDoXml(xml.replace("<c:f>'Dados 2026'!$B$2:$B$31</c:f>", '<c:f>Outra!$B$2:$B$31</c:f>')).fora, /abas diferentes/);
+  /* v0.6.1: o gráfico do Excel fica como veio (t:'excel'), com o plano completo e o XML original */
+  assert.equal(r.g.t, 'excel'); assert.equal(r.g.titulo, 'Cloro diário');
+  const S = r.g.plano.grupos[0].series[0];
+  assert.deepEqual(S.vals.ref, { aba: 'Dados 2026', fx: 'B2:B31' }); assert.deepEqual(S.cats.ref, { aba: 'Dados 2026', fx: 'A2:A31' });
+  assert.equal(r.g.plano.legenda.pos, 'r'); assert.equal(S.linha.cor, '#ff0000');
+  assert.ok(r.g.xo.includes('Cloro'));
+  assert.equal(gDoXml(xml.replace(/lineChart/g, 'radarChart')).g.t, 'excel', 'radar: desenhado de forma simples');
+  assert.match(gDoXml(xml.replace(/lineChart/g, 'surfaceChart')).fora, /superfície/);
   void xmlDoGrafico;
 });
 
