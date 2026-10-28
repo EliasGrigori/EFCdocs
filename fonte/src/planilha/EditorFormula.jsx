@@ -23,6 +23,13 @@ export const CampoFormula = forwardRef(function CampoFormula({ valor, cursor, ao
       try { t.setSelectionRange(cursor, cursor); } catch { /* sem cursor */ }
     }
   }, [cursor, valor]);
+  /* v0.6.4 (Grok B10): dentro da célula o campo nasce já com texto e o navegador não sublinhava; religa a correção depois de focar */
+  useEffect(() => {
+    const t = ta.current;
+    if (!t || !corretor) return undefined;
+    const id = setTimeout(() => { if (document.activeElement === t) { t.spellcheck = false; t.spellcheck = true; } }, 80);
+    return () => clearTimeout(id);
+  }, [corretor, focar]);
   useEffect(() => {
     if (focar && ta.current && document.activeElement !== ta.current) {
       ta.current.focus();
@@ -47,7 +54,7 @@ export const CampoFormula = forwardRef(function CampoFormula({ valor, cursor, ao
       {!ehFormula && fantasma && fantasma.length > valor.length && (
         <div className="ef-cores" aria-hidden="true"><span style={{ color: 'transparent' }}>{valor}</span><span className="ef-fantasma">{fantasma.slice(valor.length)}</span></div>
       )}
-      <textarea ref={ta} className="ef-campo" value={valor} spellCheck={!!corretor && !ehFormula} lang="pt-BR" autoComplete="off" autoCorrect="off" autoCapitalize="off"
+      <textarea ref={ta} className="ef-campo" value={valor} spellCheck={!!corretor && !ehFormula} data-corretor={corretor ? "1" : undefined} lang="pt-BR" autoComplete="off" autoCorrect="off" autoCapitalize="off"
         aria-label={rotulo} rows={1} inputMode={modoTeclado || 'text'} wrap={linhaUnica ? 'off' : 'soft'}
         onChange={(ev) => { selUser.current = null; aoMudar(ev.target.value, ev.target.selectionStart); }}
         onSelect={(ev) => {

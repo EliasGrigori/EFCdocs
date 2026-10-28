@@ -7,6 +7,7 @@ import { Lote } from './operacoes.js';
 import { mescladas } from './modelo.js';
 import { novoIdRegra, faixasDe, textoFaixas, tirarDeFaixas } from './regras.js';
 import { novoFiltro } from './dados.js';
+import { trocarTabelas } from './xlsx/formulas.js';
 
 /* ---------------- Tabela ---------------- */
 export const ESTILOS_TABELA = [
@@ -207,3 +208,18 @@ export function tirarLink(c, abaId, l, col) {
   return lote;
 }
 export { textoFaixa, lerEnderecoCaixa };
+
+/**
+ * v0.6.4 (Grok B05): fórmula digitada com Tabela[Coluna] (ou Tabela[[#Cabeçalhos];[Coluna]], Tabela[@Coluna]...)
+ * vira endereços, como o Excel faz ao importar. texto = o que a pessoa digitou (com o "=").
+ */
+export function tabelasNaFormula(c, texto, abaId, l) {
+  if (!c.tabelas || typeof texto !== 'string' || texto[0] !== '=' || texto.indexOf('[') < 0) return texto;
+  const mapa = new Map();
+  for (const [k, tb] of Object.entries(c.tabelas)) { const a = c.abas[tb.aba]; if (a) mapa.set(k, { ...tb, aba: a.nome }); }
+  if (!mapa.size || !c.abas[abaId]) return texto;
+  const ingles = texto
+    .replace(/#cabeçalhos?/gi, '#Headers').replace(/#cabecalhos?/gi, '#Headers').replace(/#tudo/gi, '#All').replace(/#dados/gi, '#Data').replace(/#totais/gi, '#Totals').replace(/#esta linha/gi, '#This Row')
+    .replace(/\];\s*\[/g, '],[');
+  return trocarTabelas(ingles, mapa, { aba: c.abas[abaId].nome, l });
+}

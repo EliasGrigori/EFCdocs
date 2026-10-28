@@ -1,79 +1,68 @@
-"""EFCdocs — monta a página de aprovação da v0.6.3 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.6.4 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" <testes-de-regras> <testes-no-navegador>"""
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.6.3'
+VERSAO = 'v0.6.4'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-GB, GF, GX, GD = 'A. Os 10 botões da planilha que faltavam', 'B. Faixa e aparência', 'C. Excel', 'D. Decisões e lembretes'
+GA, GB, GC, GD = 'A. Planilha: o que você viu no Excel e no teste', 'B. Editor de gráficos', 'C. Faixa e filtro', 'D. Decisões e lembretes'
 ITENS = [
-    ('B01', 'Classificar (A a Z, menor a maior, por mais de uma coluna)', GB,
-     '<p>Dados › <b>Classificar</b> abre uma janela: você escolhe a coluna, a ordem e pode somar <b>mais níveis</b> (ex.: Ponto e depois Data). Reconhece número, data e texto e deixa o <b>cabeçalho</b> no lugar. Linhas escondidas por um filtro ficam onde estão. Desfaz com Ctrl+Z.</p>',
-     'A janela está clara? Faltou alguma opção que você usa no Excel?',
-     [('Antes: botão "chega na v0.6.3"', 'antes-dados-tela'), ('Depois: janela Classificar', 'v063-classificar')], 'par'),
-    ('B02', 'Filtrar, com seta no título e "Reaplicar"', GB,
-     '<p>Dados › <b>Filtrar</b> põe uma seta em cada título. A seta abre uma lista com as opções da coluna (marcar e desmarcar) e quantas linhas aparecem. O filtro acompanha o que o Excel grava: abre e salva o filtro do arquivo. Pedi a mais um botão, <b>Reaplicar</b>, que refaz o filtro depois que você mudou os dados.</p>',
-     'O menu da seta ficou fácil? Aprova o botão Reaplicar?',
-     [('Menu da seta', 'v063-filtro-menu'), ('Filtro ligado', 'v063-filtro-ativo')], 'par'),
-    ('B03', 'Remover duplicados', GB,
-     '<p>Dados › <b>Duplicados</b> mostra <b>quantas linhas repetidas</b> existem olhando as colunas que você marcar, e só depois remove (mantém a primeira de cada). Dá para desfazer.</p>',
-     'Mostrar a quantidade antes de remover é o suficiente?', [('Depois', 'v063-duplicados')], 'um'),
-    ('B04', 'Travar modelo (proteger a aba)', GB,
-     '<p>Revisão › <b>Travar</b>: a aba fica protegida e só as células que você <b>liberar</b> aceitam digitação. É uma trava <b>sem senha</b>, para evitar acidente (a janela diz isso; qualquer pessoa destrava). Se o arquivo veio do Excel com senha, o EFCdocs <b>mantém</b> a senha ao salvar de volta.</p>',
-     'Uma trava sem senha, com o aviso claro, serve para o uso do dia a dia?', [('Janela', 'v063-travar-janela'), ('Aba travada: o aviso aparece ao tentar mudar', 'v063-travar')], 'par'),
-    ('B05', 'Formatar como tabela', GB,
-     '<p>Inserir › <b>Tabela</b>: escolhe o estilo (cores do cabeçalho e listras), o nome, se tem cabeçalho, e já liga o <b>filtro</b>. O nome pode ser usado nas contas.</p>',
-     'Os estilos de tabela estão bons?', [('Janela', 'v063-tabela'), ('Tabela pronta', 'v063-tabela-pronta')], 'par'),
-    ('B06', 'Coluna de status', GB,
-     '<p>Inserir › <b>Coluna de status</b> cria numa coluna a <b>lista suspensa</b> (ex.: Pendente, Em andamento, Concluído) com uma <b>cor para cada opção</b>.</p>',
-     'Os nomes e as cores de fábrica servem?', [('Janela', 'v063-status'), ('Pronta', 'v063-status-pronto')], 'par'),
-    ('B07', 'Link na célula', GB,
-     '<p>Inserir › <b>Link</b>: para internet, e-mail ou para <b>outra aba</b> da planilha. Só aceita endereços seguros (https, e-mail). Aparece um botão <b>Abrir</b> ao lado da célula. O link fica dentro da célula, então <b>acompanha</b> a célula ao classificar, copiar e inserir linhas.</p>',
-     'O botão "Abrir" ao lado da célula está bom?', [('Depois', 'v063-link')], 'um'),
-    ('B08', 'Botão que leva a outra aba', GB,
-     '<p>Inserir › <b>Botão de aba</b>: um botão sobre a planilha com o nome e a cor que você quiser. Clicar leva à aba (e à célula) escolhida; Ctrl+clique seleciona o botão para mudar; Delete exclui.</p>',
-     'Clicar leva e Ctrl+clique seleciona: dá para entender?', [('Depois', 'v063-botao')], 'um'),
-    ('B09', 'Imagem na planilha', GB,
-     '<p>Inserir › <b>Imagem</b>: escolhe o arquivo (PNG, JPG, WebP ou GIF), a figura entra <b>sem deformar</b>, você arrasta, puxa o canto (mantém a proporção) e dá dois cliques para mudar o tamanho exato e o texto alternativo.</p>',
-     'Está bom para logotipo e foto do local?', [('Depois', 'v063-imagem')], 'um'),
-    ('B10', 'Ortografia', GB,
-     '<p>Revisão › <b>Ortografia</b> liga e desliga o <b>corretor do seu aparelho</b> nos campos de texto da célula (sublinha o erro em vermelho). Não é um corretor do EFCdocs: é o do navegador, por isso a lista de palavras e o idioma dependem do aparelho.</p>',
-     'Usar o corretor do aparelho resolve, ou você quer um corretor próprio mais para frente?', [], ''),
-    ('F01', 'Aba "Gráfico" que aparece sozinha', GF,
-     '<p>Ao selecionar um gráfico surge a aba <b>Gráfico</b> (com um traço de cor em cima) com <b>Editar</b>, <b>Estilo rápido</b>, <b>Cores</b>, <b>Semáforo</b> e <b>Excluir</b>. Estilo rápido, Cores e Semáforo abrem o editor já na parte certa. Ao tirar a seleção a aba some e volta a que você estava.</p>',
-     'A aba aparecendo sozinha atrapalha ou ajuda?', [('Depois', 'v063-aba-grafico'), ('Cores', 'v063-grafico-cores')], 'par'),
-    ('F02', 'Ícones diferentes para inserir e excluir linha e coluna (R02)', GF,
-     '<p>Você achou os ícones de adicionar linha e coluna ambíguos (dois "+" parecidos com Nova aba). Agora cada um tem <b>desenho próprio</b> (a linha ou a coluna inteira em destaque, com + ou x) e, na aba <b>Inserir</b>, viraram <b>botões grandes com o nome</b> (Inserir linha, Inserir coluna), como a Nova aba.</p>',
-     'Dá para distinguir de longe?', [('Antes: Inserir', 'antes-faixa-inserir'), ('Depois: Inserir', 'depois-faixa-inserir'), ('Antes: Página Inicial', 'antes-faixa-inicio'), ('Depois: Página Inicial', 'depois-faixa-inicio')], 'par'),
-    ('F03', 'Até 2 temas favoritos (R04)', GF,
-     '<p>Nas opções, cada tema tem uma <b>estrelinha</b>; você marca até <b>2</b>. Eles aparecem como bolinhas no menu da faixa, para trocar de tema com um toque (de fábrica: Papel e Escuro).</p>',
-     'Dois favoritos bastam?', [('Menu da faixa', 'v063-temas-favoritos'), ('Estrelas nas opções', 'v063-temas-estrelas')], 'par'),
-    ('X01', 'Links e imagens vão e voltam do Excel', GX,
-     '<p>Links (internet, e-mail e para outra aba) e imagens <b>gravam no Excel</b> e <b>voltam</b> ao abrir de novo; conferi o arquivo no LibreOffice (a imagem e o texto aparecem). O <b>botão de aba não existe no Excel</b> (lá só com macro): ele fica só no EFCdocs e o aviso ao salvar diz isso.</p>',
-     'Está bom o botão ficar só no EFCdocs, com aviso?', [], ''),
-    ('D01', 'Gráfico no Quadro fica para a v0.7.0', GD,
-     '<p>O comando "Inserir gráfico" do Quadro de post-its era um botão que prometia a v0.6.1 e <b>não funcionava</b>. Passei a promessa para a <b>v0.7.0</b>, para o botão não enganar.</p>',
-     'Pode ficar para a v0.7.0?', [], ''),
-    ('D02', 'Editor de gráficos: o que dá para acrescentar (E02)', GD,
-     '<p>Reli o editor. Hoje ele tem tipo, dados, 6 estilos rápidos, cores, semáforo, séries (inclusive eixo da direita e linha de tendência), eixos, textos e fundo. <b>Não tem</b> ainda, e eu sugiro, em ordem de uso: (1) <b>exportar o gráfico como imagem</b> para colocar num documento ou e-mail; (2) <b>duplicar e copiar/colar</b> o gráfico (inclusive para outra aba); (3) <b>linha de meta</b> arrastável no próprio gráfico; (4) <b>salvar o estilo</b> como modelo seu; (5) barras de erro.</p>',
-     'Quais dessas você quer? (diga os números)', [], ''),
-    ('P01', 'Publicação da v0.6.3', GD,
-     '<p>Depois da sua aprovação, publico a v0.6.3 no GitHub (commit só com esta versão). Os seus arquivos não vão para o GitHub nem para os pacotes (só amostras inventadas). <b>Nada a configurar no Firebase.</b></p>',
-     'Pode publicar? (diga se quer algum ajuste antes)', [], ''),
-    ('P02', 'Próximas versões', GD,
-     '<p><b>v0.6.4 · Opus 5.5 · alto</b>: o <b>Painel</b> (esboço mostrado na v0.6.1). Depois, a v0.7.0 com o Documento e o gráfico no Quadro. O relatório do Grok da v0.6.2 você me manda quando chegar.</p>',
+    ('A01', 'Linhas ocultas do Excel vêm ocultas (e os gráficos ficam do tamanho certo)', GA,
+     '<p>Muitos arquivos do Excel marcam "as linhas que eu não listo ficam escondidas". Antes o EFCdocs mostrava todas, e isso também <b>esticava os gráficos</b> presos a essas linhas. Agora elas ficam ocultas (até 1.000 linhas depois da última listada) e <b>Layout › Reexibir</b> mostra de novo.</p>',
+     'As linhas ocultas e o tamanho dos gráficos agora batem com o seu Excel?', [('Antes', 'antes-congelada'), ('Depois', 'depois-congelada')], 'par'),
+    ('A02', 'Rolar com linhas congeladas termina numa linha inteira', GA,
+     '<p>Ao rolar, a rolagem agora <b>encaixa numa linha inteira</b> (como o Excel). Nenhuma linha fica pela metade embaixo da parte fixa.</p>',
+     'Resolveu "as linhas sobrepondo a parte fixada"? Se ainda aparecer algo por cima, diga onde.', [('Depois (a linha de baixo está inteira)', 'depois-congelada')], 'um'),
+    ('A03', 'Alt+Enter igual à quebra de texto', GA,
+     '<p>Texto com <b>Alt+Enter</b> era desenhado numa linha só, com um espaço no lugar da quebra. Agora as linhas aparecem separadas, como na quebra de texto.</p>',
+     'Ficou igual à quebra de texto?', [('Antes', 'antes-altenter'), ('Depois', 'depois-altenter')], 'par'),
+    ('A04', 'Letras sem borrar no zoom', GA,
+     '<p>As letras são desenhadas <b>no pixel da tela</b> e a planilha se redesenha quando o zoom do navegador muda. Se ainda borrar, me diga o zoom e a tela (Windows 125%? celular?).</p>',
+     'Está nítido nos seus zooms de costume?', [], ''),
+    ('A05', 'Tirar o link, link que acompanha copiar e colar', GA,
+     '<p>Inserir › <b>Tirar link</b> (e no clique direito). Copiar e colar uma célula com link <b>leva o link</b>. Desfazer devolve.</p>',
+     'Está onde você esperava?', [], ''),
+    ('A06', 'Vínculos e fórmulas', GA,
+     '<p>Fórmula digitada como <code>=SOMA(Coletas[Cloro])</code> agora funciona (vira endereço, como na importação). Travar/destravar <b>pede a senha</b> quando a aba veio do Excel com senha; as permissões finas do Excel e o "Ctrl+Z destrava" foram corrigidos. Gráfico ligado a <b>outro arquivo</b> avisa na importação; GIF animado avisa que fica parado.</p>',
+     '', [], ''),
+    ('B01', 'Editor do gráfico: Ctrl+Z, Ctrl+Y e Tirar a formatação', GB,
+     '<p>Dentro do editor, <b>Ctrl+Z / Ctrl+Y</b> (e os botões) desfazem e refazem cada mudança, inclusive Estilo rápido. O botão <b>Tirar a formatação</b> volta ao padrão. O furo da rosca ficou na aba <b>Tipo</b>. Com <b>uma célula</b> escolhida, o velocímetro lê aquela célula e não a tabela inteira.</p>',
+     'Está bom assim?', [('Depois', 'depois-editor')], 'um'),
+    ('B02', 'Cancelar pergunta antes de perder a mudança', GB,
+     '<p>Se você mexeu, <b>Cancelar</b> (ou Esc, ou clicar fora) pergunta: continuar editando, descartar ou salvar.</p>',
+     'Aprovado?', [('Depois', 'depois-editor-cancelar')], 'um'),
+    ('B03', 'Gráfico no PDF não é cortado entre duas páginas', GB,
+     '<p>Gráfico ou imagem que cabe numa página vai <b>inteiro</b> para a página seguinte em vez de ser partido ao meio.</p>', '', [], ''),
+    ('B04', 'Aba Gráfico: ligar e desligar', GB,
+     '<p><b>Exibir › Aba Gráfico</b> (e dentro da própria aba) liga e desliga o aparecimento automático da aba. Escolher uma célula pela caixa de nome também solta o gráfico.</p>',
+     'Está onde você queria?', [('Exibir', 'depois-exibir-abagrafico')], 'um'),
+    ('C01', 'Janela do filtro mais limpa', GC,
+     '<p>Menu mais enxuto (ordenar em linha, sem caixas dentro de caixas). Ao <b>procurar</b> e dar OK, ficam marcados <b>só os itens achados</b>, sem desmarcar um por um, e aparece "<b>N de M linhas aparecem</b>". A seta do título ficou mais <b>quadrada</b>.</p>',
+     'Ficou clean o bastante?', [('Antes', 'antes-filtro'), ('Depois', 'depois-filtro')], 'par'),
+    ('C02', 'Faixa: estilo E em 1366, Exibir na mesma altura, Ctrl+F1 em um lugar só', GC,
+     '<p>No estilo E o botão <b>Mais</b> não é mais coberto pelo de recolher. A aba <b>Exibir</b> tinha 136 px e as outras 110: agora todas têm a mesma altura (a planilha não pula). <b>Ctrl+F1</b> aparece só no menu da faixa. No celular, a faixa é só de ícones.</p>',
+     'Aprovado?', [('Antes: estilo E', 'antes-faixa-E'), ('Depois: estilo E', 'depois-faixa-E'), ('Antes: Exibir', 'antes-faixa-exibir'), ('Depois: Exibir', 'depois-faixa-exibir')], 'par'),
+    ('C03', 'Celular: faixa só de ícones', GC,
+     '<p>No celular, também o botão principal (Colar etc.) fica só com o ícone; o nome continua para leitor de tela e dica.</p>',
+     'Aprovado?', [('Antes', 'antes-celular'), ('Depois', 'depois-celular')], 'par'),
+    ('D01', 'Imagens que você mandou: o que fica para as próximas versões', GD,
+     '<p>Pelos seus prints: <b>v0.6.5</b> importa as <b>formas do Excel</b> (painéis de fundo, setas, botões de navegação com link para outra aba, texto dentro delas); <b>v0.6.6</b> faz o acabamento dos gráficos (rótulos ligados a células embaixo dos velocímetros, títulos e legendas que somem, caixas de texto sobre gráficos). <b>v0.6.7</b>: o Painel e a aba nova de edição de gráfico (exportar como imagem, duplicar, meta arrastável, estilo como modelo, barras de erro). <b>v0.7.0</b>: Documento e gráfico nos post-its. Os arquivos da empresa <b>não entram nos testes</b>: uso cópias inventadas.</p>',
      'Pode ser essa a ordem?', [], ''),
+    ('D02', 'Salvar em Excel: o que se perde', GD,
+     '<p>Pelo seu teste de abrir e salvar: sem mexer, os gráficos saem <b>idênticos</b>; com um editado, só ele muda. Perdem-se: o <b>tema do arquivo</b> (a largura padrão das colunas muda um pouco e o quadro do gráfico do Painel desloca levemente) e as <b>quebras de página</b> da impressão. Entram na v0.6.6.</p>',
+     'Aceita esperar até a v0.6.6?', [], ''),
+    ('P01', 'Publicação da v0.6.4', GD,
+     '<p>Depois da sua aprovação, publico a v0.6.4 no GitHub (commit só com esta versão). Os seus arquivos não vão para o GitHub nem para os pacotes. <b>Nada a configurar no Firebase.</b></p>',
+     'Pode publicar?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
     f'<div class="nums"><span>{sys.argv[4]} testes de regras</span><span>{sys.argv[5]} testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>A v0.6.3 liga os <b>10 botões</b> que estavam marcados "chega na v0.6.3": Classificar, Filtrar, Duplicados, Travar, Tabela, Coluna de status, Link, Botão de aba, Imagem e Ortografia.</li>'
-    '<li>Traz a aba <b>Gráfico</b> que aparece sozinha, ícones próprios de linha e coluna e até 2 <b>temas favoritos</b>.</li>'
-    '<li>Links e imagens <b>vão e voltam do Excel</b>.</li>'
+    '<li>Correções do relatório do Grok (v0.6.1 a v0.6.3) e dos seus testes com planilhas reais: linhas ocultas, Alt+Enter, zoom, congelamento, link, filtro, editor de gráfico e faixa.</li>'
     '<li>Os prints usam só amostras inventadas; os seus arquivos não foram para o GitHub nem para os pacotes. Nada a configurar no Firebase.</li>'
     '</ul>'
 )
@@ -100,7 +89,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Os 10 botões da planilha, aba Gráfico e temas favoritos')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Correções do Grok e dos seus testes reais')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

@@ -14,10 +14,20 @@ const carregar = (file) => new Promise((ok, erro) => {
   im.src = url;
 });
 
-/** Devolve { src, w, h, nome }: w e h são o tamanho original (para a proporção). */
+/** GIF com mais de um quadro (animado)? Conta os blocos de controle de quadro (0x21 0xF9). */
+export function gifAnimado(bytes) {
+  const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  if (b.length < 14 || b[0] !== 0x47 || b[1] !== 0x49 || b[2] !== 0x46) return false;
+  let n = 0;
+  for (let i = 13; i < b.length - 1; i++) if (b[i] === 0x21 && b[i + 1] === 0xf9) { n++; if (n > 1) return true; }
+  return false;
+}
+/** Devolve { src, w, h, nome, animada }: w e h são o tamanho original (para a proporção). */
 export async function lerImagem(file) {
   if (!file || !TIPOS.includes(file.type)) throw new Error('Use uma imagem PNG, JPG, WebP ou GIF.');
   if (file.size > MAX_ORIGINAL) throw new Error('A imagem é grande demais (até 25 MB).');
+  let animada = false;
+  if (file.type === 'image/gif' && file.arrayBuffer) { try { animada = gifAnimado(new Uint8Array(await file.arrayBuffer())); } catch { animada = false; } }
   const im = await carregar(file);
   const w0 = im.naturalWidth, h0 = im.naturalHeight;
   if (!w0 || !h0) throw new Error('Não consegui abrir essa imagem.');
@@ -34,7 +44,7 @@ export async function lerImagem(file) {
     for (const [tipo, q] of tentativas) {
       let src = '';
       try { src = cv.toDataURL(tipo, q); } catch { src = ''; }
-      if (src.startsWith('data:' + tipo) && src.length <= IMG.MAX_CHARS) return { src, w: w0, h: h0, nome };
+      if (src.startsWith('data:' + tipo) && src.length <= IMG.MAX_CHARS) return { src, w: w0, h: h0, nome, animada };
     }
     k *= 0.8;
   }

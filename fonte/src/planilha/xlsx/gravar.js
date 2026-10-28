@@ -184,8 +184,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     let fim = '';
     /* v0.6.3: aba protegida e filtro automático (antes das mescladas, como o Excel exige) */
     if (aba.prot) {
-      const extra = aba.prot.a ? Object.entries(aba.prot.a).map(([k, v]) => ` ${k}="${escapar(v, true)}"`).join('') : '';
-      fim += `<sheetProtection sheet="1" objects="1" scenarios="1"${extra}/>`;
+      const pa = (aba.prot && aba.prot.a) || {};
+      const extra = Object.entries({ objects: '1', scenarios: '1', ...pa }).filter(([k]) => /^[A-Za-z]+$/.test(k) && k !== 'sheet').map(([k, v]) => ` ${k}="${escapar(String(v), true)}"`).join('');
+      fim += `<sheetProtection sheet="1"${extra}/>`;
     }
     fim += gravarFiltro(aba.fil);
     const mesc = (aba.mesc || []).filter((t) => /^[A-Z]+\d+:[A-Z]+\d+$/.test(t));

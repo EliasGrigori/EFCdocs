@@ -246,6 +246,51 @@ export function moverFiltro(fil, eixo, move) {
 
 /* ---------- Travar modelo ---------- */
 export const abaTravada = (aba) => !!(aba && aba.prot);
+
+/* ---------- senha da aba (v0.6.4): a que veio do Excel continua valendo ---------- */
+/** Os campos da senha que vieram do arquivo (ou null se a aba não tem senha). */
+export const senhaDaAba = (aba) => {
+  const a = aba && aba.prot && aba.prot.a;
+  return a && (a.password || a.hashValue) ? a : null;
+};
+/** Senha antiga do Excel (16 bits), em 4 letras e números. */
+export function hashLegado(texto) {
+  const pw = String(texto);
+  let h = 0;
+  for (let i = pw.length - 1; i >= 0; i--) {
+    h = ((h >> 14) & 1) | ((h << 1) & 0x7fff);
+    h ^= pw.charCodeAt(i);
+  }
+  h = ((h >> 14) & 1) | ((h << 1) & 0x7fff);
+  h ^= pw.length;
+  h ^= 0xce4b;
+  return h.toString(16).toUpperCase().padStart(4, '0');
+}
+const ALGORITMOS = { 'SHA-1': 'SHA-1', 'SHA1': 'SHA-1', 'SHA-256': 'SHA-256', 'SHA256': 'SHA-256', 'SHA-384': 'SHA-384', 'SHA384': 'SHA-384', 'SHA-512': 'SHA-512', 'SHA512': 'SHA-512' };
+const deB64 = (t) => { const b = atob(t); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
+const paraB64 = (u) => { let s = ''; for (const x of u) s += String.fromCharCode(x); return btoa(s); };
+/** A senha digitada confere com a do arquivo? (true / false; null se o jeito de guardar não é conhecido) */
+export async function conferirSenha(campos, senha) {
+  if (!campos) return true;
+  if (campos.hashValue) {
+    const alg = ALGORITMOS[String(campos.algorithmName || 'SHA-512').toUpperCase()];
+    if (!alg || !campos.saltValue || !globalThis.crypto || !globalThis.crypto.subtle) return null;
+    const sub = globalThis.crypto.subtle;
+    const pw = new Uint8Array(String(senha).length * 2);
+    for (let i = 0; i < senha.length; i++) { pw[2 * i] = senha.charCodeAt(i) & 255; pw[2 * i + 1] = senha.charCodeAt(i) >> 8; }
+    const sal = deB64(campos.saltValue);
+    let h = new Uint8Array(await sub.digest(alg, new Uint8Array([...sal, ...pw])));
+    const giros = Math.min(+campos.spinCount || 0, 1000000);
+    for (let i = 0; i < giros; i++) {
+      const bloco = new Uint8Array(h.length + 4);
+      bloco.set(h); bloco[h.length] = i & 255; bloco[h.length + 1] = (i >> 8) & 255; bloco[h.length + 2] = (i >> 16) & 255; bloco[h.length + 3] = (i >>> 24) & 255;
+      h = new Uint8Array(await sub.digest(alg, bloco));
+    }
+    return paraB64(h) === campos.hashValue;
+  }
+  if (campos.password) return hashLegado(senha) === String(campos.password).toUpperCase();
+  return true;
+}
 export const celulaLivre = (c, cel) => !!(cel && cel.s && c.estilos[cel.s] && c.estilos[cel.s].lib);
 
 /* caminhos que mexem no que o Excel trava; filtro e visão (zoom, congelar...) seguem livres */

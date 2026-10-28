@@ -342,6 +342,7 @@ export function colar(c, abaId, l0, c0, clip, { modo = 'tudo', recortar = false,
             nova.f = recortar ? item.cel.f : moverFormula(item.cel.f, l - (clip.f.l1 + i), cc - (clip.f.c1 + j));
             if (clip.abaId && clip.abaId !== abaId && !recortar) nova.f = item.cel.f && moverFormula(item.cel.f, l - (clip.f.l1 + i), cc - (clip.f.c1 + j));
           } else if (item.cel.v !== undefined) nova.v = item.cel.v;
+          if (item.cel.lk) nova.lk = { ...item.cel.lk }; // v0.6.4 (Grok B07): o link vai junto ao colar
           if (item.estilo) { const s = lote.estilo(item.estilo); if (s) nova.s = s; }
         } else if (item && item.valor != null && !item.cel) {
           nova.v = item.valor;

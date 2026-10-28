@@ -183,3 +183,34 @@ test('xlsx: filtro com critérios, linhas escondidas, aba protegida e célula li
   assert.ok(celulaLivre(volta, a.cel.B2), 'B2 continua liberada');
   assert.ok(!celulaLivre(volta, a.cel.A2), 'A2 continua travada');
 });
+
+/* ---------- v0.6.4: senha e permissões da aba protegida ---------- */
+import { hashLegado, conferirSenha, senhaDaAba } from '../src/planilha/dados.js';
+import { createHash, randomBytes } from 'node:crypto';
+
+test('v0.6.4: senha antiga do Excel (16 bits) e senha nova (SHA-512 com sal e giros) conferem; a errada não', async () => {
+  assert.equal(hashLegado('password'), '83AF');
+  assert.equal(await conferirSenha({ password: '83AF' }, 'password'), true);
+  assert.equal(await conferirSenha({ password: '83AF' }, 'Password'), false);
+  const sal = randomBytes(16);
+  let h = createHash('sha512').update(Buffer.concat([sal, Buffer.from('segredo', 'utf16le')])).digest();
+  for (let i = 0; i < 500; i++) { const b = Buffer.alloc(4); b.writeUInt32LE(i); h = createHash('sha512').update(Buffer.concat([h, b])).digest(); }
+  const campos = { algorithmName: 'SHA-512', saltValue: sal.toString('base64'), hashValue: h.toString('base64'), spinCount: '500' };
+  assert.equal(await conferirSenha(campos, 'segredo'), true);
+  assert.equal(await conferirSenha(campos, 'outra'), false);
+  assert.equal(await conferirSenha({ algorithmName: 'MD5', saltValue: 'AA==', hashValue: 'AA==' }, 'x'), null, 'jeito desconhecido: não finge que conferiu');
+  assert.ok(senhaDaAba({ prot: { a: { password: '83AF' } } }));
+  assert.ok(!senhaDaAba({ prot: 1 }));
+  assert.ok(!senhaDaAba({ prot: { a: { formatCells: '0' } } }), 'só permissões, sem senha');
+});
+
+test('v0.6.4: as permissões finas do Excel e a senha voltam iguais ao salvar', async () => {
+  const { c } = montar([['Cor', 'Qtd'], ['azul', 1]]);
+  c.abas.a1.prot = { a: { password: '83AF', formatCells: '0', insertRows: '0', selectLockedCells: '1' } };
+  const { bytes } = await gravarXlsx(c, null, {});
+  const folha = await (await lerZip(bytes)).texto('xl/worksheets/sheet1.xml');
+  assert.match(folha, /<sheetProtection sheet="1"[^>]*password="83AF"/);
+  assert.match(folha, /formatCells="0"/);
+  const volta = (await lerXlsx(bytes, {})).conteudo;
+  assert.deepEqual(volta.abas[volta.ordem[0]].prot, { a: { objects: '1', scenarios: '1', password: '83AF', formatCells: '0', insertRows: '0', selectLockedCells: '1' } });
+});

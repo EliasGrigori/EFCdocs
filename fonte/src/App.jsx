@@ -321,6 +321,11 @@ export function App() {
     const juntar = !!opcoes.juntar && !!anterior && /^Novo/.test(anterior.rotulo || '');
     const r = criarDiff(atual.arquivo, mudancas, rotulo);
     const ok = aplicarDiff(r, acao);
+    /* v0.6.4: travar e destravar a aba limpam o desfazer (como no Excel): o Ctrl+Z não pode soltar a trava nem desfazer o que ela protege */
+    if (ok && opcoes.limparHistorico) {
+      const depois = abertoRef.current;
+      if (depois) setAberto({ ...depois, h: novoHistorico() });
+    }
     if (ok && juntar) {
       const depois = abertoRef.current;
       if (depois) setAberto({ ...depois, h: juntarUltimas(depois.h) });

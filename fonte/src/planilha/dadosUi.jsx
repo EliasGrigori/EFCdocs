@@ -93,13 +93,24 @@ export function JanelaDuplicados({ faixa, subtitulo, titulos, cabecalho0, contar
 }
 
 /* ---------- Travar modelo ---------- */
-export function JanelaTravar({ travada, liberadas, selecao, selecaoLivre, temSelecao, aoTravar, aoDestravar, aoLiberar, aoFechar, somenteLeitura }) {
+export function JanelaTravar({ travada, liberadas, selecao, selecaoLivre, temSelecao, aoTravar, aoDestravar, aoLiberar, aoFechar, somenteLeitura, comSenha, conferirSenha }) {
+  const [senha, setSenha] = useState('');
+  const [erro, setErro] = useState('');
+  /* v0.6.4: aba que veio do Excel com senha só destrava com a senha certa */
+  const destravar = async () => {
+    if (comSenha) {
+      const ok = await conferirSenha(senha);
+      if (ok === null) { setErro('Esta senha foi guardada de um jeito que o EFCdocs não consegue conferir. Destrave a aba no Excel.'); return; }
+      if (!ok) { setErro('Senha incorreta.'); return; }
+    }
+    aoDestravar();
+  };
   return (
     <Janela titulo="Travar modelo" icone="cadeado" subtitulo={travada ? 'Esta aba está travada' : 'Esta aba está livre'} aoFechar={aoFechar} classe="pl-jdados" rodape={(
       <>
         <button type="button" className="btn sm" onClick={aoFechar}>Fechar</button>
         {!somenteLeitura && (travada
-          ? <button type="button" className="btn sm primary" data-foco onClick={aoDestravar}>Destravar a aba</button>
+          ? <button type="button" className="btn sm primary" data-foco={comSenha ? undefined : ''} data-destravar onClick={destravar}>Destravar a aba</button>
           : <button type="button" className="btn sm primary" data-foco onClick={aoTravar}>Travar a aba</button>)}
       </>
     )}>
@@ -108,6 +119,12 @@ export function JanelaTravar({ travada, liberadas, selecao, selecaoLivre, temSel
           <span className="rg-cab">Células que ficam livres</span>
           <p className="dd-texto">{liberadas ? `${liberadas} célula${liberadas > 1 ? 's' : ''} liberada${liberadas > 1 ? 's' : ''} para preencher.` : 'Nenhuma célula liberada ainda: com a aba travada, nada pode ser mudado.'}</p>
           {travada && <p className="dd-dica">Destrave a aba para escolher outras células livres.</p>}
+          {travada && comSenha && (
+            <label className="dd-campo">Senha da aba (veio do Excel)
+              <input type="password" data-foco data-senha-aba autoComplete="off" value={senha} onChange={(ev) => { setSenha(ev.target.value); setErro(''); }} onKeyDown={(ev) => { if (ev.key === 'Enter') destravar(); }} />
+            </label>
+          )}
+          {erro && <p className="rg-erro" role="alert" data-senha-erro>{erro}</p>}
           {temSelecao && !somenteLeitura && !travada && (
             <div className="dd-atalhos">
               <button type="button" className="btn sm" data-liberar onClick={() => aoLiberar(true)}><Icone n="check" />Liberar {selecao}</button>
@@ -115,7 +132,7 @@ export function JanelaTravar({ travada, liberadas, selecao, selecaoLivre, temSel
             </div>
           )}
         </section>
-        <p className="dd-dica">Com a aba travada só as células liberadas aceitam digitação, colagem e apagar; o resto fica protegido contra erro de mão. O filtro continua funcionando. Isto não usa senha: serve para evitar acidente, e quem abre a janela pode destravar. No Excel o arquivo sai com a aba protegida.</p>
+        <p className="dd-dica">Com a aba travada só as células liberadas aceitam digitação, colagem e apagar; o resto fica protegido contra erro de mão. O filtro continua funcionando. Travar aqui não usa senha: serve para evitar acidente, e quem abre a janela pode destravar. Se a aba veio do Excel com senha, a senha continua valendo e é pedida para destravar. No Excel o arquivo sai com a aba protegida.</p>
       </div>
     </Janela>
   );
@@ -146,7 +163,13 @@ export function MenuFiltro({ x, y, w, titulo, valores, filtrada, aoOrdenar, aoAp
         <button type="button" className="btn sm" data-filtro-az onClick={() => aoOrdenar(false)}><Icone n="setaBaixo" />A a Z</button>
         <button type="button" className="btn sm" data-filtro-za onClick={() => aoOrdenar(true)}><Icone n="setaCima" />Z a A</button>
       </div>
-      <input type="search" className="pl-fmenu-q" placeholder="Procurar" aria-label="Procurar valor" value={q} onChange={(ev) => setQ(ev.target.value)} />
+      <input type="search" className="pl-fmenu-q" placeholder="Procurar" aria-label="Procurar valor" value={q} onChange={(ev) => {
+        /* v0.6.4 (Grok B02): ao procurar, só o que foi achado fica marcado; é só dar OK */
+        const v = ev.target.value;
+        setQ(v);
+        if (v.trim()) setMarc(new Set(valores.filter((x) => norm(x.t || '(vazias)').includes(norm(v))).map((x) => x.t)));
+        else setMarc(new Set(valores.filter((x) => x.marcado).map((x) => x.t)));
+      }} />
       <div className="pl-fmenu-l" role="group" aria-label="Valores">
         <label className="pl-fmenu-i tudo"><input type="checkbox" checked={todosVistos} onChange={alternarTodos} data-filtro-tudo /><span>{q ? 'Selecionar o que aparece' : '(Selecionar tudo)'}</span></label>
         {vistos.map((v) => (

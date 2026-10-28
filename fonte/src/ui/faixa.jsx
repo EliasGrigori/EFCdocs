@@ -43,7 +43,7 @@ const FAIXAS = {
       { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['g', 'planilha.inserirLinha'], ['g', 'planilha.inserirColuna']] }, /* v0.6.3 (R02): botões grandes com nome, para não confundir com Nova aba */
       { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
       { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.grafico'], ['g', 'inserir.assinatura']] },
-      { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
+      { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.tirarLink'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
     { id: 'layout', nome: 'Layout da Página', grupos: [
       { nome: 'Configurar página', itens: [['g', 'impressao.margens'], ['g', 'impressao.orientacao'], ['g', 'impressao.area'], ['g', 'impressao.quebra'], ['g', 'impressao.titulos'], ['col', ['impressao.limparArea', 'impressao.semQuebras', 'impressao.cabecalho']]] },
       { nome: 'Ajustar e imprimir', itens: [['g', 'impressao.ajustar'], ['g', 'impressao.configurar'], ['g', 'arquivo.exportarPDF']] }] },
@@ -58,7 +58,7 @@ const FAIXAS = {
     { id: 'revisao', nome: 'Revisão', grupos: [
       { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar'], ['g', 'revisao.comentarios'], ['g', 'arquivo.versoes']] },
       { nome: 'Proteger', itens: [['g', 'revisao.travar']] }] },
-    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['col', ['exibir.grade', 'exibir.folhaClara', 'exibir.barraFormula']], ['g', 'exibir.zoom']] }, { nome: 'Linhas e colunas', itens: [['col', ['planilha.ocultarLinha', 'planilha.ocultarColuna', 'planilha.reexibir', 'planilha.reexibirColuna']]] }, ...GRUPOS_EXIBIR] },
+    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['col', ['exibir.grade', 'exibir.folhaClara', 'exibir.barraFormula', 'exibir.abaGrafico']], ['g', 'exibir.zoom']] }, { nome: 'Linhas e colunas', itens: [['col', ['planilha.ocultarLinha', 'planilha.ocultarColuna', 'planilha.reexibir', 'planilha.reexibirColuna']]] }, ...GRUPOS_EXIBIR] },
   ],
   docx: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
@@ -106,7 +106,8 @@ export const BARRA_CURTA = {
 /** v0.6.3: aba que só aparece com um gráfico selecionado (como no Excel) */
 export const ABA_GRAFICO = { id: 'grafico', nome: 'Gráfico', contextual: true, grupos: [
   { nome: 'Gráfico', itens: [['g', 'grafico.editar'], ['g', 'grafico.estilo'], ['g', 'grafico.cores'], ['g', 'grafico.semaforo']] },
-  { nome: 'Remover', itens: [['g', 'grafico.excluir']] }] };
+  { nome: 'Remover', itens: [['g', 'grafico.excluir']] },
+  { nome: 'Faixa', itens: [['g', 'exibir.abaGrafico']] }] };
 
 /** Abas da faixa do módulo, só com o que vale nele. ctx.grafico: há um gráfico selecionado. */
 export function abasDoModulo(mod, ctx = {}) {
@@ -124,6 +125,8 @@ export function abasDoModulo(mod, ctx = {}) {
 
 /* Rótulos curtos na faixa (o nome completo fica no "title" e na busca) */
 export const ROTULO_CURTO = {
+  'exibir.abaGrafico': 'Aba Gráfico',
+  'inserir.tirarLink': 'Tirar link',
   'grafico.editar': 'Editar', 'grafico.estilo': 'Estilo rápido', 'grafico.cores': 'Cores', 'grafico.semaforo': 'Semáforo', 'grafico.excluir': 'Excluir',
   'exibir.faixaTudo': 'Mostrar tudo', 'exibir.faixaAbas': 'Só as abas', 'exibir.faixaOculta': 'Esconder',
   'exibir.topoCompleto': 'Completa', 'exibir.topoCompacto': 'Só as abas', 'exibir.barraFormula': 'Barra fx',
@@ -229,7 +232,7 @@ function Faixa({ aba, cx, flutua, cel, estilo }) {
     let corte = null;
     if (w.reduce((a, b) => a + b, 0) > disp) {
       let acc = 0, n = 0;
-      for (const x of w) { if (acc + x > disp - 74) break; acc += x; n++; }
+      for (const x of w) { if (acc + x > disp - 100) break; /* v0.6.4 (R02): sobra lugar para o "Mais" e para o botão de recolher, também no estilo E */ acc += x; n++; }
       corte = Math.max(1, n);
     }
     setEst({ corte, medir: false });
@@ -251,7 +254,7 @@ function Faixa({ aba, cx, flutua, cel, estilo }) {
       {cel && lados.dir && <button type="button" className="rb-rolar dir" aria-label="Tem mais botões: ver os próximos" data-dica="Tem mais|Arraste a faixa para o lado ou toque aqui para ver os outros botões." onClick={() => rolar(1)}><Icone n="setaDir" /></button>}
       {!cel && (
         <button type="button" className="rb-recolher" data-faixa-recolher={flutua ? 'fixar' : 'recolher'}
-          aria-label={flutua ? 'Fixar a faixa (mostrar sempre)' : 'Recolher a faixa (só as abas)'} title={flutua ? 'Fixar a faixa' : 'Recolher a faixa (Ctrl+F1)'}
+          aria-label={flutua ? 'Fixar a faixa (mostrar sempre)' : 'Recolher a faixa (só as abas)'} title={flutua ? 'Fixar a faixa' : 'Recolher a faixa'}
           onClick={() => cx.executar(flutua ? 'exibir.faixaTudo' : 'exibir.faixaAbas')}>
           <Icone n={flutua ? 'alfinete' : 'chevronCima'} />
         </button>
@@ -322,7 +325,7 @@ function OpcoesFaixa({ prefs, cx, cel, compacto }) {
   };
   return (
     <>
-      <button ref={ref} type="button" className="iconbtn modo" data-opcoes-faixa aria-label="Opções de exibição da faixa (Ctrl+F1)" aria-expanded={!!aberto} aria-haspopup="menu" title="Opções de exibição da faixa (Ctrl+F1)" onClick={abrir}>
+      <button ref={ref} type="button" className="iconbtn modo" data-opcoes-faixa aria-label="Opções de exibição da faixa" aria-expanded={!!aberto} aria-haspopup="menu" title="Opções de exibição da faixa" onClick={abrir}>
         <Icone n={prefs.faixa === 'tudo' ? 'chevronCima' : 'chevronBaixo'} />
       </button>
       {aberto && (

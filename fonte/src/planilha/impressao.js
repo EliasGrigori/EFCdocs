@@ -118,8 +118,37 @@ export function paginar(imp0, area, tamCol, tamLin, opc = {}) {
     if (atual.length) out.push(atual);
     return { out, repDentro };
   };
-  const RC = grupos(cols, tamCol, util.w - extraTit.w * esc, repC, imp.qC);
-  const RL = grupos(lins, tamLin, util.h - extraTit.h * esc, repL, imp.qL);
+  /* v0.6.4 (Grok): um gráfico ou imagem que cabe numa página não é cortado ao meio: a página nova começa nele */
+  const comObjetos = (lista, f, cabe, rep, quebras, spans) => {
+    let q = quebras, R = grupos(lista, f, cabe, rep, q);
+    for (let volta = 0; volta < 60; volta++) {
+      let novo = null;
+      for (let gi = 0; gi < R.out.length - 1 && novo == null; gi++) {
+        const g = R.out[gi], primeiro = R.out[gi + 1][0];
+        for (const s of spans) {
+          const i = g.indexOf(s.a);
+          if (i > 0 && s.b >= primeiro && s.a < primeiro && !q.includes(s.a)) {
+            const alt = s.itens.reduce((a, k) => a + pt(f, k), 0);
+            if (alt <= cabe + 0.01) { novo = s.a; break; }
+          }
+        }
+      }
+      if (novo == null) break;
+      q = [...q, novo];
+      R = grupos(lista, f, cabe, rep, q);
+    }
+    return R;
+  };
+  const objs = opc.objetos || [];
+  const spansL = [], spansC = [];
+  for (const o of objs) {
+    const sl = vaoDe(o.l, o.dy + o.h, lins, tamLin);
+    if (sl) spansL.push(sl);
+    const sc = vaoDe(o.c, o.dx + o.w, cols, tamCol);
+    if (sc) spansC.push(sc);
+  }
+  const RC = comObjetos(cols, tamCol, util.w - extraTit.w * esc, repC, imp.qC, spansC);
+  const RL = comObjetos(lins, tamLin, util.h - extraTit.h * esc, repL, imp.qL, spansL);
   const gC = RC.out.length ? RC.out : [[]], gL = RL.out.length ? RL.out : [[]];
   const comTit = (grupo, rep, primeiro, dentro) => (rep.length && !(primeiro && dentro) ? [...rep.filter((r) => !grupo.includes(r)), ...grupo] : grupo);
   const paginas = [];
@@ -129,6 +158,20 @@ export function paginar(imp0, area, tamCol, tamLin, opc = {}) {
   };
   if (imp.ordem === 'lado') { for (let i = 0; i < gL.length; i++) for (let j = 0; j < gC.length; j++) add(i, j); } else { for (let j = 0; j < gC.length; j++) for (let i = 0; i < gL.length; i++) add(i, j); }
   return { esc, paginas, nL: gL.length, nC: gC.length, util, imp, extraTit };
+}
+/** Quais linhas (ou colunas) um objeto cobre: começa em ini, mede ate px (a partir do canto da célula) e pula as ocultas. */
+function vaoDe(ini, ate, lista, tam) {
+  if (!lista.includes(ini)) return null;
+  let resto = ate, ultimo = ini;
+  const itens = [];
+  for (let k = ini; k < ini + 5000; k++) {
+    const t = tam(k);
+    if (t <= 0) continue;
+    itens.push(k); ultimo = k;
+    resto -= t;
+    if (resto <= 0.5) break;
+  }
+  return { a: ini, b: ultimo, itens };
 }
 function range(a, b) { const o = []; for (let k = a; k <= b; k++) o.push(k); return o; }
 

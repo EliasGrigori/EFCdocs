@@ -212,6 +212,7 @@ body.pegando-cor .pl-cv { cursor: crosshair !important; }
 .gr-dica { font-size: 12.5px; color: var(--text-muted); }
 .gr-view svg { display: block; width: 100%; height: 100%; }
 .pl-obj-gr { border-radius: var(--r-card); overflow: hidden; background: var(--surface); box-shadow: 0 0 0 1px var(--border), var(--sh-2); cursor: move; }
+.pl-obj-gr .gr-view, .pl-obj-gr .gr-view * { pointer-events: none; } /* v0.6.4: o desenho é refeito ao selecionar; quem recebe o clique é a caixa, que não troca */
 .pl-obj-gr.sel { box-shadow: 0 0 0 2px var(--primary), var(--sh-2); }
 @media (max-width: 760px) { .gr-corpo { grid-template-columns: 1fr; } .gr-corpo > .rg-col:last-child { position: static; order: -1; } .gr-recs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
@@ -457,21 +458,22 @@ svg.ic-novo .barra { stroke: var(--primary); }
 .dd-col { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; padding: 3px 0; }
 .dd-atalhos { display: flex; gap: 8px; flex-wrap: wrap; }
 .dd-atalhos .btn { display: inline-flex; gap: 6px; align-items: center; }
-.pl-seta-filtro { position: absolute; z-index: 6; width: 18px; height: 18px; display: grid; place-items: center; padding: 0; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-chip); cursor: pointer; box-shadow: var(--sh-1); }
+.pl-seta-filtro { position: absolute; z-index: 6; width: 18px; height: 18px; display: grid; place-items: center; padding: 0; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 3px; cursor: pointer; box-shadow: var(--sh-1); }
 .pl-seta-filtro svg { width: 12px; height: 12px; }
 .pl-seta-filtro:hover { background: var(--primary-soft); border-color: var(--primary); }
 .pl-seta-filtro.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
 .pl-fmenu { position: absolute; z-index: 41; display: grid; gap: 8px; padding: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--sh-2); font-size: 13px; max-width: min(320px, calc(100vw - 16px)); }
-.pl-fmenu-ord { display: flex; gap: 6px; }
-.pl-fmenu-ord .btn { display: inline-flex; gap: 6px; align-items: center; flex: 1; justify-content: center; }
+.pl-fmenu-ord { display: flex; gap: 4px; padding-bottom: 6px; border-bottom: 1px solid var(--border-light); }
+.pl-fmenu-ord .btn { display: inline-flex; gap: 6px; align-items: center; flex: 1; justify-content: center; box-shadow: none; background: transparent; border-color: transparent; }
+.pl-fmenu-ord .btn:hover { background: var(--primary-soft); }
 .pl-fmenu-q { width: 100%; min-height: 32px; border-radius: var(--r-ctl); border: 1px solid var(--border-light); background: var(--surface-2); color: var(--text); padding: 4px 8px; font: inherit; }
-.pl-fmenu-l { max-height: 200px; overflow: auto; border: 1px solid var(--border-light); border-radius: var(--r-ctl); padding: 4px; background: var(--surface-2); }
+.pl-fmenu-l { max-height: 180px; overflow: auto; border: 0; border-top: 1px solid var(--border-light); border-radius: 0; padding: 4px 0 0; background: transparent; }
 .pl-fmenu-i { display: flex; gap: 8px; align-items: center; padding: 4px 6px; border-radius: var(--r-chip); cursor: pointer; }
 .pl-fmenu-i:hover { background: var(--primary-soft); }
 .pl-fmenu-i span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl-fmenu-i em { font-style: normal; font-size: 11.5px; color: var(--text-dim); }
 .pl-fmenu-i.fora span { color: var(--text-dim); }
-.pl-fmenu-i.tudo { font-weight: 600; border-bottom: 1px solid var(--border-light); border-radius: 0; margin-bottom: 2px; }
+.pl-fmenu-i.tudo { font-weight: 600; }
 .pl-fmenu-r { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
 @media (pointer: coarse) { .pl-seta-filtro { width: 24px; height: 24px; } .pl-fmenu-i { padding: 8px 6px; } }
 @media (max-width: 520px) { .dd-nivel { grid-template-columns: 1fr auto; } .dd-nivel-n { grid-column: 1 / -1; } }
@@ -516,3 +518,15 @@ svg.ic-novo .barra { stroke: var(--primary); }
 .tabs .tab.ctx { position: relative; color: var(--accent, #0f6e8c); font-weight: 600; }
 .tabs .tab.ctx::before { content: ""; position: absolute; left: 8px; right: 8px; top: 0; height: 3px; border-radius: 0 0 3px 3px; background: var(--accent, #0f6e8c); opacity: .85; }
 .tabs .tab.ctx.active { color: var(--accent, #0f6e8c); }
+
+/* ---- v0.6.4 ---- */
+.dd-campo { display: grid; gap: 4px; font-size: 13px; color: var(--muted, #5b6770); margin-top: 8px; }
+.dd-campo input { height: 34px; border: 1px solid var(--border-light, #d5dde2); border-radius: var(--r-ctl, 8px); padding: 0 10px; background: var(--surface, #fff); color: inherit; font: inherit; }
+.dd-campo input:focus { outline: none; box-shadow: var(--anel); border-color: var(--accent, #0f6e8c); }
+.rg-cab .ge-tirar { float: right; margin: -5px 0 -5px 8px; text-transform: none; letter-spacing: 0; font-weight: 500; }
+/* v0.6.4 (Grok R05): no celular a faixa é só de ícones, também o botão principal (o nome continua para leitor de tela e dica) */
+.app.cel .ribbon[data-estilo=E] [data-prim] .rot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.app.cel .ribbon[data-estilo=E] [data-prim] { padding: 0 8px; }
+/* v0.6.4: coluna de 4 botões pequenos cabe na mesma altura das outras abas (a aba Exibir não fica mais alta) */
+.ribbon:not([data-estilo=E]) .rb-col:has(> :nth-child(4)) { grid-auto-rows: 18px; gap: 1px; }
+.ribbon:not([data-estilo=E]) .rb-col:has(> :nth-child(4)) .rbs { height: 18px; font-size: 11.5px; }

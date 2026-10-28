@@ -149,9 +149,64 @@ const ABAS = [['tipo', 'Tipo e dados', 'grafico'], ['estilo', 'Estilo', 'tema'],
  * inicial: g já salvo (editar) ou null (novo) · faixaPadrao: texto da seleção · lerDados(fx, porLinhas, ocultos) → { d, erro, ocultas }
  * lerFaixa: para os gráficos que vieram do Excel · tamanho: { w, h } do gráfico na grade (a prévia fica do mesmo jeito)
  */
-export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, lerDados, lerFaixa, aoAplicar, aoFechar, tema, tamanho }) {
-  const [g, setG] = useState(() => normalizarG(inicial || { t: '', dados: { fx: faixaPadrao } }));
-  const [fx, setFx] = useState(g.dados.fx || faixaPadrao || '');
+export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, celulaUnica, lerDados, lerFaixa, aoAplicar, aoFechar, tema, tamanho }) {
+  const [g, setGraw] = useState(() => normalizarG(inicial || { t: '', dados: { fx: faixaPadrao } }));
+  /* v0.6.4 (Grok E03): Ctrl+Z / Ctrl+Y valem dentro do editor (cada mudança, inclusive estilo rápido, é um passo) */
+  const gRef = useRef(g);
+  const hist = useRef({ p: [], f: [] });
+  const [passos, setPassos] = useState(0);
+  const [refeitos, setRefeitos] = useState(0);
+  const [perguntaSair, setPerguntaSair] = useState(false);
+  const setG = (fn) => {
+    const x = gRef.current;
+    const n = typeof fn === 'function' ? fn(x) : fn;
+    if (n === x) return;
+    hist.current.p.push(x); if (hist.current.p.length > 80) hist.current.p.shift();
+    hist.current.f = [];
+    gRef.current = n; setGraw(n); setPassos(hist.current.p.length); setRefeitos(0);
+  };
+  const desfazerEd = () => {
+    const h = hist.current; if (!h.p.length) return;
+    h.f.push(gRef.current); const a = h.p.pop(); gRef.current = a; setGraw(a); setPassos(h.p.length); setRefeitos(h.f.length);
+  };
+  const refazerEd = () => {
+    const h = hist.current; if (!h.f.length) return;
+    h.p.push(gRef.current); const a = h.f.pop(); gRef.current = a; setGraw(a); setPassos(h.p.length); setRefeitos(h.f.length);
+  };
+  const tirarFormatacao = () => setG((x) => {
+    if (x.t === 'excel') return inicial && inicial.plano ? { ...x, plano: clonar(inicial.plano), estilo: undefined } : x;
+    const { fx: _fx, estilo: _est, ...resto } = x; // eslint-disable-line no-unused-vars
+    return resto;
+  });
+  const acoesEd = useRef(null);
+  acoesEd.current = { desfazerEd, refazerEd };
+  useEffect(() => {
+    const tecla = (ev) => {
+      if (!(ev.ctrlKey || ev.metaKey) || ev.altKey) return;
+      const k = ev.key.toLowerCase();
+      if (k !== 'z' && k !== 'y') return;
+      const alvo = ev.target;
+      const texto = alvo && ((alvo.tagName === 'INPUT' && /^(text|search|number|)$/.test(alvo.type || '')) || alvo.tagName === 'TEXTAREA');
+      if (texto) return; // dentro de um campo de texto vale o desfazer do próprio campo
+      ev.preventDefault(); ev.stopPropagation();
+      if (k === 'y' || ev.shiftKey) acoesEd.current.refazerEd(); else acoesEd.current.desfazerEd();
+    };
+    window.addEventListener('keydown', tecla, true);
+    return () => window.removeEventListener('keydown', tecla, true);
+  }, []);
+  const tentarFechar = () => {
+    if (!passos) { aoFechar(); return; }
+    setPerguntaSair((q) => !q);
+  };
+  const [fx, setFxRaw] = useState(g.dados.fx || faixaPadrao || '');
+  const fxMexido = useRef(false);
+  const setFx = (v) => { fxMexido.current = true; setFxRaw(v); };
+  /* v0.6.4 (Grok V01): com uma célula só escolhida, o velocímetro lê aquela célula e não a tabela inteira em volta dela */
+  useEffect(() => {
+    if (inicial || fxMexido.current || !celulaUnica) return;
+    if (g.t === 'velocimetro' && fx !== celulaUnica) setFxRaw(celulaUnica);
+    else if (g.t && g.t !== 'velocimetro' && fx === celulaUnica && faixaPadrao && faixaPadrao !== celulaUnica) setFxRaw(faixaPadrao);
+  }, [g.t]); // eslint-disable-line react-hooks/exhaustive-deps
   const [aba, setAba] = useState(abaInicial || 'tipo');
   /* v0.6.3: vindo da aba "Gráfico" da faixa, a janela já abre na parte pedida */
   useEffect(() => {
@@ -205,12 +260,26 @@ export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, lerDado
   const resumo = carta ? `Média ${numeroCurto(carta.media)} · σ ${numeroCurto(carta.sigma)} · ${carta.nFora} fora dos limites` : ehX ? `Gráfico do Excel · ${series.length} série${series.length === 1 ? '' : 's'}` : `${d.series.length} série${d.series.length === 1 ? '' : 's'} · ${d.cats.length} ponto${d.cats.length === 1 ? '' : 's'}${lido.ocultas ? ` · ${lido.ocultas} oculta${lido.ocultas === 1 ? '' : 's'} fora` : ''}`;
 
   return (
-    <Janela titulo={inicial ? 'Editar gráfico' : 'Inserir gráfico'} icone="grafico" subtitulo={ehX ? 'Veio do Excel: tudo que você não mexer continua igual' : 'Dados: ' + (fx || '—')} aoFechar={aoFechar} classe="gr-jan ge-jan" rodape={(
+    <Janela titulo={inicial ? 'Editar gráfico' : 'Inserir gráfico'} icone="grafico" subtitulo={ehX ? 'Veio do Excel: tudo que você não mexer continua igual' : 'Dados: ' + (fx || '—')} aoFechar={tentarFechar} classe="gr-jan ge-jan" rodape={(
       <>
-        <span className="gr-dica">{resumo}</span>
-        <span style={{ flex: 1 }} />
-        <button type="button" className="btn sm" onClick={aoFechar}>Cancelar</button>
-        <button type="button" className="btn sm primary" data-gr-aplicar data-foco onClick={aplicar}>{inicial ? 'Salvar' : 'Inserir'}</button>
+        {perguntaSair ? (
+          <>
+            <span className="gr-dica" role="alert" data-ge-pergunta>Você mudou o gráfico. Sair sem {inicial ? 'salvar' : 'inserir'}?</span>
+            <span style={{ flex: 1 }} />
+            <button type="button" className="btn sm" data-ge-continuar onClick={() => setPerguntaSair(false)}>Continuar editando</button>
+            <button type="button" className="btn sm perigo" data-ge-descartar onClick={aoFechar}>Descartar</button>
+            <button type="button" className="btn sm primary" data-gr-aplicar onClick={aplicar}>{inicial ? 'Salvar' : 'Inserir'}</button>
+          </>
+        ) : (
+          <>
+            <span className="gr-dica">{resumo}</span>
+            <span style={{ flex: 1 }} />
+            <button type="button" className="iconbtn" data-ge-desfazer aria-label="Desfazer (Ctrl+Z)" title="Desfazer (Ctrl+Z)" disabled={!passos} onClick={desfazerEd}><Icone n="desfazer" /></button>
+            <button type="button" className="iconbtn" data-ge-refazer aria-label="Refazer (Ctrl+Y)" title="Refazer (Ctrl+Y)" disabled={!refeitos} onClick={refazerEd}><Icone n="refazer" /></button>
+            <button type="button" className="btn sm" data-ge-cancelar onClick={tentarFechar}>Cancelar</button>
+            <button type="button" className="btn sm primary" data-gr-aplicar data-foco onClick={aplicar}>{inicial ? 'Salvar' : 'Inserir'}</button>
+          </>
+        )}
       </>
     )}>
       <div className="janela-c ge-corpo" data-grafico-janela>
@@ -221,7 +290,7 @@ export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, lerDado
             {erro && <p className="rg-erro" role="alert">{erro}</p>}
           </section>
           <section className="rg-cartao">
-            <span className="rg-cab">Estilos rápidos</span>
+            <span className="rg-cab">Estilos rápidos <button type="button" className="btn sm ge-tirar" data-ge-tirar-formato title="Volta o gráfico ao padrão, sem cores e formatos escolhidos" onClick={tirarFormatacao}>Tirar a formatação</button></span>
             <div className="ge-estilos">
               {ESTILOS_RAPIDOS.map(([id, nome, desc]) => {
                 const gx = aplicarPacote(gv, fxDoEstilo(id, series.length), { estilo: id });
@@ -331,6 +400,17 @@ function AbaTipo({ g, gv, ehX, tipo, rec, d, fx, setFx, setErro, lido, muda, mud
         )}
         {void mx}
       </section>
+      {(tipo === 'pizza' || tipo === 'rosca') && (() => {
+        const pz = P.grupos.find((G) => G.tipo === 'pie' || G.tipo === 'doughnut');
+        if (!pz) return null;
+        return (
+          <section className="rg-cartao">
+            <span className="rg-cab">{pz.tipo === 'doughnut' ? 'Rosca' : 'Pizza'}</span>
+            <Campo rotulo="Girar" dica="graus"><input type="range" min="0" max="359" step="5" value={pz.giro || 0} data-ge-giro onChange={(ev) => mx((x) => setGrupo(x, { giro: +ev.target.value }))} /></Campo>
+            {pz.tipo === 'doughnut' && <Campo rotulo="Tamanho do furo" dica={(pz.furo ?? 50) + '%'}><input type="range" min="10" max="90" step="5" value={pz.furo ?? 50} data-ge-furo onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
+          </section>
+        );
+      })()}
     </>
   );
 }
@@ -601,7 +681,7 @@ function AbaFundo({ P, mx, cores }) {
         <section className="rg-cartao">
           <span className="rg-cab">{pizza.tipo === 'doughnut' ? 'Rosca' : 'Pizza'}</span>
           <Campo rotulo="Girar" dica="graus"><input type="range" min="0" max="359" step="5" value={pizza.giro || 0} data-ge-giro onChange={(ev) => mx((x) => setGrupo(x, { giro: +ev.target.value }))} /></Campo>
-          {pizza.tipo === 'doughnut' && <Campo rotulo="Furo" dica="%"><input type="range" min="10" max="90" step="5" value={pizza.furo ?? 50} onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
+          {pizza.tipo === 'doughnut' && <Campo rotulo="Tamanho do furo" dica="%"><input type="range" min="10" max="90" step="5" value={pizza.furo ?? 50} data-ge-furo2 onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
         </section>
       )}
     </>

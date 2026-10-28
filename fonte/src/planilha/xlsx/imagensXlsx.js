@@ -3,6 +3,7 @@
 import { tag } from './xml.js';
 import { escapar } from './xml.js';
 import { LARG_PADRAO, ALT_PADRAO } from '../modelo.js';
+import { gifAnimado } from '../imagem.js';
 import { IMG, imagemValida } from '../objetos.js';
 
 const EMU = 9525;
@@ -71,7 +72,7 @@ export async function lerFiguraDaAncora(zip, relsD, an, aba) {
   const src = await figuraParaTexto(bytes, tipo);
   if (!imagemValida(src)) return { fora: 'figura grande demais' };
   const desc = /<(?:\w+:)?cNvPr\b[^>]*\bdescr="([^"]*)"/.exec(an.dentro);
-  return { obj: { tipo: 'imagem', ...geometriaDaAncora(an, aba), src, nome: desc ? desc[1].slice(0, 200) : '' } };
+  return { obj: { tipo: 'imagem', ...geometriaDaAncora(an, aba), src, nome: desc ? desc[1].slice(0, 200) : '' }, animada: ext === 'gif' && gifAnimado(bytes) };
 }
 
 /**

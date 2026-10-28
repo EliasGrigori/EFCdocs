@@ -297,6 +297,8 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
 function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
   const { ctx, G, cores, familia, c, motor, abaId } = p;
   const { z } = G;
+  const dpr = p.dpr || 1;
+  const snap = (v) => Math.round(v * dpr) / dpr; // v0.6.4: letra no pixel da tela, sem borrar no zoom
   const e = tx.e;
   ctx.font = fonteCanvas(e, z, familia);
   const fundo = e.fundo || cores.fundo;
@@ -308,7 +310,8 @@ function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
   const tam = pxDaFonte(e.tam || FONTE_PADRAO) * z;
   const pad = PAD * z;
   let texto = tx.t;
-  if (e.qb) {
+  /* v0.6.4: Alt+Enter (quebra de linha no texto) se desenha igual à quebra de texto, sem o espaço no lugar da quebra */
+  if (e.qb || (typeof texto === 'string' && texto.includes('\n'))) {
     /* quebra de texto dentro da célula */
     const linhas = quebrar(ctx, texto, w - 2 * pad);
     const alt = tam * 1.25;
@@ -318,7 +321,7 @@ function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
     for (const ln of linhas) {
       const lw = ctx.measureText(ln).width;
       const xx = tx.al === 'd' ? x + w - pad - lw : tx.al === 'c' ? x + (w - lw) / 2 : x + pad;
-      ctx.fillText(ln, xx, y0);
+      ctx.fillText(ln, snap(xx), snap(y0));
       if (e.u) ctx.fillRect(xx, y0 + 2 * z, lw, Math.max(1, z));
       y0 += alt;
     }
@@ -385,7 +388,7 @@ function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
     ctx.save();
     ctx.beginPath(); ctx.rect(a, y, b - a, h); ctx.clip();
     ctx.fillStyle = c2;
-    ctx.fillText(texto, xx, yb);
+    ctx.fillText(texto, snap(xx), snap(yb));
     if (e.u) ctx.fillRect(xx, yb + 2 * z, largura, Math.max(1, z));
     if (e.st) ctx.fillRect(xx, yb - tam * 0.3, largura, Math.max(1, z));
     ctx.restore();

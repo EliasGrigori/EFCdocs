@@ -426,6 +426,7 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema) {
       if (/<(?:\w+:)?pic\b/.test(an.dentro) && !/<(?:\w+:)?chart\b/.test(an.dentro)) {
         const f = await lerFiguraDaAncora(zip, relsD, an, aba);
         if (f.obj) objs.push(f.obj); else fora.push({ motivo: f.fora, imagem: true });
+        if (f.animada) fora.push({ motivo: 'GIF animado: a figura veio parada, só com o primeiro quadro', gif: true });
         continue;
       }
       const gf = /<(?:\w+:)?chart\b[^>]*\b(?:r:)?id="([^"]+)"/.exec(an.dentro);
@@ -466,7 +467,15 @@ export function ligarRefsAoLivro(g, idDoNome, abaDoGrafico) {
     nomes[id] = ref.aba;
     return { aba: id === abaDoGrafico ? '' : id, fx: ref.fx };
   };
-  for (const { S } of seriesDe(g.plano)) for (const k of ['nome', 'cats', 'vals']) if (S[k] && S[k].ref) S[k].ref = liga(S[k].ref);
+  for (const { S } of seriesDe(g.plano)) {
+    let fora = false;
+    for (const k of ['nome', 'cats', 'vals']) {
+      if (S[k] && S[k].ref) S[k].ref = liga(S[k].ref);
+      /* v0.6.4 (Grok): referência a outro arquivo ([1]Planilha!A1) ou a várias áreas não tem aba aqui: conta no aviso da importação */
+      else if (S[k] && S[k].semRef) fora = true;
+    }
+    if (fora) semAba++;
+  }
   g.xoAbas = nomes;
   g.xoSig = assinaturaPlano(g.plano);
   return semAba;
@@ -720,7 +729,11 @@ export function gravarGraficosAba(c, motor, aba, abaId, n0, extra = null) {
     if (g.t === 'excel') {
       /* veio do Excel: se nada mudou (formatação, referências e nomes das abas), volta o XML original */
       const nomesIguais = Object.entries(o.g.xoAbas || {}).every(([id, nome]) => c.abas[id] && c.abas[id].nome === nome);
-      if (g.xo && g.xoSig && assinaturaPlano(g.plano) === g.xoSig && nomesIguais) xml = g.xo;
+      /* v0.6.4 (Grok X05): também olha as fórmulas do próprio XML guardado; se alguma aponta para uma aba que mudou de nome (ou sumiu), o XML é refeito com os nomes de agora */
+      const nomesDoXml = [...String(g.xo || '').matchAll(/<c:f>([^<]*)<\/c:f>/g)].flatMap((m) => [...m[1].matchAll(/(?:'((?:[^']|'')+)'|([^'!,()\s]+))!/g)].map((x) => (x[1] ? x[1].replace(/''/g, "'") : x[2]).toLowerCase()));
+      const nomesVivos = new Set(Object.values(c.abas).map((a) => a.nome.toLowerCase()));
+      const xmlAtual = nomesDoXml.every((n) => nomesVivos.has(n));
+      if (g.xo && g.xoSig && assinaturaPlano(g.plano) === g.xoSig && nomesIguais && xmlAtual) xml = g.xo;
       else xml = xmlDoPlano(lerNumeros(c, motor, g.plano, abaId), { textoRef: textoDaRef(c, abaId) });
     } else {
       const abaD = g.dados.aba && c.abas[g.dados.aba] ? g.dados.aba : abaId;

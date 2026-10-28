@@ -227,6 +227,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     const pendentes = []; // linhas sem nada à vista (ou ocultas) esperando
     let contando = null; // { de, ate, comValor } linhas puladas por serem muitas
     let pararEm = null; // passou do limite de células
+    const linhasDef = new Set(); // v0.6.4: linhas que o arquivo lista e não esconde (para zeroHeight)
     const masters = new Map(); // fórmula compartilhada: si → { f, l, c }
     const cobertos = new Map(); // linha → [[c1, c2]] área de matriz (os valores vêm da fórmula)
     let nCel = 0, nForm = 0, lMax = -1, cMax = -1;
@@ -269,6 +270,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       linha.ult = r;
       if (r >= MAX_LIN) return;
       const L = { r, cells: [], oculta: a.hidden === '1' || a.hidden === 'true', ht: null, s: a.customFormat === '1' ? sDe(a.s) : 0 };
+      if (!L.oculta) linhasDef.add(r);
       if (a.ht && (a.customHeight === '1' || a.customHeight === 'true')) L.ht = Math.max(0, Math.round(parseFloat(a.ht) * 4 / 3));
       else if (a.ht && parseFloat(a.ht) * 4 / 3 > ALT_PADRAO * 1.4) L.ht = Math.round(parseFloat(a.ht) * 4 / 3);
       let temValor = false, temVisivel = false;
@@ -434,7 +436,15 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       pendentes.length = 0; contando = null;
     }
     if (pararEm != null) ra.cortes.push(`a aba passou de ${fmtN(limites.celulasAba)} células: parou na linha ${fmtN(pararEm + 1)}`);
-    if (zeroAltura) abasZero.push(F.nome);
+    if (zeroAltura) {
+      /* v0.6.4: com zeroHeight o Excel esconde toda linha que o arquivo não lista; as de baixo ficam escondidas até 1.000 linhas depois da última listada */
+      abasZero.push(F.nome);
+      const ult = linhasDef.size ? Math.max(...linhasDef) : -1;
+      const fim = Math.min(MAX_LIN - 1, ult + 1000);
+      let n = 0;
+      for (let r = 0; r <= fim; r++) if (!linhasDef.has(r)) { (aba.ocL || (aba.ocL = {}))[r] = 1; n++; }
+      void n;
+    }
 
     /* células só com formatação muito à direita do último dado saem */
     for (const k of Object.keys(aba.cel)) {
@@ -466,7 +476,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         if (o.tipo === 'imagem') { (aba.objs || (aba.objs = [])).push({ id: idObjeto(), ...o }); imgLidas++; continue; }
         graficosLidos.push({ aba, o }); rel.extras.graficos++;
       }
-      for (const x of gr.fora) { if (x.imagem) juntarFora('Imagens', 1, x.motivo); else { juntarFora('Gráficos', 1, x.motivo); grFora += 1; } }
+      for (const x of gr.fora) { if (x.gif) juntarFora('Imagens GIF animadas', 1, x.motivo); else if (x.imagem) juntarFora('Imagens', 1, x.motivo); else { juntarFora('Gráficos', 1, x.motivo); grFora += 1; } }
     }
 
     /* mescladas, e o que a aba tem que não vem */
@@ -557,9 +567,10 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     if (protTag) {
       const at = atributos(protTag[1]);
       if (at.sheet === '1' || at.sheet === 'true') {
-        const senha = {};
-        for (const k of ['password', 'algorithmName', 'hashValue', 'saltValue', 'spinCount']) if (at[k]) senha[k] = at[k];
-        aba.prot = Object.keys(senha).length ? { a: senha } : 1;
+        /* v0.6.4: guarda a senha e também as permissões finas (formatar células, inserir linhas...) para voltarem iguais */
+        const guardados = {};
+        for (const [k, v] of Object.entries(at)) if (k !== 'sheet' && /^[A-Za-z]+$/.test(k) && v !== '') guardados[k] = String(v);
+        aba.prot = Object.keys(guardados).length ? { a: guardados } : 1;
       }
     }
 
@@ -571,7 +582,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     conteudo.abas[id] = aba;
   }
 
-  if (abasZero.length) rel.avisos.push(`${abasZero.length === 1 ? `Na aba "${abasZero[0]}"` : `Nas abas ${abasZero.map((n) => `"${n}"`).join(', ')}`}, as linhas não usadas ficavam escondidas no Excel; aqui elas aparecem vazias.`);
+  if (abasZero.length) rel.avisos.push(`${abasZero.length === 1 ? `Na aba "${abasZero[0]}"` : `Nas abas ${abasZero.map((n) => `"${n}"`).join(', ')}`}, as linhas que o arquivo não lista ficavam escondidas no Excel; aqui continuam escondidas (Layout › Reexibir mostra de novo).`);
   if (tabelas.size) rel.avisos.push(`${tabelas.size === 1 ? 'A tabela' : `As ${tabelas.size} tabelas`} do Excel ${tabelas.size === 1 ? 'virou' : 'viraram'} faixa normal: nas fórmulas, o nome da coluna virou o endereço${exemploTabela ? ` (por exemplo, ${exemploTabela})` : ''}. A conta é a mesma.`);
 
   /* tabelas: guarda onde ficavam (para INDIRECT("Tabela[Coluna]") nas listas suspensas) */
@@ -628,7 +639,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const obj = { id: idObjeto(), ...resto, g: { ...o.g, dados: { ...o.g.dados, aba: idAba && idAba !== aba.id ? idAba : '' } } };
       (aba.objs || (aba.objs = [])).push(obj);
     }
-    if (soGuardado) rel.avisos.push(`Em ${soGuardado === 1 ? 'uma série de gráfico' : `${soGuardado} séries de gráfico`}, os dados vêm de outro arquivo ou de uma aba que não veio: o gráfico mostra os números que o Excel guardou.`);
+    if (soGuardado) rel.avisos.push(`Em ${soGuardado === 1 ? 'uma série de gráfico' : `${soGuardado} séries de gráfico`}, os dados vêm de outro arquivo, de várias áreas ou de uma aba que não veio: o gráfico mostra os números que o Excel guardou e não acompanha mais as células.`);
     for (const a of avisosG) rel.avisos.push(`Gráficos: ${a}.`);
   }
   conteudo.estilos = estilos;

@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.3', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.4', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.3'), 'rodapé sem v0.6.2');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.4'), 'rodapé sem v0.6.4');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.3'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.4'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -3396,6 +3396,10 @@ await caso('v0.6.1: editor: clicar numa parte da prévia abre o que mexer; estil
   igual(await p.locator('[data-ge-aba=eixos]').getAttribute('aria-selected'), 'true', 'clicou no eixo: Eixos');
   await print(p, 'v061-editor');
   await p.click('.janela .btn:has-text("Cancelar")');
+  /* v0.6.4: depois de mexer, Cancelar pergunta antes de jogar fora */
+  await p.waitForSelector('.janela .btn:has-text("Descartar")'); await p.waitForTimeout(250);
+  await p.click('.janela .btn:has-text("Descartar")');
+  await p.waitForSelector('[data-grafico-janela]', { state: 'detached' });
   certo((await p.locator('.pl-obj-gr').first().innerHTML()).includes('fill="#1f2a33"'), 'Cancelar: continua como veio');
 });
 await caso('v0.6.1: salvar como Excel sem mexer: os gráficos do Excel voltam IGUAIS (o XML de cada um)', async () => {
@@ -3900,6 +3904,96 @@ await caso('v0.6.3: Início › linhas e colunas: cada botão tem ícone própri
   for (const id of ids) svgs.push(await p.locator(`[data-cmd="${id}"] svg`).first().innerHTML());
   igual(new Set(svgs).size, 4, 'quatro desenhos diferentes');
   await print(p, 'v063-icones-linhas');
+});
+
+/* ---------- v0.6.4 ---------- */
+const AMOSTRA_V064 = fileURLToPath(new URL('../testes/amostras/amostra-v064.xlsx', import.meta.url));
+await caso('v0.6.4: Tirar o link (botão da faixa e menu do botão direito) e o link vai junto ao copiar e colar', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['site']);
+  await celula(p, 'A1');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await cmd(p, 'inserir.link');
+  await p.waitForSelector('[data-lk-ok]');
+  await p.locator('[data-lk-u]').fill('www.exemplo.com.br');
+  await p.locator('[data-lk-ok]').click(); await p.waitForTimeout(250);
+  await p.waitForSelector('[data-link-pill]');
+  await cmd(p, 'inserir.tirarLink'); await p.waitForTimeout(250);
+  igual(await p.locator('[data-link-pill]').count(), 0, 'o link saiu');
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
+  await celula(p, 'A1'); await p.waitForTimeout(200);
+  igual(await p.locator('[data-link-pill]').count(), 1, 'desfazer traz o link de volta');
+});
+await caso('v0.6.4: Alt+Enter desenha duas linhas (sem espaço no lugar da quebra)', async () => {
+  await novaPlanilha(p);
+  await p.evaluate(() => { window.__tx = []; const f = CanvasRenderingContext2D.prototype.fillText; CanvasRenderingContext2D.prototype.fillText = function (t, ...r) { window.__tx.push(String(t)); return f.call(this, t, ...r); }; });
+  await celula(p, 'B2');
+  await p.keyboard.type('QUANTIDADE');
+  await p.keyboard.press('Alt+Enter');
+  await p.keyboard.type('AMOSTRAS');
+  await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  const ts = await p.evaluate(() => window.__tx);
+  certo(ts.includes('QUANTIDADE') && ts.includes('AMOSTRAS'), 'as duas palavras em linhas separadas: ' + JSON.stringify(ts.filter((t) => /QUANT|AMOS/.test(t))));
+  certo(!ts.some((t) => /QUANTIDADE.AMOSTRAS/.test(t)), 'não pode desenhar tudo numa linha só');
+});
+await caso('v0.6.4: planilha do Excel com linhas congeladas e ocultas: linhas ocultas somem e a rolagem termina numa linha inteira', async () => {
+  await abrirAmostra(p, AMOSTRA_V064);
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(500);
+  await p.mouse.move(700, 500); await p.mouse.wheel(0, 37); await p.waitForTimeout(600);
+  const st = await p.locator('.pl-rol').evaluate((e) => e.scrollTop);
+  /* a 1ª linha livre tem a altura padrão (22 px) e as seguintes 40 px: só vale parar numa divisa */
+  certo(st === 22 || st === 0 || (st - 22) % 40 === 0, 'a rolagem parou no meio de uma linha: ' + st);
+  await print(p, 'v064-congelada-oculta');
+});
+await caso('v0.6.4: Exibir › Aba Gráfico liga e desliga o aparecimento da aba', async () => {
+  await abrirAmostraNaPlanilha(p);
+  await p.click('.tabs .tab:has-text("Exibir")');
+  await cmd(p, 'exibir.abaGrafico'); await p.waitForTimeout(200);
+  await celula(p, 'A1:C20');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await cmd(p, 'inserir.grafico');
+  await p.waitForSelector('[data-grafico-janela]');
+  await p.click('[data-gr-aplicar]');
+  await p.waitForSelector('.pl-obj-gr'); await p.waitForTimeout(300);
+  igual(await p.locator('.tabs .tab.ctx').count(), 0, 'com a opção desligada a aba não aparece');
+  await p.click('.tabs .tab:has-text("Exibir")');
+  await cmd(p, 'exibir.abaGrafico'); await p.waitForTimeout(250);
+  igual(await p.locator('.tabs .tab.ctx').count(), 1, 'ligando de novo a aba volta com o gráfico selecionado');
+});
+await caso('v0.6.4: editor do gráfico: Ctrl+Z desfaz estilo rápido, "Tirar a formatação" e Cancelar pergunta', async () => {
+  await abrirAmostraNaPlanilha(p);
+  await celula(p, 'A1:C20');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await cmd(p, 'inserir.grafico');
+  await p.waitForSelector('[data-grafico-janela]');
+  const antes = await p.locator('[data-gr-previa]').innerHTML();
+  await p.locator('[data-ge-estilo=escuro]').click(); await p.waitForTimeout(250);
+  const depois = await p.locator('[data-gr-previa]').innerHTML();
+  certo(depois !== antes, 'o estilo mudou a prévia');
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
+  igual(await p.locator('[data-gr-previa]').innerHTML(), antes, 'Ctrl+Z voltou o estilo rápido');
+  await p.keyboard.press('Control+y'); await p.waitForTimeout(250);
+  igual(await p.locator('[data-gr-previa]').innerHTML(), depois, 'Ctrl+Y refaz');
+  await p.locator('[data-ge-tirar-formato]').click(); await p.waitForTimeout(250);
+  igual(await p.locator('[data-gr-previa]').innerHTML(), antes, 'Tirar a formatação volta ao padrão');
+  await p.locator('[data-ge-estilo=escuro]').click(); await p.waitForTimeout(200);
+  await p.locator('[data-ge-cancelar]').click(); await p.waitForTimeout(200);
+  certo(await p.locator('[data-ge-pergunta]').isVisible(), 'Cancelar pergunta antes de perder a mudança');
+  await p.locator('[data-ge-continuar]').click(); await p.waitForTimeout(150);
+  certo(await p.locator('[data-grafico-janela]').isVisible(), 'continua editando');
+  await p.locator('[data-ge-cancelar]').click(); await p.locator('[data-ge-descartar]').click(); await p.waitForTimeout(250);
+  igual(await p.locator('[data-grafico-janela]').count(), 0, 'descartar fecha');
+});
+await caso('v0.6.4: filtro: procurar e dar OK deixa só o que foi achado; avisa "N de M linhas"', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['Ponto', 'Rede 1', 'Rede 2', 'Entrada', 'Rede 3', 'Reservatório']);
+  await celula(p, 'A1'); await p.click('.tabs .tab:has-text("Dados")');
+  await cmd(p, 'dados.filtrar'); await p.waitForTimeout(300);
+  await p.locator('[data-seta-filtro="0"]').dispatchEvent('pointerdown'); await p.waitForSelector('[data-filtro-menu]');
+  await p.locator('.pl-fmenu-q').fill('rede'); await p.waitForTimeout(150);
+  igual(await p.locator('.pl-fmenu-i [data-filtro-v]:checked').count(), 3, 'só os 3 achados ficam marcados');
+  await p.locator('[data-filtro-ok]').click(); await p.waitForTimeout(300);
+  certo((await p.locator('.toast').last().innerText()).includes('3 de 5 linhas'), 'aviso com a contagem: ' + await p.locator('.toast').last().innerText());
 });
 
 await navegador.close();
