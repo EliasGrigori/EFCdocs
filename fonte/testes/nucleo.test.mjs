@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.5.1', () => assert.equal(VERSAO, 'v0.5.1'));
+test('versão é v0.6.0', () => assert.equal(VERSAO, 'v0.6.0'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -149,8 +149,8 @@ test('comandos da planilha chegam na v0.4.0 (menos os das próximas versões)', 
 test('comandos do quadro continuam funcionando', () => {
   for (const id of ['inserir.postit', 'inserir.seta', 'organizar.kanban', 'arquivo.exportarPDF', 'arquivo.exportarImagem', 'editar.colar', 'exibir.zoom', 'exibir.minimapa', 'organizar.temporizador'])
     assert.equal(chegaNa(PorId[id], 'postits'), null, id);
-  assert.equal(chegaNa(PorId['arquivo.exportarPDF'], 'planilha'), 'v0.6.0'); // v0.5.0: o PDF da planilha passou para a v0.6.0 (com os gráficos)
-  assert.equal(chegaNa(PorId['inserir.grafico'], 'postits'), 'v0.6.0');
+  assert.equal(chegaNa(PorId['arquivo.exportarPDF'], 'planilha'), null); // v0.6.0: o PDF e o Imprimir da planilha chegaram
+  assert.equal(chegaNa(PorId['inserir.grafico'], 'postits'), 'v0.6.1'); // v0.6.0: gráficos só na planilha; no quadro na v0.6.1
   assert.equal(chegaNa(PorId['dados.dinamica'], 'planilha'), 'depois da v1.0.0');
   assert.ok(versaoMaior('v0.10.0', 'v0.9.0'));
   assert.ok(!versaoMaior('v0.4.3', 'v0.4.3.1') && versaoMaior('v0.4.4', 'v0.4.3.1') && versaoMaior('v0.4.3.2', 'v0.4.3.1'), 'versões com 4 números');

@@ -3,13 +3,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { PorId, chegaNa, valeNoModulo, textoChega } from '../nucleo/comandos.js';
 import { ROTULOS } from '../nucleo/prefs.js';
 import { validarNome } from '../nucleo/modelo.js';
-import { Icone } from './comum.jsx';
+import { Icone, usarEsc } from './comum.jsx';
 import { dicaDoComando } from '../nucleo/dicas.js';
 
 /* item: ['g', id] botão grande · ['col', [ids]] coluna de pequenos · ['lin', [ids]] linha de ícones */
 const ABA_ARQUIVO = {
   id: 'arquivo', nome: 'Arquivo', grupos: [
-    { nome: 'Arquivo', itens: [['g', 'arquivo.novo'], ['g', 'arquivo.renomear'], ['g', 'arquivo.abrir'], ['g', 'arquivo.exportarExcel'], ['g', 'arquivo.relatorioExcel'], ['g', 'arquivo.exportarWord'], ['g', 'arquivo.exportarPDF'], ['g', 'arquivo.exportarImagem'], ['g', 'arquivo.imprimir']] },
+    { nome: 'Arquivo', itens: [['g', 'arquivo.novo'], ['g', 'arquivo.renomear'], ['g', 'arquivo.abrir'], ['g', 'arquivo.exportarExcel'], ['g', 'arquivo.baixarOriginal'], ['g', 'arquivo.relatorioExcel'], ['g', 'arquivo.exportarWord'], ['g', 'arquivo.exportarPDF'], ['g', 'arquivo.exportarImagem'], ['g', 'arquivo.imprimir']] },
     { nome: 'Registro', itens: [['g', 'arquivo.versoes'], ['g', 'arquivo.lancar'], ['g', 'arquivo.lixeira']] },
   ],
 };
@@ -35,6 +35,9 @@ const FAIXAS = {
       { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
       { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.grafico'], ['g', 'inserir.assinatura']] },
       { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
+    { id: 'layout', nome: 'Layout da Página', grupos: [
+      { nome: 'Configurar página', itens: [['g', 'impressao.margens'], ['g', 'impressao.orientacao'], ['g', 'impressao.area'], ['g', 'impressao.quebra'], ['g', 'impressao.titulos'], ['col', ['impressao.limparArea', 'impressao.semQuebras', 'impressao.cabecalho']]] },
+      { nome: 'Ajustar e imprimir', itens: [['g', 'impressao.ajustar'], ['g', 'impressao.configurar'], ['g', 'arquivo.exportarPDF']] }] },
     { id: 'formulas', nome: 'Fórmulas', grupos: [
       { nome: 'Funções', itens: [['g', 'formula.inserir'], ['g', 'formula.autosoma']] },
       { nome: 'Nomes', itens: [['g', 'formula.nome'], ['g', 'formula.nomes'], ['g', 'planilha.cabecalho']] },
@@ -115,7 +118,7 @@ export const ROTULO_CURTO = {
   'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
   'dados.validacao': 'Validação', 'formatar.condicional': 'Destacar regra', 'editar.localizar': 'Localizar',
   'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
-  'arquivo.abrir': 'Abrir Excel', 'arquivo.exportarExcel': 'Salvar como Excel', 'arquivo.relatorioExcel': 'O que veio do Excel',
+  'arquivo.abrir': 'Abrir Excel', 'arquivo.exportarExcel': 'Salvar como Excel', 'arquivo.relatorioExcel': 'O que veio do Excel', 'arquivo.baixarOriginal': 'Baixar original',
   'editar.comentar': 'Comentário', 'revisao.comentarios': 'Comentários', 'organizar.temporizador': 'Temporizador', 'revisao.comparar': 'Comparar',
   'revisao.concluir': 'Concluir revisão', 'pagina.cabecalho': 'Cabeçalho do POP', 'pagina.orientacao': 'Orientação',
   'exibir.congelar': 'Congelar', 'exibir.grade': 'Linhas de grade', 'exibir.leitura': 'Modo leitura',
@@ -214,10 +217,10 @@ function Faixa({ aba, cx, flutua, cel }) {
   useEffect(() => {
     if (!maisAberto) return undefined;
     const fora = (ev) => { if (!ev.target.closest('.rb-mais-area')) setMaisAberto(false); };
-    const esc = (ev) => { if (ev.key === 'Escape') setMaisAberto(false); };
-    addEventListener('mousedown', fora); addEventListener('keydown', esc);
-    return () => { removeEventListener('mousedown', fora); removeEventListener('keydown', esc); };
+    addEventListener('mousedown', fora);
+    return () => removeEventListener('mousedown', fora);
   }, [maisAberto]);
+  usarEsc(() => setMaisAberto(false), maisAberto);
   const corte = est.medir ? null : est.corte;
   const naFaixa = corte == null ? atual.grupos : atual.grupos.slice(0, corte);
   const noMais = corte == null ? [] : atual.grupos.slice(corte);

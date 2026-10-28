@@ -1,6 +1,7 @@
 /* EFCdocs — tela principal: menu, topo com faixa, área de trabalho, painel, rodapé e janelas.
    Os comandos passam todos por executar(id): o catálogo diz se já chegou, o perfil diz se pode,
    e o editor aberto (hoje, o quadro de post-its) trata os comandos dele. */
+import { guardarOriginal, apagarOriginal } from './nucleo/originais.js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ehDemo, ler, gravar } from './nucleo/armazem.js';
 import { pwa, atualizarAgora, pedirInstalacao } from './nucleo/pwa.js';
@@ -360,11 +361,13 @@ export function App() {
   }, [banco, recarregar, avisar]);
 
   /** Cria um arquivo já com conteúdo (ex.: a conta desenhada vira um quadro) e abre. */
-  const criarCom = useCallback(async (tipo, nome, conteudo, aviso) => {
+  const criarCom = useCallback(async (tipo, nome, conteudo, aviso, original) => {
     try {
       const a = criarArquivo({ tipo, nome, autor: AUTOR });
       a.conteudo = conteudo;
       await banco.criar(a);
+      /* v0.6.0: guarda o arquivo do Excel como veio, para "Baixar original" */
+      if (original) await guardarOriginal(a.ficha.id, { nome: original.name, tipo: original.type, blob: original });
       await recarregar();
       irPara('arq/' + a.ficha.id);
       avisar(aviso ? aviso.replace('{nome}', a.ficha.nome) : `"${a.ficha.nome}" foi criado. A planilha continua igual.`, { ic: 'check', longo: !!aviso });
@@ -406,7 +409,7 @@ export function App() {
   const excluirDeVez = useCallback((f) => setPergunta({
     titulo: `Apagar ${f.nome} para sempre?`, texto: 'Não dá para desfazer. O arquivo some deste aparelho e fica só anotado no histórico.',
     confirmar: 'Apagar para sempre', perigo: true,
-    aoConfirmar: async () => { await banco.excluirDeVez(f.id); await recarregar(); avisar(`"${f.nome}" foi apagado para sempre.`, { ic: 'x' }); },
+    aoConfirmar: async () => { await banco.excluirDeVez(f.id); apagarOriginal(f.id); await recarregar(); avisar(`"${f.nome}" foi apagado para sempre.`, { ic: 'x' }); },
   }), [banco, recarregar, avisar]);
 
   const mod = aberto ? aberto.arquivo.ficha.tipo : TIPOS[rota] ? rota : null;
@@ -505,6 +508,7 @@ export function App() {
       const ctrl = ev.ctrlKey || ev.metaKey;
       const digitando = /^(input|textarea|select)$/i.test(ev.target.tagName) || ev.target.isContentEditable;
       if ((ctrl && k === 'k') || (ev.altKey && k === 'q')) { ev.preventDefault(); setPaleta(true); return; }
+      if (ctrl && !ev.shiftKey && !ev.altKey && k === 'p' && abertoRef.current) { ev.preventDefault(); executar('arquivo.imprimir'); return; }
       if (ctrl && ev.key === 'F1') { ev.preventDefault(); executar(prefs.faixa === 'tudo' ? 'exibir.faixaAbas' : 'exibir.faixaTudo'); return; }
       if (ev.key === 'Escape') { setFaixaTemp(false); setGaveta(false); return; }
       if (digitando || !abertoRef.current) return;
@@ -645,7 +649,7 @@ export function App() {
       {paleta && <Paleta mod={mod} cx={cx} aoFechar={() => setPaleta(false)} />}
       {opcoes && <Opcoes prefs={prefs} setPref={setPref} cx={cx} aoFechar={() => setOpcoes(false)} demo={demo} versao={VERSAO} espaco={espaco} abrir={opcoes} />}
       {pergunta && <Pergunta p={pergunta} aoFechar={() => setPergunta(null)} />}
-      {abrirExcel && <JanelaAbrirExcel aoFechar={() => setAbrirExcel(false)} aoAbrir={(conteudo, nome) => { setAbrirExcel(false); criarCom('planilha', nome, conteudo, '"{nome}" veio do Excel. O que veio e o que ficou de fora: Arquivo › O que veio do Excel.'); }} />}
+      {abrirExcel && <JanelaAbrirExcel aoFechar={() => setAbrirExcel(false)} aoAbrir={(conteudo, nome, original) => { setAbrirExcel(false); criarCom('planilha', nome, conteudo, '"{nome}" veio do Excel. O que veio e o que ficou de fora: Arquivo › O que veio do Excel.', original); }} />}
       {linhaTempo && aberto && <LinhaDoTempo h={aberto.h} aoIr={irParaPasso} aoFechar={() => setLinhaTempo(false)} />}
       <Avisos lista={avisos} tirar={tirarAviso} menu={cel ? 'cel' : prefs.menu} />
     </div>

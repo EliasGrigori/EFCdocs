@@ -5,7 +5,7 @@ import { reescrever, deslocar, ajustarEstrutura, renomearAbaNaArvore, excluirAba
 import { indiceEstilo, estiloDe, abaVazia, mescladas, valorGuardado, paraGuardarValor } from './modelo.js';
 import { ajustarObjetosEstrutura } from './objetos.js';
 import { continuarSerie } from './entrada.js';
-import { moverRegras } from './regras.js';
+import { moverRegras, moverFaixa, faixasDe, textoFaixas, ancoraDe, tirarDeFaixas, novoIdRegra } from './regras.js';
 import { ehFormatoData } from './formato.js';
 
 /** Junta mudanças de células de uma aba; com muitas, troca o objeto inteiro (mais rápido e leve). */
@@ -223,7 +223,83 @@ export function copiar(c, abaId, f, motor) {
     }
     linhas.push(lin);
   }
-  return { abaId, f, linhas, larguras: null };
+  return { abaId, f, linhas, larguras: null, regras: regrasDaFaixa(aba, f) };
+}
+
+/* v0.6.0: validação, cores por regra e comentários vão junto ao copiar (como "Colar tudo" do Excel) */
+const cruza = (a, b) => !(a.l1 > b.l2 || a.l2 < b.l1 || a.c1 > b.c2 || a.c2 < b.c1);
+const corta = (a, b) => ({ l1: Math.max(a.l1, b.l1), c1: Math.max(a.c1, b.c1), l2: Math.min(a.l2, b.l2), c2: Math.min(a.c2, b.c2) });
+function moverParams(r, dl, dc) {
+  const n = { ...r };
+  for (const k of ['f1', 'f2']) {
+    const v = r[k];
+    if (typeof v !== 'string' || !v || (r.t === 'list' && v[0] === '"')) continue;
+    try { n[k] = moverFormula(v, dl, dc); } catch { /* fica igual */ }
+  }
+  return n;
+}
+/** Regras que tocam a faixa, cortadas a ela e com as faixas relativas ao canto (0,0). */
+function regrasDaFaixa(aba, f) {
+  const pega = (lista) => (lista || []).flatMap((r) => {
+    const fs = faixasDe(r.fx).filter((x) => cruza(x, f)).map((x) => corta(x, f));
+    if (!fs.length) return [];
+    const a0 = ancoraDe(faixasDe(r.fx)), a1 = ancoraDe(fs);
+    const r2 = moverParams(r, a1.l - a0.l, a1.c - a0.c);
+    return [{ ...r2, rel: fs.map((x) => ({ l1: x.l1 - f.l1, c1: x.c1 - f.c1, l2: x.l2 - f.l1, c2: x.c2 - f.c1 })) }];
+  });
+  const com = [];
+  for (const [k, v] of Object.entries(aba.com || {})) { const p = lerChave(k); if (p && p.l >= f.l1 && p.l <= f.l2 && p.c >= f.c1 && p.c <= f.c2) com.push({ l: p.l - f.l1, c: p.c - f.c1, v }); }
+  return { val: pega(aba.val), cf: pega(aba.cf), com };
+}
+const mesmaRegra = (a, b) => { const x = { ...a }, y = { ...b }; for (const o of [x, y]) { delete o.fx; delete o.id; delete o.rel; } return JSON.stringify(x) === JSON.stringify(y); };
+/** Põe as regras copiadas no destino (lote.outras). blocos: [{ l, c }] cantos onde cada cópia foi colada. */
+function colarRegras(c, abaId, clip, blocos, modo, lote, recortar) {
+  const R = clip.regras;
+  if (!R) return;
+  const aba = c.abas[abaId];
+  const k = (campo) => `conteudo.abas.${abaId}.${campo}`;
+  const atual = (campo) => (k(campo) in lote.outras ? lote.outras[k(campo)] : aba[campo]) || [];
+  const area = blocos.map((b) => ({ l1: b.l, c1: b.c, l2: b.l + clip.linhas.length - 1, c2: b.c + clip.linhas[0].length - 1 }));
+  /* recortar: as regras saem da origem */
+  if (recortar && clip.abaId) {
+    const ao = c.abas[clip.abaId];
+    const ko = (campo) => `conteudo.abas.${clip.abaId}.${campo}`;
+    for (const campo of ['val', 'cf']) {
+      const lista = (ko(campo) in lote.outras ? lote.outras[ko(campo)] : ao[campo]) || [];
+      if (!lista.length) continue;
+      const nova = lista.map((r) => { const fx = tirarDeFaixas(r.fx, [clip.f]); return fx ? { ...r, fx } : null; }).filter(Boolean);
+      lote.outras[ko(campo)] = nova.length ? nova : undefined;
+    }
+    if (R.com.length && ao.com) { const m = { ...(lote.outras[ko('com')] || ao.com) }; for (const x of R.com) delete m[chave(clip.f.l1 + x.l, clip.f.c1 + x.c)]; lote.outras[ko('com')] = Object.keys(m).length ? m : undefined; }
+  }
+  const novasDe = (lista) => {
+    const out = [];
+    for (const r of lista) for (const b of blocos) {
+      const fs = r.rel.map((x) => ({ l1: b.l + x.l1, c1: b.c + x.c1, l2: Math.min(MAX_LIN - 1, b.l + x.l2), c2: Math.min(MAX_COL - 1, b.c + x.c2) }));
+      const a0 = ancoraDe(r.rel.map((x) => ({ l1: clip.f.l1 + x.l1, c1: clip.f.c1 + x.c1 }))), a1 = ancoraDe(fs);
+      const { rel, ...resto } = moverParams(r, a1.l - a0.l, a1.c - a0.c); void rel;
+      out.push({ ...resto, fx: textoFaixas(fs) });
+    }
+    return out;
+  };
+  /* validação: substitui a do destino (como no Excel) */
+  if (modo === 'tudo') {
+    const fica = atual('val').map((r) => { const fx = tirarDeFaixas(r.fx, area); return fx ? { ...r, fx } : null; }).filter(Boolean);
+    const nova = [...fica];
+    for (const r of novasDe(R.val)) { const igual = nova.find((x) => mesmaRegra(x, r)); if (igual) igual.fx = textoFaixas([...faixasDe(igual.fx), ...faixasDe(r.fx)]); else nova.push({ ...r, id: novoIdRegra() }); }
+    if (R.val.length || fica.length !== atual('val').length) lote.outras[k('val')] = nova.length ? nova : undefined;
+  }
+  /* cores por regra: junta com a regra igual que já existe; senão entra uma nova (embaixo, com menos força) */
+  if ((modo === 'tudo' || modo === 'formatos') && R.cf.length) {
+    const nova = atual('cf').map((r) => ({ ...r }));
+    for (const r of novasDe(R.cf)) { const igual = nova.find((x) => mesmaRegra(x, r)); if (igual) igual.fx = textoFaixas([...faixasDe(igual.fx), ...faixasDe(r.fx)]); else nova.push({ ...r, id: novoIdRegra() }); }
+    lote.outras[k('cf')] = nova;
+  }
+  if (modo === 'tudo' && R.com.length) {
+    const m = { ...((k('com') in lote.outras ? lote.outras[k('com')] : aba.com) || {}) };
+    for (const b of blocos) for (const x of R.com) m[chave(b.l + x.l, b.c + x.c)] = x.v;
+    lote.outras[k('com')] = m;
+  }
 }
 
 /** Cola o que foi copiado a partir de (l, c). modo: 'tudo' | 'valores' | 'formatos'. Devolve { lote, area }. */
@@ -274,6 +350,7 @@ export function colar(c, abaId, l0, c0, clip, { modo = 'tudo', recortar = false,
       lote.por(abaId, k, nova);
     }
   }
+  { const blocos = []; for (let ri = 0; ri < repL; ri++) for (let rj = 0; rj < repC; rj++) blocos.push({ l: l0 + ri * L, c: c0 + rj * C }); colarRegras(c, abaId, clip, blocos, modo, lote, recortar); }
   /* recortar e colar: fórmulas que apontavam para a origem passam a apontar para o destino */
   if (recortar && clip.abaId && modo === 'tudo') {
     const dl = l0 - clip.f.l1, dc = c0 - clip.f.c1;
@@ -370,6 +447,22 @@ export function estrutura(c, abaId, eixo, i, n) {
   }
   /* 3b) objetos sobre a grade (assinatura) descem/sobem junto com a célula em que estão presos */
   if (aba.objs && aba.objs.length) mud[`conteudo.abas.${abaId}.objs`] = ajustarObjetosEstrutura(aba.objs, eixo, i, n);
+  /* 3b2) v0.6.0: a faixa dos dados dos gráficos (de qualquer aba) acompanha as linhas/colunas desta aba */
+  for (const id of c.ordem) {
+    const chaveO = `conteudo.abas.${id}.objs`;
+    const lista = mud[chaveO] || c.abas[id].objs;
+    if (!lista || !lista.some((o) => o.tipo === 'grafico')) continue;
+    let mudou = false;
+    const nova = lista.map((o) => {
+      if (o.tipo !== 'grafico' || ((o.g.dados.aba || id) !== abaId)) return o;
+      const fs = faixasDe(o.g.dados.fx).map((f) => moverFaixa(f, eixo, i, n)).filter(Boolean);
+      const fx = fs.length ? textoFaixas(fs) : o.g.dados.fx;
+      if (fx === o.g.dados.fx) return o;
+      mudou = true;
+      return { ...o, g: { ...o.g, dados: { ...o.g.dados, fx } } };
+    });
+    if (mudou) mud[chaveO] = nova;
+  }
   /* 3c) v0.5.1: faixas da validação, da formatação condicional e dos comentários acompanham as linhas/colunas; as fórmulas das regras também */
   const mr = moverRegras(aba, eixo, i, n);
   for (const kk of Object.keys(mr)) mud[`conteudo.abas.${abaId}.${kk}`] = mr[kk];

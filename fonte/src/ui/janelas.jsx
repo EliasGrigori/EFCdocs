@@ -85,7 +85,7 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
   const nomeTema = (TEMAS.find(([id]) => id === prefs.tema) || [null, prefs.tema])[1];
   const amostra = (id) => ({ background: `linear-gradient(135deg, ${AMOSTRAS[id][0]} 50%, ${AMOSTRAS[id][1]} 50%)` });
   return (
-    <Janela titulo="Opções" aoFechar={aoFechar} classe="opcoes">
+    <Janela titulo="Opções" icone="gear" aoFechar={aoFechar} classe="opcoes">
       <div className="janela-c">
         <Secao id="tema" titulo="Tema" abertas={abertas} alternar={alternar}
           resumo={<><i className="amostra" style={AMOSTRAS[prefs.tema] ? amostra(prefs.tema) : undefined} />{nomeTema}{prefs.relevo ? ' · relevo' : ''}{prefs.mesa ? ' · mesa' : ''}</>}>

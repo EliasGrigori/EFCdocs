@@ -2,6 +2,8 @@
    Vai: valores, fórmulas (com o valor já calculado), estilos, larguras, alturas, ocultas, mescladas, congelar painéis,
    cor e abas ocultas, nomes definidos e matrizes que derramam (matriz dinâmica do Excel 365).
    O Excel recalcula tudo ao abrir (fullCalcOnLoad). */
+import { gravarGraficosAba } from './graficosXlsx.js';
+import { gravarImpressaoAba } from './impressaoXlsx.js';
 import { criarZip } from './zip.js';
 import { escapar, XML_CAB } from './xml.js';
 import { gravarEstilos } from './estilos.js';
@@ -42,13 +44,16 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   const partes = [];
   const dxfs = []; // estilos das regras de formatação condicional (v0.5.1)
   const notas = []; // comentários por aba: { ia, comments, vml }
+  const desenhos = []; // v0.6.0: gráficos por aba: { ia, drawing, rels, charts }
+  let nChart = 1;
+  const nomesImp = []; // v0.6.0: área e títulos de impressão (nomes definidos _xlnm)
   let conversas = 0;
   const abas = c.ordem.map((id) => c.abas[id]);
   const primeiraVisivel = Math.max(0, abas.findIndex((a) => !a.oculta));
 
   abas.forEach((aba, ia) => {
     const id = aba.id || c.ordem[ia];
-    if (aba.objs && aba.objs.length) assinaturas += aba.objs.length;
+    if (aba.objs && aba.objs.length) assinaturas += aba.objs.filter((o) => o.tipo === 'assinatura').length;
     /* junta as células por linha */
     const linhas = new Map();
     const por = (l, cc, x) => { let L = linhas.get(l); if (!L) { L = new Map(); linhas.set(l, L); } L.set(cc, x); };
@@ -140,7 +145,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     });
 
     let cab = '';
-    if (aba.cor) cab += `<sheetPr><tabColor rgb="${hexArgb(aba.cor)}"/></sheetPr>`;
+    const ip = gravarImpressaoAba(aba.imp, aba.nome);
+    for (const nm of ip.nomes) nomesImp.push({ ...nm, ia });
+    if (aba.cor || ip.sheetPr) cab += `<sheetPr>${aba.cor ? `<tabColor rgb="${hexArgb(aba.cor)}"/>` : ''}${ip.sheetPr}</sheetPr>`;
     cab += `<dimension ref="A1${lMax || cMax ? ':' + letraCol(cMax) + (lMax + 1) : ''}"/>`;
     let vista = `<sheetView workbookViewId="0"${ia === primeiraVisivel ? ' tabSelected="1"' : ''}>`;
     const cg = aba.cong;
@@ -158,7 +165,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     if (mesc.length) fim += `<mergeCells count="${mesc.length}">${mesc.map((t) => `<mergeCell ref="${t}"/>`).join('')}</mergeCells>`;
     fim += gravarCondicionais(aba.cf, dxfs);
     fim += gravarValidacoes(aba.val);
-    fim += '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>';
+    fim += ip.printOptions + ip.margens + ip.pageSetup + ip.headerFooter + ip.quebras;
+    const gr = gravarGraficosAba(c, m, aba, id, nChart);
+    if (gr) { fim += '<drawing r:id="rId3"/>'; desenhos.push({ ia, ...gr }); nChart += gr.charts.length; }
     const co = gravarComentarios(aba.com, ia);
     if (co) { fim += '<legacyDrawing r:id="rId1"/>'; notas.push({ ia, ...co }); conversas += co.conversas; }
     partes.push({
@@ -173,7 +182,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     `<bookViews><workbookView activeTab="${primeiraVisivel}"/></bookViews><sheets>` +
     abas.map((a, i) => `<sheet name="${escapar(a.nome, true)}" sheetId="${i + 1}"${a.oculta ? ' state="hidden"' : ''} r:id="rId${i + 1}"/>`).join('') +
     '</sheets>' +
-    (nomes.length ? `<definedNames>${nomes.map((n) => `<definedName name="${escapar(n.n, true)}">${escapar(porPrefixos(n.ref))}</definedName>`).join('')}</definedNames>` : '') +
+    (nomes.length || nomesImp.length ? `<definedNames>${nomesImp.map((n) => `<definedName name="${n.nome}" localSheetId="${n.ia}">${escapar(n.ref)}</definedName>`).join('')}${nomes.map((n) => `<definedName name="${escapar(n.n, true)}">${escapar(porPrefixos(n.ref))}</definedName>`).join('')}</definedNames>` : '') +
     '<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>';
   const nA = abas.length;
   const relsWb = `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
@@ -201,6 +210,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     `<Override PartName="/xl/styles.xml" ContentType="${CT}styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="${CT}sharedStrings+xml"/>` +
     (usaMatriz ? `<Override PartName="/xl/metadata.xml" ContentType="${CT}sheetMetadata+xml"/>` : '') +
     notas.map((n) => `<Override PartName="/xl/comments${n.ia + 1}.xml" ContentType="${CT}comments+xml"/>`).join('') +
+    desenhos.map((d) => `<Override PartName="/xl/drawings/drawing${d.ia + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>` + d.charts.map((ch) => `<Override PartName="/xl/charts/chart${ch.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`).join('')).join('') +
     '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
     '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>';
   const relsRaiz = `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
@@ -222,8 +232,20 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     ...notas.flatMap((n) => [
       { nome: `xl/comments${n.ia + 1}.xml`, dados: n.comments },
       { nome: `xl/drawings/vmlDrawing${n.ia + 1}.vml`, dados: n.vml },
-      { nome: `xl/worksheets/_rels/sheet${n.ia + 1}.xml.rels`, dados: `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}vmlDrawing" Target="../drawings/vmlDrawing${n.ia + 1}.vml"/><Relationship Id="rId2" Type="${REL}comments" Target="../comments${n.ia + 1}.xml"/></Relationships>` },
     ]),
+    ...desenhos.flatMap((d) => [
+      { nome: `xl/drawings/drawing${d.ia + 1}.xml`, dados: d.drawing },
+      { nome: `xl/drawings/_rels/drawing${d.ia + 1}.xml.rels`, dados: d.rels },
+      ...d.charts.map((ch) => ({ nome: `xl/charts/chart${ch.n}.xml`, dados: ch.xml })),
+    ]),
+    /* rels das abas: comentários (rId1, rId2) e gráficos (rId3) */
+    ...abas.map((_, ia) => {
+      const n = notas.find((x) => x.ia === ia), d = desenhos.find((x) => x.ia === ia);
+      if (!n && !d) return null;
+      return { nome: `xl/worksheets/_rels/sheet${ia + 1}.xml.rels`, dados: `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        (n ? `<Relationship Id="rId1" Type="${REL}vmlDrawing" Target="../drawings/vmlDrawing${ia + 1}.vml"/><Relationship Id="rId2" Type="${REL}comments" Target="../comments${ia + 1}.xml"/>` : '') +
+        (d ? `<Relationship Id="rId3" Type="${REL}drawing" Target="../drawings/drawing${ia + 1}.xml"/>` : '') + '</Relationships>' };
+    }).filter(Boolean),
   ];
   if (conversas) avisos.push(`${conversas === 1 ? 'A conversa de comentários vai' : `As ${conversas} conversas de comentários vão`} como anotação comum no Excel (o texto e as respostas ficam juntos na mesma anotação).`);
   if (assinaturas) avisos.push(`${assinaturas === 1 ? 'A assinatura' : `As ${assinaturas} assinaturas`} sobre a planilha não ${assinaturas === 1 ? 'vai' : 'vão'} no Excel (chega com o Documento, na v0.7.0).`);

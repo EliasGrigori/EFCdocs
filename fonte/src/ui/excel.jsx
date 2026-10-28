@@ -35,6 +35,7 @@ export function RelatorioExcel({ rel }) {
   ];
   if (ex.validacoes > 0) veio.push(<><b>Listas suspensas e validação de dados</b>: <Dest tom="verde">{n(ex.validacoes)} {plural(ex.validacoes, 'regra', 'regras')}</Dest>{ex.listas > 0 ? <> ({n(ex.listas)} {plural(ex.listas, 'lista suspensa', 'listas suspensas')})</> : null}.</>);
   if (ex.condicionais > 0) veio.push(<><b>Cores por regra (formatação condicional)</b>: <Dest tom="verde">{n(ex.condicionais)} {plural(ex.condicionais, 'regra', 'regras')}</Dest>.</>);
+  if (ex.graficos > 0) veio.push(<><b>Gráficos</b>: <Dest tom="verde">{n(ex.graficos)} {plural(ex.graficos, 'gráfico', 'gráficos')}</Dest> (desenhados pelo EFCdocs; ao salvar, voltam como gráficos do Excel).</>);
   if (ex.notas > 0) veio.push(<><b>Comentários</b>: <Dest tom="verde">{n(ex.notas)} {plural(ex.notas, 'comentário', 'comentários')}</Dest>{ex.conversas > 0 ? <>, sendo {n(ex.conversas)} {plural(ex.conversas, 'conversa', 'conversas')} do Excel 365 (ao salvar, viram anotações comuns)</> : null}.</>);
   return (
     <div className="rel-excel">
@@ -94,7 +95,7 @@ export function JanelaAbrirExcel({ aoFechar, aoAbrir }) {
     try {
       const r = await lerArquivoExcel(arq, (p) => { if (vivo.current) setEtapa((e) => (e.tipo === 'lendo' ? { ...e, p } : e)); });
       if (!vivo.current) return;
-      setEtapa({ tipo: 'pronto', nome: arq.name, ...r });
+      setEtapa({ tipo: 'pronto', nome: arq.name, arq, ...r });
     } catch (e) {
       if (vivo.current) setEtapa({ tipo: 'erro', nome: arq.name, msg: e.message || String(e) });
     }
@@ -104,7 +105,7 @@ export function JanelaAbrirExcel({ aoFechar, aoAbrir }) {
   const rodape = etapa.tipo === 'pronto'
     ? (<>
         <button type="button" className="btn sm" onClick={aoFechar}>Cancelar</button>
-        <button type="button" className="btn sm primary" data-excel-abrir onClick={() => aoAbrir(etapa.conteudo, nomeSemExt(etapa.nome))}>Abrir planilha</button>
+        <button type="button" className="btn sm primary" data-excel-abrir onClick={() => aoAbrir(etapa.conteudo, nomeSemExt(etapa.nome), etapa.arq)}>Abrir planilha</button>
       </>)
     : etapa.tipo === 'erro'
       ? (<>
@@ -116,7 +117,7 @@ export function JanelaAbrirExcel({ aoFechar, aoAbrir }) {
   const p = etapa.p;
   const pct = p && p.n ? Math.round(((p.i - 1) / p.n) * 100) : 0;
   return (
-    <Janela titulo={etapa.tipo === 'pronto' ? `Abrir "${nomeSemExt(etapa.nome)}"` : 'Abrir arquivo do Excel'} aoFechar={aoFechar} classe="janela-excel" rodape={rodape}>
+    <Janela titulo={etapa.tipo === 'pronto' ? `Abrir "${nomeSemExt(etapa.nome)}"` : 'Abrir arquivo do Excel'} icone="excel" aoFechar={aoFechar} classe="janela-excel" rodape={rodape}>
       <div className="janela-c">
         <input ref={campo} type="file" accept=".xlsx,.xlsm,.xltx,.xltm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12" data-excel-arquivo hidden onChange={(ev) => { const f = ev.target.files && ev.target.files[0]; ev.target.value = ''; ler(f); }} />
         {etapa.tipo === 'escolher' && (

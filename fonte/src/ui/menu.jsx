@@ -1,7 +1,7 @@
 /* EFCdocs — menu lateral (igual ao .rail do EFClaudian), gaveta do celular e barra de baixo do celular. */
 import { useEffect, useState } from 'react';
 import { PERFIS } from '../nucleo/perfis.js';
-import { Icone, Marca, irPara } from './comum.jsx';
+import { Icone, Marca, irPara, usarEsc } from './comum.jsx';
 
 const PRINCIPAIS = [['', 'casa', 'Início'], ['planilha', 'planilha', 'Planilhas'], ['docx', 'docx', 'Documentos'], ['postits', 'postits', 'Quadros']];
 /* v0.4.9 (L04): como o Drive: Início, "Meus arquivos", Organizar e a Lixeira embaixo. [rota, ícone, nome, versão em que chega] */
@@ -28,13 +28,12 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
   const recolhido = prefs.menu === 'icones';
   const [novoAberto, setNovoAberto] = useState(false);
   /* v0.5.1: a lista do Novo fecha com Esc em qualquer lugar e com um clique fora dela */
+  usarEsc(() => setNovoAberto(false), novoAberto); // v0.6.0: Esc em pilha (fecha só a camada de cima)
   useEffect(() => {
     if (!novoAberto) return undefined;
-    const tecla = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setNovoAberto(false); } };
     const fora = (ev) => { if (!(ev.target.closest && ev.target.closest('.novo-drive'))) setNovoAberto(false); };
-    addEventListener('keydown', tecla, true);
     addEventListener('pointerdown', fora, true);
-    return () => { removeEventListener('keydown', tecla, true); removeEventListener('pointerdown', fora, true); };
+    return () => removeEventListener('pointerdown', fora, true);
   }, [novoAberto]);
   return (
     <nav className={gaveta ? 'gaveta' : 'rail'} aria-label="Menu principal">
@@ -56,7 +55,7 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
           <Icone n="plus" /><span>Novo</span>
         </button>
         {novoAberto && (
-          <div className="novo-drive-m card" role="menu" onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setNovoAberto(false); } }}>
+          <div className="novo-drive-m card" role="menu">
             {NOVOS.map(([cmd, ic, nome, t]) => (
               <button key={t} type="button" role="menuitem" disabled={!!cx.bloqueado(cmd)} onClick={() => { setNovoAberto(false); if (fechar) fechar(); cx.executar(cmd); }}><Icone n={ic} />{nome}</button>
             ))}

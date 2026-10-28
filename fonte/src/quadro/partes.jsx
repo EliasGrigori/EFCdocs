@@ -260,7 +260,7 @@ export function Temporizador({ fechar, avisar }) {
 export function JanelaCores({ titulo, fonte, aoEscolher, aoFechar }) {
   const lista = fonte ? CORES_FONTE.map(([hex, nome]) => [hex, hex, nome]) : CORES;
   return (
-    <Janela titulo={titulo} aoFechar={aoFechar} classe="qd-cores">
+    <Janela titulo={titulo} icone="cor" aoFechar={aoFechar} classe="qd-cores">
       <div className="janela-c">
         <div className="qd-paleta">
           {lista.map(([id, hex, nome]) => (
@@ -276,7 +276,7 @@ export function JanelaCores({ titulo, fonte, aoEscolher, aoFechar }) {
 
 export function JanelaFormas({ aoEscolher, aoFechar }) {
   return (
-    <Janela titulo="Formas do fluxograma" aoFechar={aoFechar} classe="qd-formas">
+    <Janela titulo="Formas do fluxograma" icone="forma" aoFechar={aoFechar} classe="qd-formas">
       <div className="janela-c">
         <div className="qd-paleta">
           {[...FORMAS, 'postit', 'texto'].map((t) => (
@@ -297,7 +297,7 @@ export function JanelaLocalizar({ achar, substituir, aoFechar }) {
   const [novo, setNovo] = useState('');
   const [res, setRes] = useState(null);
   return (
-    <Janela titulo="Localizar e substituir" aoFechar={aoFechar} rodape={(
+    <Janela titulo="Localizar e substituir" icone="busca" aoFechar={aoFechar} rodape={(
       <>
         <button type="button" className="btn sm" onClick={() => setRes(substituir(q, novo))} disabled={!q}>Substituir tudo</button>
         <button type="button" className="btn sm primary" onClick={() => setRes(achar(q))} disabled={!q}>Localizar</button>
@@ -382,7 +382,7 @@ export function Assistente({ lista, aberto, aoAlternar, aoIr, folga, alvo }) {
 /** Janela dos modelos de quadro da qualidade. */
 export function JanelaModelos({ aoEscolher, aoFechar }) {
   return (
-    <Janela titulo="Modelos de quadro" aoFechar={aoFechar} classe="qd-formas">
+    <Janela titulo="Modelos de quadro" icone="modelo" aoFechar={aoFechar} classe="qd-formas">
       <div className="janela-c">
         <div className="qd-paleta">
           {MODELOS.map((m) => (

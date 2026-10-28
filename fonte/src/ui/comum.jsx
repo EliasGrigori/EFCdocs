@@ -53,27 +53,55 @@ export function Marca({ className }) {
   return <img className={className} src="icon-192.png" alt="" width="34" height="34" />;
 }
 
-/** Janela (diálogo). Esc fecha; toque fora fecha. */
-export function Janela({ titulo, children, aoFechar, classe = '', rodape, rotulo }) {
-  const ref = useRef(null);
+/* ---------- v0.6.0: pilha do Esc ----------
+   Janela sobre janela (ou menu sobre janela): o Esc fecha só a de cima e devolve o teclado para a de baixo.
+   Um único ouvinte, registrado antes de todos (captura na window), decide quem fecha. */
+const pilhaEsc = [];
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape' || !pilhaEsc.length || ev.defaultPrevented) return;
+    const topo = pilhaEsc[pilhaEsc.length - 1];
+    if (topo.deixar && topo.deixar(ev)) return;
+    if (ev.target && ev.target.closest && ev.target.closest('[data-esc-local]')) return; // a peça de dentro trata o próprio Esc (ex.: lista suspensa)
+    ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+    const anterior = topo.foco;
+    topo.fechar.current();
+    setTimeout(() => {
+      const a = document.activeElement;
+      if ((!a || a === document.body || !a.isConnected) && anterior && anterior.isConnected) anterior.focus({ preventScroll: true });
+    }, 0);
+  }, true);
+}
+/** Liga o Esc de uma camada (janela, menu, painel). `el` (opcional) é o elemento da camada. */
+export function usarEsc(fechar, ativo = true, el = null, deixar = null) {
+  const ref = useRef(fechar);
+  ref.current = fechar;
   useEffect(() => {
-    const tecla = (ev) => {
-      if (ev.key === 'Escape') {
-        ev.stopPropagation();
-        aoFechar();
-      }
-    };
-    addEventListener('keydown', tecla, true);
-    const foco = ref.current && ref.current.querySelector('input,textarea,button.primary,button.perigo,select');
+    if (!ativo) return undefined;
+    const item = { fechar: ref, el, deixar, foco: document.activeElement };
+    pilhaEsc.push(item);
+    return () => { const i = pilhaEsc.indexOf(item); if (i >= 0) pilhaEsc.splice(i, 1); };
+  }, [ativo]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+/** Quantas camadas abertas respondem ao Esc (para testes e para quem precisa saber se há janela por cima). */
+export const camadasAbertas = () => pilhaEsc.length;
+
+/** Janela (diálogo). Esc fecha só a de cima; toque fora fecha.
+    v0.6.0 (estilo Camadas): cabeçalho com ícone opcional e subtítulo. */
+export function Janela({ titulo, children, aoFechar, classe = '', rodape, rotulo, icone, subtitulo }) {
+  const ref = useRef(null);
+  usarEsc(aoFechar, true, ref);
+  useEffect(() => {
+    const foco = ref.current && (ref.current.querySelector('[data-foco]') || ref.current.querySelector('input,textarea,button.primary,button.perigo,select'));
     if (foco) foco.focus();
-    return () => removeEventListener('keydown', tecla, true);
-  }, [aoFechar]);
+  }, []);
   return (
     <div className="fundo" onMouseDown={(ev) => { if (ev.target === ev.currentTarget) aoFechar(); }}>
       <div className={'janela ' + classe} role="dialog" aria-modal="true" aria-label={rotulo || titulo} ref={ref}>
         {titulo && (
           <div className="janela-h">
-            <h2>{titulo}</h2>
+            {icone && <span className="janela-ic" aria-hidden="true"><Icone n={icone} /></span>}
+            <h2>{titulo}{subtitulo && <span className="janela-sub">{subtitulo}</span>}</h2>
             <button type="button" className="iconbtn" aria-label="Fechar" onClick={aoFechar}><Icone n="x" /></button>
           </div>
         )}
@@ -97,7 +125,7 @@ export function Pergunta({ p, aoFechar }) {
     aoFechar();
   };
   return (
-    <Janela titulo={p.titulo} aoFechar={aoFechar} rodape={(
+    <Janela titulo={p.titulo} icone={p.icone || (p.perigo ? 'lixeira' : 'pergunta')} aoFechar={aoFechar} rodape={(
       <>
         <button type="button" className="btn sm" onClick={aoFechar}>Voltar</button>
         <button type="button" className={'btn sm ' + (p.perigo ? 'perigo' : 'primary')} onClick={confirmar}>{p.confirmar || 'Confirmar'}</button>

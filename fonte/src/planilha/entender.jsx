@@ -57,7 +57,7 @@ export function JanelaExplicar({ nomeCel, dados, causa, titulo, aoAcao, aoAplica
   const [editando, setEditando] = useState(false);
   const [texto, setTexto] = useState(() => (dados && dados.linhas.length ? textoEmLinhas(dados.linhas) : ''));
   return (
-    <Janela titulo={'Explicar esta conta · ' + nomeCel} aoFechar={aoFechar} classe="pl-jexp" rodape={(
+    <Janela titulo={'Explicar esta conta · ' + nomeCel} icone="explicar" aoFechar={aoFechar} classe="pl-jexp" rodape={(
       <>
         {dados && <button type="button" className="btn" onClick={aoFluxo}><Icone n="fluxoConta" />Desenhar a conta</button>}
         <span className="sp" />
@@ -159,7 +159,7 @@ export function JanelaFluxo({ nomeCel, grafo, aoIr, aoQuadro, aoFechar, somenteL
   const W = lay.largura + P * 2, H = lay.altura + P * 2;
   const temPara = grafo.nos.some((n) => n.nivel < 0);
   return (
-    <Janela titulo={'A conta desenhada · ' + nomeCel} aoFechar={aoFechar} classe="pl-jfluxo" rodape={(
+    <Janela titulo={'A conta desenhada · ' + nomeCel} icone="fluxoConta" aoFechar={aoFechar} classe="pl-jfluxo" rodape={(
       <>
         <span className="pl-fluxo-leg"><i style={{ background: COR_NO.conta }} />conta <i style={{ background: COR_NO.valor }} />valor <i style={{ background: COR_NO.faixa }} />faixa</span>
         <span className="sp" />
@@ -265,7 +265,7 @@ export function JanelaMontar({ nomeCel, ocupada, colunas, amostras = {}, valorCe
   /* o que ainda falta escolher (colunas, células e datas obrigatórias) */
   const faltam = r.campos.filter((f) => !f.opcional && ['coluna', 'celula', 'data'].includes(f.tipo) && !String(vals[f.id] ?? '').trim());
   return (
-    <Janela titulo={'Montar a conta · ' + nomeCel} aoFechar={aoFechar} classe="pl-jmontar" rodape={(
+    <Janela titulo={'Montar a conta · ' + nomeCel} icone="funcao" aoFechar={aoFechar} classe="pl-jmontar" rodape={(
       <>
         <button type="button" className="btn" onClick={aoFechar}>Cancelar</button>
         <button type="button" className="btn primary" disabled={!m} onClick={() => { if (aoPor('=' + m.texto, m.nf)) aoFechar(); }}><Icone n="check" />Pôr em {nomeCel}</button>

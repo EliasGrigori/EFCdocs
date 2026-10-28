@@ -1111,7 +1111,7 @@ export function Quadro({ arquivo, cx }) {
           }} />
       )}
       {janela === 'zoom' && (
-        <Janela titulo="Zoom" aoFechar={() => setJanela(null)}>
+        <Janela titulo="Zoom" icone="maiszoom" aoFechar={() => setJanela(null)}>
           <div className="janela-c">
             <div className="chips">
               {[50, 75, 100, 125, 150, 200].map((p) => <button key={p} type="button" className={'chipb' + (Math.round(view.z * 100) === p ? ' on' : '')} onClick={() => { zoomEm(p / 100 / view.z); setJanela(null); }}>{p}%</button>)}

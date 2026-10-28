@@ -4,6 +4,10 @@
    O objeto acompanha a célula quando se inserem ou excluem linhas e colunas. A rubrica fica só no arquivo. */
 import { MAX_COL, MAX_LIN } from './ref.js';
 import { ASN, limparNome, rubricaValida } from '../nucleo/assinatura.js';
+import { normalizarG } from './graficos.js';
+
+/* v0.6.0: gráfico também é objeto da aba (tipo 'grafico', com g = { t, titulo, dados, op }) */
+export const GR = { W: 480, H: 300, W_MIN: 180, H_MIN: 120 };
 
 export const MAX_OBJETOS = 40;
 const num = (v, p) => (typeof v === 'number' && Number.isFinite(v) ? v : p);
@@ -17,8 +21,18 @@ export function normalizarObjetos(lista) {
   const ids = new Set();
   const out = [];
   for (const o of lista) {
-    if (!o || o.tipo !== 'assinatura' || !o.id || ids.has(o.id) || out.length >= MAX_OBJETOS) continue;
+    if (!o || (o.tipo !== 'assinatura' && o.tipo !== 'grafico') || !o.id || ids.has(o.id) || out.length >= MAX_OBJETOS) continue;
     ids.add(o.id);
+    if (o.tipo === 'grafico') {
+      out.push({
+        id: String(o.id), tipo: 'grafico',
+        l: clamp(Math.round(num(o.l, 0)), 0, MAX_LIN - 1), c: clamp(Math.round(num(o.c, 0)), 0, MAX_COL - 1),
+        dx: Math.max(0, num(o.dx, 0)), dy: Math.max(0, num(o.dy, 0)),
+        w: clamp(num(o.w, GR.W), GR.W_MIN, 2400), h: clamp(num(o.h, GR.H), GR.H_MIN, 1600),
+        g: normalizarG(o.g),
+      });
+      continue;
+    }
     const n = {
       id: String(o.id), tipo: 'assinatura',
       l: clamp(Math.round(num(o.l, 0)), 0, MAX_LIN - 1), c: clamp(Math.round(num(o.c, 0)), 0, MAX_COL - 1),
@@ -43,6 +57,11 @@ export function novaAssinatura({ nome, rub }, ancora, id = idObjeto()) {
   const o = { id, tipo: 'assinatura', l: ancora.l, c: ancora.c, dx: ancora.dx ?? 4, dy: ancora.dy ?? 4, w: ASN.W, h: ASN.H, nome: limparNome(nome) };
   if (rubricaValida(rub)) o.rub = rub;
   return o;
+}
+
+/** Gráfico novo preso a uma célula. */
+export function novoGrafico(g, ancora, id = idObjeto()) {
+  return { id, tipo: 'grafico', l: ancora.l, c: ancora.c, dx: ancora.dx ?? 6, dy: ancora.dy ?? 6, w: ancora.w || GR.W, h: ancora.h || GR.H, g: normalizarG(g) };
 }
 
 export const caminhoObjs = (abaId) => `conteudo.abas.${abaId}.objs`;

@@ -207,7 +207,7 @@ const abaComObjs = (objs) => ({ ...planilhaVazia(), abas: { a1: { id: 'a1', nome
 const obj = (o = {}) => ({ id: 'o1', tipo: 'assinatura', l: 5, c: 2, dx: 4, dy: 4, w: 280, h: 96, nome: 'Ana Lima', rub: RUB, ...o });
 
 test('planilha: ao abrir, descarta objeto quebrado, rubrica de fora e passa de 40', () => {
-  const lista = [obj(), { id: 'x', tipo: 'grafico', l: 0, c: 0 }, obj({ id: 'o2', rub: 'http://x/y.png', nome: '  Bia   Souza ', w: 5, h: 5 }), obj({ id: 'o1' }), null];
+  const lista = [obj(), { id: 'x', tipo: 'xyz', l: 0, c: 0 }, obj({ id: 'o2', rub: 'http://x/y.png', nome: '  Bia   Souza ', w: 5, h: 5 }), obj({ id: 'o1' }), null];
   const c = normalizarPlanilha(abaComObjs(lista));
   const objs = c.abas.a1.objs;
   assert.deepEqual(objs.map((o) => o.id), ['o1', 'o2'], 'tipo errado, duplicado e nulo saem');

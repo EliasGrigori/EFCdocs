@@ -6,7 +6,7 @@ export function LinhaDoTempo({ h, aoIr, aoFechar }) {
   const feitos = h.feitos;
   const desfeitos = [...h.desfeitos].reverse();
   return (
-    <Janela titulo="Linha do tempo do desfazer" aoFechar={aoFechar} classe="linha-tempo">
+    <Janela titulo="Linha do tempo do desfazer" icone="historico" aoFechar={aoFechar} classe="linha-tempo">
       <div className="janela-c">
         <p className="qd-dica">Toque num passo para voltar até ele (ou avançar de novo). Guarda os últimos {h.limite} passos desta sessão.</p>
         <ol className="lt-lista">

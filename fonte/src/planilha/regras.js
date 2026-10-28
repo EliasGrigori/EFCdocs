@@ -391,7 +391,7 @@ export function listaComentarios(aba) {
    Mexer nas faixas quando linhas/colunas entram ou saem
    ============================================================ */
 /** Move uma faixa por inserção (n > 0) ou exclusão (n < 0) de linhas/colunas a partir de i. null = a faixa sumiu. */
-function moverFaixa(f, eixo, i, n) {
+export function moverFaixa(f, eixo, i, n) {
   const a = eixo === 'l' ? 'l1' : 'c1', b = eixo === 'l' ? 'l2' : 'c2';
   const max = eixo === 'l' ? MAX_LIN : MAX_COL;
   const r = { ...f };

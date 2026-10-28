@@ -2,7 +2,7 @@
 import { TIPOS, ativos, naLixeira, maisRecentes } from '../nucleo/modelo.js';
 import { LIMITE_DEMO } from '../nucleo/banco.js';
 import { useEffect, useState } from 'react';
-import { Icone, dataHora } from './comum.jsx';
+import { Icone, dataHora, usarEsc } from './comum.jsx';
 
 const CMD_NOVO = { planilha: 'arquivo.novaPlanilha', docx: 'arquivo.novoDocumento', postits: 'arquivo.novoQuadro' };
 /* o que cada botão "Novo" faz: vai na dica (parar o mouse em cima), não na tela */
@@ -93,12 +93,7 @@ function ListaFiltrada({ chave, titulo, unidade, todos, tipos, cx, vazio }) {
   const [aberto, setAberto] = useState(false);
   const lista = aplicarFiltro(todos, f);
   /* Esc fecha o painel do filtro, esteja o foco onde estiver */
-  useEffect(() => {
-    if (!aberto) return undefined;
-    const tecla = (ev) => { if (ev.key === 'Escape') setAberto(false); };
-    addEventListener('keydown', tecla);
-    return () => removeEventListener('keydown', tecla);
-  }, [aberto]);
+  usarEsc(() => setAberto(false), aberto);
   return (
     <>
       <div className="secao">

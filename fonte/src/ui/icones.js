@@ -158,4 +158,6 @@ export const ICONES = {
   "fluxoConta": "<rect x=\"3\" y=\"4\" width=\"6\" height=\"4.5\" rx=\".8\"/><rect x=\"3\" y=\"15.5\" width=\"6\" height=\"4.5\" rx=\".8\"/><rect x=\"15\" y=\"9.8\" width=\"6\" height=\"4.5\" rx=\".8\"/><path d=\"M9 6.2h2.5a1.5 1.5 0 0 1 1.5 1.5V12h2M9 17.8h2.5a1.5 1.5 0 0 0 1.5-1.5V12\"/>",
   "lampada": "<path d=\"M9 18h6M10 21h4\"/><path d=\"M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-.6c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5z\"/>",
   "barraLat": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M9 4.5v15M5.8 8.5h.01M5.8 12h.01M5.8 15.5h.01\"/>",
+  "contagotas": "<path d=\"M3.5 20.5l1-4 9.5-9.5 3 3-9.5 9.5z\"/><path d=\"M14 7l2.8-2.8a2.1 2.1 0 0 1 3 3L17 10\"/><path d=\"M12.5 5.5l6 6\"/>",
+  "trocarCor": "<path d=\"M4 8h13l-3-3\"/><path d=\"M20 16H7l3 3\"/>",
 };

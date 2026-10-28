@@ -1,19 +1,14 @@
 /* EFCdocs — Planilha: peças da tela (abas, barra de status, menus e janelas). */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Icone, Janela } from '../ui/comum.jsx';
+import { Icone, Janela, usarEsc } from '../ui/comum.jsx';
+import { PainelCores } from './cores.jsx';
 import { FORMATOS, codigoPt, codigoDePt, formatar } from './formato.js';
 import { FUNCOES, CATEGORIAS } from './nomesFuncoes.js';
 import { textoFaixa, letraCol } from './ref.js';
 import { paraMostrar } from './formula.js';
 import { numeroGeral } from './valores.js';
 
-export const CORES_PALETA = [
-  ['#000000', 'Preto'], ['#595959', 'Cinza escuro'], ['#7f7f7f', 'Cinza'], ['#c00000', 'Vermelho escuro'], ['#ff0000', 'Vermelho'],
-  ['#ffc000', 'Laranja'], ['#ffff00', 'Amarelo'], ['#92d050', 'Verde claro'], ['#00b050', 'Verde'], ['#00b0f0', 'Azul claro'],
-  ['#0070c0', 'Azul'], ['#002060', 'Azul escuro'], ['#7030a0', 'Roxo'],
-  ['#f2f2f2', 'Cinza bem claro'], ['#d9d9d9', 'Cinza claro'], ['#fce4d6', 'Pêssego'], ['#fff2cc', 'Amarelo claro'],
-  ['#e2efda', 'Verde bem claro'], ['#ddebf7', 'Azul bem claro'], ['#ede7f6', 'Lilás'], ['#ffc7ce', 'Rosa (não conforme)'], ['#c6efce', 'Verde (conforme)'], ['#ffeb9c', 'Amarelo (atenção)'],
-];
+export { CORES_PALETA } from './cores.jsx';
 
 /* ---------- abas da planilha (embaixo) ---------- */
 export function AbasPlanilha({ c, abaId, aoTrocar, aoNova, aoMenu, somenteLeitura }) {
@@ -35,6 +30,7 @@ export function AbasPlanilha({ c, abaId, aoTrocar, aoNova, aoMenu, somenteLeitur
               style={a.cor ? { '--aba-cor': a.cor } : undefined} data-aba={a.nome}
               onClick={() => aoTrocar(id)} onDoubleClick={() => !somenteLeitura && aoMenu(id, null, 'renomear')}
               onContextMenu={(ev) => { ev.preventDefault(); aoMenu(id, { x: ev.clientX, y: ev.clientY }); }}>
+              {a.cor && <span className="pl-aba-ponto" aria-hidden="true" />}
               {a.nome}
               {id === abaId && <span className="pl-aba-mais" role="button" tabIndex={-1} aria-label="Opções da aba" onClick={(ev) => { ev.stopPropagation(); const r = ev.currentTarget.getBoundingClientRect(); aoMenu(id, { x: r.left, y: r.top }); }}><Icone n="chevronBaixo" /></span>}
             </button>
@@ -49,6 +45,7 @@ export function AbasPlanilha({ c, abaId, aoTrocar, aoNova, aoMenu, somenteLeitur
 /* ---------- menu flutuante (botão direito, abas, status) ---------- */
 export function MenuFlutuante({ x, y, itens, aoFechar }) {
   const ref = useRef(null);
+  usarEsc(aoFechar, true, ref);
   const [pos, setPos] = useState({ x, y });
   useEffect(() => {
     const el = ref.current;
@@ -56,12 +53,10 @@ export function MenuFlutuante({ x, y, itens, aoFechar }) {
     const r = el.getBoundingClientRect();
     setPos({ x: Math.max(6, Math.min(x, innerWidth - r.width - 6)), y: Math.max(6, Math.min(y, innerHeight - r.height - 6)) });
     const fora = (ev) => { if (!el.contains(ev.target)) aoFechar(); };
-    const esc = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); aoFechar(); } };
     setTimeout(() => addEventListener('pointerdown', fora), 0);
-    addEventListener('keydown', esc, true);
     const b = el.querySelector('button:not([disabled])');
     if (b) b.focus();
-    return () => { removeEventListener('pointerdown', fora); removeEventListener('keydown', esc, true); };
+    return () => removeEventListener('pointerdown', fora);
   }, [x, y]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="pl-menu card" ref={ref} role="menu" style={{ left: pos.x, top: pos.y }}
@@ -114,18 +109,20 @@ export function StatusPlanilha({ st }) {
   );
 }
 
-/* ---------- cores ---------- */
-export function JanelaCor({ titulo, aoEscolher, aoFechar, semCor }) {
+/* ---------- cores (v0.6.0: painel com os 6 módulos; escolher e Aplicar, ou dois cliques na amostra) ---------- */
+export function JanelaCor({ titulo, aoEscolher, aoFechar, semCor, valor, cores, aoPegar, leitura, trocar, aoTrocar, icone = 'balde' }) {
+  const [esc, setEsc] = useState({ v: valor || undefined, tudo: false });
+  const aplicar = (v = esc.v, tudo = esc.tudo) => { if (tudo && aoTrocar) aoTrocar(v); else aoEscolher(v); aoFechar(); };
   return (
-    <Janela titulo={titulo} aoFechar={aoFechar} classe="pl-jcor">
-      <div className="janela-c">
-        <div className="pl-paleta">
-          <button type="button" className="pl-cor auto" onClick={() => { aoEscolher(null); aoFechar(); }}>{semCor}</button>
-          {CORES_PALETA.map(([hex, nome]) => (
-            <button key={hex} type="button" className="pl-cor" title={nome} aria-label={nome} style={{ background: hex }} onClick={() => { aoEscolher(hex); aoFechar(); }} />
-          ))}
-        </div>
-        <label className="pl-cor-livre">Outra cor <input type="color" onChange={(ev) => aoEscolher(ev.target.value)} /></label>
+    <Janela titulo={titulo} icone={icone} aoFechar={aoFechar} classe="pl-jcor" rodape={(
+      <>
+        <button type="button" className="btn sm" onClick={aoFechar}>Cancelar</button>
+        <button type="button" className="btn sm primary" data-cor-aplicar data-foco onClick={() => aplicar()}>Aplicar</button>
+      </>
+    )}>
+      <div className="janela-c" onDoubleClick={(ev) => { const b = ev.target.closest && ev.target.closest('.cr-am,.cr-sem'); if (b) aplicar(); }}>
+        <PainelCores valor={esc.v} semCor={semCor} cores={cores} aoPegar={aoPegar} leitura={leitura} trocar={trocar}
+          aoMudar={(v) => setEsc({ v, tudo: false })} aoTrocar={aoTrocar ? (v) => setEsc({ v, tudo: true }) : undefined} />
       </div>
     </Janela>
   );
@@ -137,7 +134,7 @@ export function JanelaFormato({ atual, exemplo, aoAplicar, aoFechar }) {
   let previa = '', erro = '';
   try { previa = formatar(exemplo == null ? 1234.5 : exemplo, codigoDePt(cod)).t; } catch { erro = 'Código de formato inválido.'; }
   return (
-    <Janela titulo="Formato de número" aoFechar={aoFechar} rodape={(
+    <Janela titulo="Formato de número" icone="formatar" aoFechar={aoFechar} rodape={(
       <>
         <button type="button" className="btn" onClick={aoFechar}>Cancelar</button>
         <button type="button" className="btn primary" disabled={!!erro} onClick={() => { aoAplicar(codigoDePt(cod)); aoFechar(); }}>Aplicar</button>
@@ -165,7 +162,7 @@ export function JanelaFonte({ estilo, aoAplicar, aoFechar }) {
   const [fonte, setFonte] = useState(estilo.fonte || '');
   const [tam, setTam] = useState(estilo.tam || 11);
   return (
-    <Janela titulo="Fonte" aoFechar={aoFechar} rodape={(
+    <Janela titulo="Fonte" icone="corfonte" aoFechar={aoFechar} rodape={(
       <>
         <button type="button" className="btn" onClick={aoFechar}>Cancelar</button>
         <button type="button" className="btn primary" onClick={() => { aoAplicar({ fonte: fonte || undefined, tam: Number(tam) === 11 ? undefined : Number(tam) }); aoFechar(); }}>Aplicar</button>
@@ -193,7 +190,7 @@ export function JanelaCongelar({ ativa, cong, aoEscolher, aoFechar }) {
     <button type="button" className="pl-opcao" onClick={() => { aoEscolher(v); aoFechar(); }}><b>{nome}</b><span>{desc}</span></button>
   );
   return (
-    <Janela titulo="Congelar painéis" aoFechar={aoFechar}>
+    <Janela titulo="Congelar painéis" icone="congelar" aoFechar={aoFechar}>
       <div className="janela-c pl-opcoes">
         {op('Congelar até a célula ativa', `Linhas acima de ${ativa.l + 1} e colunas antes de ${letraCol(ativa.c)} ficam paradas.`, { l: ativa.l, c: ativa.c })}
         {op('Congelar a linha de cima', 'O cabeçalho fica parado ao rolar (o mais usado em checklist).', { l: 1, c: 0 })}
@@ -219,7 +216,7 @@ export function JanelaFuncoes({ aoEscolher, aoFechar }) {
   const [sel, setSel] = useState(null);
   const f = sel || lista[0];
   return (
-    <Janela titulo="Inserir função" aoFechar={aoFechar} classe="pl-jfun" rodape={(
+    <Janela titulo="Inserir função" icone="funcao" aoFechar={aoFechar} classe="pl-jfun" rodape={(
       <>
         <button type="button" className="btn" onClick={aoFechar}>Cancelar</button>
         <button type="button" className="btn primary" disabled={!f} onClick={() => { aoEscolher(f); aoFechar(); }}>Usar {f ? f.pt : ''}</button>
@@ -258,7 +255,7 @@ export function JanelaFuncoes({ aoEscolher, aoFechar }) {
 export function JanelaNomes({ c, aoIr, aoRenomear, aoExcluir, aoNovo, aoFechar, aoMudar, somenteLeitura }) {
   const lista = Object.values(c.nomes || {}).sort((a, b) => a.n.localeCompare(b.n));
   return (
-    <Janela titulo="Nomes da planilha" aoFechar={aoFechar} rodape={!somenteLeitura && <button type="button" className="btn primary" onClick={() => { aoFechar(); aoNovo(); }}><Icone n="plus" />Dar nome à seleção</button>}>
+    <Janela titulo="Nomes da planilha" icone="renomear" aoFechar={aoFechar} rodape={!somenteLeitura && <button type="button" className="btn primary" onClick={() => { aoFechar(); aoNovo(); }}><Icone n="plus" />Dar nome à seleção</button>}>
       <div className="janela-c">
         {lista.length ? (
           <table className="pl-tab-nomes">
@@ -308,7 +305,7 @@ export function JanelaLocalizar({ aoAchar, aoSubstituir, aoFechar, somenteLeitur
   const [novo, setNovo] = useState('');
   const [msg, setMsg] = useState('');
   return (
-    <Janela titulo="Localizar e substituir" aoFechar={aoFechar}>
+    <Janela titulo="Localizar e substituir" icone="busca" aoFechar={aoFechar}>
       <div className="janela-c">
         <label className="campo">Procurar<input value={q} onChange={(ev) => setQ(ev.target.value)} onKeyDown={(ev) => { if (ev.key === 'Enter' && q) setMsg(aoAchar(q)); }} /></label>
         {!somenteLeitura && <label className="campo">Trocar por<input value={novo} onChange={(ev) => setNovo(ev.target.value)} /></label>}
@@ -337,7 +334,7 @@ export function BarraSimbolos({ aoInserir, funcoes }) {
 /** Conta que deu número pequeno numa célula formatada como data (aparece como 31/12/1899). */
 export function JanelaNumeroData({ valor, mostra, aoEscolher, aoFechar }) {
   return (
-    <Janela titulo="A célula está como data" aoFechar={aoFechar} classe="pl-jzeros" rodape={(
+    <Janela titulo="A célula está como data" icone="data" aoFechar={aoFechar} classe="pl-jzeros" rodape={(
       <>
         <button type="button" className="btn" onClick={aoFechar}>Cancelar</button>
         <span className="sp" />
@@ -361,7 +358,7 @@ export function JanelaZeros({ codigos, colunas, colar, aoEscolher, aoFechar }) {
   const letras = colunas.map(letraCol);
   const ondeLembrar = letras.length === 1 ? `a coluna ${letras[0]}` : `as colunas ${letras.join(', ')}`;
   return (
-    <Janela titulo="Código com zero na frente" aoFechar={aoFechar} classe="pl-jzeros" rodape={(
+    <Janela titulo="Código com zero na frente" icone="texto" aoFechar={aoFechar} classe="pl-jzeros" rodape={(
       <>
         <button type="button" className="btn" onClick={aoFechar}>Cancelar</button>
         <span className="sp" />

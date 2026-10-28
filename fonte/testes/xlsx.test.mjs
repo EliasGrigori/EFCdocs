@@ -187,7 +187,8 @@ test('xlsx: abre o que o Excel grava: compartilhada, matriz dinâmica, matriz an
   assert.deepEqual(a.mesc, ['A6:B7']);
   assert.deepEqual(c.nomes, { taxa: { n: 'Taxa', ref: 'Dados!$A$2' } });
   const fora = r.fora.map((x) => x.item);
-  assert.ok(fora.includes('Macros (VBA)') && fora.includes('Gráficos') && fora.includes('Áreas de impressão'));
+  assert.ok(fora.includes('Macros (VBA)') && fora.includes('Gráficos'));
+  assert.equal(a.imp.area, 'A1:G5', 'v0.6.0: a área de impressão vem');
   assert.equal(r.semCalculo, 1); assert.match(r.exemplosSemCalculo[0].motivo, /FUNCAO_QUE_NAO_EXISTE/);
 
   /* motor: começa com os valores do Excel; derrama o SORT; Excel antigo faz interseção; HOJE recalcula; desconhecida mostra o valor do Excel */

@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.5.1', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.0', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.5.1'), 'rodapé sem v0.5.1');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.0'), 'rodapé sem v0.6.0');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -108,14 +108,15 @@ await caso('início com os três botões de novo', async () => {
   igual(await p.locator('[data-novo]').count(), 3);
   await print(p, '02-inicio');
 });
-await caso('planilha: aviso do PDF diz de qual módulo é', async () => {
+await caso('planilha: Exportar PDF abre "Imprimir e PDF" (v0.6.0; antes dizia que chegava na v0.6.0)', async () => {
   await p.click('[data-novo=planilha]');
   await p.waitForSelector('.sup-planilha .pl-cv');
   await p.click('.tab:has-text("Arquivo")');
   await cmd(p, 'arquivo.exportarPDF');
-  const t = await p.locator('.toast').last().innerText();
-  certo(t.includes('da planilha chega na v0.6.0'), 'aviso: ' + t); // v0.5.0: o PDF da planilha passou para a v0.6.0
-  await print(p, '03-aviso-pdf-planilha');
+  await p.waitForSelector('[data-imprimir-janela]');
+  certo(/Não há nada para imprimir/.test(await p.locator('[data-imprimir-janela]').innerText()), 'planilha vazia avisa');
+  await print(p, '03-pdf-planilha');
+  await p.keyboard.press('Escape');
 });
 await caso('novo quadro abre vazio, na aba Inserir', async () => {
   await p.click('.rail a[href="#/postits"]');
@@ -1893,7 +1894,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.5.1'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.0'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -1919,7 +1920,8 @@ await caso('v0.4.4: abas da faixa sem pílula (cantos retos), a ativa sublinhada
   igual(r.raio, '0px');
   igual(r.borda, '2px');
   const raioBtn = await p.locator('.topbar .iconbtn').first().evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
-  certo(raioBtn <= 4, 'botão arredondado: ' + raioBtn);
+  /* v0.6.0 (estilo Camadas, E1): botões com 8 px de canto */
+  igual(raioBtn, 8, 'botão no padrão Camadas: ' + raioBtn);
 });
 await ctx.close();
 ({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }));
@@ -2003,13 +2005,13 @@ await caso('v0.4.4.1: Lixeira com "Apagar para sempre" que pergunta antes (sem o
   await p.locator(".janela button:has-text(\"Voltar\")").click();
   igual(await p.locator('.arq').count(), 1, 'apagou sem confirmar');
 });
-await caso('v0.4.4.1: fundo da janela escurece 25% com desfoque leve, como no EFClaudian; janela sobre janela soma o fundo', async () => {
+await caso('v0.4.4.1 / v0.6.0: fundo da janela escurece com desfoque leve (estilo Camadas: 30% num tom petróleo e 2 px de desfoque)', async () => {
   await p.goto(BASE + '#/');
   await p.locator('.topbar [aria-label="Opções"]').click();
   await p.waitForSelector('.fundo');
   const e = await p.locator('.fundo').first().evaluate((el) => { const c = getComputedStyle(el); return { bg: c.backgroundColor, bf: c.backdropFilter || c.webkitBackdropFilter }; });
-  igual(e.bg, 'rgba(0, 0, 0, 0.25)');
-  certo(e.bf.includes('blur(3px)'), e.bf);
+  igual(e.bg, 'rgba(12, 26, 36, 0.3)');
+  certo(e.bf.includes('blur(2px)'), e.bf);
   await p.keyboard.press('Escape');
 });
 await ctx.close();
@@ -2816,7 +2818,7 @@ await caso('v0.4.9: o aviso é baixo, no canto direito, com cantos levemente arr
   await cmd(p, 'exibir.mesa');
   await p.waitForSelector('.toast');
   const r = await p.locator('.toast').first().evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius));
-  certo(r >= 3 && r <= 8, 'raio do aviso: ' + r);
+  igual(r, 10, 'raio do aviso (estilo Camadas: 10 px nos cartões e avisos): ' + r);
   await cmd(p, 'exibir.mesa');
 });
 await ctx.close();
@@ -2952,15 +2954,17 @@ await caso('v0.5.1 E02: o relatório antes de abrir tem caixas (Veio verde, Bom 
   for (const x of ['1 regra', 'lista suspensa', 'Cores por regra', 'Comentários']) certo(rel.includes(x), 'faltou: ' + x);
   igual(await p.locator('.rel-caixa.verde[data-rel=veio]').count(), 1);
   igual(await p.locator('.rel-caixa.amarelo[data-rel=bom]').count(), 1);
-  certo((await p.locator('.rel-caixa').first().evaluate((e) => getComputedStyle(e).borderTopLeftRadius)) === '0px', 'caixa com canto reto');
+  igual(await p.locator('.rel-caixa').first().evaluate((e) => getComputedStyle(e).borderTopLeftRadius), '10px', 'caixa no padrão Camadas (v0.6.0)');
   await print(p, 'v051-relatorio');
   await p.keyboard.press('Escape');
 });
-await caso('v0.5.1: a cor da aba que veio do Excel aparece na aba (faixa embaixo e fundo suave)', async () => {
+await caso('v0.6.0 (G01, E3): a cor da aba que veio do Excel aparece como ponto de cor na aba', async () => {
   await abrirAmostraNaPlanilha(p);
-  const cor = await p.locator('.pl-aba[data-aba=Coletas]').evaluate((e) => getComputedStyle(e, '::before').backgroundColor);
-  igual(cor, 'rgb(31, 122, 70)');
-  igual(await p.locator('.pl-aba[data-aba=Coletas]').evaluate((e) => getComputedStyle(e, '::before').height), '5px');
+  const pt = p.locator('.pl-aba[data-aba=Coletas] .pl-aba-ponto');
+  igual(await pt.count(), 1);
+  igual(await pt.evaluate((e) => getComputedStyle(e).backgroundColor), 'rgb(31, 122, 70)');
+  igual(await pt.evaluate((e) => getComputedStyle(e).borderRadius), '50%');
+  igual(await p.locator('.pl-aba[data-aba=Resumo] .pl-aba-ponto').count(), 0, 'aba sem cor não tem ponto');
 });
 await caso('v0.5.1: lista suspensa: seta na célula, abre com clique e com Alt+Seta, escolhe pelo teclado, e Desfazer volta', async () => {
   await celula(p, 'B3');
@@ -3154,6 +3158,210 @@ await caso('v0.5.1: o menu "Novo" fecha com Esc e com um clique fora', async () 
   await p.mouse.click(700, 500);
   igual(await p.locator('.novo-drive-m').count(), 0, 'clique fora');
 });
+
+/* ---------- v0.6.0 etapa 1: estilo Camadas, painel de cores com 6 módulos e Esc em pilha ---------- */
+const abrirCorFundo = async (p, ref) => {
+  await celula(p, ref);
+  await p.click('.tabs .tab:has-text("Página Inicial")').catch(() => {});
+  await cmd(p, 'formatar.preenchimento');
+  await p.waitForSelector('.pl-jcor [data-cores]');
+};
+await caso('v0.6.0 (E1): janelas no estilo Camadas: cantos de 12 px, quadrinho do ícone no cabeçalho, sombra em camadas e botões de 8 px', async () => {
+  await abrirAmostraNaPlanilha(p);
+  await celula(p, 'B3');
+  await cmd(p, 'formatar.condicional');
+  await p.waitForSelector('[data-condicional]');
+  const j = p.locator('.janela').first();
+  igual(await j.evaluate((e) => getComputedStyle(e).borderTopLeftRadius), '12px');
+  igual(await p.locator('.janela .janela-ic').count(), 1, 'ícone no cabeçalho');
+  certo((await j.evaluate((e) => getComputedStyle(e).boxShadow)).split('rgba').length >= 3, 'sombra em camadas');
+  igual(await p.locator('.janela .btn').first().evaluate((e) => getComputedStyle(e).borderTopLeftRadius), '8px');
+  await print(p, 'v060-janela-camadas');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.janela').count(), 0);
+});
+await caso('v0.6.0 (E2): Cor de preenchimento: escolher e Aplicar, Recentes, Desta planilha, copiar o código e aviso de leitura', async () => {
+  await abrirCorFundo(p, 'H5');
+  await p.click('.pl-jcor .cr-am[data-cor="#fff2cc"]');
+  igual(await p.locator('.pl-jcor [data-cr-hex]').inputValue(), '#fff2cc');
+  igual(await p.locator('.pl-jcor [data-cr-leitura]').getAttribute('data-cr-leitura'), 'boa');
+  await p.click('.pl-jcor .cr-am[data-cor="#000000"]');
+  igual(await p.locator('.pl-jcor [data-cr-leitura]').getAttribute('data-cr-leitura'), 'fraca', 'letra automática em fundo preto');
+  await p.click('.pl-jcor .cr-am[data-cor="#fff2cc"]');
+  await p.locator('.pl-jcor .cr-am-c').first().hover();
+  await p.locator('.pl-jcor [data-cr-copiar]').first().click();
+  certo(/000000/.test(await p.locator('.pl-jcor .cr-aviso').innerText()), 'aviso do código copiado');
+  await print(p, 'v060-cores');
+  await p.click('[data-cor-aplicar]');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-jcor').count(), 0);
+  await abrirCorFundo(p, 'H5');
+  igual(await p.locator('.pl-jcor [data-cr-hex]').inputValue(), '#fff2cc', 'a célula ficou com a cor');
+  await p.click('.pl-jcor [data-cr-aba=rec]');
+  igual(await p.locator('.pl-jcor .cr-am').first().getAttribute('data-cor'), '#fff2cc', 'Recentes guarda a última');
+  await p.click('.pl-jcor [data-cr-aba=doc]');
+  const doc = await p.locator('.pl-jcor .cr-am').evaluateAll((l) => l.map((e) => e.dataset.cor));
+  certo(doc.includes('#f4cccc') && doc.includes('#fff2cc'), 'Desta planilha: ' + doc.join(' '));
+  await p.click('.janela .btn:has-text("Cancelar")');
+});
+await caso('v0.6.0 (E2, E4): conta-gotas pega a cor da célula; Esc cancela só o conta-gotas e depois fecha a janela', async () => {
+  await abrirCorFundo(p, 'H6');
+  await p.click('.pl-jcor [data-cr-pegar]');
+  await p.waitForSelector('[data-pega-cor]');
+  certo(await p.evaluate(() => document.body.classList.contains('pegando-cor')), 'janela some');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
+  igual(await p.locator('[data-pega-cor]').count(), 0, 'Esc fecha o conta-gotas');
+  igual(await p.locator('.pl-jcor').count(), 1, 'a janela continua aberta');
+  await p.click('.pl-jcor [data-cr-pegar]');
+  await p.waitForSelector('[data-pega-cor]');
+  const r = await p.evaluate(() => { const c = document.querySelector('.pl-cv').getBoundingClientRect(); return [c.left, c.top]; });
+  await p.mouse.click(r[0] + 80, r[1] + 44); /* A1: cabeçalho da amostra */
+  await p.waitForTimeout(200);
+  igual(await p.locator('[data-pega-cor]').count(), 0);
+  igual(await p.locator('.pl-jcor [data-cr-hex]').inputValue(), '#0f4c5c', 'cor do cabeçalho');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(150);
+  igual(await p.locator('.pl-jcor').count(), 0, 'segundo Esc fecha a janela');
+});
+await caso('v0.6.0 (E2): Trocar na aba toda troca a cor de todas as células com aquela cor, e um Desfazer volta tudo', async () => {
+  for (const ref of ['J5', 'J6']) { await abrirCorFundo(p, ref); await p.click('.pl-jcor .cr-am[data-cor="#ffc7ce"]'); await p.click('[data-cor-aplicar]'); await p.waitForTimeout(120); }
+  await abrirCorFundo(p, 'J5');
+  await p.check('.pl-jcor [data-cr-trocar]');
+  await p.click('.pl-jcor .cr-am[data-cor="#c6efce"]');
+  await p.click('[data-cor-aplicar]');
+  await p.waitForTimeout(150);
+  await abrirCorFundo(p, 'J6');
+  igual(await p.locator('.pl-jcor [data-cr-hex]').inputValue(), '#c6efce', 'J6 trocou junto');
+  await p.click('.janela .btn:has-text("Cancelar")');
+  await p.keyboard.press('Control+z');
+  await p.waitForTimeout(150);
+  await abrirCorFundo(p, 'J6');
+  igual(await p.locator('.pl-jcor [data-cr-hex]').inputValue(), '#ffc7ce', 'Desfazer volta de uma vez');
+  await p.click('.janela .btn:has-text("Cancelar")');
+});
+
+/* ---------- v0.6.0 etapa 2: gráficos ---------- */
+await caso('v0.6.0: Inserir › Gráfico com a seleção: recomenda o tipo, mostra a prévia e põe o gráfico ao lado dos dados', async () => {
+  await abrirAmostraNaPlanilha(p);
+  await celula(p, 'A1:C20');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await cmd(p, 'inserir.grafico');
+  await p.waitForSelector('[data-grafico-janela]');
+  igual(await p.locator('[data-gr-fx]').inputValue(), 'A1:C20');
+  igual(await p.locator('[data-gr-rec]').first().getAttribute('data-gr-rec'), 'linha', 'datas + números: linha');
+  certo((await p.locator('[data-gr-previa] svg').count()) === 1, 'prévia');
+  await p.click('[data-gr-tipo=controle]');
+  await p.fill('[data-gr-titulo]', 'Cloro na rede');
+  certo(/LSC/.test(await p.locator('[data-gr-previa]').innerHTML()), 'carta com LSC');
+  await print(p, 'v060-grafico-janela');
+  await p.click('[data-gr-aplicar]');
+  await p.waitForSelector('.pl-obj-gr');
+  igual(await p.locator('.pl-obj-gr').getAttribute('data-grafico'), 'controle');
+  certo((await p.locator('.pl-obj-gr').innerHTML()).includes('Cloro na rede'));
+  await print(p, 'v060-grafico-grade');
+});
+await caso('v0.6.0: o gráfico acompanha a mudança dos dados, edita com dois cliques, desfaz e exclui com Delete', async () => {
+  await celula(p, 'C3'); await p.keyboard.type('9'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
+  certo(/>9</.test(await p.locator('.pl-obj-gr').innerHTML()) || (await p.locator('.pl-obj-gr').innerHTML()).includes('LSC'), 'redesenhou');
+  await p.locator('.pl-obj-gr').dblclick();
+  await p.waitForSelector('[data-grafico-janela]');
+  await p.click('[data-gr-tipo=colunas]');
+  await p.click('[data-gr-aplicar]');
+  await p.waitForTimeout(200);
+  igual(await p.locator('.pl-obj-gr').getAttribute('data-grafico'), 'colunas');
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(200);
+  igual(await p.locator('.pl-obj-gr').getAttribute('data-grafico'), 'controle', 'desfazer volta o tipo');
+  await p.locator('.pl-obj-gr').click(); await p.waitForTimeout(100);
+  await p.keyboard.press('Delete'); await p.waitForTimeout(200);
+  igual(await p.locator('.pl-obj-gr').count(), 0);
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(200);
+  igual(await p.locator('.pl-obj-gr').count(), 1, 'desfazer traz de volta');
+  await celula(p, 'C3'); await p.keyboard.type('0,7'); await p.keyboard.press('Enter');
+});
+await caso('v0.6.0: salvar como Excel leva o gráfico nativo, e abrir de novo traz o gráfico igual', async () => {
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const bytes = new Uint8Array(readFileSync(await dl.path()));
+  const { conteudo: c, relatorio } = await lerXlsxNode(bytes);
+  const objs = c.abas[c.ordem[0]].objs || [];
+  igual(objs.filter((o) => o.tipo === 'grafico').length, 1);
+  igual(objs[0].g.t, 'controle'); igual(objs[0].g.titulo, 'Cloro na rede'); igual(objs[0].g.dados.fx, 'A1:C20');
+  igual(relatorio.extras.graficos, 1);
+});
+
+/* ---------- v0.6.0 etapa 3: Imprimir e PDF, Layout da Página, Baixar original, copiar com regras ---------- */
+await caso('v0.6.0: Ctrl+P abre Imprimir e PDF com prévia; paisagem, títulos 1:1 e "todas as colunas numa página" mudam as páginas', async () => {
+  await celula(p, 'A1');
+  await p.keyboard.press('Control+p');
+  await p.waitForSelector('[data-imprimir-janela]');
+  const antes = await p.locator('[data-imp-pag]').innerText();
+  certo(/^1 de \d+$/.test(antes), antes);
+  certo((await p.locator('[data-imp-previa] svg').count()) === 1);
+  await p.click('[data-imp-orient=paisagem]');
+  await p.fill('[data-imp-titlin]', '1:1');
+  await p.selectOption('[data-imp-escala]', 'colunas');
+  await p.waitForTimeout(150);
+  const depois = +(await p.locator('[data-imp-pag]').innerText()).split(' de ')[1];
+  certo(depois >= 1 && depois < +antes.split(' de ')[1] + 1, `${antes} → ${depois}`);
+  await p.click('[aria-label="Próxima página"]');
+  certo((await p.locator('[data-imp-previa]').innerHTML()).includes('>Data<'), 'a 2ª página repete o título');
+  await print(p, 'v060-imprimir');
+});
+await caso('v0.6.0: Baixar PDF gera um PDF de verdade (texto, páginas em paisagem) e Salvar na aba guarda a configuração', async () => {
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('[data-imp-pdf]')]);
+  const b = readFileSync(await dl.path());
+  const t = b.toString('latin1');
+  certo(t.startsWith('%PDF-1.4'), 'PDF');
+  certo(/\/MediaBox \[0 0 841\.89 595\.28\]/.test(t), 'A4 paisagem');
+  certo(/\(Data\) Tj/.test(t) && /\(Ponto\) Tj/.test(t), 'texto de verdade');
+  certo(/\/Subtype \/Image/.test(t), 'o gráfico vai como imagem');
+  await p.click('[data-imp-salvar]');
+  await p.waitForTimeout(150);
+  igual(await p.locator('[data-imprimir-janela]').count(), 0);
+  await p.keyboard.press('Control+p');
+  await p.waitForSelector('[data-imprimir-janela]');
+  igual(await p.locator('[data-imp-titlin]').inputValue(), '1:1', 'a aba lembrou');
+  igual(await p.locator('[data-imp-orient=paisagem]').getAttribute('aria-pressed'), 'true');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.6.0: Layout da Página: área de impressão, quebra de página e orientação; vão no Excel', async () => {
+  await p.click('.tabs .tab:has-text("Layout da Página")');
+  await celula(p, 'A1:F30');
+  await cmd(p, 'impressao.area');
+  await celula(p, 'A16');
+  await cmd(p, 'impressao.quebra');
+  await cmd(p, 'impressao.orientacao');
+  await p.waitForTimeout(150);
+  await p.keyboard.press('Control+p');
+  await p.waitForSelector('[data-imprimir-janela]');
+  igual(await p.locator('[data-imp-area]').inputValue(), 'A1:F30');
+  igual(await p.locator('[data-imp-orient=retrato]').getAttribute('aria-pressed'), 'true', 'orientação trocou de paisagem para retrato');
+  certo(/quebra/.test(await p.locator('[data-imp-sec=opcoes]').innerText()), 'mostra a quebra');
+  await p.keyboard.press('Escape');
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const { conteudo: c } = await lerXlsxNode(new Uint8Array(readFileSync(await dl.path())));
+  const imp = c.abas[c.ordem[0]].imp;
+  igual(imp.area, 'A1:F30'); igual(imp.titLin, '1:1'); igual(imp.orient, 'retrato'); igual(JSON.stringify(imp.qL), '[15]');
+});
+await caso('v0.6.0: Baixar o original devolve o arquivo do Excel exatamente como veio', async () => {
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.baixarOriginal')]);
+  igual(dl.suggestedFilename(), 'amostra-qualidade.xlsx');
+  certo(Buffer.compare(readFileSync(await dl.path()), readFileSync(AMOSTRA_XLSX)) === 0, 'bytes iguais');
+});
+await caso('v0.6.0: copiar e colar uma célula com lista suspensa leva a seta junto', async () => {
+  await celula(p, 'B3');
+  await p.keyboard.press('Control+c');
+  await celula(p, 'H3');
+  await p.keyboard.press('Control+v');
+  await p.waitForTimeout(250);
+  await celula(p, 'H3');
+  igual(await p.locator('[data-lista-seta]').count(), 1, 'a seta veio junto');
+  await p.keyboard.press('Control+z');
+});
 await ctx.close();
 ({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }));
 await caso('v0.5.0 celular: abrir do Excel pelo Início e ver o relatório sem rolagem lateral', async () => {
@@ -3177,6 +3385,16 @@ await caso('v0.5.1 celular: desfazer, refazer e Abas ficam dentro da tela, fixos
   igual(fora, 0, 'botões fora da tela');
   for (const rot of ['Desfazer', 'Refazer', 'Abas da faixa']) igual(await p.locator(`.tbar-fixo [aria-label^="${rot}"], .tbar-fixo button[title^="${rot}"]`).count() > 0, true, rot);
   await print(p, 'v051-celular-barra');
+});
+await caso('v0.6.0 celular: Imprimir e PDF e Inserir gráfico cabem na tela (sem rolagem lateral)', async () => {
+  if (!(await p.locator('.pl-cv').count())) { await p.goto(BASE + '#/'); await abrirAmostraNaPlanilha(p).catch(async () => { await p.waitForSelector('.pl-cv'); }); }
+  await p.locator('.tbar-fixo [aria-label^="Abas da faixa"], .tbar-fixo button[title^="Abas da faixa"]').first().tap().catch(() => {});
+  await p.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true })));
+  await p.waitForSelector('[data-imprimir-janela]');
+  certo(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'rolagem lateral na janela de impressão');
+  certo((await p.locator('[data-imp-previa] svg').count()) === 1, 'prévia no celular');
+  await print(p, 'v060-celular-imprimir');
+  await p.keyboard.press('Escape');
 });
 
 await navegador.close();

@@ -5,7 +5,7 @@
 
 import { VERSAO } from './modelo.js';
 
-const V4 = 'v0.4.0', V5 = 'v0.5.0', V51 = 'v0.5.1', V6 = 'v0.6.0', V7 = 'v0.7.0', V8 = 'v0.8.0';
+const V4 = 'v0.4.0', V5 = 'v0.5.0', V51 = 'v0.5.1', V6 = 'v0.6.0', V61 = 'v0.6.1', V7 = 'v0.7.0', V8 = 'v0.8.0';
 const DEPOIS = 'depois da v1.0.0';
 const porModulo = (planilha, docx, postits) => ({ planilha, docx, postits });
 const C = (id, nome, ic, extra = {}) => ({ id, nome, ic, sin: [], mods: ['*'], ...extra });
@@ -23,6 +23,7 @@ export const COMANDOS = [
   C('arquivo.lixeira', 'Mandar para a lixeira', 'lixeira', { sin: ['apagar arquivo', 'excluir arquivo', 'deletar', 'remover rascunho'], acao: 'arquivo.lixeira', ed: true }),
   C('arquivo.abrir', 'Abrir arquivo do Excel', 'abrir', { sin: ['importar', 'abrir arquivo', 'xlsx', 'xlsm', 'excel', 'carregar planilha'], chega: porModulo(null, V7, null), mods: ['*'] }),
   C('arquivo.exportarExcel', 'Salvar como Excel', 'excel', { sin: ['exportar excel', 'xlsx', 'baixar planilha', 'baixar excel'], chega: V5, mods: ['planilha'], acao: 'exportar' }),
+  C('arquivo.baixarOriginal', 'Baixar o original', 'baixar', { sin: ['arquivo original', 'excel original', 'como veio', 'devolver original'], mods: ['planilha'], acao: 'exportar' }),
   C('arquivo.relatorioExcel', 'O que veio do Excel', 'info', { sin: ['relatório da importação', 'compatibilidade', 'o que ficou de fora'], mods: ['planilha'] }),
   C('arquivo.exportarWord', 'Exportar Word', 'docx', { sin: ['salvar como word', 'docx'], chega: V7, mods: ['docx'] }),
   C('arquivo.exportarPDF', 'Exportar PDF', 'pdf', { sin: ['pdf', 'baixar pdf', 'gerar pdf', 'paisagem'], chega: porModulo(V6, V7, null), acao: 'exportar' }),
@@ -84,13 +85,13 @@ export const COMANDOS = [
   C('formatar.numerada', 'Lista numerada', 'numerada', { sin: ['numeração'], chega: V7, mods: ['docx'] }),
   C('formatar.titulo', 'Estilo título', 'titulo', { sin: ['cabeçalho', 'título 1', 'heading'], chega: V7, mods: ['docx'] }),
 
-  C('inserir.tabela', 'Tabela', 'tabela', { sin: ['formatar como tabela', 'grade'], chega: porModulo(V6, V7, null), mods: ['planilha', 'docx'] }),
-  C('inserir.imagem', 'Imagem', 'imagem', { sin: ['foto', 'figura'], chega: porModulo(V6, V7, null), acao: 'quadro.editar' }),
-  C('inserir.grafico', 'Gráfico', 'grafico', { sin: ['chart', 'colunas', 'pizza', 'barras', 'linhas', 'dashboard'], chega: porModulo(V6, V7, V6) }),
-  C('inserir.link', 'Link', 'link', { sin: ['hiperlink', 'endereço', 'ir para aba'], chega: porModulo(V6, V7, null), acao: 'quadro.editar' }),
-  C('inserir.botao', 'Botão que leva a outra aba', 'botao', { sin: ['botão', 'navegação', 'macro', 'atalho de aba'], chega: V6, mods: ['planilha'] }),
+  C('inserir.tabela', 'Tabela', 'tabela', { sin: ['formatar como tabela', 'grade'], chega: porModulo(V61, V7, null), mods: ['planilha', 'docx'] }),
+  C('inserir.imagem', 'Imagem', 'imagem', { sin: ['foto', 'figura'], chega: porModulo(V61, V7, null), acao: 'quadro.editar' }),
+  C('inserir.grafico', 'Gráfico', 'grafico', { sin: ['chart', 'colunas', 'pizza', 'barras', 'linhas', 'dashboard'], chega: porModulo(V6, V7, V61) }),
+  C('inserir.link', 'Link', 'link', { sin: ['hiperlink', 'endereço', 'ir para aba'], chega: porModulo(V61, V7, null), acao: 'quadro.editar' }),
+  C('inserir.botao', 'Botão que leva a outra aba', 'botao', { sin: ['botão', 'navegação', 'macro', 'atalho de aba'], chega: V61, mods: ['planilha'] }),
   C('inserir.foto', 'Foto na célula', 'foto', { sin: ['evidência', 'câmera'], chega: V8, mods: ['planilha'] }),
-  C('inserir.status', 'Coluna de status', 'status', { sin: ['ok não ok', 'situação'], chega: V6, mods: ['planilha'] }),
+  C('inserir.status', 'Coluna de status', 'status', { sin: ['ok não ok', 'situação'], chega: V61, mods: ['planilha'] }),
   C('inserir.campo', 'Campo do formulário', 'campo', { sin: ['campo travado', 'preencher'], chega: V7, mods: ['docx'] }),
   C('inserir.checklist', 'Checklist', 'validacao', { sin: ['lista de verificação', 'caixa de marcar'], chega: V7, mods: ['docx'] }),
   C('inserir.assinatura', 'Assinatura', 'assinatura', { sin: ['assinar', 'aprovar', 'rubrica', 'linha de assinatura', 'visto'], chega: porModulo(null, V7, null), mods: ['planilha', 'docx', 'postits'], acao: 'quadro.editar' }),
@@ -117,17 +118,17 @@ export const COMANDOS = [
   C('formula.nome', 'Dar nome à seleção', 'renomear', { sin: ['nome definido', 'meta', 'gerenciador de nomes', 'apelido da célula'], chega: V4, mods: ['planilha'], acao: 'planilha.editar' }),
   C('formula.nomes', 'Nomes da planilha', 'lista', { sin: ['gerenciador de nomes', 'renomear nome', 'nomes definidos'], chega: V4, mods: ['planilha'] }),
 
-  C('dados.classificar', 'Classificar', 'classificar', { sin: ['ordenar', 'a-z', 'organizar'], chega: V6, mods: ['planilha'] }),
-  C('dados.filtrar', 'Filtrar', 'filtro', { sin: ['filtro', 'mostrar só'], chega: V6, mods: ['planilha'] }),
+  C('dados.classificar', 'Classificar', 'classificar', { sin: ['ordenar', 'a-z', 'organizar'], chega: V61, mods: ['planilha'] }),
+  C('dados.filtrar', 'Filtrar', 'filtro', { sin: ['filtro', 'mostrar só'], chega: V61, mods: ['planilha'] }),
   C('dados.validacao', 'Validação de dados', 'validacao', { sin: ['lista suspensa', 'limite de valor', 'regra de entrada'], chega: V51, mods: ['planilha'], acao: 'planilha.editar' }),
-  C('dados.duplicados', 'Remover duplicados', 'dupl', { sin: ['repetidos'], chega: V6, mods: ['planilha'] }),
+  C('dados.duplicados', 'Remover duplicados', 'dupl', { sin: ['repetidos'], chega: V61, mods: ['planilha'] }),
   C('dados.dinamica', 'Tabela dinâmica', 'tabela', { sin: ['pivot', 'resumo', 'agrupar'], chega: DEPOIS, mods: ['planilha'] }),
 
-  C('revisao.ortografia', 'Ortografia', 'ortografia', { sin: ['corretor', 'erros de escrita'], chega: porModulo(V6, V7, null) }),
+  C('revisao.ortografia', 'Ortografia', 'ortografia', { sin: ['corretor', 'erros de escrita'], chega: porModulo(V61, V7, null) }),
   C('revisao.controlar', 'Controlar alterações', 'revisao', { sin: ['marcas de revisão'], chega: V7, mods: ['docx'] }),
   C('revisao.concluir', 'Concluir revisão', 'assinatura', { sin: ['nova revisão', 'mandar para aprovação'], chega: V7, mods: ['docx'], acao: 'revisao.concluir' }),
   C('revisao.comparar', 'Comparar revisões', 'comparar', { sin: ['diferença entre versões', 'o que mudou'], chega: V7, mods: ['docx'] }),
-  C('revisao.travar', 'Travar modelo', 'cadeado', { sin: ['proteger', 'bloquear', 'senha'], chega: V6, mods: ['planilha'] }),
+  C('revisao.travar', 'Travar modelo', 'cadeado', { sin: ['proteger', 'bloquear', 'senha'], chega: V61, mods: ['planilha'] }),
 
   C('organizar.kanban', 'Kanban', 'kanban', { sin: ['colunas de status', 'a fazer', 'fazendo', 'feito'], mods: ['postits'] }),
   C('organizar.quadro', 'Quadro livre', 'quadro', { sin: ['voltar ao quadro', 'tela livre', 'fluxograma'], mods: ['postits'] }),
@@ -137,6 +138,17 @@ export const COMANDOS = [
   C('organizar.ordenarGut', 'Ordenar pelo GUT', 'classificar', { sin: ['prioridade', 'gravidade urgência tendência', 'priorizar'], mods: ['postits'], acao: 'quadro.editar' }),
   C('organizar.temporizador', 'Temporizador de reunião', 'temporizador', { sin: ['cronômetro', 'tempo', 'relógio'], mods: ['postits'] }),
 
+  /* v0.6.0: Layout da Página da planilha (como no Excel) */
+  C('impressao.configurar', 'Configurar página', 'imprimir', { sin: ['visualizar impressão', 'prévia', 'página'], mods: ['planilha'], acao: 'exportar' }),
+  C('impressao.margens', 'Margens', 'margens', { sin: ['margem'], mods: ['planilha'], acao: 'exportar' }),
+  C('impressao.orientacao', 'Orientação', 'orientacao', { sin: ['retrato', 'paisagem', 'deitada', 'em pé'], mods: ['planilha'] }),
+  C('impressao.area', 'Definir área de impressão', 'selecao', { sin: ['área de impressão', 'imprimir só'], mods: ['planilha'] }),
+  C('impressao.limparArea', 'Limpar área de impressão', 'x', { sin: ['área de impressão'], mods: ['planilha'] }),
+  C('impressao.quebra', 'Inserir quebra de página', 'quebrapag', { sin: ['quebra', 'página nova'], mods: ['planilha'] }),
+  C('impressao.semQuebras', 'Remover quebras de página', 'quebrapag', { sin: ['quebra'], mods: ['planilha'] }),
+  C('impressao.titulos', 'Imprimir títulos', 'titulo', { sin: ['repetir linhas', 'cabeçalho em toda página', 'títulos de impressão'], mods: ['planilha'], acao: 'exportar' }),
+  C('impressao.ajustar', 'Ajustar à página', 'ajustar', { sin: ['escala', 'caber numa página', 'reduzir'], mods: ['planilha'], acao: 'exportar' }),
+  C('impressao.cabecalho', 'Cabeçalho e rodapé', 'cabecalho', { sin: ['rodapé', 'número da página'], mods: ['planilha'], acao: 'exportar' }),
   C('pagina.orientacao', 'Orientação da página', 'orientacao', { sin: ['retrato', 'paisagem'], chega: V7, mods: ['docx'] }),
   C('pagina.margens', 'Margens', 'margens', { chega: V7, mods: ['docx'] }),
   C('pagina.quebra', 'Quebra de página', 'quebrapag', { chega: V7, mods: ['docx'] }),

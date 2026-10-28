@@ -225,7 +225,7 @@ export function JanelaAssinatura({ inicial = {}, titulo = 'Assinatura', confirma
   const modos = [...(A.rubricaValida(inicial.rub) ? [['atual', 'Atual']] : []), ['desenhar', 'Desenhar'], ['foto', 'Foto'], ['nenhuma', 'Só a linha']];
 
   return (
-    <Janela titulo={titulo} aoFechar={fechar} classe="asn-j" rodape={(
+    <Janela titulo={titulo} icone="assinatura" aoFechar={fechar} classe="asn-j" rodape={(
       <>
         <button type="button" className="btn sm" onClick={fechar}>Cancelar</button>
         <button type="button" className="btn sm primary" onClick={concluir} data-asn="pronto">{confirmar}</button>

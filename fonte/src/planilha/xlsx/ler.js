@@ -14,6 +14,9 @@ import { chave, letraCol, lerChave, numCol, MAX_LIN } from '../ref.js';
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
+import { lerGraficosAba } from './graficosXlsx.js';
+import { lerImpressaoAba, lerNomesImpressao } from './impressaoXlsx.js';
+import { idObjeto } from '../objetos.js';
 import { indiceEstilo, LARG_PADRAO, ALT_PADRAO, NOME_ABA_PADRAO } from '../modelo.js';
 const RX_SO_DINAMICA = /(^|[^\w.])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|RANDARRAY|XLOOKUP|XMATCH|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS|LET|LAMBDA)\(/i;
 
@@ -57,7 +60,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     arquivo: nomeArquivo, em: agora.toISOString(), bytes: bytes.length || bytes.byteLength || 0,
     abas: [], fora: [], avisos: [], semCalculo: 0, exemplosSemCalculo: [], celulas: 0, formulas: 0,
     /* v0.5.1: o que veio de validação de dados, formatação condicional e comentários */
-    extras: { validacoes: 0, listas: 0, condicionais: 0, notas: 0, conversas: 0, respostas: 0, abasComRegras: [] },
+    extras: { validacoes: 0, listas: 0, condicionais: 0, notas: 0, conversas: 0, respostas: 0, abasComRegras: [], graficos: 0 },
   };
   const fora = new Map();
   const juntarFora = (item, qtd = 1, detalhe = '') => { const x = fora.get(item) || { item, qtd: 0, detalhe }; x.qtd += qtd; if (detalhe && !x.detalhe) x.detalhe = detalhe; fora.set(item, x); };
@@ -98,12 +101,14 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
 
   /* ---------- abas ---------- */
   const folhas = [];
+  let idxFolha = -1;
   for (const s of tags(tag(wb, 'sheets')?.dentro || '', 'sheet')) {
+    idxFolha++;
     const r = relsWb.get(s.a['r:id'] || s.a.id);
     if (!r || !r.alvo) continue;
     if (/chartsheet$/.test(r.tipo)) { juntarFora('Abas de gráfico', 1, s.a.name); continue; }
     if (!/worksheet$/.test(r.tipo)) { juntarFora('Abas de outro tipo (macro antiga ou diálogo)', 1, s.a.name); continue; }
-    folhas.push({ nome: s.a.name, parte: r.alvo, oculta: s.a.state === 'hidden' || s.a.state === 'veryHidden' });
+    folhas.push({ nome: s.a.name, parte: r.alvo, oculta: s.a.state === 'hidden' || s.a.state === 'veryHidden', idx: idxFolha });
   }
   if (!folhas.length) throw new Error('O arquivo não tem nenhuma aba de planilha.');
 
@@ -151,7 +156,9 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   const nomes = zip.nomes;
   const conta = (rx) => nomes.filter((n) => rx.test(n)).length;
   if (conta(/vbaProject\.bin$/i)) juntarFora('Macros (VBA)', 1, 'os botões que rodam macro não funcionam aqui');
-  if (conta(/^xl\/charts\/chart\d+\.xml$/i)) juntarFora('Gráficos', conta(/^xl\/charts\/chart\d+\.xml$/i), 'chegam na v0.6.0');
+  const graficosLidos = []; // v0.6.0: { aba, o } para ligar os dados à aba certa no fim
+  let grFora = 0;
+  const nPartesGrafico = conta(/^xl\/charts\/chart\d+\.xml$/i);
   if (conta(/^xl\/pivotTables\//i)) juntarFora('Tabelas dinâmicas', conta(/^xl\/pivotTables\/pivotTable\d+\.xml$/i), 'vêm só os valores, que não atualizam');
   if (conta(/^xl\/media\//i)) juntarFora('Imagens', conta(/^xl\/media\//i));
   if (conta(/^xl\/(slicers|slicerCaches|timelines|timelineCaches)\//i)) juntarFora('Segmentações de dados e linhas do tempo', conta(/^xl\/(slicers|timelines)\/[^/]+\.xml$/i) || 1);
@@ -163,9 +170,18 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   /* nomes definidos */
   const nomesDef = {};
   let areasImpressao = 0;
+  const defsImp = {}; // v0.6.0: área e títulos de impressão por aba (índice da aba no livro)
   for (const d of tags(tag(wb, 'definedNames')?.dentro || '', 'definedName')) {
     const n = d.a.name || '';
-    if (/^_xlnm\./i.test(n)) { if (/Print_(Area|Titles)/i.test(n)) areasImpressao++; continue; }
+    if (/^_xlnm\./i.test(n)) {
+      if (/Print_(Area|Titles)/i.test(n) && d.a.localSheetId != null) {
+        const x = lerNomesImpressao(n, d.dentro);
+        const k = +d.a.localSheetId;
+        defsImp[k] = { ...(defsImp[k] || {}), ...x };
+        if (x.varias) areasImpressao++;
+      }
+      continue;
+    }
     if (/^_xl/i.test(n)) continue;
     let ref = desescapar(d.dentro).trim();
     if (/\[\d+\]/.test(ref)) { juntarFora('Nomes que apontam para outro arquivo', 1); continue; }
@@ -174,7 +190,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     if (nomesDef[k]) { if (d.a.localSheetId != null) { juntarFora('Nomes que só valem numa aba (repetidos)', 1, n); } continue; }
     nomesDef[k] = { n, ref };
   }
-  if (areasImpressao) juntarFora('Áreas de impressão', areasImpressao);
+  if (areasImpressao) juntarFora('Áreas de impressão com várias partes', areasImpressao, 'veio só a primeira parte');
 
   /* ---------- cada aba ---------- */
   const conteudo = { v: 1, ordem: [], abas: {}, estilos: null, nomes: nomesDef, seq: folhas.length + 1 };
@@ -438,6 +454,15 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       }
     }
 
+    /* v0.6.0: configurar página (margens, papel, escala, títulos e área de impressão, cabeçalho e rodapé, quebras) */
+    { const imp = lerImpressaoAba(cab, resto, defsImp[F.idx] || {}); if (imp) aba.imp = imp; }
+    /* v0.6.0: gráficos da aba */
+    if (F.rels && [...F.rels.values()].some((r) => /drawing$/.test(r.tipo))) {
+      const gr = await lerGraficosAba(zip, F.rels, aba, async (parte) => lerRels(await zip.texto(relsDe(parte)), parte));
+      for (const o of gr.objs) { graficosLidos.push({ aba, o }); rel.extras.graficos++; }
+      for (const x of gr.fora) juntarFora('Gráficos', 1, x.motivo); grFora++;
+    }
+
     /* mescladas, e o que a aba tem que não vem */
     const mesc = [];
     for (const m of resto.matchAll(/<mergeCell ref="([^"]+)"/g)) {
@@ -509,6 +534,18 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     a.nome = n;
   });
   if (conteudo.ordem.every((id) => conteudo.abas[id].oculta)) delete conteudo.abas[conteudo.ordem[0]].oculta;
+  if (nPartesGrafico > graficosLidos.length + grFora) juntarFora('Gráficos', nPartesGrafico - graficosLidos.length - grFora, 'não estão presos a nenhuma aba');
+  /* gráficos: o nome da aba dos dados vira o id da aba */
+  {
+    const porNome = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));
+    for (const { aba, o } of graficosLidos) {
+      const idAba = o.g.dados.aba ? (conteudo.abas[o.g.dados.aba] ? o.g.dados.aba : porNome.get(String(o.g.dados.aba).toLowerCase())) : null;
+      if (o.g.dados.aba && !idAba) { juntarFora('Gráficos', 1, 'os dados estão numa aba que não veio'); rel.extras.graficos--; continue; }
+      const { nomeAbaDados, ...resto } = o; void nomeAbaDados;
+      const obj = { id: idObjeto(), ...resto, g: { ...o.g, dados: { ...o.g.dados, aba: idAba && idAba !== aba.id ? idAba : '' } } };
+      (aba.objs || (aba.objs = [])).push(obj);
+    }
+  }
   conteudo.estilos = estilos;
   if (est.fonteBase && est.fonteBase.nome) conteudo.fonteBase = est.fonteBase.nome;
   conteudo.calcExcel = true; // até a primeira mudança, as fórmulas começam com o último valor do Excel (abre rápido)

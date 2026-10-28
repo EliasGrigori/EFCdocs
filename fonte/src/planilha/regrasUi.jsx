@@ -5,7 +5,7 @@ import { paraGuardar, paraMostrar } from './formula.js';
 import { lerEntrada } from './entrada.js';
 import { formatar } from './formato.js';
 import { faixasDe, textoDoComentario, TIPOS_VALIDACAO, ESTILOS_ERRO, OPERADORES, TIPOS_REGRA, descreverRegra, descreverValidacao, novoIdRegra } from './regras.js';
-import { CORES_PALETA } from './partes.jsx';
+import { PainelCores } from './cores.jsx';
 
 const SEM_DOIS = new Set(['between', 'notBetween']);
 const eh2 = (op) => !op || SEM_DOIS.has(op);
@@ -99,7 +99,7 @@ export function JanelaValidacao({ faixaTexto, inicial, aoAplicar, aoLimpar, aoFe
   };
   const aba2 = (id, nome) => <button type="button" role="tab" aria-selected={aba === id} className={'rg-aba' + (aba === id ? ' on' : '')} onClick={() => setAba(id)}>{nome}</button>;
   return (
-    <Janela titulo="Validação de dados" aoFechar={aoFechar} classe="rg-jan" rodape={(
+    <Janela titulo="Validação de dados" icone="validacao" subtitulo={faixaTexto ? 'Vale em ' + faixaTexto : undefined} aoFechar={aoFechar} classe="rg-jan" rodape={(
       <>
         {inicial && <button type="button" className="btn sm perigo" data-val-limpar onClick={() => { aoLimpar(); aoFechar(); }}>Limpar regra</button>}
         <span style={{ flex: 1 }} />
@@ -197,7 +197,7 @@ export function ListaSuspensa({ x, y, w, itens, atual, aoEscolher, aoFechar, avi
     }
   };
   return (
-    <div ref={ref} className="pl-lista" role="listbox" aria-label="Lista da célula" tabIndex={-1} data-lista style={{ left: x, top: y, minWidth: Math.max(120, w) }} onKeyDown={tecla}>
+    <div ref={ref} className="pl-lista" role="listbox" aria-label="Lista da célula" tabIndex={-1} data-lista data-esc-local style={{ left: x, top: y, minWidth: Math.max(120, w) }} onKeyDown={tecla}>
       {aviso && <div className="pl-lista-vazia">{aviso}</div>}
       {!aviso && itens.length === 0 && <div className="pl-lista-vazia">A lista está vazia.</div>}
       {itens.map((it, k) => (
@@ -235,7 +235,7 @@ export function JanelaComentario({ chaveCel, inicial, nomeInicial, aoSalvar, aoE
     aoFechar();
   };
   return (
-    <Janela titulo={`Comentário em ${chaveCel}`} aoFechar={aoFechar} classe="rg-jan" rodape={(
+    <Janela titulo={`Comentário em ${chaveCel}`} icone="comentario" aoFechar={aoFechar} classe="rg-jan" rodape={(
       <>
         {inicial && !somenteLeitura && <button type="button" className="btn sm perigo" data-com-excluir onClick={() => { aoExcluir(); aoFechar(); }}>Excluir</button>}
         <span style={{ flex: 1 }} />
@@ -262,7 +262,7 @@ export function JanelaComentario({ chaveCel, inicial, nomeInicial, aoSalvar, aoE
 
 export function JanelaComentarios({ lista, aoIr, aoFechar }) {
   return (
-    <Janela titulo={`Comentários desta aba (${lista.length})`} aoFechar={aoFechar} classe="rg-jan" rodape={<button type="button" className="btn sm primary" onClick={aoFechar}>Fechar</button>}>
+    <Janela titulo={`Comentários desta aba (${lista.length})`} icone="comentario" aoFechar={aoFechar} classe="rg-jan" rodape={<button type="button" className="btn sm primary" onClick={aoFechar}>Fechar</button>}>
       <div className="janela-c rg-corpo" data-comentarios>
         {!lista.length && <p className="rg-sub">Esta aba não tem comentários. Para criar, clique numa célula e use Revisão › Comentário (ou o botão direito).</p>}
         {lista.map((q) => (
@@ -293,20 +293,7 @@ function Amostra({ e, texto = 'Aa 123' }) {
   return <span className="rg-amostra" style={{ background: e.fundo || undefined, color: e.cor || undefined, fontWeight: e.b ? 700 : undefined, fontStyle: e.i ? 'italic' : undefined, textDecoration: [e.u ? 'underline' : '', e.st ? 'line-through' : ''].filter(Boolean).join(' ') || undefined }}>{texto}</span>;
 }
 
-function SeletorCor({ rotulo, valor, aoMudar, semCor }) {
-  return (
-    <div className="rg-cores" role="group" aria-label={rotulo}>
-      <b>{rotulo}</b>
-      <div className="pl-paleta">
-        <button type="button" className={'pl-cor auto' + (!valor ? ' on' : '')} onClick={() => aoMudar(undefined)}>{semCor}</button>
-        {CORES_PALETA.map(([hex, nome]) => <button key={hex} type="button" className={'pl-cor' + (valor === hex ? ' on' : '')} title={nome} aria-label={nome} style={{ background: hex }} onClick={() => aoMudar(hex)} />)}
-      </div>
-      <label className="pl-cor-livre">Outra cor <input type="color" value={valor || '#ffffff'} onChange={(ev) => aoMudar(ev.target.value)} /></label>
-    </div>
-  );
-}
-
-function FormRegra({ regra, faixaTexto, aoOk, aoVoltar }) {
+function FormRegra({ regra, faixaTexto, aoOk, aoVoltar, cores, aoPegar }) {
   const r0 = regra || { t: 'cellIs', op: 'greaterThan', f1: '', e: { fundo: '#ffc7ce', cor: '#9c0006' } };
   const [t, setT] = useState(r0.t);
   const [op, setOp] = useState(r0.op || (r0.t === 'cellIs' ? 'equal' : 'greaterThan'));
@@ -321,6 +308,7 @@ function FormRegra({ regra, faixaTexto, aoOk, aoVoltar }) {
   const [par, setPar] = useState(!!r0.par);
   const [fx, setFx] = useState(r0.fx || faixaTexto);
   const [erro, setErro] = useState('');
+  const [qualCor, setQualCor] = useState('fundo');
   const mudaE = (p) => setE((x) => { const o = { ...x, ...p }; for (const k of Object.keys(o)) if (o[k] === undefined || o[k] === false) delete o[k]; return o; });
   const textoT = ['containsText', 'notContainsText', 'beginsWith', 'endsWith'].includes(t);
   const ok = () => {
@@ -343,53 +331,77 @@ function FormRegra({ regra, faixaTexto, aoOk, aoVoltar }) {
     aoOk(r);
   };
   return (
-    <div className="rg-form" data-cond-form>
-      <label className="rg-campo"><span>Quando</span>
-        <select value={t} data-cond-tipo onChange={(ev) => { setT(ev.target.value); setErro(''); }}>{TIPOS_REGRA.map(([k, nome]) => <option key={k} value={k}>{nome}</option>)}</select>
-      </label>
-      {t === 'cellIs' && (
-        <>
-          <label className="rg-campo"><span>For</span><select value={op} onChange={(ev) => setOp(ev.target.value)}>{OPERADORES.map(([k, nome]) => <option key={k} value={k}>{nome}</option>)}</select></label>
-          <label className="rg-campo"><span>{eh2(op) ? 'De' : 'Valor'}</span><input value={f1} data-cond-f1 spellCheck={false} onChange={(ev) => { setF1(ev.target.value); setErro(''); }} placeholder="Um número, um texto ou =B2" /></label>
-          {eh2(op) && <label className="rg-campo"><span>Até</span><input value={f2} spellCheck={false} onChange={(ev) => { setF2(ev.target.value); setErro(''); }} /></label>}
-        </>
-      )}
-      {t === 'expression' && <label className="rg-campo col"><span>Conta (VERDADEIRO pinta a célula)</span><input value={f1} data-cond-f1 spellCheck={false} onChange={(ev) => { setF1(ev.target.value); setErro(''); }} placeholder="=$B2=&quot;Não conforme&quot;" /><small>Escreva como se fosse para a primeira célula da área; a conta acompanha as outras linhas. Use $ para travar a coluna.</small></label>}
-      {textoT && <label className="rg-campo"><span>Texto</span><input value={tx} data-cond-tx onChange={(ev) => { setTx(ev.target.value); setErro(''); }} /></label>}
-      {t === 'top10' && (
-        <div className="rg-campo"><span>Quais</span>
-          <div className="rg-linha">
-            <select value={bx ? 'b' : 'a'} onChange={(ev) => setBx(ev.target.value === 'b')}><option value="a">Maiores</option><option value="b">Menores</option></select>
-            <input type="number" min="1" value={n} style={{ width: 70 }} onChange={(ev) => setN(ev.target.value)} />
-            <label className="rg-chk"><input type="checkbox" checked={pc} onChange={(ev) => setPc(ev.target.checked)} /> por cento</label>
+    <div className="rg-form rg-duas" data-cond-form>
+      <div className="rg-col">
+        <section className="rg-cartao">
+          <span className="rg-cab">Quando</span>
+          <label className="rg-campo"><span>Regra</span>
+            <select value={t} data-cond-tipo onChange={(ev) => { setT(ev.target.value); setErro(''); }}>{TIPOS_REGRA.map(([k, nome]) => <option key={k} value={k}>{nome}</option>)}</select>
+          </label>
+          {t === 'cellIs' && (
+            <>
+              <label className="rg-campo"><span>For</span><select value={op} onChange={(ev) => setOp(ev.target.value)}>{OPERADORES.map(([k, nome]) => <option key={k} value={k}>{nome}</option>)}</select></label>
+              <label className="rg-campo"><span>{eh2(op) ? 'De' : 'Valor'}</span><input value={f1} data-cond-f1 spellCheck={false} onChange={(ev) => { setF1(ev.target.value); setErro(''); }} placeholder="Um número, um texto ou =B2" /></label>
+              {eh2(op) && <label className="rg-campo"><span>Até</span><input value={f2} spellCheck={false} onChange={(ev) => { setF2(ev.target.value); setErro(''); }} /></label>}
+            </>
+          )}
+          {t === 'expression' && <label className="rg-campo col"><span>Conta (VERDADEIRO pinta a célula)</span><input value={f1} data-cond-f1 spellCheck={false} onChange={(ev) => { setF1(ev.target.value); setErro(''); }} placeholder="=$B2=&quot;Não conforme&quot;" /><small>Escreva como se fosse para a primeira célula da área; a conta acompanha as outras linhas. Use $ para travar a coluna.</small></label>}
+          {textoT && <label className="rg-campo"><span>Texto</span><input value={tx} data-cond-tx onChange={(ev) => { setTx(ev.target.value); setErro(''); }} /></label>}
+          {t === 'top10' && (
+            <div className="rg-campo"><span>Quais</span>
+              <div className="rg-linha">
+                <select value={bx ? 'b' : 'a'} onChange={(ev) => setBx(ev.target.value === 'b')}><option value="a">Maiores</option><option value="b">Menores</option></select>
+                <input type="number" min="1" value={n} style={{ width: 70 }} onChange={(ev) => setN(ev.target.value)} />
+                <label className="rg-chk"><input type="checkbox" checked={pc} onChange={(ev) => setPc(ev.target.checked)} /> por cento</label>
+              </div>
+            </div>
+          )}
+          {t === 'aboveAverage' && <label className="rg-campo"><span>Quais</span><select value={ab ? 'a' : 'b'} onChange={(ev) => setAb(ev.target.value === 'a')}><option value="a">Acima da média</option><option value="b">Abaixo da média</option></select></label>}
+          <label className="rg-campo"><span>Vale em</span><input value={fx} data-cond-fx spellCheck={false} onChange={(ev) => { setFx(ev.target.value); setErro(''); }} /></label>
+        </section>
+        <section className="rg-cartao">
+          <span className="rg-cab">Modelos prontos</span>
+          <div className="rg-realces" role="group" aria-label="Modelos de destaque">
+            {REALCES.map(([nome, est]) => <button key={nome} type="button" className={'rg-realce' + (JSON.stringify(est) === JSON.stringify(e) ? ' on' : '')} title={nome} data-realce={nome} onClick={() => setE({ ...est })}><Amostra e={est} texto="Aa" /><span>{nome}</span></button>)}
           </div>
+        </section>
+        <section className="rg-cartao">
+          <div className="rg-linha rg-topo">
+            <span className="rg-cab">Cores</span>
+            <div className="rg-seg" role="group" aria-label="Qual cor">
+              <button type="button" aria-pressed={qualCor === 'fundo'} data-cond-qual="fundo" onClick={() => setQualCor('fundo')}>Fundo</button>
+              <button type="button" aria-pressed={qualCor === 'cor'} data-cond-qual="cor" onClick={() => setQualCor('cor')}>Letra</button>
+            </div>
+          </div>
+          {qualCor === 'fundo'
+            ? <PainelCores key="f" valor={e.fundo} semCor="Sem cor" cores={cores} aoPegar={aoPegar ? () => aoPegar('fundo') : undefined} leitura={{ letra: e.cor }} aoMudar={(v) => mudaE({ fundo: v })} />
+            : <PainelCores key="l" valor={e.cor} semCor="Automática" cores={cores} aoPegar={aoPegar ? () => aoPegar('cor') : undefined} leitura={{ fundo: e.fundo }} aoMudar={(v) => mudaE({ cor: v })} />}
+          <div className="rg-linha rg-estilos" role="group" aria-label="Estilo da letra">
+            <label className="rg-chk"><input type="checkbox" checked={!!e.b} onChange={(ev) => mudaE({ b: ev.target.checked })} /> <b>Negrito</b></label>
+            <label className="rg-chk"><input type="checkbox" checked={!!e.i} onChange={(ev) => mudaE({ i: ev.target.checked })} /> <i>Itálico</i></label>
+            <label className="rg-chk"><input type="checkbox" checked={!!e.u} onChange={(ev) => mudaE({ u: ev.target.checked })} /> <u>Sublinhado</u></label>
+            <label className="rg-chk"><input type="checkbox" checked={!!e.st} onChange={(ev) => mudaE({ st: ev.target.checked })} /> <s>Riscado</s></label>
+          </div>
+        </section>
+      </div>
+      <div className="rg-col">
+        <section className="rg-cartao rg-previa-c">
+          <span className="rg-cab">Como fica</span>
+          <div className="rg-previa"><Amostra e={e} texto="Rede 1   0,70" /></div>
+          <p className="rg-dica">Assim ficam as células de {fx || 'a área'} onde a regra valer.</p>
+          <label className="rg-chk"><input type="checkbox" checked={par} onChange={(ev) => setPar(ev.target.checked)} /> Se esta regra valer, não olhar as de baixo</label>
+        </section>
+        {erro && <p className="rg-erro" role="alert">{erro}</p>}
+        <div className="rg-linha rg-botoes">
+          <button type="button" className="btn sm" onClick={aoVoltar}>Voltar</button>
+          <button type="button" className="btn sm primary" data-cond-ok onClick={ok}>OK</button>
         </div>
-      )}
-      {t === 'aboveAverage' && <label className="rg-campo"><span>Quais</span><select value={ab ? 'a' : 'b'} onChange={(ev) => setAb(ev.target.value === 'a')}><option value="a">Acima da média</option><option value="b">Abaixo da média</option></select></label>}
-      <label className="rg-campo"><span>Vale em</span><input value={fx} data-cond-fx spellCheck={false} onChange={(ev) => { setFx(ev.target.value); setErro(''); }} /></label>
-      <div className="rg-realces" role="group" aria-label="Modelos de destaque">
-        {REALCES.map(([nome, est]) => <button key={nome} type="button" className="rg-realce" title={nome} data-realce={nome} onClick={() => setE({ ...est })}><Amostra e={est} texto={nome} /></button>)}
-      </div>
-      <SeletorCor rotulo="Cor de fundo" valor={e.fundo} semCor="Sem cor" aoMudar={(v) => mudaE({ fundo: v })} />
-      <SeletorCor rotulo="Cor da letra" valor={e.cor} semCor="Automática" aoMudar={(v) => mudaE({ cor: v })} />
-      <div className="rg-linha rg-estilos" role="group" aria-label="Estilo da letra">
-        <label className="rg-chk"><input type="checkbox" checked={!!e.b} onChange={(ev) => mudaE({ b: ev.target.checked })} /> <b>Negrito</b></label>
-        <label className="rg-chk"><input type="checkbox" checked={!!e.i} onChange={(ev) => mudaE({ i: ev.target.checked })} /> <i>Itálico</i></label>
-        <label className="rg-chk"><input type="checkbox" checked={!!e.u} onChange={(ev) => mudaE({ u: ev.target.checked })} /> <u>Sublinhado</u></label>
-        <label className="rg-chk"><input type="checkbox" checked={!!e.st} onChange={(ev) => mudaE({ st: ev.target.checked })} /> <s>Riscado</s></label>
-      </div>
-      <div className="rg-previa">Como fica: <Amostra e={e} /></div>
-      <label className="rg-chk"><input type="checkbox" checked={par} onChange={(ev) => setPar(ev.target.checked)} /> Se esta regra valer, não olhar as de baixo</label>
-      {erro && <p className="rg-erro" role="alert">{erro}</p>}
-      <div className="rg-linha rg-botoes">
-        <button type="button" className="btn sm" onClick={aoVoltar}>Voltar</button>
-        <button type="button" className="btn sm primary" data-cond-ok onClick={ok}>OK</button>
       </div>
     </div>
   );
 }
 
-export function JanelaCondicional({ lista, faixaTexto, selecao, aoSalvar, aoFechar }) {
+export function JanelaCondicional({ lista, faixaTexto, selecao, aoSalvar, aoFechar, cores, aoPegar }) {
   const [regras, setRegras] = useState(() => lista.map((r) => (r.id ? r : { ...r, id: novoIdRegra() })));
   const [modo, setModo] = useState(null); // null = lista; { regra } = formulário
   const [soSel, setSoSel] = useState(false);
@@ -398,7 +410,7 @@ export function JanelaCondicional({ lista, faixaTexto, selecao, aoSalvar, aoFech
   const salvarRegra = (r) => { setRegras((l) => (l.some((x) => x.id === r.id) ? l.map((x) => (x.id === r.id ? r : x)) : [r, ...l])); setModo(null); };
   const mudou = JSON.stringify(regras) !== JSON.stringify(lista);
   return (
-    <Janela titulo="Formatação condicional" aoFechar={aoFechar} classe="rg-jan rg-larga" rodape={modo ? null : (
+    <Janela titulo="Formatação condicional" icone="condicional" subtitulo={faixaTexto ? 'Seleção: ' + faixaTexto : undefined} aoFechar={aoFechar} classe={'rg-jan rg-larga' + (modo ? ' rg-form-on' : '')} rodape={modo ? null : (
       <>
         <button type="button" className="btn sm" data-cond-limpar-aba disabled={!regras.length} onClick={() => setRegras([])}>Limpar todas da aba</button>
         <span style={{ flex: 1 }} />
@@ -408,7 +420,7 @@ export function JanelaCondicional({ lista, faixaTexto, selecao, aoSalvar, aoFech
     )}>
       <div className="janela-c rg-corpo" data-condicional>
         {modo
-          ? <FormRegra regra={modo.regra} faixaTexto={faixaTexto} aoOk={salvarRegra} aoVoltar={() => setModo(null)} />
+          ? <FormRegra regra={modo.regra} faixaTexto={faixaTexto} cores={cores} aoPegar={aoPegar} aoOk={salvarRegra} aoVoltar={() => setModo(null)} />
           : (
             <>
               <div className="rg-linha rg-topo">

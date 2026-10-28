@@ -6,12 +6,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { ler, gravar } from '../nucleo/armazem.js';
-import { Icone, Janela } from '../ui/comum.jsx';
+import { Icone, Janela, usarEsc } from '../ui/comum.jsx';
+import { coresDaPlanilha, trocarCorNaAba } from './cores.jsx';
+import { lerOriginal } from '../nucleo/originais.js';
 import { PortalPainel } from '../quadro/partes.jsx';
 import { Motor } from './motor.js';
 import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, textoFaixaCaixa, normalFaixa, lerEndereco, lerEnderecoCaixa, nomeAbaNaFormula } from './ref.js';
 import { eixo, ALT_PADRAO, LARG_PADRAO, estiloDe, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
-import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel } from './grade.js';
+import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, estiloVisto } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
 import { paraMostrar, refTexto, tokenizar, ler as lerFormula, paraGuardar, escrever } from './formula.js';
@@ -21,7 +23,15 @@ import { diagnosticar, corrigir, contextoNoCursor, sugestoes, pedacosColoridos, 
 import { formatoDaFormula } from './formatoAuto.js';
 import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt, numeroGeral } from './valores.js';
 import * as O from './operacoes.js';
-import { objetosDaAba, novaAssinatura, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS } from './objetos.js';
+import { objetosDaAba, novaAssinatura, novoGrafico, GR, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS } from './objetos.js';
+import { dadosDaFaixa } from './graficos.js';
+import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
+import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
+import { svgDoGrafico } from './desenhoGrafico.js';
+import { paginar, normalizarImp, impParaGuardar } from './impressao.js';
+import { desenharPaginas, svgDaPagina } from './paginaDesenho.js';
+import { pdfDasPaginas, svgParaJpeg } from './impressaoPdf.js';
+import { JanelaImprimir } from './imprimirUi.jsx';
 import { JanelaAssinatura, AssinaturaView } from '../ui/assinatura.jsx';
 import { RelatorioExcel } from '../ui/excel.jsx';
 import { baixarXlsx } from './xlsx/abrir.js';
@@ -155,6 +165,18 @@ export function Planilha({ arquivo, cx }) {
   const [arrasto, setArrasto] = useState(null);
   const [copia, setCopia] = useState(null);
   const [pincel, setPincel] = useState(null);
+  /* v0.6.0: conta-gotas — a janela de cor some, o toque na célula devolve a cor dela (a que se vê, com a regra de cor) */
+  const [pegaCor, setPegaCor] = useState(null); // { qual: 'fundo' | 'cor', resolve }
+  const pegaCorRef = useRef(null);
+  pegaCorRef.current = pegaCor;
+  const pegarCor = (qual) => new Promise((resolve) => setPegaCor({ qual, resolve }));
+  const cancelarPegaCor = () => { const p = pegaCorRef.current; setPegaCor(null); if (p) p.resolve(null); };
+  usarEsc(cancelarPegaCor, !!pegaCor);
+  useEffect(() => {
+    if (!pegaCor) return undefined;
+    document.body.classList.add('pegando-cor');
+    return () => document.body.classList.remove('pegando-cor');
+  }, [pegaCor]);
   const [prefs, setPrefs] = useState(() => ({ folhaClara: false, status: ['soma', 'media', 'cont'], fxAlt: FX_MIN, ...ler('planilha-prefs', {}) }));
   /* v0.4.7: altura da barra de fórmula (arrasto ao vivo) */
   const [fxArr, setFxArr] = useState(null);
@@ -614,9 +636,10 @@ export function Planilha({ arquivo, cx }) {
   };
   const excluirObjeto = (o) => {
     if (somenteLeitura) { avisarLeitura(); return; }
-    if (gravarObjs(semObjeto(objs, o.id), 'Excluir assinatura') !== false) {
+    const ehG = o.tipo === 'grafico';
+    if (gravarObjs(semObjeto(objs, o.id), ehG ? 'Excluir gráfico' : 'Excluir assinatura') !== false) {
       setObjSel(null);
-      cx.avisar('Assinatura excluída.', { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
+      cx.avisar(ehG ? 'Gráfico excluído.' : 'Assinatura excluída.', { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
     }
     voltarFocoGrade();
   };
@@ -635,10 +658,162 @@ export function Planilha({ arquivo, cx }) {
     }
     setTimeout(voltarFocoGrade, 0);
   };
+  /* ---------- gráficos (v0.6.0) ---------- */
+  const temaGrafico = (() => { try { const v = getComputedStyle(document.body).getPropertyValue('--surface').trim(); const m = /^#([0-9a-f]{6})$/i.exec(v); if (!m) return TEMA_CLARO; const n = parseInt(m[1], 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 128 ? TEMA_CLARO : TEMA_ESCURO; } catch { return TEMA_CLARO; } })();
+  /** Lê a faixa dos dados ("A1:C20" ou "Resumo!A1:C20") e devolve { d, erro, fx, aba }. */
+  const lerDadosGrafico = (texto, porLinhas, abaPadrao = abaId) => {
+    let t = String(texto || '').trim();
+    let abaD = abaPadrao;
+    const m = /^(?:'([^']+)'|([^!]+))!(.+)$/.exec(t);
+    if (m) {
+      const nome = (m[1] || m[2]).trim();
+      const id = c.ordem.find((x) => c.abas[x].nome.toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR'));
+      if (!id) return { erro: `Não achei a aba "${nome}".`, d: { cats: [], series: [] } };
+      abaD = id; t = m[3].trim();
+    }
+    const f0 = lerEndereco(t.toUpperCase());
+    if (!f0) return { erro: t ? 'Diga as células, por exemplo A1:C20.' : '', d: { cats: [], series: [] } };
+    const f = normalFaixa(f0);
+    if ((f.l2 - f.l1 + 1) > 5000 || (f.c2 - f.c1 + 1) > 60) return { erro: 'Faixa grande demais para um gráfico (até 5.000 linhas e 60 colunas).', d: { cats: [], series: [] } };
+    const d = dadosDaFaixa(f, (l, cc) => { const v = motor.valor(abaD, l, cc); return v && typeof v === 'object' ? null : v; }, (l, cc) => textoCelula(motor, c, abaD, l, cc).t, porLinhas);
+    return { d, fx: textoFaixa(f), aba: abaD };
+  };
+  /** Região em volta da célula ativa (como o Excel faz ao inserir gráfico com uma célula só escolhida). */
+  const regiaoAtual = (l0, c0) => {
+    const tem = (l, cc) => { const x = aba.cel[chave(l, cc)]; return !!x && (x.v !== undefined || x.f !== undefined); };
+    let f = { l1: l0, l2: l0, c1: c0, c2: c0 };
+    for (let volta = 0; volta < 400; volta++) {
+      let cresceu = false;
+      const linhaTem = (l) => { for (let cc = Math.max(0, f.c1 - 1); cc <= f.c2 + 1; cc++) if (tem(l, cc)) return true; return false; };
+      const colTem = (cc) => { for (let l = Math.max(0, f.l1 - 1); l <= f.l2 + 1; l++) if (tem(l, cc)) return true; return false; };
+      if (f.l1 > 0 && linhaTem(f.l1 - 1)) { f.l1--; cresceu = true; }
+      if (f.l2 - f.l1 < 5000 && linhaTem(f.l2 + 1)) { f.l2++; cresceu = true; }
+      if (f.c1 > 0 && colTem(f.c1 - 1)) { f.c1--; cresceu = true; }
+      if (f.c2 - f.c1 < 60 && colTem(f.c2 + 1)) { f.c2++; cresceu = true; }
+      if (!cresceu) break;
+    }
+    return f;
+  };
+  /* ---------- Imprimir e PDF (v0.6.0) ---------- */
+  const fonteImpressao = (idA) => {
+    const A = c.abas[idA];
+    const ec = eixo(A.larg, A.ocC, LARG_PADRAO, MAX_COL), el = eixo(A.alt, A.ocL, ALT_PADRAO, MAX_LIN);
+    const ms = mescladas(A);
+    const objetos = objetosDaAba(A).map((o) => {
+      if (o.tipo === 'grafico') {
+        const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : idA);
+        return { ...o, svg: svgDoGrafico(o.g, ld.d, { w: o.w, h: o.h, tema: TEMA_CLARO }) };
+      }
+      const nome = String(o.nome || '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+      const lin = Math.round(o.h * 0.72);
+      return { ...o, svg: `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${o.w} ${o.h}" width="${o.w}" height="${o.h}">${o.rub ? `<image href="${o.rub}" xlink:href="${o.rub}" x="6" y="2" width="${o.w - 12}" height="${lin - 4}" preserveAspectRatio="xMidYMax meet"/>` : ''}<line x1="6" y1="${lin}" x2="${o.w - 6}" y2="${lin}" stroke="#222" stroke-width="1"/><text x="${o.w / 2}" y="${lin + 14}" text-anchor="middle" font-size="12" font-family="Helvetica, Arial" fill="#222">${nome}</text></svg>` };
+    });
+    return {
+      tamCol: (k) => ec.tam(k), tamLin: (k) => el.tam(k),
+      celula: (l, k) => { const tc = textoCelula(motor, c, idA, l, k); return { t: tc.t, al: tc.al, e: tc.e, v: tc.v, cor: tc.cor }; },
+      mescla: (l, k) => mesclaEm(ms, l, k),
+      objetos, aba: A.nome, arquivo: ficha.nome || 'Planilha', agora: new Date(),
+    };
+  };
+  /** Área usada: células com valor, fórmula, preenchimento ou borda, mais os objetos. */
+  const areaUsada = (idA) => {
+    const A = c.abas[idA];
+    let l2 = -1, c2 = -1;
+    for (const [k, x] of Object.entries(A.cel || {})) {
+      if (!x) continue;
+      const e = x.s ? (c.estilos[x.s] || {}) : {};
+      if (x.v === undefined && x.f === undefined && !e.fundo && !e.bd) continue;
+      const p = lerChave(k);
+      /* fórmula que dá vazio (a folga copiada até o fim) não estica a impressão */
+      if (p && !e.fundo && !e.bd && (x.v === '' || x.f !== undefined)) { let v; try { v = motor.valor(idA, p.l, p.c); } catch { v = null; } if (v == null || v === '') continue; }
+      if (p) { if (p.l > l2) l2 = p.l; if (p.c > c2) c2 = p.c; }
+    }
+    const ec = eixo(A.larg, A.ocC, LARG_PADRAO, MAX_COL), el = eixo(A.alt, A.ocL, ALT_PADRAO, MAX_LIN);
+    for (const o of objetosDaAba(A)) { const cf = ec.em(ec.pos(o.c) + o.dx + o.w - 1), lf = el.em(el.pos(o.l) + o.dy + o.h - 1); if (lf > l2) l2 = lf; if (cf > c2) c2 = cf; }
+    for (const m of mescladas(A)) { if (m.l2 > l2) l2 = m.l2; if (m.c2 > c2) c2 = m.c2; }
+    return l2 < 0 ? null : { l1: 0, c1: 0, l2, c2 };
+  };
+  const gerarImpressao = (imp, alvo) => {
+    const ids = alvo === 'todas' ? c.ordem.filter((x) => !c.abas[x].oculta) : [abaId];
+    let todas = [], esc = 1, aviso = '';
+    for (const idA of ids) {
+      const impA = idA === abaId ? imp : normalizarImp(c.abas[idA].imp);
+      let area = null;
+      if (alvo === 'sel' && idA === abaId) area = normalFaixa(faixa);
+      else if (impA.area) { const f0 = lerEndereco(impA.area); area = f0 ? normalFaixa(f0) : null; if (!f0 && idA === abaId) aviso = `"${impA.area}" não é uma área válida (use, por exemplo, A1:F40).`; }
+      if (!area) area = areaUsada(idA);
+      if (!area) continue;
+      if ((area.l2 - area.l1 + 1) * (area.c2 - area.c1 + 1) > 3000000) { aviso = 'Área grande demais para imprimir de uma vez: escolha uma parte.'; continue; }
+      const fonte = fonteImpressao(idA);
+      const pg = paginar(impA, area, fonte.tamCol, fonte.tamLin);
+      if (pg.paginas.length > 500) { aviso = `Daria ${pg.paginas.length} páginas: escolha uma área menor ou use "Aba toda numa página" / "Todas as colunas numa página".`; continue; }
+      if (idA === abaId) esc = pg.esc;
+      todas = todas.concat(desenharPaginas(pg, fonte));
+    }
+    if (!todas.length && !aviso) aviso = 'Não há nada para imprimir: a aba está vazia.';
+    /* numera as páginas no conjunto todo */
+    return { paginas: todas, esc, aviso };
+  };
+  const nomeArquivoSaida = () => String(ficha.nome || 'planilha').replace(/[\\/:*?"<>|]/g, '_');
+  const baixarPdf = async (imp, alvo) => {
+    const r = gerarImpressao(imp, alvo);
+    if (!r.paginas.length) { cx.avisar(r.aviso || 'Nada para o PDF.', { ic: 'aviso' }); return; }
+    const imagens = new Map();
+    for (const p of r.paginas) for (const o of p.ops) if (o.k === 'img' && !imagens.has(o.svg)) { try { imagens.set(o.svg, await svgParaJpeg(o.svg, o.w, o.h)); } catch { imagens.set(o.svg, null); } }
+    const bytes = pdfDasPaginas(r.paginas, { titulo: ficha.nome || 'Planilha', imagens });
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = nomeArquivoSaida() + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    cx.avisar(`PDF pronto: ${r.paginas.length} página${r.paginas.length === 1 ? '' : 's'}.`, { ic: 'pdf' });
+  };
+  const imprimirPaginas = async (imp, alvo) => {
+    const r = gerarImpressao(imp, alvo);
+    if (!r.paginas.length) { cx.avisar(r.aviso || 'Nada para imprimir.', { ic: 'aviso' }); return; }
+    const p0 = r.paginas[0];
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${nomeArquivoSaida()}</title><style>@page{size:${p0.W}pt ${p0.H}pt;margin:0}html,body{margin:0;padding:0;background:#fff}.pg{width:${p0.W}pt;height:${p0.H}pt;overflow:hidden;page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto;break-after:auto}.pg svg{display:block;width:100%;height:100%}</style></head><body>${r.paginas.map((p, i) => `<div class="pg">${svgDaPagina(p, { id: 'i' + i + '_' })}</div>`).join('')}</body></html>`;
+    const fr = document.createElement('iframe');
+    fr.setAttribute('aria-hidden', 'true');
+    fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(fr);
+    const d = fr.contentDocument;
+    d.open(); d.write(html); d.close();
+    await new Promise((ok) => setTimeout(ok, 250));
+    try { fr.contentWindow.focus(); fr.contentWindow.print(); } finally { setTimeout(() => fr.remove(), 60000); }
+  };
+  const salvarImp = (imp) => mudar({ [`conteudo.abas.${abaId}.imp`]: impParaGuardar(imp) }, 'Configurar página');
+  const mudarImp = (fn, rotulo) => { const atual = normalizarImp(aba.imp); mudar({ [`conteudo.abas.${abaId}.imp`]: impParaGuardar(fn(atual)) }, rotulo); };
+
+  const abrirGrafico = (o) => { setObjSel(o.id); setJanela({ tipo: 'grafico', id: o.id }); };
+  const novoGraficoJanela = () => {
+    const f = normalFaixa(faixa);
+    const area = (f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1);
+    const alvo = area > 1 ? f : regiaoAtual(sel.ativa.l, sel.ativa.c);
+    setJanela({ tipo: 'grafico', id: null, fx: textoFaixa(alvo), faixa: alvo });
+  };
+  const aplicarGrafico = (g, janelaG) => {
+    const lista = objetosDaAba(c.abas[abaId]);
+    const dadosAba = g.dados.aba && g.dados.aba !== abaId ? g.dados.aba : '';
+    const gg = { ...g, dados: { ...g.dados, aba: dadosAba } };
+    if (janelaG.id) { gravarObjs(comObjeto(lista, janelaG.id, { g: gg }), 'Editar gráfico'); return; }
+    if (lista.length >= MAX_OBJETOS) { cx.avisar(`No máximo ${MAX_OBJETOS} objetos por aba.`, { ic: 'aviso' }); return; }
+    const f = janelaG.faixa || normalFaixa(faixa);
+    const reg = regiaoAtual(f.l1, f.c1);
+    const ancora = { l: Math.max(G.cl || 0, f.l1, Math.max(G.l0, 0)), c: Math.min(MAX_COL - 1, Math.max(f.c2, reg.c2) + 2) };
+    const o = novoGrafico(gg, ancora);
+    if (gravarObjs([...lista, o], 'Inserir gráfico') !== false) { setObjSel(o.id); cx.avisar('Gráfico inserido. Arraste para mover; puxe o canto para mudar o tamanho; dois cliques para editar.', { ic: 'grafico' }); }
+  };
+
+  const toqueObj = useRef(null);
   const aoBaixarObj = (ev, o, modo) => {
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     ev.stopPropagation();
     ev.preventDefault();
+    /* dois cliques (ou dois toques) no mesmo objeto abrem a janela dele; o dblclick do navegador não chega por causa do arrastar */
+    const agora = Date.now(), ult = toqueObj.current;
+    toqueObj.current = { id: o.id, t: agora };
+    if (modo === 'mover' && ult && ult.id === o.id && agora - ult.t < 450) { toqueObj.current = null; setObjSel(o.id); if (o.tipo === 'grafico') abrirGrafico(o); else abrirAssinatura(o); return; }
     setObjSel(o.id);
     voltarFocoGrade();
     if (somenteLeitura) { avisarLeitura(); return; }
@@ -652,7 +827,7 @@ export function Planilha({ arquivo, cx }) {
     const dx = ev.clientX - a.px, dy = ev.clientY - a.py;
     if (!a.moveu && Math.hypot(dx, dy) < (ev.pointerType === 'touch' ? 6 : 3)) return;
     if (a.modo === 'mover') setArrObj({ ...a, moveu: true, x: a.r0.x + dx, y: a.r0.y + dy });
-    else setArrObj({ ...a, moveu: true, w: Math.max(ASN.W_MIN * z, a.r0.w + dx), h: Math.max(ASN.H_MIN * z, a.r0.h + dy) });
+    else { const o = objs.find((x) => x.id === a.id); const mn = o && o.tipo === 'grafico' ? GR : ASN; setArrObj({ ...a, moveu: true, w: Math.max(mn.W_MIN * z, a.r0.w + dx), h: Math.max(mn.H_MIN * z, a.r0.h + dy) }); }
   };
   const aoSoltarObj = () => {
     const a = arrObjRef.current;
@@ -663,8 +838,8 @@ export function Planilha({ arquivo, cx }) {
     if (a.modo === 'mover') {
       /* o canto de cima à esquerda decide a célula; fora da área das células, volta para a borda */
       const an = ancoraNoPonto(G, Math.max(G.hw + 1, a.x), Math.max(G.hh + 1, a.y));
-      gravarObjs(comObjeto(objs, o.id, an), 'Mover assinatura');
-    } else gravarObjs(comObjeto(objs, o.id, { w: Math.round(a.w / z), h: Math.round(a.h / z) }), 'Mudar o tamanho da assinatura');
+      gravarObjs(comObjeto(objs, o.id, an), o.tipo === 'grafico' ? 'Mover gráfico' : 'Mover assinatura');
+    } else gravarObjs(comObjeto(objs, o.id, { w: Math.round(a.w / z), h: Math.round(a.h / z) }), o.tipo === 'grafico' ? 'Mudar o tamanho do gráfico' : 'Mudar o tamanho da assinatura');
   };
   const cancelar = () => {
     const e = editRef.current;
@@ -858,7 +1033,7 @@ export function Planilha({ arquivo, cx }) {
     if (objSelRef.current) {
       const o = objs.find((x) => x.id === objSelRef.current);
       if (o && (k === 'Delete' || k === 'Backspace')) { ev.preventDefault(); excluirObjeto(o); return; }
-      if (o && (k === 'Enter' || k === 'F2')) { ev.preventDefault(); abrirAssinatura(o); return; }
+      if (o && (k === 'Enter' || k === 'F2')) { ev.preventDefault(); if (o.tipo === 'grafico') abrirGrafico(o); else abrirAssinatura(o); return; }
       if (k === 'Escape') { setObjSel(null); return; }
       if (!ctrl && k.length > 1 && k !== 'Shift' && k !== 'Control' && k !== 'Alt' && k !== 'Meta') setObjSel(null);
     }
@@ -1595,6 +1770,22 @@ export function Planilha({ arquivo, cx }) {
       case 'planilha.reexibirColuna': return ed(() => { ocultar('c', true); });
       case 'planilha.novaAba': return ed(novaAbaFn);
       case 'inserir.assinatura': return ed(() => setAsn({ id: null, inicial: {} }));
+      case 'inserir.grafico': return ed(novoGraficoJanela);
+      case 'arquivo.imprimir': case 'arquivo.exportarPDF': case 'impressao.configurar': setJanela({ tipo: 'imprimir', secao: 'o-que' }); return true;
+      case 'impressao.margens': setJanela({ tipo: 'imprimir', secao: 'margens' }); return true;
+      case 'impressao.titulos': setJanela({ tipo: 'imprimir', secao: 'titulos' }); return true;
+      case 'impressao.ajustar': setJanela({ tipo: 'imprimir', secao: 'ajustar' }); return true;
+      case 'impressao.cabecalho': setJanela({ tipo: 'imprimir', secao: 'cabecalho' }); return true;
+      case 'impressao.orientacao': return ed(() => { const novo = normalizarImp(aba.imp).orient === 'paisagem' ? 'retrato' : 'paisagem'; mudarImp((x) => ({ ...x, orient: novo }), novo === 'paisagem' ? 'Página em paisagem' : 'Página em retrato'); cx.avisar(`Página em ${novo}.`, { ic: 'orientacao' }); });
+      case 'impressao.area': return ed(() => { const t = textoFaixa(normalFaixa(faixa)); mudarImp((x) => ({ ...x, area: t }), 'Definir área de impressão'); cx.avisar(`Área de impressão: ${t}.`, { ic: 'imprimir' }); });
+      case 'impressao.limparArea': return ed(() => { mudarImp((x) => ({ ...x, area: '' }), 'Limpar área de impressão'); cx.avisar('Área de impressão limpa: imprime tudo que tem dado.', { ic: 'imprimir' }); });
+      case 'impressao.quebra': return ed(() => {
+        const { l, c: col } = sel.ativa;
+        if (!l && !col) { cx.avisar('Escolha a célula onde começa a página nova (não pode ser a A1).', { ic: 'aviso' }); return; }
+        mudarImp((x) => ({ ...x, qL: l ? [...x.qL, l] : x.qL, qC: col ? [...x.qC, col] : x.qC }), 'Inserir quebra de página');
+        cx.avisar(`Quebra de página ${l ? 'antes da linha ' + (l + 1) : ''}${l && col ? ' e ' : ''}${col ? 'antes da coluna ' + letraCol(col) : ''}.`, { ic: 'quebrapag' });
+      });
+      case 'impressao.semQuebras': return ed(() => { mudarImp((x) => ({ ...x, qL: [], qC: [] }), 'Remover quebras de página'); cx.avisar('Quebras de página removidas.', { ic: 'quebrapag' }); });
       case 'planilha.cabecalho': return ed(() => mudar({ [`conteudo.abas.${abaId}.cab`]: sel.ativa.l }, `Linha ${sel.ativa.l + 1} é o cabeçalho`));
       case 'formula.inserir': return ed(() => setJanela({ tipo: 'funcoes' }));
       case 'formula.autosoma': return ed(() => autoSoma('SOMA'));
@@ -1615,6 +1806,16 @@ export function Planilha({ arquivo, cx }) {
       case 'editar.comentar': return ed(() => setJanela({ tipo: 'comentario', l: sel.ativa.l, c: sel.ativa.c }));
       case 'revisao.comentarios': setJanela({ tipo: 'comentarios' }); return true;
       case 'arquivo.exportarExcel': salvarExcel(); return true;
+      case 'arquivo.baixarOriginal': (async () => {
+        const o = await lerOriginal(ficha.id);
+        if (!o || !o.blob) { cx.avisar(c.importado ? 'O arquivo original não está neste aparelho: só ficam guardados os arquivos abertos do Excel a partir da v0.6.0, no aparelho onde foram abertos.' : 'Esta planilha não veio de um arquivo do Excel: use Salvar como Excel.', { ic: 'info', longo: true }); return; }
+        const url = URL.createObjectURL(o.blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = o.nome || (ficha.nome + '.xlsx');
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        cx.avisar(`Original baixado ("${o.nome}"), sem as mudanças feitas aqui.`, { ic: 'baixar' });
+      })(); return true;
       case 'arquivo.relatorioExcel':
         if (c.importado) setJanela({ tipo: 'relExcel' });
         else cx.avisar('Esta planilha foi criada aqui no EFCdocs (não veio de um arquivo do Excel).', { ic: 'info' });
@@ -1799,6 +2000,17 @@ export function Planilha({ arquivo, cx }) {
 
   const aoBaixar = (ev) => {
     if (!cvRef.current) return;
+    if (pegaCorRef.current) {
+      const pp = ponto(ev);
+      const oo = ondeCaiu(G, pp.x, pp.y);
+      if (oo.tipo !== 'cel') return;
+      ev.preventDefault();
+      const e = estiloVisto(c, aba.cel[chave(oo.l, oo.c)], motor, abaId, oo.l, oo.c) || {};
+      const pc = pegaCorRef.current;
+      setPegaCor(null);
+      pc.resolve(pc.qual === 'cor' ? e.cor || null : e.fundo || null);
+      return;
+    }
     if (objSelRef.current) setObjSel(null);
     const p = ponto(ev);
     const o = ondeCaiu(G, p.x, p.y);
@@ -2290,6 +2502,21 @@ export function Planilha({ arquivo, cx }) {
               const rc = recorteDoObjeto(o, r, G);
               if (!rc.visivel) return null;
               const escolhida = objSel === o.id;
+              if (o.tipo === 'grafico') {
+                const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : abaId);
+                return (
+                  <div key={o.id} className={'pl-obj pl-obj-gr' + (escolhida ? ' sel' : '')} data-obj={o.id} data-grafico={o.g.t} role="img" aria-label={'Gráfico' + (o.g.titulo ? ': ' + o.g.titulo : '')}
+                    style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
+                    onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
+                    onDoubleClick={() => abrirGrafico(o)}
+                    onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
+                    <div style={{ width: r.w / z, height: r.h / z, transform: `scale(${z})`, transformOrigin: '0 0' }}>
+                      <GraficoView g={o.g} dados={ld.d} w={Math.round(r.w / z)} h={Math.round(r.h / z)} tema={temaGrafico} />
+                    </div>
+                    {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
+                  </div>
+                );
+              }
               return (
                 <div key={o.id} className={'pl-obj' + (escolhida ? ' sel' : '')} data-obj={o.id} role="img" aria-label={'Assinatura de ' + o.nome}
                   style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
@@ -2310,6 +2537,7 @@ export function Planilha({ arquivo, cx }) {
           if (!o || (arrObj && arrObj.moveu)) return null;
           const r = retDoObjeto(o, G);
           const topo = r.y - 40 >= G.hh ? r.y - 40 : r.y + r.h + 8;
+          if (o.tipo === 'grafico') return <BarraGrafico x={Math.max(4, Math.min(tam.W - 80, r.x))} y={topo} somenteLeitura={somenteLeitura} aoEditar={() => abrirGrafico(o)} aoExcluir={() => excluirObjeto(o)} />;
           return (
             <div className="pl-obj-barra" style={{ left: Math.max(4, Math.min(tam.W - 80, r.x)), top: topo }} role="toolbar" aria-label="Assinatura">
               <button type="button" className="iconbtn" data-obj-ed="1" aria-label="Nome e rubrica" title="Nome e rubrica (Enter)" onClick={() => abrirAssinatura(o)}><Icone n="assinatura" /></button>
@@ -2383,6 +2611,7 @@ export function Planilha({ arquivo, cx }) {
         {!cel || !edit ? <PainelProblemas alvo={cel ? null : cx.alvoRodape} lista={listaProb} aberto={probAberto} aoAlternar={() => { if (probAberto) setTimeout(voltarFocoGrade, 0); setProbAberto(!probAberto); }} somenteLeitura={somenteLeitura}
           aoIr={(p) => { if (cel) setProbAberto(false); /* no celular a lista cobre a grade */ irPara({ abaId: p.abaId, l: p.l, c: p.c }); }} aoAcao={fazerAcao} /> : null}
         {pincel && <div className="qd-modo pl-modo"><Icone n="pincel" />Toque onde vai o formato.<button type="button" className="btn sm" onClick={() => setPincel(null)}>Cancelar</button></div>}
+        {pegaCor && <div className="qd-modo pl-modo pl-modo-cor" data-pega-cor><Icone n="contagotas" />Toque na célula de onde vem a cor.<button type="button" className="btn sm" onClick={cancelarPegaCor}>Cancelar</button></div>}
       </div>
 
       {/* faixa de edição do celular (PL19): grande, embaixo, com os símbolos que faltam no teclado */}
@@ -2422,9 +2651,13 @@ export function Planilha({ arquivo, cx }) {
       <PortalPainel alvo={cx.alvoPainel}>{secaoPainel}</PortalPainel>
 
       {asn && <JanelaAssinatura inicial={asn.inicial} titulo={asn.id ? 'Editar assinatura' : 'Nova assinatura'} confirmar={asn.id ? 'Salvar' : 'Inserir'} aoConfirmar={confirmarAssinatura} aoFechar={() => { setAsn(null); setTimeout(voltarFocoGrade, 0); }} />}
-      {janela && janela.tipo === 'corFonte' && <JanelaCor titulo="Cor da fonte" semCor="Automática" aoEscolher={(hex) => formatarSel((e) => ({ ...e, cor: hex || undefined }), 'Cor da fonte')} aoFechar={() => setJanela(null)} />}
-      {janela && janela.tipo === 'fundo' && <JanelaCor titulo="Cor de preenchimento" semCor="Sem preenchimento" aoEscolher={(hex) => formatarSel((e) => ({ ...e, fundo: hex || undefined }), 'Cor de preenchimento')} aoFechar={() => setJanela(null)} />}
-      {janela && janela.tipo === 'corAba' && <JanelaCor titulo="Cor da aba" semCor="Sem cor" aoEscolher={(hex) => mudar({ [`conteudo.abas.${janela.id}.cor`]: hex || undefined }, 'Cor da aba')} aoFechar={() => setJanela(null)} />}
+      {janela && janela.tipo === 'corFonte' && <JanelaCor titulo="Cor da fonte" icone="corfonte" semCor="Automática" valor={estiloAtivo.cor} cores={coresDaPlanilha(c)} aoPegar={() => pegarCor('cor')} leitura={{ fundo: estiloAtivo.fundo }}
+        trocar={{ de: estiloAtivo.cor, rotulo: estiloAtivo.cor ? 'esta cor de letra' : 'letra automática' }} aoTrocar={(hex) => { const r = trocarCorNaAba(O, c, abaId, 'cor', estiloAtivo.cor, hex); aplicarLote(r.lote, `Trocar a cor da letra em ${r.n} células`); }}
+        aoEscolher={(hex) => formatarSel((e) => ({ ...e, cor: hex || undefined }), 'Cor da fonte')} aoFechar={() => setJanela(null)} />}
+      {janela && janela.tipo === 'fundo' && <JanelaCor titulo="Cor de preenchimento" icone="balde" semCor="Sem preenchimento" valor={estiloAtivo.fundo} cores={coresDaPlanilha(c)} aoPegar={() => pegarCor('fundo')} leitura={{ letra: estiloAtivo.cor }}
+        trocar={{ de: estiloAtivo.fundo, rotulo: estiloAtivo.fundo ? 'este preenchimento' : 'sem preenchimento' }} aoTrocar={(hex) => { const r = trocarCorNaAba(O, c, abaId, 'fundo', estiloAtivo.fundo, hex); aplicarLote(r.lote, `Trocar o preenchimento em ${r.n} células`); }}
+        aoEscolher={(hex) => formatarSel((e) => ({ ...e, fundo: hex || undefined }), 'Cor de preenchimento')} aoFechar={() => setJanela(null)} />}
+      {janela && janela.tipo === 'corAba' && <JanelaCor titulo="Cor da aba" icone="cor" semCor="Sem cor" valor={c.abas[janela.id] && c.abas[janela.id].cor} cores={coresDaPlanilha(c)} aoEscolher={(hex) => mudar({ [`conteudo.abas.${janela.id}.cor`]: hex || undefined }, 'Cor da aba')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'formato' && <JanelaFormato atual={estiloAtivo.nf} exemplo={typeof valorAtivo === 'number' ? valorAtivo : undefined} aoAplicar={(cod) => formatarSel((e) => ({ ...e, nf: /^general$/i.test(cod) ? undefined : cod }), 'Formato de número')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'fonte' && <JanelaFonte estilo={estiloAtivo} aoAplicar={(x) => formatarSel((e) => ({ ...e, ...x }), 'Fonte')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'congelar' && <JanelaCongelar ativa={sel.ativa} cong={cong} aoEscolher={(v) => mudar({ [`conteudo.abas.${abaId}.cong`]: v && (v.l || v.c) ? v : undefined }, v ? 'Congelar painéis' : 'Descongelar painéis')} aoFechar={() => setJanela(null)} />}
@@ -2434,8 +2667,24 @@ export function Planilha({ arquivo, cx }) {
         <JanelaValidacao faixaTexto={textoFaixas(faixasDoAlvo(janela))} inicial={validacaoEm(aba, (janela.faixas ? janela.faixas[0].l1 : sel.ativa.l), (janela.faixas ? janela.faixas[0].c1 : sel.ativa.c))}
           aoAplicar={aplicarValidacao} aoLimpar={limparValidacao} aoFechar={() => setJanela(null)} />
       )}
+      {janela && janela.tipo === 'imprimir' && (
+        <JanelaImprimir imp0={aba.imp} secao={janela.secao} selecaoTexto={textoFaixa(normalFaixa(faixa))} temVariasAbas={c.ordem.filter((x) => !c.abas[x].oculta).length > 1}
+          gerar={gerarImpressao} aoSalvar={(imp) => { if (!somenteLeitura) salvarImp(imp); }} aoPdf={baixarPdf} aoImprimir={imprimirPaginas}
+          aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
+      )}
+      {janela && janela.tipo === 'grafico' && (() => {
+        const o = janela.id ? objs.find((x) => x.id === janela.id) : null;
+        if (janela.id && !o) return null;
+        const ini = o ? { ...o.g, dados: { ...o.g.dados, fx: (o.g.dados.aba && o.g.dados.aba !== abaId && c.abas[o.g.dados.aba] ? nomeAbaNaFormula(c.abas[o.g.dados.aba].nome) + '!' : '') + o.g.dados.fx } } : null;
+        return (
+          <JanelaGrafico inicial={ini} faixaPadrao={janela.fx} tema={temaGrafico}
+            lerDados={(fx, pl) => lerDadosGrafico(fx, pl)}
+            aoAplicar={(g) => aplicarGrafico(g, janela)}
+            aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
+        );
+      })()}
       {janela && janela.tipo === 'condicional' && (
-        <JanelaCondicional lista={aba.cf || []} faixaTexto={textoFaixas(faixasDoAlvo(janela))} selecao={(r) => regraToca(r, faixasDoAlvo(janela))}
+        <JanelaCondicional lista={aba.cf || []} faixaTexto={textoFaixas(faixasDoAlvo(janela))} selecao={(r) => regraToca(r, faixasDoAlvo(janela))} cores={coresDaPlanilha(c)} aoPegar={pegarCor}
           aoSalvar={salvarCondicionais} aoFechar={() => setJanela(null)} />
       )}
       {janela && janela.tipo === 'comentario' && (
@@ -2444,7 +2693,7 @@ export function Planilha({ arquivo, cx }) {
       )}
       {janela && janela.tipo === 'comentarios' && <JanelaComentarios lista={listaComentarios(aba)} aoIr={(l, col) => irPara({ abaId, l, c: col })} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'valerro' && (
-        <Janela titulo={janela.titulo} aoFechar={janela.aoVoltar} classe="rg-jan" rodape={janela.nivel === 'stop' ? (
+        <Janela titulo={janela.titulo} icone={janela.nivel === 'stop' ? 'x' : janela.nivel === 'warning' ? 'aviso' : 'info'} aoFechar={janela.aoVoltar} classe={'rg-jan rg-alerta nivel-' + janela.nivel} rodape={janela.nivel === 'stop' ? (
           <><button type="button" className="btn sm" data-valerro-cancelar onClick={janela.aoCancelar}>Cancelar</button><button type="button" className="btn sm primary" data-valerro-voltar onClick={janela.aoVoltar}>Tentar de novo</button></>
         ) : janela.nivel === 'warning' ? (
           <><button type="button" className="btn sm" data-valerro-voltar onClick={janela.aoVoltar}>Não, voltar</button><button type="button" className="btn sm primary" data-valerro-continuar onClick={janela.aoContinuar}>Sim, continuar</button></>
@@ -2555,7 +2804,7 @@ export function Planilha({ arquivo, cx }) {
           }} />
       )}
       {janela && janela.tipo === 'relExcel' && (
-        <Janela titulo={'O que veio do Excel' + (c.importado && c.importado.arquivo ? ` (${c.importado.arquivo})` : '')} aoFechar={() => setJanela(null)} classe="janela-excel"
+        <Janela titulo={'O que veio do Excel' + (c.importado && c.importado.arquivo ? ` (${c.importado.arquivo})` : '')} icone="excel" aoFechar={() => setJanela(null)} classe="janela-excel"
           rodape={<button type="button" className="btn sm primary" onClick={() => setJanela(null)}>Fechar</button>}>
           <div className="janela-c"><RelatorioExcel rel={c.importado} /></div>
         </Janela>
@@ -2575,7 +2824,7 @@ export function Planilha({ arquivo, cx }) {
 
 function JanelaZoomPl({ z, aoEscolher, aoFechar }) {
   return (
-    <Janela titulo="Zoom" aoFechar={aoFechar}>
+    <Janela titulo="Zoom" icone="maiszoom" aoFechar={aoFechar}>
       <div className="janela-c">
         <div className="chips">
           {[50, 75, 90, 100, 125, 150, 200].map((p) => <button key={p} type="button" className={'chipb' + (Math.round(z * 100) === p ? ' on' : '')} onClick={() => aoEscolher(p / 100)}>{p}%</button>)}
