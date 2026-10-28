@@ -185,7 +185,11 @@ export function normalizarG(g) {
     if (!plano || !Array.isArray(plano.grupos)) { out.t = 'colunas'; }
     else {
       out.plano = plano;
-      if (typeof o.xo === 'string' && o.xo.length < 3000000) { out.xo = o.xo; if (typeof o.xoSig === 'string') out.xoSig = o.xoSig; }
+      if (typeof o.xo === 'string' && o.xo.length < 3000000) {
+        out.xo = o.xo; if (typeof o.xoSig === 'string') out.xoSig = o.xoSig;
+        /* v0.6.6 (Grok A05): os nomes das abas que o XML guardado usa (id → nome), para trocar o nome quando a aba é renomeada */
+        if (o.xoAbas && typeof o.xoAbas === 'object') { const xa = {}; for (const [k, v] of Object.entries(o.xoAbas).slice(0, 50)) if (typeof v === 'string') xa[String(k).slice(0, 40)] = v.slice(0, 31); out.xoAbas = xa; }
+      }
     }
   }
   return out;

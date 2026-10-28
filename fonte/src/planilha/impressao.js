@@ -218,3 +218,26 @@ export function cabDoExcel(s) {
   }
   return { e: out.e.slice(0, 120), c: out.c.slice(0, 120), d: out.d.slice(0, 120) };
 }
+
+/**
+ * v0.6.6 (Grok): aba que é um painel de formas maior que o papel (fundo escuro, botões, gráficos por cima)
+ * sai partida em várias páginas. Sugere "Aba toda numa página" (e a página deitada quando o painel é largo).
+ * imp0: o que está salvo na aba (undefined = nunca configurada) · formas: [{ w, h }] em px da grade.
+ * Devolve { imp, nota } ou null (quando já está configurada para caber ou não há forma grande).
+ */
+export function sugestaoPainel(imp0, formas) {
+  const imp = normalizarImp(imp0);
+  if (imp.escala.modo !== 'nenhum' || imp.area) return null;
+  const grandes = (formas || []).filter((o) => o && o.w > 0 && o.h > 0);
+  if (!grandes.length) return null;
+  const nunca = !imp0;
+  const larga = grandes.some((o) => o.w >= o.h);
+  const orient = nunca ? (larga ? 'paisagem' : 'retrato') : imp.orient;
+  const u = areaUtil({ ...imp, orient });
+  const passa = grandes.some((o) => o.w * PX_PT > u.w + 0.5 || o.h * PX_PT > u.h + 0.5);
+  if (!passa) return null;
+  return {
+    imp: { ...imp, orient, escala: { ...imp.escala, modo: 'pagina' } },
+    nota: `Esta aba tem um painel de formas maior que o papel: já marcamos "Aba toda numa página"${orient !== imp.orient ? ' e a página deitada' : ''}. Mude se quiser.`,
+  };
+}

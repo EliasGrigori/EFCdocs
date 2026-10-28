@@ -501,7 +501,7 @@ export function Quadro({ arquivo, cx }) {
       case 'formatar.esquerda': return todos((it) => (it.alinh || (it.tipo === 'texto' ? 'e' : 'c')) === 'e');
       case 'formatar.centro': return todos((it) => (it.alinh || (it.tipo === 'texto' ? 'e' : 'c')) === 'c');
       case 'formatar.direita': return todos((it) => it.alinh === 'd');
-      default: return false;
+      default: return undefined;
     }
   };
 

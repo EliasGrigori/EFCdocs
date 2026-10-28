@@ -2,8 +2,9 @@
    que viram uma linha no desfazer e gravam só o que mudou). */
 import { chave, lerChave, MAX_COL, MAX_LIN, letraCol, textoFaixa, normalFaixa } from './ref.js';
 import { reescrever, deslocar, ajustarEstrutura, renomearAbaNaArvore, excluirAbaNaArvore, renomearNomeNaArvore, paraMostrar, lerGuardada, escrever, mapearRefs } from './formula.js';
-import { indiceEstilo, estiloDe, abaVazia, mescladas, valorGuardado, paraGuardarValor } from './modelo.js';
+import { indiceEstilo, estiloDe, abaVazia, mescladas, valorGuardado, paraGuardarValor, eixo as eixoTam, largPadrao, altPadrao } from './modelo.js';
 import { ajustarObjetosEstrutura } from './objetos.js';
+import { refsDoPlano } from './graficoPlano.js';
 import { continuarSerie } from './entrada.js';
 import { moverRegras, moverFaixa, faixasDe, textoFaixas, ancoraDe, tirarDeFaixas, novoIdRegra } from './regras.js';
 import { ehFormatoData } from './formato.js';
@@ -449,8 +450,60 @@ export function estrutura(c, abaId, eixo, i, n) {
     }
     mud[`conteudo.abas.${abaId}.mesc`] = nova;
   }
+  /* 3a2) v0.6.6: as tabelas do Excel desta aba crescem/encolhem com as linhas e colunas (como as mescladas) */
+  if (c.tabelas && Object.values(c.tabelas).some((t) => t && t.aba === abaId)) {
+    const nt = {};
+    let mexeu = false;
+    for (const [kt, t] of Object.entries(c.tabelas)) {
+      if (!t || t.aba !== abaId) { nt[kt] = t; continue; }
+      const [a, b] = eixo === 'l' ? [t.l1, t.l2] : [t.c1, t.c2];
+      let na, nb;
+      if (!exclui) { na = a >= i ? a + k : a; nb = b >= i ? b + k : b; }
+      else { na = a < i ? a : a >= i + k ? a - k : i; nb = b < i ? b : b >= i + k ? b - k : i - 1; }
+      if (na === a && nb === b) { nt[kt] = t; continue; }
+      mexeu = true;
+      if (nb < na + (eixo === 'l' && t.cab ? 1 : 0)) continue; // a tabela inteira saiu
+      const nova = eixo === 'l' ? { ...t, l1: na, l2: nb } : { ...t, c1: na, c2: nb };
+      if (eixo === 'c' && Array.isArray(t.cols)) nova.cols = undefined; // os títulos são relidos das células ao salvar
+      nt[kt] = nova;
+    }
+    if (mexeu) mud['conteudo.tabelas'] = nt;
+  }
   /* 3b) objetos sobre a grade (assinatura) descem/sobem junto com a célula em que estão presos */
-  if (aba.objs && aba.objs.length) mud[`conteudo.abas.${abaId}.objs`] = ajustarObjetosEstrutura(aba.objs, eixo, i, n);
+  if (aba.objs && aba.objs.length) {
+    const med = eixo === 'l' ? { ...eixoTam(aba.alt, aba.ocL, altPadrao(aba), MAX_LIN), padrao: altPadrao(aba) } : { ...eixoTam(aba.larg, aba.ocC, largPadrao(aba), MAX_COL), padrao: largPadrao(aba) };
+    mud[`conteudo.abas.${abaId}.objs`] = ajustarObjetosEstrutura(aba.objs, eixo, i, n, med);
+  }
+  /* 3b1) v0.6.6: o texto ligado das formas (=C40) e o link "ir para a célula" acompanham as linhas/colunas desta aba
+     (antes a caixa ligada mostrava a célula antiga, vazia, depois de inserir linhas acima dela) */
+  for (const id of c.ordem) {
+    const chaveO = `conteudo.abas.${id}.objs`;
+    const lista = mud[chaveO] || c.abas[id].objs;
+    if (!lista || !lista.some((o) => o.tipo === 'forma')) continue;
+    let mudou = false;
+    const moverRef = (ref) => {
+      const f = faixasDe(ref)[0];
+      if (!f) return ref;
+      const nf = moverFaixa(f, eixo, i, n);
+      return nf ? textoFaixas([nf]) : ref;
+    };
+    const nova = lista.map((o) => {
+      if (o.tipo !== 'forma') return o;
+      let mexeu = false;
+      const partes = o.partes.map((p) => {
+        let q = p;
+        const lg = p.texto && p.texto.ligado;
+        if (lg && lg.ref && (lg.aba || id) === abaId) { const r = moverRef(lg.ref); if (r !== lg.ref) { q = { ...q, texto: { ...q.texto, ligado: { ...lg, ref: r } } }; mexeu = true; } }
+        const lk = p.link;
+        if (lk && lk.aba === abaId && lk.ref) { const r = moverRef(lk.ref); if (r !== lk.ref) { q = { ...q, link: { ...lk, ref: r } }; mexeu = true; } }
+        return q;
+      });
+      if (!mexeu) return o;
+      mudou = true;
+      return { ...o, partes };
+    });
+    if (mudou) mud[chaveO] = nova;
+  }
   /* 3b2) v0.6.0: a faixa dos dados dos gráficos (de qualquer aba) acompanha as linhas/colunas desta aba */
   for (const id of c.ordem) {
     const chaveO = `conteudo.abas.${id}.objs`;
@@ -462,8 +515,8 @@ export function estrutura(c, abaId, eixo, i, n) {
         /* v0.6.1: gráfico que veio do Excel: cada referência das séries acompanha */
         let mexeu = false;
         const plano = JSON.parse(JSON.stringify(o.g.plano));
-        for (const G of plano.grupos || []) for (const S of G.series || []) for (const k of ['nome', 'cats', 'vals']) {
-          const r = S[k] && S[k].ref;
+        /* v0.6.6: também o título ligado a célula e os rótulos com o "valor das células" */
+        for (const r of refsDoPlano(plano)) {
           if (!r || (r.aba || id) !== abaId) continue;
           const fs = faixasDe(r.fx).map((f) => moverFaixa(f, eixo, i, n)).filter(Boolean);
           const nfx = fs.length ? textoFaixas(fs) : r.fx;

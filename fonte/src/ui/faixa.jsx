@@ -36,7 +36,7 @@ const FAIXAS = {
       { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.bordas', 'formatar.preenchimento', 'formatar.corFonte', 'formatar.fonte'], 4]] },
       { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita', 'formatar.quebrar', 'formatar.mesclar']]] },
       { nome: 'Número', itens: [['lin', ['formatar.moeda', 'formatar.porcentagem', 'formatar.milhar', 'formatar.maisCasas', 'formatar.menosCasas', 'formatar.formatoNumero']]] },
-      { nome: 'Células', itens: [['lin', ['planilha.inserirLinha', 'planilha.inserirColuna', 'planilha.excluirLinha', 'planilha.excluirColuna'], 2]] },
+      { nome: 'Células', itens: [['lin', ['planilha.inserirLinha', 'planilha.inserirColuna', 'planilha.excluirLinha', 'planilha.excluirColuna', 'planilha.reexibir', 'planilha.reexibirColuna'], 3]] }, /* v0.6.6 (Grok): Reexibir também aqui, como no Formatar do Excel */
       { nome: 'Estilos', itens: [['g', 'formatar.condicional'], ['g', 'inserir.tabela']] },
       { nome: 'Edição', itens: [['g', 'formula.autosoma'], ['lin', ['planilha.limparConteudo', 'formatar.limpar', 'editar.historico'], 3], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
     { id: 'inserir', nome: 'Inserir', grupos: [
@@ -169,7 +169,7 @@ export function BotaoCmd({ id, tipo = 'g', cx, rotulo, prim, soIcone }) {
   const ic = ICONE_FAIXA[id] ? 'n:' + ICONE_FAIXA[id] : cmd.ic;
   return (
     <button type="button" className={classe} aria-label={tipo === 'i' ? titulo : undefined} data-nota={nota || undefined} title={soIcone && tipo !== 'i' ? titulo : undefined}
-      aria-pressed={ligado ? true : undefined} disabled={!!bloq} data-cmd={id} data-fam={id.split('.')[0]} data-prim={prim ? '' : undefined} onClick={() => cx.executar(id)}>
+      aria-pressed={typeof ligado === 'boolean' ? ligado : undefined} disabled={!!bloq} data-cmd={id} data-fam={id.split('.')[0]} data-prim={prim ? '' : undefined} onClick={() => cx.executar(id)}>
       {tipo === 'g' ? <span className="q"><Icone n={ic} /></span> : <Icone n={ic} />}
       {tipo !== 'i' && <span className="rot">{rotulo || cmd.nome}</span>}
     </button>
@@ -326,7 +326,8 @@ function OpcoesFaixa({ prefs, cx, cel, compacto }) {
   return (
     <>
       <button ref={ref} type="button" className="iconbtn modo" data-opcoes-faixa aria-label="Opções de exibição da faixa" aria-expanded={!!aberto} aria-haspopup="menu" title="Opções de exibição da faixa" onClick={abrir}>
-        <Icone n={prefs.faixa === 'tudo' ? 'chevronCima' : 'chevronBaixo'} />
+        {/* v0.6.6 (Grok): não repete a setinha do "Recolher" da faixa: mostra o desenho do modo de agora */}
+        <Icone n={ic[prefs.faixa] || 'faixaTudo'} />
       </button>
       {aberto && (
         <div ref={menu} className="faixa-menu" role="menu" aria-label="Opções de exibição da faixa" style={{ position: 'fixed', top: aberto.top, right: aberto.right, maxHeight: Math.max(160, innerHeight - aberto.top - 8), overflowY: 'auto' }} data-esc-local>

@@ -10,7 +10,7 @@ import { escapar, XML_CAB } from './xml.js';
 import { gravarEstilos } from './estilos.js';
 import { porPrefixos } from './formulas.js';
 import { chave, letraCol, lerChave } from '../ref.js';
-import { valorGuardado, LARG_PADRAO, ALT_PADRAO } from '../modelo.js';
+import { valorGuardado, LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao } from '../modelo.js';
 import { ehErro } from '../valores.js';
 import { Motor } from '../motor.js';
 import { POR_EN } from '../nomesFuncoes.js';
@@ -34,6 +34,47 @@ function gravarFiltro(fil) {
     return `<filterColumn colId="${col - a1.c}"><filters${vazio ? ' blank="1"' : ''}>${itens}</filters></filterColumn>`;
   }).join('');
   return `<autoFilter ref="${fil.fx}">${dentro}</autoFilter>`;
+}
+
+/**
+ * v0.6.6 (Grok): as tabelas do Excel voltam ao salvar. Só grava a tabela que o Excel aceita sem "reparar":
+ * nome válido e único, área dentro da aba, títulos (quando tem) em texto fixo, sem repetir e sem célula vazia.
+ * Devolve [{ t, ref, cols, xmlAuto }] da aba, ou o motivo de ter ficado de fora (em fora).
+ */
+const NOME_TAB_OK = /^[A-Za-z_\u00C0-\u024F][A-Za-z0-9_.\u00C0-\u024F]{0,250}$/;
+function tabelasDaAba(c, abaId, aba, fora) {
+  const out = [];
+  for (const t of Object.values(c.tabelas || {})) {
+    if (!t || t.aba !== abaId) continue;
+    const ok = [t.l1, t.c1, t.l2, t.c2].every((v) => Number.isInteger(v) && v >= 0) && t.l2 >= t.l1 && t.c2 >= t.c1 && NOME_TAB_OK.test(String(t.nome || '')) && !/^[A-Za-z]{1,3}\d+$/.test(t.nome);
+    if (!ok) { fora.push(t.nome || 'sem nome'); continue; }
+    const n = t.c2 - t.c1 + 1;
+    let cols;
+    if (t.cab) {
+      cols = [];
+      for (let cc = t.c1; cc <= t.c2; cc++) {
+        const x = aba.cel && aba.cel[letraCol(cc) + (t.l1 + 1)];
+        const v = x && x.f == null ? valorGuardado(x) : null;
+        cols.push(typeof v === 'string' ? v.trim() : '');
+      }
+      const vistos = new Set();
+      if (cols.some((x) => { const k = x.toLowerCase(); if (!x || vistos.has(k) || x.length > 255) return true; vistos.add(k); return false; })) { fora.push(t.nome); continue; }
+    } else {
+      cols = Array.from({ length: n }, (_, i) => (Array.isArray(t.cols) && typeof t.cols[i] === 'string' && t.cols[i] ? t.cols[i] : 'Coluna' + (i + 1)));
+    }
+    const ref = `${letraCol(t.c1)}${t.l1 + 1}:${letraCol(t.c2)}${t.l2 + 1}`;
+    out.push({ t, ref, cols, refAuto: `${letraCol(t.c1)}${t.l1 + 1}:${letraCol(t.c2)}${t.l2 + 1 - (t.tot ? 1 : 0)}` });
+  }
+  return out;
+}
+function xmlDaTabela(tb, id, autoXml) {
+  const { t, ref, cols } = tb;
+  const est = t.est || { nome: 'TableStyleLight1', pc: 0, uc: 0, ll: 0, lc: 0 };
+  const nome = escapar(t.nome, true);
+  return `${XML_CAB}<table xmlns="${NS}" id="${id}" name="${nome}" displayName="${nome}" ref="${ref}"${t.cab ? '' : ' headerRowCount="0"'}${t.tot ? ' totalsRowCount="1"' : ' totalsRowShown="0"'}>` +
+    (t.cab ? autoXml : '') +
+    `<tableColumns count="${cols.length}">${cols.map((nm, i) => `<tableColumn id="${i + 1}" name="${escapar(nm, true)}"/>`).join('')}</tableColumns>` +
+    `<tableStyleInfo${est.nome ? ` name="${escapar(est.nome, true)}"` : ''} showFirstColumn="${est.pc ? 1 : 0}" showLastColumn="${est.uc ? 1 : 0}" showRowStripes="${est.ll ? 1 : 0}" showColumnStripes="${est.lc ? 1 : 0}"/></table>`;
 }
 
 /* fórmulas que o Excel antigo não entende sem matriz dinâmica */
@@ -70,6 +111,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   let imagensFora = 0;
   const nomesImp = []; // v0.6.0: área e títulos de impressão (nomes definidos _xlnm)
   let conversas = 0;
+  const tabelasG = []; // v0.6.6: { ia, n, xml }
+  const tabelasFora = [];
   const abas = c.ordem.map((id) => c.abas[id]);
   const primeiraVisivel = Math.max(0, abas.findIndex((a) => !a.oculta));
 
@@ -98,6 +141,12 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     }
     for (const k of Object.keys(aba.alt || {})) if (!linhas.has(+k)) linhas.set(+k, new Map());
     for (const k of Object.keys(aba.ocL || {})) if (aba.ocL[k] && !linhas.has(+k)) linhas.set(+k, new Map());
+    /* v0.6.6 (Grok): aba com zeroHeight (o Excel esconde toda linha que o arquivo não lista): cada linha que aparece vai listada */
+    if (aba.zeroH) {
+      let lim = -1;
+      for (const k of linhas.keys()) if (k > lim) lim = k;
+      for (let r = 0; r <= Math.min(lim, 1048575); r++) if (!(aba.ocL && aba.ocL[r]) && !linhas.has(r)) linhas.set(r, new Map());
+    }
 
     let lMax = 0, cMax = 0;
     const corpo = [];
@@ -106,7 +155,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       let atr = ` r="${l + 1}"`;
       const alt = aba.alt && aba.alt[l];
       if (aba.ocL && aba.ocL[l]) atr += ' hidden="1"';
-      if (alt != null && alt !== ALT_PADRAO) atr += ` ht="${ptDe(alt)}" customHeight="1"`;
+      if (alt != null && alt !== altPadrao(aba)) atr += ` ht="${ptDe(alt)}" customHeight="1"`;
       const cels = [];
       for (const cc of [...L.keys()].sort((a, b) => a - b)) {
         const { cel, derramado } = L.get(cc);
@@ -162,7 +211,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     for (const [k, o] of Object.entries(aba.ocC || {})) if (o) colunas.set(+k, { ...(colunas.get(+k) || {}), oculta: true });
     const cols = [...colunas.keys()].sort((a, b) => a - b).map((cc) => {
       const x = colunas.get(cc);
-      const w = x.w != null ? x.w : LARG_PADRAO;
+      const w = x.w != null ? x.w : largPadrao(aba);
       return `<col min="${cc + 1}" max="${cc + 1}" width="${larguraExcel(w)}" customWidth="1"${x.oculta ? ' hidden="1"' : ''}/>`;
     });
 
@@ -180,7 +229,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     }
     vista += '</sheetView>';
     cab += `<sheetViews>${vista}</sheetViews>`;
-    cab += `<sheetFormatPr defaultColWidth="${larguraExcel(LARG_PADRAO)}" defaultRowHeight="${ptDe(ALT_PADRAO)}" customHeight="1"/>`;
+    cab += `<sheetFormatPr defaultColWidth="${larguraExcel(largPadrao(aba))}" defaultRowHeight="${ptDe(altPadrao(aba))}" customHeight="1"${aba.zeroH ? ' zeroHeight="1"' : ''}/>`;
     if (cols.length) cab += `<cols>${cols.join('')}</cols>`;
     let fim = '';
     /* v0.6.3: aba protegida e filtro automático (antes das mescladas, como o Excel exige) */
@@ -189,7 +238,12 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       const extra = Object.entries({ objects: '1', scenarios: '1', ...pa }).filter(([k]) => /^[A-Za-z]+$/.test(k) && k !== 'sheet').map(([k, v]) => ` ${k}="${escapar(String(v), true)}"`).join('');
       fim += `<sheetProtection sheet="1"${extra}/>`;
     }
-    fim += gravarFiltro(aba.fil);
+    /* v0.6.6: tabela do Excel: o filtro que coincide com ela vai dentro da tabela; um filtro da aba que cruza a tabela não pode existir junto */
+    const tabsAba = tabelasDaAba(c, id, aba, tabelasFora);
+    const filFx = aba.fil && aba.fil.fx;
+    const cruza = (tb) => { if (!filFx) return false; const [a, b] = filFx.split(':').map(lerChave); return a && b && !(b.l < tb.t.l1 || a.l > tb.t.l2 || b.c < tb.t.c1 || a.c > tb.t.c2); };
+    const filNaTabela = tabsAba.find((tb) => tb.t.cab && filFx === tb.refAuto);
+    if (!filNaTabela && !tabsAba.some(cruza)) fim += gravarFiltro(aba.fil);
     const mesc = (aba.mesc || []).filter((t) => /^[A-Z]+\d+:[A-Z]+\d+$/.test(t));
     if (mesc.length) fim += `<mergeCells count="${mesc.length}">${mesc.map((t) => `<mergeCell ref="${t}"/>`).join('')}</mergeCells>`;
     fim += gravarCondicionais(aba.cf, dxfs);
@@ -214,6 +268,15 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     if (gr) { fim += '<drawing r:id="rId3"/>'; desenhos.push({ ia, ...gr }); nChart += gr.charts.length; nImg += gr.midias.length; formasGravadas += gr.formas; botoesGravados += gr.botoes; }
     const co = gravarComentarios(aba.com, ia);
     if (co) { fim += '<legacyDrawing r:id="rId1"/>'; notas.push({ ia, ...co }); conversas += co.conversas; }
+    if (tabsAba.length) {
+      const ids = tabsAba.map((tb) => {
+        const n = tabelasG.length + 1;
+        const auto = tb === filNaTabela ? gravarFiltro(aba.fil).replace(/ref="[^"]+"/, `ref="${tb.refAuto}"`) : `<autoFilter ref="${tb.refAuto}"/>`;
+        tabelasG.push({ ia, n, xml: xmlDaTabela(tb, n, auto) });
+        return n;
+      });
+      fim += `<tableParts count="${ids.length}">${ids.map((n) => `<tablePart r:id="rIdT${n}"/>`).join('')}</tableParts>`;
+    }
     partes.push({
       nome: `xl/worksheets/sheet${ia + 1}.xml`,
       dados: `${XML_CAB}<worksheet xmlns="${NS}" xmlns:r="${NS_R}">${cab}<sheetData>${corpo.join('')}</sheetData>${fim}</worksheet>`,
@@ -257,7 +320,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     '<Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' +
     (usaMatriz ? `<Override PartName="/xl/metadata.xml" ContentType="${CT}sheetMetadata+xml"/>` : '') +
     notas.map((n) => `<Override PartName="/xl/comments${n.ia + 1}.xml" ContentType="${CT}comments+xml"/>`).join('') +
-    desenhos.map((d) => `<Override PartName="/xl/drawings/drawing${d.ia + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>` + d.charts.map((ch) => `<Override PartName="/xl/charts/chart${ch.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`).join('')).join('') +
+    desenhos.map((d) => `<Override PartName="/xl/drawings/drawing${d.ia + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>` + d.charts.map((ch) => `<Override PartName="/xl/charts/chart${ch.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>` + (ch.us ? `<Override PartName="/xl/drawings/drawingGr${ch.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chartshapes+xml"/>` : '')).join('')).join('') +
+    tabelasG.map((t) => `<Override PartName="/xl/tables/table${t.n}.xml" ContentType="${CT}table+xml"/>`).join('') +
     '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
     '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>';
   const relsRaiz = `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
@@ -285,19 +349,28 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       { nome: `xl/drawings/drawing${d.ia + 1}.xml`, dados: d.drawing },
       { nome: `xl/drawings/_rels/drawing${d.ia + 1}.xml.rels`, dados: d.rels },
       ...d.charts.map((ch) => ({ nome: `xl/charts/chart${ch.n}.xml`, dados: ch.xml })),
+      /* v0.6.6: caixas de texto por cima dos gráficos */
+      ...d.charts.filter((ch) => ch.us).flatMap((ch) => [
+        { nome: `xl/charts/_rels/chart${ch.n}.xml.rels`, dados: `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdUS1" Type="${REL}chartUserShapes" Target="../drawings/drawingGr${ch.n}.xml"/></Relationships>` },
+        { nome: `xl/drawings/drawingGr${ch.n}.xml`, dados: ch.us },
+      ]),
       ...(d.midias || []).map((m) => ({ nome: m.nome, dados: m.bytes })),
     ]),
-    /* rels das abas: comentários (rId1, rId2) e gráficos (rId3) */
+    ...tabelasG.map((t) => ({ nome: `xl/tables/table${t.n}.xml`, dados: t.xml })),
+    /* rels das abas: comentários (rId1, rId2), gráficos (rId3) e tabelas (rIdT) */
     ...abas.map((_, ia) => {
       const n = notas.find((x) => x.ia === ia), d = desenhos.find((x) => x.ia === ia);
       const le = linksExt.get(ia);
-      if (!n && !d && !le) return null;
+      const tb = tabelasG.filter((x) => x.ia === ia);
+      if (!n && !d && !le && !tb.length) return null;
       return { nome: `xl/worksheets/_rels/sheet${ia + 1}.xml.rels`, dados: `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
         (n ? `<Relationship Id="rId1" Type="${REL}vmlDrawing" Target="../drawings/vmlDrawing${ia + 1}.vml"/><Relationship Id="rId2" Type="${REL}comments" Target="../comments${ia + 1}.xml"/>` : '') +
         (d ? `<Relationship Id="rId3" Type="${REL}drawing" Target="../drawings/drawing${ia + 1}.xml"/>` : '') +
-        (le ? le.map((x) => `<Relationship Id="${x.id}" Type="${REL}hyperlink" Target="${escapar(x.url, true)}" TargetMode="External"/>`).join('') : '') + '</Relationships>' };
+        (le ? le.map((x) => `<Relationship Id="${x.id}" Type="${REL}hyperlink" Target="${escapar(x.url, true)}" TargetMode="External"/>`).join('') : '') +
+        tb.map((x) => `<Relationship Id="rIdT${x.n}" Type="${REL}table" Target="../tables/table${x.n}.xml"/>`).join('') + '</Relationships>' };
     }).filter(Boolean),
   ];
+  if (tabelasFora.length) avisos.push(`${tabelasFora.length === 1 ? `A tabela "${tabelasFora[0]}" vai` : `${tabelasFora.length} tabelas vão`} como faixa normal (com as cores): os títulos precisam ser textos, sem repetir e sem célula vazia.`);
   if (conversas) avisos.push(`${conversas === 1 ? 'A conversa de comentários vai' : `As ${conversas} conversas de comentários vão`} como anotação comum no Excel (o texto e as respostas ficam juntos na mesma anotação).`);
   if (linksFora) avisos.push(`${linksFora === 1 ? 'Um link' : `${linksFora} links`} que levava a uma aba apagada não ${linksFora === 1 ? 'foi' : 'foram'} gravado${linksFora === 1 ? '' : 's'}.`);
   /* v0.6.5: o botão vai como forma com link (no Excel, um clique leva à aba, sem macro) */

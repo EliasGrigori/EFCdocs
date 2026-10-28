@@ -6,14 +6,14 @@ import { arvore, filho, filhos } from './xmlArvore.js';
 import { escapar } from './xml.js';
 import { lerCor, lerSpPr } from './graficosXlsx.js';
 import { figuraParaTexto } from './imagensXlsx.js';
-import { LARG_PADRAO, ALT_PADRAO } from '../modelo.js';
+import { LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao } from '../modelo.js';
 import { CONHECIDOS, assinaturaForma, limparForma, PT_PX } from '../formas.js';
 
 export const EMU = 9525;
 const EMU_PT = 12700;
 const NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
-const largCol = (aba, c) => (aba.ocC && aba.ocC[c] ? 0 : aba.larg && aba.larg[c] != null ? aba.larg[c] : LARG_PADRAO);
-const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : aba.alt && aba.alt[l] != null ? aba.alt[l] : ALT_PADRAO);
+const largCol = (aba, c) => (aba.ocC && aba.ocC[c] ? 0 : aba.larg && aba.larg[c] != null ? aba.larg[c] : largPadrao(aba));
+const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba));
 const TIPOS_IMG = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
 const int = (v, p = 0) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : p; };
 
@@ -333,6 +333,14 @@ export async function lerFormaDaAncora(el, ctx) {
   }
 
   if (!partes.length) return { graficos, fora, aprox };
+  /* v0.6.6 (Grok): grupo que tinha um gráfico e só mais uma forma: o gráfico sai solto e o grupo é desfeito
+     (a forma fica sozinha, no lugar e no tamanho dela; ao salvar vai como forma simples, não como grupo de um só) */
+  if (tipo === 'grpSp' && gruposGraficos.length && partes.length === 1) {
+    const p0 = partes[0];
+    const an = ancoraMais(ctx.aba, ctx.geo.l, ctx.geo.c, ctx.geo.dx, ctx.geo.dy, p0.x, p0.y);
+    const solta = limparForma({ partes: [{ ...p0, x: 0, y: 0 }], w: p0.w, h: p0.h, w0: p0.w, h0: p0.h, nome: p0.nome || 'Forma' }, { id: 'x', ...an });
+    if (solta) { if (ctx.ed) solta.ed = ctx.ed; return { obj: solta, graficos, fora, aprox }; }
+  }
   /* o XML guardado: os r:id viram marcas (__EFC_R_id__) que a gravação troca pelos novos */
   let xo = bruto;
   const idsUsados = [...xo.matchAll(/\br:(?:id|embed|link|pict)="([^"]+)"/g)].map((m) => m[1]);

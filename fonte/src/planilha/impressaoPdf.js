@@ -1,5 +1,7 @@
 /* EFCdocs v0.6.0 — PDF da planilha em vetor (texto de verdade, que dá para selecionar e procurar), sem biblioteca.
-   Fontes padrão do PDF (Helvetica e variações, WinAnsi: acentos do português). Gráficos entram como imagem JPEG nítida. */
+   Fontes padrão do PDF (Helvetica e variações, WinAnsi: acentos do português). Gráficos e formas entram como imagem nítida:
+   v0.6.6 (Grok B03): com transparência (RGB + máscara de opacidade, compactados), para o painel escuro aparecer por baixo
+   e o texto branco não sumir; imagem sem nenhum ponto transparente continua JPEG (menor). */
 import { textoPdf, textoInfo } from '../quadro/pdf.js';
 
 /* larguras da Helvetica e da Helvetica-Bold (AFM), caracteres 32 a 126, em milésimos do tamanho */
@@ -35,7 +37,12 @@ export function pdfDasPaginas(paginas, { titulo = 'Planilha', imagens = new Map(
   const idImg = new Map();
   for (const [svg, im] of imagens) {
     if (!im) continue;
-    const n = add({ dict: `<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>`, stream: im.bytes });
+    let n;
+    if (im.rgb) {
+      const filtro = im.flate ? ' /Filter /FlateDecode' : '';
+      const sm = add({ dict: `<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceGray /BitsPerComponent 8${filtro} /Length ${im.alfa.length} >>`, stream: im.alfa });
+      n = add({ dict: `<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8${filtro} /SMask ${sm} 0 R /Length ${im.rgb.length} >>`, stream: im.rgb });
+    } else n = add({ dict: `<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>`, stream: im.bytes });
     idImg.set(svg, n);
   }
   const fontes = `/Font << /F1 ${F[0]} 0 R /F2 ${F[1]} 0 R /F3 ${F[2]} 0 R /F4 ${F[3]} 0 R >>`;
@@ -93,9 +100,34 @@ export function pdfDasPaginas(paginas, { titulo = 'Planilha', imagens = new Map(
   return total;
 }
 
-/** SVG → JPEG (no navegador), com 3× a resolução do tamanho em pontos, para o PDF ficar nítido. */
-export async function svgParaJpeg(svg, wPt, hPt, fator = 3) {
-  const w = Math.max(1, Math.round(wPt * fator)), h = Math.max(1, Math.round(hPt * fator));
+/** Separa os pontos RGBA do canvas em RGB e opacidade (para o PDF). Devolve null se tudo é opaco. */
+export function separarAlfa(px) {
+  const n = px.length / 4;
+  let transp = false;
+  for (let i = 3; i < px.length; i += 4) if (px[i] < 255) { transp = true; break; }
+  if (!transp) return null;
+  const rgb = new Uint8Array(n * 3), alfa = new Uint8Array(n);
+  for (let i = 0, j = 0; i < n; i++, j += 3) {
+    const a = px[i * 4 + 3];
+    alfa[i] = a;
+    /* o canvas guarda a cor sem pré-multiplicar; ponto totalmente transparente fica branco (não suja a borda) */
+    if (a === 0) { rgb[j] = rgb[j + 1] = rgb[j + 2] = 255; continue; }
+    rgb[j] = px[i * 4]; rgb[j + 1] = px[i * 4 + 1]; rgb[j + 2] = px[i * 4 + 2];
+  }
+  return { rgb, alfa };
+}
+async function compactar(bytes) {
+  if (typeof CompressionStream === 'undefined') return null;
+  const cs = new CompressionStream('deflate');
+  const out = new Blob([bytes]).stream().pipeThrough(cs);
+  return new Uint8Array(await new Response(out).arrayBuffer());
+}
+/** SVG → imagem para o PDF (no navegador), com 3× a resolução do tamanho em pontos (até ~6 milhões de pontos).
+    Com partes transparentes: RGB + opacidade compactados (FlateDecode); toda opaca: JPEG. */
+export async function svgParaImagemPdf(svg, wPt, hPt, fator = 3) {
+  const lim = Math.sqrt(6e6 / Math.max(1, wPt * hPt));
+  const f = Math.max(1, Math.min(fator, lim));
+  const w = Math.max(1, Math.round(wPt * f)), h = Math.max(1, Math.round(hPt * f));
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   try {
     const img = new Image();
@@ -103,8 +135,13 @@ export async function svgParaJpeg(svg, wPt, hPt, fator = 3) {
     const cv = document.createElement('canvas');
     cv.width = w; cv.height = h;
     const ctx = cv.getContext('2d');
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
     ctx.drawImage(img, 0, 0, w, h);
+    const sep = separarAlfa(ctx.getImageData(0, 0, w, h).data);
+    if (sep) {
+      const [rgbZ, alfaZ] = await Promise.all([compactar(sep.rgb), compactar(sep.alfa)]);
+      if (rgbZ && alfaZ) return { rgb: rgbZ, alfa: alfaZ, flate: true, w, h };
+      return { rgb: sep.rgb, alfa: sep.alfa, flate: false, w, h };
+    }
     const blob = await new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.9));
     return { bytes: new Uint8Array(await blob.arrayBuffer()), w, h };
   } finally { URL.revokeObjectURL(url); }

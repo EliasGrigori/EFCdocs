@@ -240,6 +240,13 @@ export function resolverPlano(plano, lerFaixa) {
     if (S.nome && S.nome.ref) { const r = lerFaixa(S.nome.ref); if (r && r.txt && r.txt.length) S.nome.txt = r.txt.filter(Boolean).join(' '); }
   }
   for (const G of P.grupos) if (G.tipo === 'gauge' && G.valorRef) { const r = lerFaixa(G.valorRef); if (r && r.num && ehNum(r.num[0])) G.valor = r.num[0]; }
+  /* v0.6.6: título ligado a célula, rótulos com o "valor das células" e o texto ligado das caixas por cima do gráfico */
+  if (P.titulo && P.titulo.ref) { const r = lerFaixa(P.titulo.ref); if (r && r.txt) P.titulo.texto = r.txt.filter(Boolean).join(' ') || P.titulo.texto; }
+  for (const { S } of seriesDe(P)) if (S.rotFaixa && S.rotFaixa.ref) { const r = lerFaixa(S.rotFaixa.ref); if (r && r.txt) S.rotFaixa.txt = r.txt; }
+  for (const us of P.formas || []) for (const p of (us.f && us.f.partes) || []) {
+    const lg = p.texto && p.texto.ligado;
+    if (lg && lg.ref) { const r = lerFaixa({ aba: lg.aba || '', fx: lg.ref }); if (r && r.txt) lg.v = r.txt[0] ?? ''; }
+  }
   return P;
 }
 
@@ -248,6 +255,9 @@ export function refsDoPlano(P) {
   const out = [];
   for (const { S } of seriesDe(P)) for (const k of ['nome', 'cats', 'vals']) if (S[k] && S[k].ref) out.push(S[k].ref);
   for (const G of (P && P.grupos) || []) if (G.valorRef) out.push(G.valorRef);
+  /* v0.6.6 */
+  if (P && P.titulo && P.titulo.ref) out.push(P.titulo.ref);
+  for (const { S } of seriesDe(P)) if (S.rotFaixa && S.rotFaixa.ref) out.push(S.rotFaixa.ref);
   return out;
 }
 

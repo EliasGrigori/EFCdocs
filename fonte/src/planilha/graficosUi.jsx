@@ -407,7 +407,7 @@ function AbaTipo({ g, gv, ehX, tipo, rec, d, fx, setFx, setErro, lido, muda, mud
           <section className="rg-cartao">
             <span className="rg-cab">{pz.tipo === 'doughnut' ? 'Rosca' : 'Pizza'}</span>
             <Campo rotulo="Girar" dica="graus"><input type="range" min="0" max="359" step="5" value={pz.giro || 0} data-ge-giro onChange={(ev) => mx((x) => setGrupo(x, { giro: +ev.target.value }))} /></Campo>
-            {pz.tipo === 'doughnut' && <Campo rotulo="Tamanho do furo" dica={(pz.furo ?? 50) + '%'}><input type="range" min="10" max="90" step="5" value={pz.furo ?? 50} data-ge-furo onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
+            {pz.tipo === 'doughnut' && <Campo rotulo="Tamanho do furo" dica={(pz.furo ?? 50) + '%'}><input type="range" min="10" max="90" step="1" value={pz.furo ?? 50} data-ge-furo onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
           </section>
         );
       })()}
@@ -681,7 +681,7 @@ function AbaFundo({ P, mx, cores }) {
         <section className="rg-cartao">
           <span className="rg-cab">{pizza.tipo === 'doughnut' ? 'Rosca' : 'Pizza'}</span>
           <Campo rotulo="Girar" dica="graus"><input type="range" min="0" max="359" step="5" value={pizza.giro || 0} data-ge-giro onChange={(ev) => mx((x) => setGrupo(x, { giro: +ev.target.value }))} /></Campo>
-          {pizza.tipo === 'doughnut' && <Campo rotulo="Tamanho do furo" dica="%"><input type="range" min="10" max="90" step="5" value={pizza.furo ?? 50} data-ge-furo2 onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
+          {pizza.tipo === 'doughnut' && <Campo rotulo="Tamanho do furo" dica={(pizza.furo ?? 50) + "%"}><input type="range" min="10" max="90" step="1" value={pizza.furo ?? 50} data-ge-furo2 onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
         </section>
       )}
     </>

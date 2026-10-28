@@ -56,6 +56,23 @@ const fmtN = (n) => n.toLocaleString('pt-BR');
  * bytes do .xlsx → { conteudo, relatorio }.
  * aoProgresso({ fase, aba, i, n, linha }) é chamado de vez em quando.
  */
+/** v0.6.6: o estilo da tabela do Excel (nome e listras), para voltar igual ao salvar. */
+function estiloDaTabela(ts) {
+  if (!ts || !ts.a) return null;
+  const nome = String(ts.a.name || '');
+  if (nome && !/^[A-Za-z0-9 _-]{1,60}$/.test(nome)) return null;
+  const b = (k) => (ts.a[k] === '1' || ts.a[k] === 'true' ? 1 : 0);
+  return { nome, pc: b('showFirstColumn'), uc: b('showLastColumn'), ll: b('showRowStripes'), lc: b('showColumnStripes') };
+}
+/** v0.6.6: <sheetFormatPr> → largura padrão das colunas em px (como o Excel: defaultColWidth em caracteres,
+    ou baseColWidth + 5 px de margem, arredondado para múltiplo de 8; sem nada = 8 caracteres = 64 px). */
+export function larguraPadraoDoExcel(a) {
+  const dw = a && a.defaultColWidth != null ? parseFloat(a.defaultColWidth) : NaN;
+  if (Number.isFinite(dw) && dw > 0) return Math.max(8, Math.min(600, Math.trunc(((256 * dw + Math.trunc(128 / 7)) / 256) * 7)));
+  const bw = a && a.baseColWidth != null ? parseFloat(a.baseColWidth) : 8;
+  const b = Number.isFinite(bw) && bw >= 0 ? bw : 8;
+  return Math.max(8, Math.min(600, Math.ceil((b * 7 + 5) / 8) * 8));
+}
 export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgresso = () => {}, limites = LIMITES, agora = new Date() } = {}) {
   const zip = lerZip(bytes);
   const rel = {
@@ -135,6 +152,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       tabelas.set(nome.toLowerCase(), {
         nome, aba: f.nome, l1: p1.l, c1: p1.c, l2: p2.l, c2: p2.c, cols,
         cab: t.a.headerRowCount === '0' ? 0 : 1, tot: +(t.a.totalsRowCount || 0) > 0 || t.a.totalsRowShown === '1' && +(t.a.totalsRowCount || 0) > 0 ? 1 : 0,
+        est: estiloDaTabela(tag(t.dentro, 'tableStyleInfo')),
       });
     }
   }
@@ -257,7 +275,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         nCel++; totalCel++;
         if (cel.v !== undefined || cel.f != null) { if (L.r > lMax) lMax = L.r; if (x.c > cMax) cMax = x.c; }
       }
-      if (L.ht != null && L.ht !== ALT_PADRAO) { (aba.alt || (aba.alt = {}))[L.r] = L.ht; }
+      if (L.ht != null && L.ht !== altDaAba()) { (aba.alt || (aba.alt = {}))[L.r] = L.ht; }
       if (L.oculta) { (aba.ocL || (aba.ocL = {}))[L.r] = 1; }
     };
     const soltarPendentes = () => {
@@ -269,6 +287,17 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       }
     };
 
+    /* v0.6.6: altura padrão das linhas do arquivo (defaultRowHeight em pontos; sem ela, 15 pt = 20 px) */
+    let altP = null;
+    const altDaAba = () => {
+      if (altP == null) {
+        const sf = tag(cab, 'sheetFormatPr');
+        const dh = sf && sf.a.defaultRowHeight != null ? parseFloat(sf.a.defaultRowHeight) : 15;
+        altP = Math.max(4, Math.min(545, Math.round((Number.isFinite(dh) && dh > 0 ? dh : 15) * 4 / 3)));
+        aba.altP = altP;
+      }
+      return altP;
+    };
     const linha = (atr, corpo) => {
       const a = atributos(atr);
       const r = (a.r ? +a.r : (linha.ult ?? -1) + 2) - 1;
@@ -276,8 +305,9 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       if (r >= MAX_LIN) return;
       const L = { r, cells: [], oculta: a.hidden === '1' || a.hidden === 'true', ht: null, s: a.customFormat === '1' ? sDe(a.s) : 0 };
       if (!L.oculta) linhasDef.add(r);
+      /* v0.6.6: a linha guarda a altura dela quando é diferente da padrão do arquivo (aba.altP), como o Excel mostra */
       if (a.ht && (a.customHeight === '1' || a.customHeight === 'true')) L.ht = Math.max(0, Math.round(parseFloat(a.ht) * 4 / 3));
-      else if (a.ht && parseFloat(a.ht) * 4 / 3 > ALT_PADRAO * 1.4) L.ht = Math.round(parseFloat(a.ht) * 4 / 3);
+      else if (a.ht && Number.isFinite(parseFloat(a.ht)) && Math.abs(Math.round(parseFloat(a.ht) * 4 / 3) - altDaAba()) >= 1) L.ht = Math.round(parseFloat(a.ht) * 4 / 3);
       let temValor = false, temVisivel = false;
       if (corpo) {
         const rx = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
@@ -409,6 +439,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     const ok = await zip.pedacos(F.parte, (pedaco) => { buf += pedaco; processar(false); });
     if (!ok) { rel.avisos.push(`A aba "${F.nome}" está faltando dentro do arquivo.`); continue; }
     processar(true);
+    altDaAba();
 
     /* ---------- cabeçalho: congelar, cor, colunas ---------- */
     const sp = tag(cab, 'sheetPr');
@@ -419,7 +450,9 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       if (l > 0 || c > 0) aba.cong = { l, c };
     }
     const sfp = tag(cab, 'sheetFormatPr');
-    if (sfp && (sfp.a.zeroHeight === '1' || sfp.a.zeroHeight === 'true')) zeroAltura = true;
+    if (sfp && (sfp.a.zeroHeight === '1' || sfp.a.zeroHeight === 'true')) { zeroAltura = true; aba.zeroH = 1; }
+    /* v0.6.6: largura padrão das colunas do arquivo (as colunas sem largura própria ficam como no Excel, ex.: 64 px) */
+    aba.largP = larguraPadraoDoExcel(sfp && sfp.a);
     const colsDef = tags(tag(cab, 'cols')?.dentro || '', 'col');
 
     /* ---------- fim da aba: o que fica das linhas pendentes ---------- */
@@ -468,7 +501,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const px = w != null ? Math.max(0, Math.trunc(((256 * w + Math.trunc(128 / 7)) / 256) * 7)) : null;
       for (let c = c1; c <= c2; c++) {
         if (cd.a.hidden === '1' || cd.a.hidden === 'true') (aba.ocC || (aba.ocC = {}))[c] = 1;
-        else if (px != null && (cd.a.customWidth === '1' || Math.abs(px - 64) > 2) && px !== LARG_PADRAO) (aba.larg || (aba.larg = {}))[c] = px;
+        else if (px != null && px !== aba.largP) (aba.larg || (aba.larg = {}))[c] = px;
       }
     }
 
@@ -601,13 +634,13 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   }
 
   if (abasZero.length) rel.avisos.push(`${abasZero.length === 1 ? `Na aba "${abasZero[0]}"` : `Nas abas ${abasZero.map((n) => `"${n}"`).join(', ')}`}, as linhas que o arquivo não lista ficavam escondidas no Excel; aqui continuam escondidas (Layout › Reexibir mostra de novo).`);
-  if (tabelas.size) rel.avisos.push(`${tabelas.size === 1 ? 'A tabela' : `As ${tabelas.size} tabelas`} do Excel ${tabelas.size === 1 ? 'virou' : 'viraram'} faixa normal: nas fórmulas, o nome da coluna virou o endereço${exemploTabela ? ` (por exemplo, ${exemploTabela})` : ''}. A conta é a mesma.`);
+  if (tabelas.size) rel.avisos.push(`${tabelas.size === 1 ? 'A tabela' : `As ${tabelas.size} tabelas`} do Excel ${tabelas.size === 1 ? 'vem e volta' : 'vêm e voltam'} ao salvar como Excel; aqui, nas fórmulas, o nome da coluna virou o endereço${exemploTabela ? ` (por exemplo, ${exemploTabela})` : ''}. A conta é a mesma.`);
 
   /* tabelas: guarda onde ficavam (para INDIRECT("Tabela[Coluna]") nas listas suspensas) */
   if (tabelas.size) {
     const porNome = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));
     const tb = {};
-    for (const [k, t] of tabelas) { const id = porNome.get(String(t.aba).toLowerCase()); if (id) tb[k] = { nome: t.nome, aba: id, l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2, cols: t.cols, cab: t.cab, tot: t.tot }; }
+    for (const [k, t] of tabelas) { const id = porNome.get(String(t.aba).toLowerCase()); if (id) tb[k] = { nome: t.nome, aba: id, l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2, cols: t.cols, cab: t.cab, tot: t.tot, ...(t.est ? { est: t.est } : {}) }; }
     if (Object.keys(tb).length) conteudo.tabelas = tb;
   }
 

@@ -13,7 +13,7 @@ const presetMargem = (m) => Object.keys(MARGENS).find((k) => ['t', 'b', 'l', 'r'
  * imp0: configuração salva na aba · selecaoTexto: "A1:F20" · gerar(imp, alvo) → { paginas, esc, aviso } (pronto para desenhar)
  * aoSalvar(imp) · aoPdf(imp, alvo) · aoImprimir(imp, alvo)
  */
-export function JanelaImprimir({ imp0, selecaoTexto, temVariasAbas, secao, gerar, aoSalvar, aoPdf, aoImprimir, aoFechar }) {
+export function JanelaImprimir({ imp0, nota, selecaoTexto, temVariasAbas, secao, gerar, aoSalvar, aoPdf, aoImprimir, aoFechar }) {
   const [imp, setImp] = useState(() => normalizarImp(imp0));
   const [alvo, setAlvo] = useState('aba');
   const [pag, setPag] = useState(0);
@@ -157,6 +157,7 @@ export function JanelaImprimir({ imp0, selecaoTexto, temVariasAbas, secao, gerar
               </select>
             </label>
             {imp.escala.modo === 'pct' && <label className="rg-campo"><span>Tamanho</span><span className="rg-linha"><input type="number" min="10" max="400" value={imp.escala.pct} data-imp-pct style={{ width: 90 }} onChange={(ev) => muda({ escala: { ...imp.escala, pct: +ev.target.value } })} /> % do normal</span></label>}
+            {nota && imp.escala.modo === 'pagina' && <p className="rg-dica imp-nota-painel" role="status" data-imp-nota-painel>{nota}</p>}
             {r.esc < 0.5 && (
               <p className="imp-aviso-esc" role="status" data-imp-aviso-escala>
                 <Icone n="aviso" />

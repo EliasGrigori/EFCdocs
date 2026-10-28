@@ -2,13 +2,13 @@
    Ler: figura presa a uma célula vira objeto 'imagem' (guardada pequena, em texto data:). Gravar: o inverso. */
 import { tag } from './xml.js';
 import { escapar } from './xml.js';
-import { LARG_PADRAO, ALT_PADRAO } from '../modelo.js';
+import { LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao } from '../modelo.js';
 import { gifAnimado } from '../imagem.js';
 import { IMG, imagemValida } from '../objetos.js';
 
 const EMU = 9525;
-const largCol = (aba, c) => (aba.ocC && aba.ocC[c] ? 0 : aba.larg && aba.larg[c] != null ? aba.larg[c] : LARG_PADRAO);
-const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : aba.alt && aba.alt[l] != null ? aba.alt[l] : ALT_PADRAO);
+const largCol = (aba, c) => (aba.ocC && aba.ocC[c] ? 0 : aba.larg && aba.larg[c] != null ? aba.larg[c] : largPadrao(aba));
+const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba));
 const TIPOS = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
 
 export function paraBase64(bytes) {

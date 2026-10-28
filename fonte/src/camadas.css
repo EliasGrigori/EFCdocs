@@ -68,7 +68,11 @@
 }
 .btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 86%, #000); border-color: transparent; }
 .btn.primary:focus-visible { box-shadow: var(--anel), 0 3px 8px color-mix(in srgb, var(--primary) 32%, transparent); }
-.btn.perigo { box-shadow: 0 1px 0 rgba(255, 255, 255, .2) inset, 0 3px 8px color-mix(in srgb, var(--crit) 30%, transparent); border-color: transparent; }
+/* v0.6.6 (Grok): "Descartar" ilegível — nos temas escuros o vermelho era claro e, ao passar o mouse, o fundo virava o da superfície com letra branca.
+   Agora é um vermelho fechado fixo (contraste 6,5 com o branco) em todos os temas, também no hover */
+.btn.perigo { background: #b3261e; color: #fff; box-shadow: 0 1px 0 rgba(255, 255, 255, .2) inset, 0 3px 8px rgba(179, 38, 30, .3); border-color: transparent; }
+.btn.perigo:hover:not(:disabled) { background: #8f1d17; color: #fff; border-color: transparent; }
+.btn.perigo svg { color: #fff; }
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .iconbtn { border-radius: var(--r-ctl); }
 .iconbtn:focus-visible { outline: none; box-shadow: var(--anel); }
@@ -534,7 +538,7 @@ svg.ic-novo .barra { stroke: var(--primary); }
 /* ---------- v0.6.5: formas do Excel (painéis, setas, botões com link, caixas de texto) ---------- */
 /* a caixa não recebe clique: só o que está pintado (como no Excel, clicar no vazio de uma forma sem fundo pega a célula de baixo) */
 .pl-obj-fm { pointer-events: none; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
-.pl-obj-fm .fm-view svg { display: block; overflow: visible; }
+.pl-obj-fm .fm-view svg { display: block; overflow: visible; shape-rendering: geometricPrecision; } /* v0.6.6 (Grok): linha fina e inclinada com o traço mais liso */
 .pl-obj-fm .fm-view svg * { pointer-events: visiblePainted; cursor: move; }
 .pl-obj-fm.com-link .fm-view svg [data-parte] * { cursor: pointer; }
 .pl-obj-fm.com-link .fm-view [data-parte]:hover { filter: brightness(1.06); }

@@ -7,6 +7,7 @@
 import { NOME_TIPO, escala, numeroCurto } from './graficos.js';
 import { construir, resolverPlano, seriesDe, corSemaforo, metaPadraoDe, PT } from './graficoPlano.js';
 import { formatar } from './formato.js';
+import { svgDaForma } from './formas.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 const r1 = (v) => Math.round(v * 10) / 10;
@@ -147,10 +148,16 @@ export function svgDoPlano(P0, { w = 480, h = 300, tema = TEMA_CLARO, mini = fal
     const tam = ehNum(ti.tam) ? ti.tam * PT : fs + 3;
     const texto = ti.texto ?? (seriesDe(P)[0] && seriesDe(P)[0].S.nome.txt) ?? '';
     if (texto) {
-      const al = ti.alinhar === 'e' ? 'start' : 'middle';
       const linhas = String(texto).split('\n');
-      linhas.forEach((ln, i) => add(txt(al === 'start' ? pad + 2 : w / 2, topo + tam + i * tam * 1.2, ln, { tam, cor: ti.cor || corTexto, negrito: ti.negrito !== false, italico: !!ti.italico, anc: al, parte: 'titulo', maxW: w - 2 * pad })));
-      topo += tam * 1.2 * linhas.length + 6;
+      if (ti.lay) {
+        /* v0.6.6: título no lugar escolhido no Excel (canto de cima à esquerda em frações do gráfico); não toma lugar do desenho */
+        const x0 = ti.lay.x * w, y0 = ti.lay.y * h;
+        linhas.forEach((ln, i) => add(txt(x0 + 2, y0 + tam + i * tam * 1.2, ln, { tam, cor: ti.cor || corTexto, negrito: ti.negrito !== false, italico: !!ti.italico, anc: 'start', parte: 'titulo', maxW: Math.max(20, w - x0 - pad) })));
+      } else {
+        const al = ti.alinhar === 'e' ? 'start' : 'middle';
+        linhas.forEach((ln, i) => add(txt(al === 'start' ? pad + 2 : w / 2, topo + tam + i * tam * 1.2, ln, { tam, cor: ti.cor || corTexto, negrito: ti.negrito !== false, italico: !!ti.italico, anc: al, parte: 'titulo', maxW: w - 2 * pad })));
+        if (!ti.sobre) topo += tam * 1.2 * linhas.length + 6;
+      }
     }
   }
   const vazio = !P.grupos.length || (P.grupos.every((G) => G.tipo !== 'gauge') && !seriesDe(P).some(({ S }) => (S.vals.num || []).some(ehNum)));
@@ -165,7 +172,13 @@ export function svgDoPlano(P0, { w = 480, h = 300, tema = TEMA_CLARO, mini = fal
   const fsLeg = ehNum(leg.tam) ? leg.tam * PT : fs;
   const corLeg = leg.cor || corTexto;
   let caixaLeg = null;
-  if (itensLeg.length) {
+  if (itensLeg.length && leg.lay) {
+    /* v0.6.6: legenda no lugar escolhido no Excel */
+    const lw = leg.lay.w ? leg.lay.w * w : Math.min(w * 0.4, Math.max(...itensLeg.map((it) => larguraTexto(it.nome, fsLeg, leg.negrito) + fsLeg + 14)) + 6);
+    const vertical = !(leg.pos === 'b' || leg.pos === 't');
+    if (vertical) caixaLeg = { x: leg.lay.x * w, y: leg.lay.y * h, w: lw, h: leg.lay.h ? leg.lay.h * h : itensLeg.length * (fsLeg + 6), vertical: true };
+    else caixaLeg = { x: leg.lay.x * w, y: leg.lay.y * h, w: lw, h: fsLeg + 6, linhas: [itensLeg] };
+  } else if (itensLeg.length) {
     const pos = leg.auto && leg.pos === 'b' && w > h * 1.15 ? 'r' : leg.pos || 'b';
     const largItem = (it) => larguraTexto(it.nome, fsLeg, leg.negrito) + fsLeg + 14;
     if (pos === 'r' || pos === 'l' || pos === 'tr') {
@@ -186,13 +199,23 @@ export function svgDoPlano(P0, { w = 480, h = 300, tema = TEMA_CLARO, mini = fal
       if (pos === 't') topo += lh + 4; else baixo -= lh + 4;
     }
   }
-  const area = { x: esq, y: topo, w: Math.max(10, dir - esq), h: Math.max(10, baixo - topo) };
+  let area = { x: esq, y: topo, w: Math.max(10, dir - esq), h: Math.max(10, baixo - topo) };
+  /* v0.6.6: área do desenho com tamanho e lugar escolhidos no Excel (velocímetros e painéis) */
+  const la = P.area && P.area.lay;
+  if (la && la.w && la.h && !mini) area = { x: la.x * w, y: la.y * h, w: Math.max(10, la.w * w), h: Math.max(10, la.h * h), dentro: la.alvo === 'inner' };
 
   const soRedondo = P.grupos.every((G) => G.tipo === 'pie' || G.tipo === 'doughnut' || G.tipo === 'gauge');
   if (soRedondo) desenharRedondos(P, area, { C, add, fs, corTexto, corFraco, mini });
   else desenharComEixos(P, area, { C, add, fs, corTexto, corFraco, mini, T, w, h, pad });
 
   if (caixaLeg) desenharLegenda(itensLeg, caixaLeg, { add, C, fsLeg, corLeg, negrito: !!leg.negrito });
+  /* v0.6.6: caixas de texto e formas que o Excel desenha por cima do gráfico (com o texto ligado à célula, se tiver) */
+  if (!mini) (P.formas || []).forEach((us, i) => {
+    if (!us || !us.f || !Array.isArray(us.f.partes)) return;
+    const fw = Math.max(1, us.w * w), fh = Math.max(1, us.h * h);
+    const inner = svgDaForma(us.f, fw, fh, { uid: `gf${++seq}_${i}`, lerLigado: (lg) => (lg && lg.v != null ? String(lg.v) : null) });
+    add(`<g data-parte="forma:${i}">` + inner.replace(/^<svg /, `<svg x="${r1(us.x * w)}" y="${r1(us.y * h)}" `) + '</g>');
+  });
   return envolver(partes, C, w, h, rotulo);
 }
 
@@ -299,6 +322,9 @@ function caminho(pts, suave) {
 /* ---------- textos dos rótulos de dados ---------- */
 function textoRotulo(P, R, S, k, v, tot) {
   const p = [];
+  /* v0.6.6: "valor das células" (o Excel põe na frente) */
+  if (R.faixa && S.rotFaixa && S.rotFaixa.txt && S.rotFaixa.txt[k] != null && S.rotFaixa.txt[k] !== '') p.push(String(S.rotFaixa.txt[k]));
+  if (R.faixa && !R.val && !R.pct && !R.cat && !R.nome) return p.join('');
   if (R.nome) p.push(S.nome.txt || '');
   if (R.cat) p.push((S.cats.txt && S.cats.txt[k]) ?? String(k + 1));
   if (R.val || (!R.pct && !R.cat && !R.nome)) p.push(fmtValor(P, v, R.fmt || S.vals.fmt));
@@ -342,7 +368,7 @@ function desenharRedondos(P, A, { C, add, fs, corTexto, mini }) {
           add(`<path d="${d}"${C.preench(pr, '#888')}${atrLinha(ln, null, 1) || ''}${C.efeito(pt.efeito || S.efeito)} data-parte="ponto:${serieIndice(P, S)}:${k}"/>`);
         }
         const R2 = rotuloDoPonto(S, k);
-        if (!mini && R2 && (R2.val || R2.pct || R2.cat || R2.nome) && !(invisivel && !(pt.rotulo)) && !(R2.min && v / tot < R2.min)) {
+        if (!mini && R2 && (R2.val || R2.pct || R2.cat || R2.nome || R2.faixa) && !(invisivel && !(pt.rotulo)) && !(R2.min && v / tot < R2.min)) {
           const t = textoRotulo(P, R2, S, k, v, tot);
           const fora = R2.pos === 'outEnd' || (R2.pos === 'bestFit' && v / tot < 0.08);
           const rr = fora ? r1x + 12 : r0 ? (r0 + r1x) / 2 : r1x * 0.62;
@@ -590,7 +616,7 @@ function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T }) {
         const r = horiz ? { x: Math.min(pa, pb), y: c0, w: Math.max(1, Math.abs(pb - pa)), h: Math.max(1, larg - (P.colado ? 0.5 : 0)) } : { x: c0, y: Math.min(pa, pb), w: Math.max(1, larg - (P.colado ? 0.5 : 0)), h: Math.max(1, Math.abs(pb - pa)) };
         add(`<rect x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(r.w)}" height="${r1(r.h)}" rx="${raio}"${C.preench(pr, cor)}${st}${pt.efeito ? C.efeito(pt.efeito) : ''} data-parte="ponto:${i}:${k}"/>`);
         const R2 = rotuloDoPonto(S, k);
-        if (R2 && !mini && (R2.val || R2.pct || R2.cat || R2.nome)) {
+        if (R2 && !mini && (R2.val || R2.pct || R2.cat || R2.nome || R2.faixa)) {
           const t = textoRotulo(P, R2, S, k, v0, tot ? tot[k] : 0);
           const tam = ehNum(R2.tam) ? R2.tam * PT : fs - 1;
           const pos = R2.pos || (emp ? 'ctr' : 'outEnd');
@@ -638,7 +664,7 @@ function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T }) {
       add(`<path d="${d}"${C.preench(pr, cor)}${atrLinha(S.contorno || S.linha, P.nativo ? cor : null, 2) || ''}${C.efeito(S.efeito)} data-parte="serie:${i}"/>`);
       if (!mini) topoV.forEach((p, k) => {
         const R2 = rotuloDoPonto(S, k); const v = (S.vals.num || [])[k];
-        if (!R2 || !ehNum(v) || !(R2.val || R2.pct || R2.cat || R2.nome)) return;
+        if (!R2 || !ehNum(v) || !(R2.val || R2.pct || R2.cat || R2.nome || R2.faixa)) return;
         const tam = ehNum(R2.tam) ? R2.tam * PT : fs - 1;
         rotulos.push(txt(p[0], p[1] - 6, textoRotulo(P, R2, S, k, v, 0), { tam, cor: R2.cor || corTexto, negrito: !!R2.negrito, anc: 'middle' }));
       });
@@ -686,7 +712,7 @@ function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T }) {
       if (!mini) pts.forEach((p) => {
         if (!p) return;
         const R2 = rotuloDoPonto(S, p[2]);
-        if (!R2 || !(R2.val || R2.pct || R2.cat || R2.nome)) return;
+        if (!R2 || !(R2.val || R2.pct || R2.cat || R2.nome || R2.faixa)) return;
         const v = (S.vals.num || [])[p[2]];
         const t = textoRotulo(P, R2, S, p[2], v, 0);
         const tam = ehNum(R2.tam) ? R2.tam * PT : fs - 1;

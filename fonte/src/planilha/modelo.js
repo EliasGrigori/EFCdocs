@@ -77,8 +77,12 @@ export function indiceEstilo(estilos, e) {
 export const estiloDe = (c, cel) => (cel && cel.s ? c.estilos[cel.s] || {} : {});
 
 /* ---------- tamanho de linhas e colunas ---------- */
-export const largCol = (aba, c) => (aba.ocC && aba.ocC[c] ? 0 : (aba.larg && aba.larg[c] != null ? aba.larg[c] : LARG_PADRAO));
-export const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : (aba.alt && aba.alt[l] != null ? aba.alt[l] : ALT_PADRAO));
+/** v0.6.6: largura padrão da aba (px): a do arquivo do Excel (aba.largP, ex.: 64 px) ou a do EFCdocs (80 px, melhor para o toque). */
+export const largPadrao = (aba) => (aba && typeof aba.largP === 'number' && aba.largP >= 8 && aba.largP <= 600 ? aba.largP : LARG_PADRAO);
+export const largCol = (aba, c) => (aba.ocC && aba.ocC[c] ? 0 : (aba.larg && aba.larg[c] != null ? aba.larg[c] : largPadrao(aba)));
+/** v0.6.6: altura padrão das linhas da aba (px): a do arquivo do Excel (aba.altP, ex.: 20 px = 15 pt) ou a do EFCdocs (22 px). */
+export const altPadrao = (aba) => (aba && typeof aba.altP === 'number' && aba.altP >= 4 && aba.altP <= 545 ? aba.altP : ALT_PADRAO);
+export const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : (aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba)));
 
 /**
  * Medidas acumuladas para achar posições sem somar 1 milhão de linhas:

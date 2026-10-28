@@ -12,7 +12,7 @@ import { lerOriginal } from '../nucleo/originais.js';
 import { PortalPainel } from '../quadro/partes.jsx';
 import { Motor } from './motor.js';
 import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, textoFaixaCaixa, normalFaixa, lerEndereco, lerEnderecoCaixa, nomeAbaNaFormula } from './ref.js';
-import { eixo, ALT_PADRAO, LARG_PADRAO, estiloDe, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
+import { eixo, ALT_PADRAO, LARG_PADRAO, largPadrao, altPadrao, estiloDe, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
 import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, estiloVisto } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
@@ -36,9 +36,9 @@ import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
 import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
 import { lerFaixaDoLivro } from './xlsx/graficosXlsx.js';
 import { svgDoGrafico } from './desenhoGrafico.js';
-import { paginar, normalizarImp, impParaGuardar } from './impressao.js';
+import { paginar, normalizarImp, impParaGuardar, sugestaoPainel } from './impressao.js';
 import { desenharPaginas, svgDaPagina } from './paginaDesenho.js';
-import { pdfDasPaginas, svgParaJpeg } from './impressaoPdf.js';
+import { pdfDasPaginas, svgParaImagemPdf } from './impressaoPdf.js';
 import { JanelaImprimir } from './imprimirUi.jsx';
 import { JanelaAssinatura, AssinaturaView } from '../ui/assinatura.jsx';
 import { RelatorioExcel } from '../ui/excel.jsx';
@@ -249,16 +249,16 @@ export function Planilha({ arquivo, cx }) {
   }, []);
 
   /* ---------- eixos e geometria ---------- */
-  const linhas = useMemo(() => eixo(aba.alt, aba.ocL, ALT_PADRAO, MAX_LIN), [aba.alt, aba.ocL]);
-  const colunas = useMemo(() => eixo(aba.larg, aba.ocC, LARG_PADRAO, MAX_COL), [aba.larg, aba.ocC]);
+  const linhas = useMemo(() => eixo(aba.alt, aba.ocL, altPadrao(aba), MAX_LIN), [aba.alt, aba.ocL, aba.altP]);
+  const colunas = useMemo(() => eixo(aba.larg, aba.ocC, largPadrao(aba), MAX_COL), [aba.larg, aba.ocC, aba.largP]);
   const cong = aba.cong || null;
   const mesc = useMemo(() => mescladas(aba), [aba.mesc]); // eslint-disable-line react-hooks/exhaustive-deps
   const cheias = useMemo(() => indiceCheias(aba), [aba.cel]); // eslint-disable-line react-hooks/exhaustive-deps
   const usado = motor.usado(abaId);
 
   /* extensão da rolagem: área usada + folga, e cresce ao chegar perto do fim */
-  const extL = Math.min(MAX_LIN, Math.max(usado.lMax + 60, sel.ativa.l + 40, extensao.current.l, Math.ceil(tam.H / (ALT_PADRAO * z)) * 2));
-  const extC = Math.min(MAX_COL, Math.max(usado.cMax + 12, sel.ativa.c + 8, extensao.current.c, Math.ceil(tam.W / (LARG_PADRAO * z)) * 2));
+  const extL = Math.min(MAX_LIN, Math.max(usado.lMax + 60, sel.ativa.l + 40, extensao.current.l, Math.ceil(tam.H / (altPadrao(aba) * z)) * 2));
+  const extC = Math.min(MAX_COL, Math.max(usado.cMax + 12, sel.ativa.c + 8, extensao.current.c, Math.ceil(tam.W / (largPadrao(aba) * z)) * 2));
   const cl = cong ? cong.l : 0, cc0 = cong ? cong.c : 0;
   const conteudoH = (linhas.pos(extL) - linhas.pos(cl)) * z;
   const conteudoW = (colunas.pos(extC) - colunas.pos(cc0)) * z;
@@ -526,7 +526,7 @@ export function Planilha({ arquivo, cx }) {
       const t = formatar(v, est.nf).t;
       m.font = fonteCanvas(est, 1, familia);
       const w = Math.ceil(m.measureText(t).width + 12);
-      if (w > LARG_PADRAO && w > (porCol.get(col) || 0)) porCol.set(col, Math.min(w, 300));
+      if (w > largPadrao(aba) && w > (porCol.get(col) || 0)) porCol.set(col, Math.min(w, 300));
     }
     for (const [col, w] of porCol) lote.outras[`conteudo.abas.${id}.larg.${col}`] = w;
   };
@@ -631,6 +631,13 @@ export function Planilha({ arquivo, cx }) {
       const base = nova.s ? estiloDe({ estilos: lote.estilos }, nova) : est;
       const s = lote.estilo({ ...base, qb: true }); if (s) nova.s = s;
     }
+    /* v0.6.6 (Grok A03): a linha cresce para mostrar as linhas do texto (como o Excel), se a altura dela não foi escolhida à mão */
+    if (r.f == null && !r.vazio && typeof r.v === 'string' && r.v.includes('\n') && !(abaE.alt && abaE.alt[e.l] != null)) {
+      const tam = (estiloDe({ estilos: lote.estilos }, nova).tam || 11) * (4 / 3);
+      const n = Math.min(40, r.v.split('\n').length);
+      const h = Math.min(409, Math.ceil(n * tam * 1.22 + 6));
+      if (h > altPadrao(abaE)) lote.outras[`conteudo.abas.${e.abaId}.alt`] = { ...(abaE.alt || {}), [e.l]: h };
+    }
     /* grava e devolve o teclado para a grade na mesma hora (quem digita rápido não perde letra) */
     flushSync(() => {
       setEdit(null);
@@ -694,6 +701,8 @@ export function Planilha({ arquivo, cx }) {
   };
   /* ---------- v0.6.3: imagem e botão que leva a outra aba ---------- */
   const abrirObjeto = (o) => {
+    /* v0.6.6 (Grok): aba travada: forma, imagem, botão e gráfico não abrem a janela de mudar (o link da forma continua funcionando) */
+    if (aba.prot && !somenteLeitura) { setObjSel(o.id); cx.avisar('Esta aba está travada: formas, imagens, gráficos e assinaturas não mudam. Para mexer, tire a trava em Revisão › Travar modelo.', { ic: 'cadeado' }); return; }
     if (o.tipo === 'grafico') abrirGrafico(o);
     else if (o.tipo === 'imagem') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'imagem', id: o.id }); }
     else if (o.tipo === 'botao') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'botao', id: o.id }); }
@@ -809,7 +818,7 @@ export function Planilha({ arquivo, cx }) {
   /* ---------- Imprimir e PDF (v0.6.0) ---------- */
   const fonteImpressao = (idA) => {
     const A = c.abas[idA];
-    const ec = eixo(A.larg, A.ocC, LARG_PADRAO, MAX_COL), el = eixo(A.alt, A.ocL, ALT_PADRAO, MAX_LIN);
+    const ec = eixo(A.larg, A.ocC, largPadrao(A), MAX_COL), el = eixo(A.alt, A.ocL, altPadrao(A), MAX_LIN);
     const ms = mescladas(A);
     const objetos = objetosDaAba(A).map((o) => {
       if (o.tipo === 'grafico') {
@@ -842,7 +851,7 @@ export function Planilha({ arquivo, cx }) {
       if (p && !e.fundo && !e.bd && (x.v === '' || x.f !== undefined)) { let v; try { v = motor.valor(idA, p.l, p.c); } catch { v = null; } if (v == null || v === '') continue; }
       if (p) { if (p.l > l2) l2 = p.l; if (p.c > c2) c2 = p.c; }
     }
-    const ec = eixo(A.larg, A.ocC, LARG_PADRAO, MAX_COL), el = eixo(A.alt, A.ocL, ALT_PADRAO, MAX_LIN);
+    const ec = eixo(A.larg, A.ocC, largPadrao(A), MAX_COL), el = eixo(A.alt, A.ocL, altPadrao(A), MAX_LIN);
     for (const o of objetosDaAba(A)) { const cf = ec.em(ec.pos(o.c) + o.dx + o.w - 1), lf = el.em(el.pos(o.l) + o.dy + o.h - 1); if (lf > l2) l2 = lf; if (cf > c2) c2 = cf; }
     for (const m of mescladas(A)) { if (m.l2 > l2) l2 = m.l2; if (m.c2 > c2) c2 = m.c2; }
     return l2 < 0 ? null : { l1: 0, c1: 0, l2, c2 };
@@ -873,7 +882,7 @@ export function Planilha({ arquivo, cx }) {
     const r = gerarImpressao(imp, alvo);
     if (!r.paginas.length) { cx.avisar(r.aviso || 'Nada para o PDF.', { ic: 'aviso' }); return; }
     const imagens = new Map();
-    for (const p of r.paginas) for (const o of p.ops) if (o.k === 'img' && !imagens.has(o.svg)) { try { imagens.set(o.svg, await svgParaJpeg(o.svg, o.w, o.h)); } catch { imagens.set(o.svg, null); } }
+    for (const p of r.paginas) for (const o of p.ops) if (o.k === 'img' && !imagens.has(o.svg)) { try { imagens.set(o.svg, await svgParaImagemPdf(o.svg, o.w, o.h)); } catch { imagens.set(o.svg, null); } }
     const bytes = pdfDasPaginas(r.paginas, { titulo: ficha.nome || 'Planilha', imagens });
     const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
     const a = document.createElement('a');
@@ -1209,7 +1218,7 @@ export function Planilha({ arquivo, cx }) {
     if (k === 'PageDown' || k === 'PageUp') {
       ev.preventDefault();
       if (ctrl) { trocarAbaVizinha(k === 'PageDown' ? 1 : -1); return; }
-      const n = Math.max(1, Math.floor((tam.H - G.hh) / (ALT_PADRAO * z)) - 1);
+      const n = Math.max(1, Math.floor((tam.H - G.hh) / (altPadrao(aba) * z)) - 1);
       andar(k === 'PageDown' ? n : -n, 0, { estender: ev.shiftKey });
       return;
     }
@@ -1771,7 +1780,7 @@ export function Planilha({ arquivo, cx }) {
     const ocultarEssas = () => { const atual = { ...(aba[mapa] || {}) }; for (let k = i; k < i + Math.min(n, 100000); k++) atual[k] = 1; mudar({ [`conteudo.abas.${abaId}.${mapa}`]: atual }, `Ocultar ${quais}`); };
     const tamanho = () => cx.perguntar({
       titulo: ehCol ? `Largura da ${quais}` : `Altura da ${quais}`, campo: ehCol ? 'Largura em pixels (padrão 80)' : 'Altura em pixels (padrão 22)',
-      valor: String(ehCol ? colunas.tam(i) || LARG_PADRAO : linhas.tam(i) || ALT_PADRAO), confirmar: 'Aplicar', modo: 'numeric',
+      valor: String(ehCol ? colunas.tam(i) || largPadrao(aba) : linhas.tam(i) || altPadrao(aba)), confirmar: 'Aplicar', modo: 'numeric',
       validar: (t) => (/^\d{1,3}$/.test(t.trim()) && +t >= (ehCol ? 4 : 6) && +t <= (ehCol ? 600 : 400) ? '' : (ehCol ? 'Use um número de 4 a 600.' : 'Use um número de 6 a 400.')),
       aoConfirmar: (t) => {
         const mud = {};
@@ -2163,7 +2172,7 @@ export function Planilha({ arquivo, cx }) {
       case 'exibir.congelar': return !!(cong && (cong.l || cong.c));
       case 'editar.pincel': return !!pincel;
       case 'formula.problemas': return probAberto;
-      default: return false;
+      default: return undefined;
     }
   };
 
@@ -2303,7 +2312,15 @@ export function Planilha({ arquivo, cx }) {
     const mq = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
     const aoMudar = () => setDensidade((n) => n + 1);
     if (mq.addEventListener) mq.addEventListener('change', aoMudar); else if (mq.addListener) mq.addListener(aoMudar);
-    return () => { if (mq.removeEventListener) mq.removeEventListener('change', aoMudar); else if (mq.removeListener) mq.removeListener(aoMudar); };
+    /* v0.6.6 (Grok): nem todo navegador avisa a troca de densidade (tela de outro monitor, emulação): confere também a cada segundo e no resize */
+    let ultima = window.devicePixelRatio || 1;
+    const conferir = () => { const d = window.devicePixelRatio || 1; if (d !== ultima) { ultima = d; aoMudar(); } };
+    const t = setInterval(conferir, 1000);
+    window.addEventListener('resize', conferir);
+    return () => {
+      clearInterval(t); window.removeEventListener('resize', conferir);
+      if (mq.removeEventListener) mq.removeEventListener('change', aoMudar); else if (mq.removeListener) mq.removeListener(aoMudar);
+    };
   }, [typeof window !== 'undefined' ? window.devicePixelRatio : 1]); // eslint-disable-line react-hooks/exhaustive-deps
   /* ---------- desenho ---------- */
   const familia = useMemo(() => familiaDa(c), [c.fonteBase]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -2724,7 +2741,12 @@ export function Planilha({ arquivo, cx }) {
   /* barra de fórmula quando não está editando: a fórmula colorida com o nome da coluna (PL09) */
   const textoBarra = textoParaEditar(celulaAtiva, estiloAtivo);
   const barraLeitura = useMemo(() => {
-    if (!textoBarra.startsWith('=')) return <span className="pl-fx-txt">{textoBarra}</span>;
+    if (!textoBarra.startsWith('=')) {
+      /* v0.6.6 (Grok A03): texto com Alt+Enter: com a barra fechada mostra a 1ª linha e quantas faltam (antes as linhas viravam espaço) */
+      const ls = textoBarra.split('\n');
+      if (ls.length > 1 && !(fxAltura > FX_MIN + 2)) return <span className="pl-fx-txt" data-fx-linhas={ls.length}>{ls[0]}<span className="pl-fx-mais" title="O texto tem mais linhas: estique a barra (seta ⌄ à direita) para ver tudo">+{ls.length - 1} linha{ls.length > 2 ? 's' : ''}</span></span>;
+      return <span className="pl-fx-txt">{textoBarra}</span>;
+    }
     const { pedacos } = pedacosColoridos(textoBarra.slice(1));
     return (
       <span className="pl-fx-txt formula">
@@ -2745,7 +2767,7 @@ export function Planilha({ arquivo, cx }) {
         })}
       </span>
     );
-  }, [textoBarra, tituloCols, abaId, c]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [textoBarra, tituloCols, abaId, c, fxAltura > FX_MIN + 2]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const caixaNome = edit ? chave(edit.l, edit.c) : (arrasto && arrasto.tipo === 'sel' && (faixa.l1 !== faixa.l2 || faixa.c1 !== faixa.c2)
     ? `${Math.abs(faixa.l2 - faixa.l1) + 1}L × ${Math.abs(faixa.c2 - faixa.c1) + 1}C`
@@ -3152,7 +3174,7 @@ export function Planilha({ arquivo, cx }) {
           aoAplicar={aplicarValidacao} aoLimpar={limparValidacao} aoFechar={() => setJanela(null)} />
       )}
       {janela && janela.tipo === 'imprimir' && (
-        <JanelaImprimir imp0={aba.imp} secao={janela.secao} selecaoTexto={textoFaixa(normalFaixa(faixa))} temVariasAbas={c.ordem.filter((x) => !c.abas[x].oculta).length > 1}
+        <JanelaImprimir {...(() => { const sg = sugestaoPainel(aba.imp, objs.filter((o) => o.tipo === 'forma')); return sg ? { imp0: sg.imp, nota: sg.nota } : { imp0: aba.imp }; })()} secao={janela.secao} selecaoTexto={textoFaixa(normalFaixa(faixa))} temVariasAbas={c.ordem.filter((x) => !c.abas[x].oculta).length > 1}
           gerar={gerarImpressao} aoSalvar={(imp) => { if (!somenteLeitura) salvarImp(imp); }} aoPdf={baixarPdf} aoImprimir={imprimirPaginas}
           aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
       )}

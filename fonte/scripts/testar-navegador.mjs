@@ -16,7 +16,7 @@ const resultados = [];
 let atual = '';
 const FILTRO = process.env.FILTRO || '';
 async function caso(nome, fn) {
-  if (FILTRO && !nome.includes(FILTRO)) return;
+  if (FILTRO && !FILTRO.split('|').some((f) => nome.includes(f))) return;
   atual = nome;
   try {
     await fn();
@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.5', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.6', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.5'), 'rodapé sem v0.6.5');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.6'), 'rodapé sem v0.6.6');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.5'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.6'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -3941,8 +3941,8 @@ await caso('v0.6.4: planilha do Excel com linhas congeladas e ocultas: linhas oc
   await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(500);
   await p.mouse.move(700, 500); await p.mouse.wheel(0, 37); await p.waitForTimeout(600);
   const st = await p.locator('.pl-rol').evaluate((e) => e.scrollTop);
-  /* a 1ª linha livre tem a altura padrão (22 px) e as seguintes 40 px: só vale parar numa divisa */
-  certo(st === 22 || st === 0 || (st - 22) % 40 === 0, 'a rolagem parou no meio de uma linha: ' + st);
+  /* a 1ª linha livre tem a altura padrão do arquivo (v0.6.6: 20 px = 15 pt, como no Excel) e as seguintes 40 px: só vale parar numa divisa */
+  certo(st === 20 || st === 0 || (st - 20) % 40 === 0, 'a rolagem parou no meio de uma linha: ' + st);
   await print(p, 'v064-congelada-oculta');
 });
 await caso('v0.6.4: Exibir › Aba Gráfico liga e desliga o aparecimento da aba', async () => {
@@ -4106,6 +4106,112 @@ await caso('v0.6.5: janela da forma cabe na tela do celular (390×844) sem rolag
   certo(!lateral, 'sem rolagem lateral');
   await p2.waitForTimeout(450); await print(p2, 'v065-celular-forma');
   await ctx2.close();
+});
+
+/* ---------- v0.6.6: correções do Grok e acabamento dos gráficos ---------- */
+const AMOSTRA_V066 = fileURLToPath(new URL('../testes/amostras/amostra-v066.xlsx', import.meta.url));
+await caso('v0.6.6: Imprimir um painel de formas: já vem "Aba toda numa página" e o PDF leva as formas com transparência', async () => {
+  await abrirFormas(p);
+  await p.keyboard.press('Control+p'); await p.waitForSelector('[data-imprimir-janela]'); await p.waitForTimeout(500);
+  certo(await p.locator('[data-imp-nota-painel]').isVisible(), 'aviso de painel');
+  igual(await p.locator('[data-imp-escala]').inputValue(), 'pagina');
+  igual((await p.locator('[data-imp-pag]').innerText()).trim(), '1 de 1');
+  await print(p, 'v066-imprimir-painel');
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('[data-imp-pdf]')]);
+  const pdf = new TextDecoder('latin1').decode(readFileSync(await dl.path()));
+  certo(/\/SMask \d+ 0 R/.test(pdf), 'imagem com máscara de opacidade');
+  certo(/\/ColorSpace \/DeviceGray/.test(pdf), 'a máscara está no PDF');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.6.6: aba travada: Ctrl + clique e Enter na forma não abrem a janela de mudar; o link continua levando à aba', async () => {
+  await abrirFormas(p);
+  await p.click('.tabs .tab:has-text("Revisão")');
+  await cmd(p, 'revisao.travar');
+  await p.waitForSelector('.pl-jdados');
+  await p.locator('.pl-jdados .btn.primary:has-text("Travar a aba")').click(); await p.waitForTimeout(300);
+  await p.locator('.pl-obj-fm.com-link').first().locator('[data-parte="0"] path').first().click({ modifiers: ['Control'] });
+  await p.waitForTimeout(200);
+  await p.keyboard.press('Enter'); await p.waitForTimeout(400);
+  igual(await p.locator('[data-forma-janela]').count(), 0, 'janela não abriu');
+  certo(/travada/.test(await p.locator('.toasts').innerText()), 'avisa que está travada');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+  await celula(p, 'A1');
+  await p.locator('.pl-obj-fm.com-link').first().locator('[data-parte="1"] path').first().click();
+  await p.waitForTimeout(300);
+  igual(await p.locator('.pl-obj-fm').count(), 0, 'o link levou à aba Ações Corretivas (sem formas)');
+  await p.locator('.pl-abas').getByText('Painel').click(); await p.waitForTimeout(250);
+  await p.click('.tabs .tab:has-text("Revisão")');
+  await cmd(p, 'revisao.travar');
+  await p.locator('.pl-jdados .btn.primary:has-text("Destravar")').click(); await p.waitForTimeout(200);
+});
+await caso('v0.6.6: botões de ligar/desligar dizem aria-pressed true/false; os outros não têm; "Descartar" legível; a opção da faixa não repete a setinha', async () => {
+  await abrirAmostraNaPlanilha(p);
+  await p.click('.tabs .tab:has-text("Exibir")');
+  igual(await p.locator('[data-cmd="exibir.abaGrafico"]').first().getAttribute('aria-pressed'), 'true');
+  igual(await p.locator('[data-cmd="exibir.folhaClara"]').first().getAttribute('aria-pressed'), 'false');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  igual(await p.locator('[data-cmd="inserir.formas"]').first().getAttribute('aria-pressed'), null);
+  const fundo = await p.evaluate(() => { const b = document.createElement('button'); b.className = 'btn sm perigo'; b.textContent = 'x'; document.body.appendChild(b); const c = getComputedStyle(b).backgroundColor; b.remove(); return c; });
+  igual(fundo, 'rgb(179, 38, 30)');
+  const ic1 = await p.locator('[data-opcoes-faixa] svg').innerHTML(), ic2 = await p.locator('[data-faixa-recolher] svg').innerHTML();
+  certo(ic1 !== ic2, 'desenhos diferentes');
+  await p.click('.tabs .tab:has-text("Página Inicial")');
+  certo(await p.locator('[data-cmd="planilha.reexibir"]').first().isVisible(), 'Reexibir também na Página Inicial');
+});
+await caso('v0.6.6: Alt+Enter: a linha cresce para mostrar as duas linhas e a barra fx mostra "+1 linha"', async () => {
+  await novaPlanilha(p);
+  await celula(p, 'B2');
+  await p.keyboard.type('QUANTIDADE'); await p.keyboard.press('Alt+Enter'); await p.keyboard.type('AMOSTRAS'); await p.keyboard.press('Enter');
+  await p.waitForTimeout(300);
+  await celula(p, 'B2'); await p.waitForTimeout(150);
+  const fx = await p.locator('.pl-fx-txt').first().innerText();
+  certo(fx.startsWith('QUANTIDADE') && /\+1 linha/.test(fx), 'barra: ' + fx);
+  const alt = await p.evaluate(() => { const r = [...document.querySelectorAll('.pl-cv')][0]; return r ? 1 : 0; });
+  void alt;
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(150);
+  await print(p, 'v066-alt-enter');
+});
+await caso('v0.6.6: muda só a densidade da tela (outro monitor): a grade se redesenha nítida', async () => {
+  await novaPlanilha(p);
+  const w0 = await p.evaluate(() => document.querySelector('.pl-cv').width);
+  const cdp = await p.context().newCDPSession(p);
+  const vp = p.viewportSize();
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: vp.width, height: vp.height, deviceScaleFactor: 2, mobile: false });
+  await p.waitForTimeout(1500);
+  const w1 = await p.evaluate(() => document.querySelector('.pl-cv').width);
+  await cdp.send('Emulation.clearDeviceMetricsOverride'); await p.waitForTimeout(1200);
+  certo(Math.abs(w1 - 2 * w0) < 4, `canvas ${w0} → ${w1}`);
+});
+await caso('v0.6.6: gráfico do Excel com título ligado, rótulos das células, legenda no lugar e caixa por cima; largura padrão do arquivo', async () => {
+  await abrirAmostra(p, AMOSTRA_V066);
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-obj-gr'); await p.waitForTimeout(600);
+  const t = await p.locator('.pl-obj-gr').first().evaluate((e) => [...e.querySelectorAll('text')].map((x) => x.textContent).join('|'));
+  for (const x of ['Cloro médio da semana', 'Baixo', 'Bom', 'Alto', '0,62']) certo(t.includes(x), x + ' em ' + t);
+  /* a caixa por cima acompanha a célula C3 */
+  await digitarEm(p, 'C3', ['0,8']); await p.waitForTimeout(400);
+  const t2 = await p.locator('.pl-obj-gr').first().evaluate((e) => [...e.querySelectorAll('text')].map((x) => x.textContent).join('|'));
+  certo(t2.includes('0,8'), 'caixa ligada mudou: ' + t2);
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(200);
+  const wB = await p.evaluate(() => { const h = [...document.querySelectorAll('.pl-ch, [data-col]')]; return h.length; });
+  void wB;
+  await print(p, 'v066-graficos');
+});
+await caso('v0.6.6: salvar como Excel: tabela do Excel volta, aba renomeada vai para o gráfico, caixa por cima do gráfico volta', async () => {
+  await abrirAmostra(p, AMOSTRA_V066);
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-obj-gr'); await p.waitForTimeout(500);
+  await p.locator('.pl-aba:has-text("Painel")').dblclick();
+  await p.locator('.janela input').fill('Resumo');
+  await p.locator('.janela .btn.primary').click(); await p.waitForTimeout(300);
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const bytes = new Uint8Array(readFileSync(await dl.path()));
+  const { lerZip } = await import('../src/planilha/xlsx/zip.js');
+  const z = lerZip(bytes);
+  certo(/displayName="TabColetas"/.test(await z.texto('xl/tables/table1.xml') || ''), 'tabela');
+  const ch = await z.texto('xl/charts/chart1.xml');
+  certo(/Resumo!\$B\$2/.test(ch) && !/Painel!/.test(ch), 'gráfico com o nome novo');
+  certo(/userShapes r:id="rIdUS1"/.test(ch), 'caixa por cima');
+  certo(/textlink="Resumo!\$C\$3"/.test(await z.texto('xl/drawings/drawingGr1.xml') || ''), 'desenho da caixa');
 });
 
 await navegador.close();

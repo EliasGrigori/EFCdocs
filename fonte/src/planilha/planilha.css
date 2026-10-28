@@ -25,6 +25,7 @@
 }
 .pl-fx-txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
 .pl-fx-txt.formula { font-family: inherit; }
+.pl-fx-mais { display: inline-block; margin-left: 8px; padding: 0 6px; border-radius: 6px; font-size: 11px; line-height: 18px; color: var(--text-muted, #5b6b76); background: color-mix(in srgb, var(--primary) 10%, transparent); vertical-align: 1px; }
 /* v0.4.7: barra de fórmula esticável (alça embaixo + botão v/^ na ponta) */
 .pl-fx { position: relative; }
 .pl-fx.arrastando { user-select: none; }

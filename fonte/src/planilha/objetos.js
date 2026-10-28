@@ -127,11 +127,16 @@ export function comObjeto(lista, id, campos) {
 }
 export const semObjeto = (lista, id) => lista.filter((o) => o.id !== id);
 
+/** v0.6.6: forma que "move e muda de tamanho com as células" (como no Excel: âncora de duas células). */
+export const esticaComCelulas = (o) => o.tipo === 'forma' && (o.ed || (o.xo ? 'twoCell' : 'oneCell')) === 'twoCell';
+
 /**
  * Inserir (n > 0) ou excluir (n < 0) linhas/colunas a partir do índice i, no eixo 'l' ou 'c':
  * o objeto desce/sobe junto com a célula. Se a célula dele é excluída, ele fica na primeira célula que sobrou naquele lugar.
+ * v0.6.6 (Grok): a forma que estica com as células (painel de fundo) cresce quando as linhas entram no meio dela
+ * e encolhe quando saem. medidas: { pos(k), tam(k), padrao } do eixo ANTES da mudança (sem elas, só move).
  */
-export function ajustarObjetosEstrutura(lista, eixo, i, n) {
+export function ajustarObjetosEstrutura(lista, eixo, i, n, medidas = null) {
   const k = Math.abs(n);
   const max = eixo === 'l' ? MAX_LIN : MAX_COL;
   return lista.map((o) => {
@@ -141,8 +146,23 @@ export function ajustarObjetosEstrutura(lista, eixo, i, n) {
     else if (x >= i + k) nx = x - k;
     else if (x >= i) nx = i;
     nx = Math.min(max - 1, nx);
-    if (nx === x) return o;
-    return eixo === 'l' ? { ...o, l: nx, ...(x >= i && x < i + k && n < 0 ? { dy: 0 } : {}) } : { ...o, c: nx, ...(x >= i && x < i + k && n < 0 ? { dx: 0 } : {}) };
+    const campo = eixo === 'l' ? 'h' : 'w', folga = eixo === 'l' ? 'dy' : 'dx', ancora = eixo === 'l' ? 'l' : 'c';
+    let tam = o[campo];
+    if (medidas && esticaComCelulas(o)) {
+      const Y0 = medidas.pos(x) + (o[folga] || 0), Y1 = Y0 + (o[campo] || 0);
+      if (n > 0) {
+        const p = medidas.pos(i);
+        if (x < i && p > Y0 && p < Y1) tam += k * medidas.padrao;
+      } else {
+        const b0 = medidas.pos(i), b1 = medidas.pos(i + k);
+        const sobra = Math.max(0, Math.min(Y1, b1) - Math.max(Y0, b0));
+        if (sobra > 0) tam = Math.max(1, tam - sobra);
+      }
+    }
+    if (nx === x && tam === o[campo]) return o;
+    const out = { ...o, [ancora]: nx, [campo]: tam };
+    if (x >= i && x < i + k && n < 0) out[folga] = 0;
+    return out;
   });
 }
 

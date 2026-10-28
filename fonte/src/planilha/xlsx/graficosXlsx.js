@@ -11,7 +11,7 @@ import { arvore, filho, filhos, em, val, valNum, valBool, textoDe, busca } from 
 import { letraCol, lerChave } from '../ref.js';
 import { lerFiguraDaAncora } from './imagensXlsx.js';
 import { lerFormaDaAncora, elementoDaAncora, tipoDoElemento, ancoraMais } from './formasXlsx.js';
-import { LARG_PADRAO, ALT_PADRAO, estiloDe } from '../modelo.js';
+import { LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao, estiloDe } from '../modelo.js';
 import { dadosDaFaixa, normalizarG, PALETA_GRAFICO, NOME_TIPO } from '../graficos.js';
 import { construir, seriesDe, clonar, refsDoPlano, materializarCores } from '../graficoPlano.js';
 import { faixasDe } from '../regras.js';
@@ -30,8 +30,8 @@ const corX = (h) => String(h || '#000000').replace('#', '').slice(0, 6).toUpperC
 const nomeAba = (n) => (/^[A-Za-z_][A-Za-z0-9_.]*$/.test(n) ? n : "'" + String(n).replace(/'/g, "''") + "'");
 const abs = (l, c) => `$${letraCol(c)}$${l + 1}`;
 const refF = (aba, l1, c1, l2, c2) => `${nomeAba(aba)}!${abs(l1, c1)}${l2 === l1 && c2 === c1 ? '' : ':' + abs(l2, c2)}`;
-const largCol = (aba, c) => (aba.ocC && aba.ocC[c] ? 0 : aba.larg && aba.larg[c] != null ? aba.larg[c] : LARG_PADRAO);
-const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : aba.alt && aba.alt[l] != null ? aba.alt[l] : ALT_PADRAO);
+const largCol = (aba, c) => (aba.ocC && aba.ocC[c] ? 0 : aba.larg && aba.larg[c] != null ? aba.larg[c] : largPadrao(aba));
+const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba));
 
 /* ============================================================ cores do DrawingML ============================================================ */
 const TEMA_OFFICE = ['FFFFFF', '000000', 'E7E6E6', '44546A', '4472C4', 'ED7D31', 'A5A5A5', 'FFC000', '5B9BD5', '70AD47', '0563C1', '954F72'];
@@ -288,6 +288,22 @@ function lerEixo(ax, tema) {
 const GRUPOS_XL = { barChart: 'bar', bar3DChart: 'bar', lineChart: 'line', line3DChart: 'line', areaChart: 'area', area3DChart: 'area', pieChart: 'pie', pie3DChart: 'pie', ofPieChart: 'pie', doughnutChart: 'doughnut', scatterChart: 'scatter', bubbleChart: 'scatter', radarChart: 'line', stockChart: 'line' };
 
 /** chart.xml do Excel → { plano } ou { fora: motivo }. tema: as 12 cores do tema do arquivo. */
+/** v0.6.6: <c:layout><c:manualLayout> → { x, y, w?, h?, alvo } em frações do gráfico (null = automático). */
+function lerLayout(no) {
+  const ml = no && filho(no, 'manualLayout');
+  if (!ml) return null;
+  const x = valNum(ml, 'x'), y = valNum(ml, 'y'), w = valNum(ml, 'w'), h = valNum(ml, 'h');
+  if (!ehNum(x) && !ehNum(y)) return null;
+  const modo = (k) => val(ml, k) || 'factor';
+  /* só o modo "edge" (posição a partir do canto) é seguro; "factor" é deslocamento do automático: usa como aproximação */
+  const o = { x: ehNum(x) ? x : 0, y: ehNum(y) ? y : 0, mx: modo('xMode'), my: modo('yMode') };
+  if (ehNum(w) && w > 0) o.w = w;
+  if (ehNum(h) && h > 0) o.h = h;
+  if (val(ml, 'layoutTarget') === 'inner') o.alvo = 'inner';
+  return o;
+}
+const desescaparX = (t) => String(t).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+
 export function planoDoXml(xml, tema = TEMA_OFFICE) {
   if (/<cx:chartSpace|chartex/i.test(xml.slice(0, 600))) return { fora: 'tipo novo do Excel (cascata, funil, mapa, caixa, histograma do 2016...)' };
   const raiz = arvore(xml);
@@ -316,6 +332,12 @@ export function planoDoXml(xml, tema = TEMA_OFFICE) {
     const texto = linhas.join('\n').trim();
     const f = lerFonte(em(ti, 'tx/rich') || filho(ti, 'txPr'), temaH);
     P.titulo = { texto: texto || null, tam: f.tam || 14, negrito: f.negrito ?? false, cor: f.cor || fonte.cor, ...(f.italico ? { italico: true } : {}) };
+    /* v0.6.6: título ligado a uma célula (='Painel'!$B$2) e posição escolhida à mão */
+    const tref = tx && filho(tx, 'strRef') ? lerCache(tx) : null;
+    if (tref && tref.ref) P.titulo.ref = tref.ref;
+    const lt = lerLayout(filho(ti, 'layout'));
+    if (lt) P.titulo.lay = { x: lt.x, y: lt.y };
+    if (valBool(ti, 'overlay', false)) P.titulo.sobre = true;
   } else P.titulo = null;
   void semTitulo;
   /* legenda */
@@ -325,7 +347,13 @@ export function planoDoXml(xml, tema = TEMA_OFFICE) {
     P.legenda = { pos: val(lg, 'legendPos') || 'r', tam: f.tam || 9, cor: f.cor || fonte.cor, ...(f.negrito ? { negrito: true } : {}) };
     const oc = filhos(lg, 'legendEntry').filter((e) => valBool(e, 'delete', false)).map((e) => valNum(e, 'idx')).filter(ehNum);
     if (oc.length) P.legenda.ocultas = oc;
+    const ll = lerLayout(filho(lg, 'layout'));
+    if (ll) P.legenda.lay = ll;
+    if (valBool(lg, 'overlay', false)) P.legenda.sobre = true;
   } else P.legenda = null;
+  /* v0.6.6: área do gráfico com tamanho e lugar escolhidos à mão (velocímetros e painéis usam muito) */
+  const la = lerLayout(filho(pa, 'layout'));
+  if (la && ehNum(la.w) && ehNum(la.h)) P.area.lay = la;
   const db = val(ch, 'dispBlanksAs');
   if (db === 'zero') P.vazio = 'zero'; else if (db === 'span') P.vazio = 'span';
   P.soVisiveis = valBool(ch, 'plotVisOnly', true);
@@ -367,6 +395,30 @@ export function planoDoXml(xml, tema = TEMA_OFFICE) {
   }
   if (!P.grupos.length) return { fora: 'tipo que o EFCdocs ainda não tem' };
   if (!seriesDe(P).length) return { fora: 'gráfico sem séries' };
+  /* v0.6.6: rótulos com "valor das células" (extensão do Excel 2013: fica no extLst, que a árvore não lê) */
+  {
+    const brutos = [...String(xml).matchAll(/<((?:\w+:)?)ser>([\s\S]*?)<\/\1ser>/g)].map((m) => m[2]);
+    /* rótulos do grupo (fora das séries) também podem pedir o "valor das células" */
+    const grupoMostra = new Map();
+    let iS = 0;
+    for (const m of String(xml).matchAll(/<((?:\w+:)?)(bar|line|area|pie|doughnut|scatter|radar|bar3D|line3D|area3D|pie3D|ofPie|bubble|stock)Chart>([\s\S]*?)<\/\1\2Chart>/g)) {
+      const nS = (m[3].match(/<(?:\w+:)?ser>/g) || []).length;
+      const fora = m[3].replace(/<((?:\w+:)?)ser>[\s\S]*?<\/\1ser>/g, '');
+      if (/<(?:\w+:)?showDataLabelsRange\s+val="(1|true)"/.test(fora)) for (let j = 0; j < nS; j++) grupoMostra.set(iS + j, true);
+      iS += nS;
+    }
+    seriesDe(P).forEach(({ S }, i) => {
+      const b = brutos[i];
+      if (!b) return;
+      const fx = /<(?:\w+:)?datalabelsRange\b[^>]*>\s*<(?:\w+:)?f>([^<]*)<\/(?:\w+:)?f>([\s\S]*?)<\/(?:\w+:)?datalabelsRange>/.exec(b);
+      if (!fx) return;
+      const mostra = /<(?:\w+:)?showDataLabelsRange\s+val="(1|true)"/.test(b) || grupoMostra.get(i);
+      const txt = [];
+      for (const pt of fx[2].matchAll(/<(?:\w+:)?pt\s+idx="(\d+)"[^>]*>\s*<(?:\w+:)?v>([^<]*)<\/(?:\w+:)?v>/g)) txt[+pt[1]] = desescaparX(pt[2]);
+      S.rotFaixa = { ref: lerRef(desescaparX(fx[1])), txt: Array.from(txt, (t) => t ?? '') };
+      if (mostra) S.rotulos = { ...(S.rotulos || {}), faixa: true };
+    });
+  }
   /* eixos do plano: x/y primários, x2/y2 secundários */
   const doPar = (ids) => (ids || []).map((id) => eixos.get(id)).filter(Boolean);
   const pri = doPar(parPrimario);
@@ -431,13 +483,60 @@ function nsDaRaiz(dx) {
 }
 
 /** Gráfico de um XML de gráfico já achado → objeto (ou { fora }). */
-async function graficoDoRid(zip, relsD, rid, tema, geo) {
+/**
+ * v0.6.6: o desenho de cima do gráfico (c:userShapes): cada âncora vira { x, y, w, h (frações do gráfico), f: forma }.
+ * us = { raiz: a tag de abertura com os namespaces, anc: [XML de cada âncora] } para gravar de volta igual.
+ */
+export async function lerFormasDoGrafico(dxu, ctx, W, H) {
+  const formas = [], anc = [];
+  const raiz = (/<((?:\w+:)?)userShapes\b[^>]*>/.exec(dxu) || [''])[0];
+  const pre = (/<((?:\w+:)?)userShapes\b/.exec(dxu) || [, 'c:'])[1];
+  const num = (b, tg) => { const m = new RegExp(`<(?:\\w+:)?${tg}>\\s*([-\\d.eE]+)\\s*<`).exec(b); return m ? parseFloat(m[1]) : NaN; };
+  const rx = /<((?:\w+:)?)(relSizeAnchor|absSizeAnchor)\b[^>]*>([\s\S]*?)<\/\1\2>/g;
+  let m;
+  while ((m = rx.exec(dxu)) && formas.length < 60) {
+    const dentro = m[3];
+    const de = /<(?:\w+:)?from>([\s\S]*?)<\/(?:\w+:)?from>/.exec(dentro), ate = /<(?:\w+:)?to>([\s\S]*?)<\/(?:\w+:)?to>/.exec(dentro);
+    const ext = /<(?:\w+:)?ext\b[^>]*\bcx="(\d+)"[^>]*\bcy="(\d+)"/.exec(dentro);
+    if (!de) continue;
+    const x = num(de[1], 'x'), y = num(de[1], 'y');
+    let w, h;
+    if (m[2] === 'relSizeAnchor') { if (!ate) continue; w = num(ate[1], 'x') - x; h = num(ate[1], 'y') - y; }
+    else { if (!ext) continue; w = (+ext[1] / EMU) / W; h = (+ext[2] / EMU) / H; }
+    if (![x, y, w, h].every(Number.isFinite) || w < 0 || h < 0) continue;
+    const el = dentro.replace(/<(?:\w+:)?from>[\s\S]*?<\/(?:\w+:)?from>/, '').replace(/<(?:\w+:)?to>[\s\S]*?<\/(?:\w+:)?to>/, '').replace(/<(?:\w+:)?ext\b[^>]*\/>/, '').trim();
+    const tipo = tipoDoElemento(el);
+    if (tipo !== 'sp' && tipo !== 'grpSp' && tipo !== 'cxnSp') continue;
+    const fm = await lerFormaDaAncora(el, { ...ctx, geo: { l: 0, c: 0, dx: 0, dy: 0, w: w * W, h: h * H } });
+    if (!fm.obj) continue;
+    const { xo, xoRels, xoNs, xoSig, id, l, c, dx, dy, ed, ...f } = fm.obj; void xo; void xoRels; void xoNs; void xoSig; void id; void l; void c; void dx; void dy; void ed;
+    formas.push({ x, y, w, h, f });
+    /* só volta igual o que não depende de outra parte do arquivo (imagem, link) */
+    if (!/\br:(?:id|embed|link)=/.test(m[0])) anc.push(m[0]);
+  }
+  return { formas, us: raiz ? { raiz, pre, anc } : null };
+}
+
+async function graficoDoRid(zip, relsD, rid, tema, geo, lerRelsDe = null, fontes = {}, aba = null) {
   const rc = relsD.get(rid);
   if (!rc || !rc.alvo) return null;
   const xml = await zip.texto(rc.alvo);
   if (!xml) return null;
   const r2 = gDoXml(xml, tema);
   if (r2.fora) return { fora: r2.fora };
+  /* v0.6.6: caixas de texto e formas desenhadas por cima do gráfico (userShapes) */
+  if (lerRelsDe && r2.g.t === 'excel' && r2.g.plano && /<(?:\w+:)?userShapes\b/.test(xml)) {
+    try {
+      const relsC = await lerRelsDe(rc.alvo);
+      const ru = [...relsC.values()].find((r) => /chartUserShapes$/.test(r.tipo) && r.alvo);
+      const dxu = ru ? await zip.texto(ru.alvo) : null;
+      if (dxu) {
+        const relsU = await lerRelsDe(ru.alvo);
+        const us = await lerFormasDoGrafico(dxu, { zip, relsD: relsU, tema, fontes, aba }, Math.max(60, geo.w), Math.max(40, geo.h));
+        if (us.formas.length) { r2.g.plano.formas = us.formas; r2.g.plano.us = us.us; r2.g.xoSig = assinaturaPlano(r2.g.plano); }
+      }
+    } catch { /* o gráfico vem sem as caixas por cima */ }
+  }
   return { obj: { tipo: 'grafico', ...geo, w: Math.max(60, Math.round(geo.w)), h: Math.max(40, Math.round(geo.h)), g: r2.g, nomeAbaDados: r2.efc ? null : r2.g.dados.aba, avisos: r2.avisos } };
 }
 
@@ -479,7 +578,7 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema, fontes 
       if (tipo === 'graphicFrame') {
         const gf = /<(?:\w+:)?chart\b[^>]*\b(?:r:)?id="([^"]+)"/.exec(el);
         if (!gf) { if (/<cx:chart\b|chartex/i.test(el)) fora.push({ motivo: 'tipo novo do Excel (cascata, funil, mapa...)' }); else fora.push({ item: 'Objetos do desenho', motivo: 'tipo que o EFCdocs não abre' }); continue; }
-        const g = await graficoDoRid(zip, relsD, gf[1], tema, geo);
+        const g = await graficoDoRid(zip, relsD, gf[1], tema, geo, lerRelsDe, fontes, aba);
         if (!g) continue;
         if (g.fora) { fora.push({ motivo: g.fora }); continue; }
         objs.push({ ...g.obj, ordem });
@@ -493,7 +592,7 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema, fontes 
         /* gráficos que estavam dentro do grupo: saem soltos, no mesmo lugar */
         for (const gq of fm.graficos) {
           const an2 = ancoraMais(aba, geo.l, geo.c, geo.dx, geo.dy, gq.x, gq.y);
-          const g = await graficoDoRid(zip, relsD, gq.rid, tema, { ...an2, w: gq.w, h: gq.h });
+          const g = await graficoDoRid(zip, relsD, gq.rid, tema, { ...an2, w: gq.w, h: gq.h }, lerRelsDe, fontes, aba);
           if (!g) continue;
           if (g.fora) { fora.push({ motivo: g.fora }); continue; }
           objs.push({ ...g.obj, ordem: ordem + 0.5 });
@@ -548,6 +647,15 @@ export function ligarRefsAoLivro(g, idDoNome, abaDoGrafico) {
       else if (S[k] && S[k].semRef) fora = true;
     }
     if (fora) semAba++;
+    /* v0.6.6: rótulos com o "valor das células" */
+    if (S.rotFaixa && S.rotFaixa.ref) S.rotFaixa.ref = liga(S.rotFaixa.ref);
+  }
+  /* v0.6.6: título ligado a célula e texto ligado das caixas por cima do gráfico */
+  if (g.plano.titulo && g.plano.titulo.ref) { g.plano.titulo.ref = liga(g.plano.titulo.ref); if (!g.plano.titulo.ref) delete g.plano.titulo.ref; }
+  for (const us of g.plano.formas || []) for (const p of (us.f && us.f.partes) || []) {
+    const lg = p.texto && p.texto.ligado;
+    if (!lg) continue;
+    if (lg.abaNome) { const id = idDoNome(lg.abaNome); p.texto.ligado = id ? { aba: id === abaDoGrafico ? '' : id, ref: lg.ref } : { ref: lg.ref, aba: '#fora' }; if (id) nomes[id] = lg.abaNome; }
   }
   g.xoAbas = nomes;
   g.xoSig = assinaturaPlano(g.plano);
@@ -581,13 +689,23 @@ function rPr(f, tag2 = 'defRPr') {
   return f.cor ? `<a:${tag2}${at}><a:solidFill>${corXml(f.cor)}</a:solidFill></a:${tag2}>` : `<a:${tag2}${at}/>`;
 }
 const txPr = (f) => (f && (f.tam || f.cor || f.negrito != null || f.girar) ? `<c:txPr><a:bodyPr${ehNum(f.girar) ? ` rot="${Math.round(f.girar * 60000)}" vert="horz"` : ''}/><a:lstStyle/><a:p><a:pPr>${rPr(f)}</a:pPr><a:endParaRPr lang="pt-BR"/></a:p></c:txPr>` : '');
-function tituloXml(t, padrao = {}) {
+/** v0.6.6: { x, y, w?, h?, alvo } → <c:layout><c:manualLayout> (vazio = automático) */
+function layoutXml(lay) {
+  if (!lay || !ehNum(lay.x) || !ehNum(lay.y)) return '';
+  const n = (v) => String(Math.round(v * 1e6) / 1e6);
+  return `<c:layout><c:manualLayout>${lay.alvo === 'inner' ? '<c:layoutTarget val="inner"/>' : ''}<c:xMode val="edge"/><c:yMode val="edge"/><c:x val="${n(lay.x)}"/><c:y val="${n(lay.y)}"/>${ehNum(lay.w) ? `<c:w val="${n(lay.w)}"/>` : ''}${ehNum(lay.h) ? `<c:h val="${n(lay.h)}"/>` : ''}</c:manualLayout></c:layout>`;
+}
+function tituloXml(t, padrao = {}, tr = null) {
   if (!t) return '';
   const f = { tam: t.tam ?? padrao.tam, negrito: t.negrito ?? padrao.negrito, cor: t.cor ?? padrao.cor, italico: t.italico };
   const linhas = String(t.texto ?? '').split('\n');
-  const tx = t.texto ? `<c:tx><c:rich><a:bodyPr/><a:lstStyle/>${linhas.map((ln) => `<a:p><a:pPr>${rPr(f)}</a:pPr><a:r>${rPr({ ...f }, 'rPr').replace('<a:rPr', '<a:rPr lang="pt-BR"')}<a:t>${escapar(ln)}</a:t></a:r></a:p>`).join('')}</c:rich></c:tx>` : '';
-  return `<c:title>${tx}<c:overlay val="0"/>${tx ? '' : txPr(f)}</c:title>`;
+  /* v0.6.6: título ligado a uma célula volta ligado */
+  const ref = t.ref && tr ? tr(t.ref) : null;
+  const tx = ref ? `<c:tx><c:strRef><c:f>${escapar(ref)}</c:f>${strCache([t.texto || ''])}</c:strRef></c:tx>`
+    : t.texto ? `<c:tx><c:rich><a:bodyPr/><a:lstStyle/>${linhas.map((ln) => `<a:p><a:pPr>${rPr(f)}</a:pPr><a:r>${rPr({ ...f }, 'rPr').replace('<a:rPr', '<a:rPr lang="pt-BR"')}<a:t>${escapar(ln)}</a:t></a:r></a:p>`).join('')}</c:rich></c:tx>` : '';
+  return `<c:title>${tx}${layoutXml(t.lay)}<c:overlay val="${t.sobre ? 1 : 0}"/>${tx && !ref ? '' : txPr(f)}</c:title>`;
 }
+const URI_ROT_FAIXA = '{02D57815-91ED-43cb-92C2-25804820EDAC}', URI_ROT_MOSTRA = '{CE6537A1-D6FC-4f65-9D91-7224C49458BB}', NS_C15 = 'http://schemas.microsoft.com/office/drawing/2012/chart';
 const strCache = (lista) => `<c:strCache><c:ptCount val="${lista.length}"/>${lista.map((t, i) => `<c:pt idx="${i}"><c:v>${escapar(t ?? '')}</c:v></c:pt>`).join('')}</c:strCache>`;
 const numPts = (lista) => lista.map((v, i) => (ehNum(v) ? `<c:pt idx="${i}"><c:v>${v}</c:v></c:pt>` : '')).join('');
 const numCache = (lista, fmt, tg = 'numCache') => `<c:${tg}><c:formatCode>${escapar(fmt || 'General')}</c:formatCode><c:ptCount val="${lista.length}"/>${numPts(lista)}</c:${tg}>`;
@@ -640,7 +758,10 @@ export function xmlDoPlano(P0, ctx = {}) {
       if (p.rotulo === false) dl += `<c:dLbl><c:idx val="${k}"/><c:delete val="1"/></c:dLbl>`;
       else if (p.rotulo) dl += `<c:dLbl><c:idx val="${k}"/>${rotulosXml({ ...(S.rotulos || {}), ...p.rotulo }, G.tipo)}</c:dLbl>`;
     }
-    const dLbls = S.rotulos || dl ? `<c:dLbls>${dl}${S.rotulos ? rotulosXml(S.rotulos, G.tipo) : '<c:showLegendKey val="0"/><c:showVal val="0"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/>'}${G.tipo === 'pie' ? '<c:showLeaderLines val="1"/>' : ''}</c:dLbls>` : '';
+    const faixaRot = S.rotulos && S.rotulos.faixa && S.rotFaixa ? tr(S.rotFaixa.ref) : null;
+    const dLbls = S.rotulos || dl ? `<c:dLbls>${dl}${S.rotulos ? rotulosXml(S.rotulos, G.tipo) : '<c:showLegendKey val="0"/><c:showVal val="0"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/>'}${G.tipo === 'pie' ? '<c:showLeaderLines val="1"/>' : ''}${faixaRot ? `<c:extLst><c:ext uri="${URI_ROT_MOSTRA}" xmlns:c15="${NS_C15}"><c15:showDataLabelsRange val="1"/></c:ext></c:extLst>` : ''}</c:dLbls>` : '';
+    /* v0.6.6: "valor das células" nos rótulos (extensão do Excel 2013), no fim da série */
+    const extRot = faixaRot ? `<c:extLst><c:ext uri="${URI_ROT_FAIXA}" xmlns:c15="${NS_C15}"><c15:datalabelsRange><c15:f>${escapar(faixaRot)}</c15:f><c15:dlblRangeCache><c:ptCount val="${(S.rotFaixa.txt || []).length}"/>${(S.rotFaixa.txt || []).map((t, k) => `<c:pt idx="${k}"><c:v>${escapar(t ?? '')}</c:v></c:pt>`).join('')}</c15:dlblRangeCache></c15:datalabelsRange></c:ext></c:extLst>` : '';
     const tend = S.tendencia ? `<c:trendline>${spPr(null, S.tendencia.linha || { t: 'solido', cor: corS, larg: 1.5, tr: 'sysDash' })}<c:trendlineType val="${S.tendencia.tipo === 'media' ? 'movingAvg' : 'linear'}"/>${S.tendencia.tipo === 'media' ? `<c:period val="${Math.max(2, S.tendencia.periodo || 2)}"/>` : ''}<c:dispRSqr val="0"/><c:dispEq val="0"/></c:trendline>` : '';
     /* categorias (ou X da dispersão) e valores */
     const catRef = tr(S.cats && S.cats.ref);
@@ -655,11 +776,11 @@ export function xmlDoPlano(P0, ctx = {}) {
     const nomeVal = G.tipo === 'scatter' ? 'yVal' : 'val';
     const vals = valRef ? `<c:${nomeVal}><c:numRef><c:f>${escapar(valRef)}</c:f>${numCache(S.vals.num || [], S.vals.fmt)}</c:numRef></c:${nomeVal}>` : `<c:${nomeVal}>${numCache(S.vals.num || [], S.vals.fmt, 'numLit')}</c:${nomeVal}>`;
     const ini = `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${sp}`;
-    if (G.tipo === 'bar') return `${ini}<c:invertIfNegative val="0"/>${pts}${dLbls}${tend}${cat}${vals}</c:ser>`;
-    if (G.tipo === 'area') return `${ini}${pts}${dLbls}${tend}${cat}${vals}</c:ser>`;
-    if (G.tipo === 'pie' || G.tipo === 'doughnut') return `${ini}${S.explodir ? `<c:explosion val="${Math.round(S.explodir)}"/>` : ''}${pts}${dLbls}${cat}${vals}</c:ser>`;
+    if (G.tipo === 'bar') return `${ini}<c:invertIfNegative val="0"/>${pts}${dLbls}${tend}${cat}${vals}${extRot}</c:ser>`;
+    if (G.tipo === 'area') return `${ini}${pts}${dLbls}${tend}${cat}${vals}${extRot}</c:ser>`;
+    if (G.tipo === 'pie' || G.tipo === 'doughnut') return `${ini}${S.explodir ? `<c:explosion val="${Math.round(S.explodir)}"/>` : ''}${pts}${dLbls}${cat}${vals}${extRot}</c:ser>`;
     const mk = S.marcador ? marcadorXml(S.marcador, S.linha && S.linha.cor || corS) : G.tipo === 'line' && P.nativo ? '<c:marker><c:symbol val="none"/></c:marker>' : '';
-    return `${ini}${mk}${pts}${dLbls}${tend}${cat}${vals}<c:smooth val="${S.suave ? 1 : 0}"/></c:ser>`;
+    return `${ini}${mk}${pts}${dLbls}${tend}${cat}${vals}<c:smooth val="${S.suave ? 1 : 0}"/>${extRot}</c:ser>`;
   };
   const eixoIds = (G) => (G.eixo2 ? [A3, A4] : [A1, A2]);
   for (const G of P.grupos) {
@@ -698,14 +819,14 @@ export function xmlDoPlano(P0, ctx = {}) {
       plot += eixoXml({ ...(E.y2 || { tipo: 'val', grade: null }), cruza: 'max' }, A4, A3, horiz ? 't' : 'r', 'val');
     }
   }
-  const leg = P.legenda ? `<c:legend><c:legendPos val="${/^(b|t|l|r|tr)$/.test(P.legenda.pos) ? P.legenda.pos : 'b'}"/>${(P.legenda.ocultas || []).map((k) => `<c:legendEntry><c:idx val="${k}"/><c:delete val="1"/></c:legendEntry>`).join('')}<c:overlay val="0"/>${txPr({ tam: P.legenda.tam, cor: P.legenda.cor, negrito: P.legenda.negrito })}</c:legend>` : '';
+  const leg = P.legenda ? `<c:legend><c:legendPos val="${/^(b|t|l|r|tr)$/.test(P.legenda.pos) ? P.legenda.pos : 'b'}"/>${(P.legenda.ocultas || []).map((k) => `<c:legendEntry><c:idx val="${k}"/><c:delete val="1"/></c:legendEntry>`).join('')}${layoutXml(P.legenda.lay)}<c:overlay val="${P.legenda.sobre ? 1 : 0}"/>${txPr({ tam: P.legenda.tam, cor: P.legenda.cor, negrito: P.legenda.negrito })}</c:legend>` : '';
   const f = P.fonte || {};
   const fundo = P.fundo || {};
   const area = P.area || {};
   const efc = ctx.efc ? `<c:extLst><c:ext uri="${URI_EFC}" xmlns:efc="urn:efcdocs:grafico"><efc:g>${escapar(JSON.stringify(ctx.efc))}</efc:g></c:ext></c:extLst>` : '';
-  const titulo = P.titulo && (P.titulo.texto || P.titulo.texto === null) ? tituloXml(P.titulo, { tam: P.nativo ? 14 : 14, negrito: true, cor: f.cor }) : '';
+  const titulo = P.titulo && (P.titulo.texto || P.titulo.texto === null || P.titulo.ref) ? tituloXml(P.titulo, { tam: P.nativo ? 14 : 14, negrito: true, cor: f.cor }, tr) : '';
   return `${XML_CAB}<c:chartSpace xmlns:c="${NS_C}" xmlns:a="${NS_A}" xmlns:r="${NS_R}"><c:roundedCorners val="${fundo.cantos ? 1 : 0}"/>` +
-    `<c:chart>${titulo}<c:autoTitleDeleted val="${titulo ? 0 : 1}"/><c:plotArea><c:layout/>${plot}${spPr(area.preench, area.borda)}</c:plotArea>${leg}<c:plotVisOnly val="${P.soVisiveis === false ? 0 : 1}"/><c:dispBlanksAs val="${P.vazio === 'zero' ? 'zero' : P.vazio === 'span' ? 'span' : 'gap'}"/></c:chart>` +
+    `<c:chart>${titulo}<c:autoTitleDeleted val="${titulo ? 0 : 1}"/><c:plotArea>${layoutXml(area.lay) || '<c:layout/>'}${plot}${spPr(area.preench, area.borda)}</c:plotArea>${leg}<c:plotVisOnly val="${P.soVisiveis === false ? 0 : 1}"/><c:dispBlanksAs val="${P.vazio === 'zero' ? 'zero' : P.vazio === 'span' ? 'span' : 'gap'}"/></c:chart>` +
     spPr(fundo.preench || (P.nativo ? { t: 'solido', cor: '#ffffff' } : null), fundo.borda || (P.nativo ? { t: 'solido', cor: '#d2d9e0', larg: 0.75 } : null), fundo.efeito) +
     txPr({ tam: f.tam || (P.nativo ? 9 : undefined), cor: f.cor || (P.nativo ? '#3a4a55' : undefined) }) +
     `${efc}</c:chartSpace>`;
@@ -790,18 +911,50 @@ function textoDaRef(c, abaDoGrafico) {
  * n0: número do primeiro chart (chart1, chart2... em todo o livro).
  * lerFaixa(abaId, ref) → { num, txt } (para os gráficos que vieram do Excel, com os números de agora)
  */
+/* nome de aba como vai na fórmula do Excel */
+const nomeNaFormula = (n) => (/^[A-Za-z_\u00C0-\u024F][A-Za-z0-9_.\u00C0-\u024F]*$/.test(n) && !/^[A-Z]{1,3}\d+$/i.test(n) ? n : "'" + String(n).replace(/'/g, "''") + "'");
+const RE_F = /<((?:\w+:)?)f>([^<]*)<\/\1f>/g;
+const RE_ABA = /(?:'((?:[^']|'')+)'|([^'!,()\s=+\-*/&;:<>]+))!/g;
+/** Nomes de aba usados nas fórmulas (<c:f> ou <f>) de um XML de gráfico. */
+export function nomesNasFormulas(xml) {
+  return [...String(xml || '').matchAll(RE_F)].flatMap((m) => [...m[2].replace(/&apos;/g, "'").matchAll(RE_ABA)].map((x) => (x[1] ? x[1].replace(/''/g, "'") : x[2])));
+}
+/**
+ * v0.6.6: o XML guardado com os nomes de aba de agora. xoAbas: { id → nome que estava no arquivo }.
+ * Devolve o XML (igual, se nada mudou) ou null quando alguma fórmula aponta para uma aba que não existe mais.
+ */
+export function xmlComNomesAtuais(xml, xoAbas, c) {
+  const troca = new Map();
+  for (const [id, velho] of Object.entries(xoAbas || {})) {
+    const A = c.abas[id];
+    if (!A) return null;
+    if (A.nome !== velho) troca.set(String(velho).toLowerCase(), A.nome);
+  }
+  const vivos = new Set(Object.values(c.abas).map((a) => a.nome.toLowerCase()));
+  let ok = true;
+  const novo = String(xml).replace(RE_F, (tudo, pre, f) => {
+    const f0 = f.replace(/&apos;/g, "'");
+    const f1 = f0.replace(RE_ABA, (m, q, s) => {
+      const nome = q != null ? q.replace(/''/g, "'") : s;
+      const t = troca.get(nome.toLowerCase());
+      const final = t || nome;
+      if (!vivos.has(final.toLowerCase())) ok = false;
+      return t ? escapar(nomeNaFormula(t)) + '!' : m;
+    });
+    return f1 === f0 ? tudo : `<${pre}f>${f1}</${pre}f>`;
+  });
+  return ok ? novo : null;
+}
 /** v0.6.5: o XML do gráfico de um objeto (null se não dá para gravar). */
 export function xmlDoGraficoObjeto(c, motor, aba, abaId, o) {
     const g = normalizarG(o.g);
     let xml = null;
     if (g.t === 'excel') {
-      /* veio do Excel: se nada mudou (formatação, referências e nomes das abas), volta o XML original */
-      const nomesIguais = Object.entries(o.g.xoAbas || {}).every(([id, nome]) => c.abas[id] && c.abas[id].nome === nome);
-      /* v0.6.4 (Grok X05): também olha as fórmulas do próprio XML guardado; se alguma aponta para uma aba que mudou de nome (ou sumiu), o XML é refeito com os nomes de agora */
-      const nomesDoXml = [...String(g.xo || '').matchAll(/<c:f>([^<]*)<\/c:f>/g)].flatMap((m) => [...m[1].matchAll(/(?:'((?:[^']|'')+)'|([^'!,()\s]+))!/g)].map((x) => (x[1] ? x[1].replace(/''/g, "'") : x[2]).toLowerCase()));
-      const nomesVivos = new Set(Object.values(c.abas).map((a) => a.nome.toLowerCase()));
-      const xmlAtual = nomesDoXml.every((n) => nomesVivos.has(n));
-      if (g.xo && g.xoSig && assinaturaPlano(g.plano) === g.xoSig && nomesIguais && xmlAtual) xml = g.xo;
+      /* veio do Excel: se nada mudou na formatação e nas referências, volta o XML original;
+         v0.6.6 (Grok A05): aba renomeada não refaz mais o gráfico — troca só o nome dentro das fórmulas do XML guardado */
+      const sigOk = g.xo && g.xoSig && assinaturaPlano(g.plano) === g.xoSig;
+      const fixo = sigOk ? xmlComNomesAtuais(g.xo, g.xoAbas || o.g.xoAbas || {}, c) : null;
+      if (fixo) xml = fixo;
       else xml = xmlDoPlano(lerNumeros(c, motor, g.plano, abaId), { textoRef: textoDaRef(c, abaId) });
     } else {
       const abaD = g.dados.aba && c.abas[g.dados.aba] ? g.dados.aba : abaId;
@@ -819,6 +972,40 @@ export function xmlDoGraficoObjeto(c, motor, aba, abaId, o) {
     }
     return xml;
 }
+/**
+ * v0.6.6: põe de volta o desenho de cima do gráfico (caixas de texto do Excel). Devolve { xml, us } (us = XML da parte de desenho, ou null).
+ * O chart.xml ganha <c:userShapes r:id="rIdUS1"/> no fim; quem grava cria a relação rIdUS1 → a parte us.
+ */
+export function comFormasDoGrafico(xml, o, c = null) {
+  const g = o && o.g;
+  const us = g && g.t === 'excel' && g.plano && g.plano.us;
+  if (!xml || !us || !us.raiz || !Array.isArray(us.anc) || !us.anc.length) return { xml, us: null };
+  const m = /<\/((?:\w+:)?)chartSpace>\s*$/.exec(xml);
+  if (!m) return { xml, us: null };
+  const pre = m[1];
+  /* o prefixo do namespace do chart neste XML (pode ser c: ou nenhum) */
+  const semUs = xml.replace(/<(\w+:)?userShapes\b[^>]*\/>/g, '');
+  const rid = /xmlns:r="/.test(semUs.slice(0, 2000)) ? '' : ` xmlns:r="${NS_R}"`;
+  const tag = `<${pre}userShapes${rid} r:id="rIdUS1"/>`;
+  /* o Excel exige o userShapes antes do extLst do fim do chartSpace */
+  const fimExt = semUs.lastIndexOf(`</${pre}extLst>`), iniExt = semUs.lastIndexOf(`<${pre}extLst`);
+  const resto = fimExt >= 0 ? semUs.slice(fimExt + `</${pre}extLst>`.length) : '';
+  const novo = fimExt >= 0 && iniExt >= 0 && iniExt < fimExt && /^\s*<\/(\w+:)?chartSpace>\s*$/.test(resto)
+    ? semUs.slice(0, iniExt) + tag + semUs.slice(iniExt)
+    : semUs.replace(/<\/((?:\w+:)?)chartSpace>\s*$/, `${tag}</${pre}chartSpace>`);
+  const fecha = us.raiz.replace(/^<((?:\w+:)?userShapes)\b[\s\S]*$/, '</$1>');
+  /* aba renomeada: o texto ligado (textlink="Aba!$C$3") das caixas acompanha */
+  let anc = us.anc.join('');
+  if (c) {
+    const troca = new Map();
+    for (const [id, velho] of Object.entries(g.xoAbas || {})) if (c.abas[id] && c.abas[id].nome !== velho) troca.set(String(velho).toLowerCase(), c.abas[id].nome);
+    if (troca.size) anc = anc.replace(/\btextlink="([^"]*)"/g, (m, v) => {
+      const t = desescaparX(v).replace(/^(=?)(?:'((?:[^']|'')+)'|([^'!]+))!/, (q, ig, a, b) => { const nome = a != null ? a.replace(/''/g, "'") : b; const nv = troca.get(nome.toLowerCase()); return nv ? ig + nomeNaFormula(nv) + '!' : q; });
+      return `textlink="${escapar(t, true)}"`;
+    });
+  }
+  return { xml: novo, us: XML_CAB + us.raiz + anc + fecha };
+}
 /** v0.6.5: a parte de dentro da âncora de um gráfico (graphicFrame) com o r:id dado. */
 export function frameDoGrafico(o, id, rid) {
   const g = normalizarG(o.g);
@@ -835,30 +1022,8 @@ export function gravarGraficosAba(c, motor, aba, abaId, n0, extra = null) {
   const ancoras = [];
   lista.forEach((o, k) => {
     const g = normalizarG(o.g);
-    let xml = null;
-    if (g.t === 'excel') {
-      /* veio do Excel: se nada mudou (formatação, referências e nomes das abas), volta o XML original */
-      const nomesIguais = Object.entries(o.g.xoAbas || {}).every(([id, nome]) => c.abas[id] && c.abas[id].nome === nome);
-      /* v0.6.4 (Grok X05): também olha as fórmulas do próprio XML guardado; se alguma aponta para uma aba que mudou de nome (ou sumiu), o XML é refeito com os nomes de agora */
-      const nomesDoXml = [...String(g.xo || '').matchAll(/<c:f>([^<]*)<\/c:f>/g)].flatMap((m) => [...m[1].matchAll(/(?:'((?:[^']|'')+)'|([^'!,()\s]+))!/g)].map((x) => (x[1] ? x[1].replace(/''/g, "'") : x[2]).toLowerCase()));
-      const nomesVivos = new Set(Object.values(c.abas).map((a) => a.nome.toLowerCase()));
-      const xmlAtual = nomesDoXml.every((n) => nomesVivos.has(n));
-      if (g.xo && g.xoSig && assinaturaPlano(g.plano) === g.xoSig && nomesIguais && xmlAtual) xml = g.xo;
-      else xml = xmlDoPlano(lerNumeros(c, motor, g.plano, abaId), { textoRef: textoDaRef(c, abaId) });
-    } else {
-      const abaD = g.dados.aba && c.abas[g.dados.aba] ? g.dados.aba : abaId;
-      const A = c.abas[abaD];
-      const fs = faixasDe(g.dados.fx);
-      if (!fs.length) return;
-      const f = fs[0];
-      const ler = (l, cc) => { let v; try { v = motor.valor(abaD, l, cc); } catch { v = null; } return v && typeof v === 'object' ? null : v; };
-      const texto = (l, cc) => { const v = ler(l, cc); if (v == null) return ''; const cel = A.cel && A.cel[letraCol(cc) + (l + 1)]; const e = estiloDe(c, cel || {}); try { return formatar(v, e.nf).t; } catch { return String(v); } };
-      const fmtDe = (l, cc) => { const cel = A.cel && A.cel[letraCol(cc) + (l + 1)]; return estiloDe(c, cel || {}).nf || null; };
-      const d = dadosDaFaixa(f, ler, texto, !!g.porLinhas, fmtDe, ocultosDe(A, g));
-      if (!d.series.length) return;
-      const refs = refsDaFaixa(A.nome, f, d, !!g.porLinhas);
-      xml = xmlDoGrafico(g, { d, refs, nomeAba: A.nome });
-    }
+    const xml = xmlDoGraficoObjeto(c, motor, aba, abaId, o);
+    if (!xml) return;
     const n = n0 + charts.length;
     charts.push({ n, xml });
     /* âncora de duas células (o canto de baixo calculado pelas larguras/alturas) */
@@ -897,7 +1062,9 @@ function lerPlanoDaPlanilha(c, motor, plano, abaDoGrafico, ocultosTambem) {
     if (S.vals && S.vals.ref) { const r = ler(S.vals.ref); if (r) S.vals.num = r.num; }
     if (S.cats && S.cats.ref) { const r = ler(S.cats.ref); if (r) { S.cats.txt = r.txt; S.cats.num = r.num; } }
     if (S.nome && S.nome.ref) { const r = ler(S.nome.ref); if (r && r.txt.length) S.nome.txt = r.txt.join(' '); }
+    if (S.rotFaixa && S.rotFaixa.ref) { const r = ler(S.rotFaixa.ref); if (r && r.txt) S.rotFaixa.txt = r.txt; }
   }
+  if (P.titulo && P.titulo.ref) { const r = ler(P.titulo.ref); if (r && r.txt) P.titulo.texto = r.txt.filter(Boolean).join(' ') || P.titulo.texto; }
   return P;
 }
 /** ref → { num:[...], txt:[...] } lido do livro (pulando linhas/colunas ocultas, como o Excel). */

@@ -1,7 +1,7 @@
 /* EFCdocs v0.6.5 — o desenho de uma aba (xl/drawings/drawingN.xml): gráficos, imagens, formas e botões, NA ORDEM da aba
    (o primeiro fica embaixo, o último em cima, como no Excel). */
 import { escapar, XML_CAB } from './xml.js';
-import { xmlDoGraficoObjeto, frameDoGrafico, NS_A, NS_R, NS_XDR } from './graficosXlsx.js';
+import { xmlDoGraficoObjeto, frameDoGrafico, comFormasDoGrafico, NS_A, NS_R, NS_XDR } from './graficosXlsx.js';
 import { gravarForma, formaDoBotao, ancoraXml } from './formasXlsx.js';
 import { letraCol, lerChave } from '../ref.js';
 import { textoCelula } from '../grade.js';
@@ -33,7 +33,9 @@ export function gravarDesenhoAba(c, motor, aba, abaId, n0Chart, n0Img) {
       const xml = xmlDoGraficoObjeto(c, motor, aba, abaId, o);
       if (!xml) continue;
       const n = n0Chart + charts.length;
-      charts.push({ n, xml });
+      /* v0.6.6: caixas de texto por cima do gráfico (userShapes) voltam numa parte própria */
+      const cf = comFormasDoGrafico(xml, o, c);
+      charts.push({ n, xml: cf.xml, ...(cf.us ? { us: cf.us } : {}) });
       const rid = novoRel();
       rels.push({ id: rid, tipo: 'chart', alvo: `../charts/chart${n}.xml` });
       ancoras.push(ancoraXml(aba, o, frameDoGrafico(o, novoId(), rid)));

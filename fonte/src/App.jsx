@@ -448,7 +448,9 @@ export function App() {
     };
     if (id in geral) return geral[id];
     const ed = editorRef.current;
-    return !!(ed && ed.ligado && ed.ligado(id));
+    /* v0.6.6 (Grok): botão que liga/desliga diz true/false; o que não é de ligar devolve undefined (sem aria-pressed) */
+    const v = ed && ed.ligado ? ed.ligado(id) : undefined;
+    return v === undefined ? undefined : !!v;
   }, [prefs, statusEd]); // statusEd: o editor muda o que está ligado
 
   const executar = useCallback((id) => {
