@@ -7,6 +7,7 @@ import { ajustarObjetosEstrutura } from './objetos.js';
 import { continuarSerie } from './entrada.js';
 import { moverRegras, moverFaixa, faixasDe, textoFaixas, ancoraDe, tirarDeFaixas, novoIdRegra } from './regras.js';
 import { ehFormatoData } from './formato.js';
+import { moverFiltro } from './dados.js';
 
 /** Junta mudanças de células de uma aba; com muitas, troca o objeto inteiro (mais rápido e leve). */
 export class Lote {
@@ -426,11 +427,13 @@ export function estrutura(c, abaId, eixo, i, n) {
   if (eixo === 'l') {
     if (aba.alt) mud[`conteudo.abas.${abaId}.alt`] = mapaIdx(aba.alt);
     if (aba.ocL) mud[`conteudo.abas.${abaId}.ocL`] = mapaIdx(aba.ocL);
+    if (aba.ocF) mud[`conteudo.abas.${abaId}.ocF`] = mapaIdx(aba.ocF);
   } else {
     if (aba.larg) mud[`conteudo.abas.${abaId}.larg`] = mapaIdx(aba.larg);
     if (aba.ocC) mud[`conteudo.abas.${abaId}.ocC`] = mapaIdx(aba.ocC);
     if (aba.zeros) mud[`conteudo.abas.${abaId}.zeros`] = mapaIdx(aba.zeros);
   }
+  if (aba.fil) mud[`conteudo.abas.${abaId}.fil`] = moverFiltro(aba.fil, eixo, move);
   if (aba.mesc && aba.mesc.length) {
     const nova = [];
     for (const m of mescladas(aba)) {

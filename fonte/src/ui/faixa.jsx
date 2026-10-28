@@ -1,5 +1,6 @@
 /* EFCdocs — topo: nome do arquivo, busca, faixa tipo Excel (opção A) e barra curta (opção B). */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { TEMAS, AMOSTRAS } from '../nucleo/prefs.js';
 import { PorId, chegaNa, valeNoModulo, textoChega } from '../nucleo/comandos.js';
 import { ROTULOS, DICA_ESTILO, estiloDaFaixa } from '../nucleo/prefs.js';
 import { MAPA as ICONE_FAIXA } from './iconesFaixa.js';
@@ -24,7 +25,7 @@ const GRUPO_TRANSFERENCIA = { nome: 'Área de transferência', itens: [['g', 'ed
 
 /* v0.6.2: o botão principal de cada aba (um só, cheio de cor nos estilos B e E) */
 const PRINCIPAL = {
-  planilha: { arquivo: 'arquivo.exportarExcel', inicio: 'editar.colar', inserir: 'inserir.grafico', layout: 'impressao.configurar', formulas: 'formula.inserir', dados: 'dados.validacao', revisao: 'editar.comentar', exibir: 'exibir.congelar' },
+  planilha: { arquivo: 'arquivo.exportarExcel', inicio: 'editar.colar', inserir: 'inserir.grafico', layout: 'impressao.configurar', formulas: 'formula.inserir', dados: 'dados.validacao', revisao: 'editar.comentar', exibir: 'exibir.congelar', grafico: 'grafico.editar' },
   docx: { arquivo: 'arquivo.exportarWord', inicio: 'editar.colar', inserir: 'inserir.tabela', layout: 'pagina.margens', revisao: 'editar.comentar', exibir: 'exibir.leitura' },
   postits: { arquivo: 'arquivo.exportarImagem', inicio: 'editar.colar', inserir: 'inserir.postit', organizar: 'organizar.kanban', revisao: 'editar.comentar', exibir: 'exibir.ajustar' },
 };
@@ -39,7 +40,7 @@ const FAIXAS = {
       { nome: 'Estilos', itens: [['g', 'formatar.condicional'], ['g', 'inserir.tabela']] },
       { nome: 'Edição', itens: [['g', 'formula.autosoma'], ['lin', ['planilha.limparConteudo', 'formatar.limpar', 'editar.historico'], 3], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
     { id: 'inserir', nome: 'Inserir', grupos: [
-      { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['lin', ['planilha.inserirLinha', 'planilha.inserirColuna'], 2]] },
+      { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['g', 'planilha.inserirLinha'], ['g', 'planilha.inserirColuna']] }, /* v0.6.3 (R02): botões grandes com nome, para não confundir com Nova aba */
       { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
       { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.grafico'], ['g', 'inserir.assinatura']] },
       { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
@@ -52,7 +53,7 @@ const FAIXAS = {
       { nome: 'Entender a conta', itens: [['g', 'formula.explicar'], ['g', 'formula.origem'], ['g', 'formula.fluxo'], ['g', 'formula.problemas']] },
       { nome: 'Para o leigo', itens: [['g', 'formula.montar']] }] },
     { id: 'dados', nome: 'Dados', grupos: [
-      { nome: 'Classificar e filtrar', itens: [['g', 'dados.classificar'], ['g', 'dados.filtrar']] },
+      { nome: 'Classificar e filtrar', itens: [['g', 'dados.classificar'], ['g', 'dados.filtrar'], ['g', 'dados.reaplicar']] },
       { nome: 'Ferramentas', itens: [['g', 'dados.validacao'], ['g', 'dados.duplicados'], ['g', 'dados.dinamica']] }] },
     { id: 'revisao', nome: 'Revisão', grupos: [
       { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar'], ['g', 'revisao.comentarios'], ['g', 'arquivo.versoes']] },
@@ -102,10 +103,16 @@ export const BARRA_CURTA = {
   postits: ['editar.desfazer', 'editar.refazer', 'editar.historico', '|', 'inserir.postit', 'inserir.forma', 'inserir.seta', 'inserir.proximo', '|', 'formatar.preenchimento', 'editar.excluir', '|', 'organizar.kanban', 'exibir.ajustar'],
 };
 
-/** Abas da faixa do módulo, só com o que vale nele. */
-export function abasDoModulo(mod) {
+/** v0.6.3: aba que só aparece com um gráfico selecionado (como no Excel) */
+export const ABA_GRAFICO = { id: 'grafico', nome: 'Gráfico', contextual: true, grupos: [
+  { nome: 'Gráfico', itens: [['g', 'grafico.editar'], ['g', 'grafico.estilo'], ['g', 'grafico.cores'], ['g', 'grafico.semaforo']] },
+  { nome: 'Remover', itens: [['g', 'grafico.excluir']] }] };
+
+/** Abas da faixa do módulo, só com o que vale nele. ctx.grafico: há um gráfico selecionado. */
+export function abasDoModulo(mod, ctx = {}) {
   const vale = (id) => PorId[id] && valeNoModulo(PorId[id], mod);
-  return (FAIXAS[mod] || []).map((aba) => ({
+  const base = [...(FAIXAS[mod] || []), ...(mod === 'planilha' && ctx.grafico ? [ABA_GRAFICO] : [])];
+  return base.map((aba) => ({
     ...aba,
     grupos: aba.grupos.map((g) => ({
       ...g,
@@ -117,6 +124,7 @@ export function abasDoModulo(mod) {
 
 /* Rótulos curtos na faixa (o nome completo fica no "title" e na busca) */
 export const ROTULO_CURTO = {
+  'grafico.editar': 'Editar', 'grafico.estilo': 'Estilo rápido', 'grafico.cores': 'Cores', 'grafico.semaforo': 'Semáforo', 'grafico.excluir': 'Excluir',
   'exibir.faixaTudo': 'Mostrar tudo', 'exibir.faixaAbas': 'Só as abas', 'exibir.faixaOculta': 'Esconder',
   'exibir.topoCompleto': 'Completa', 'exibir.topoCompacto': 'Só as abas', 'exibir.barraFormula': 'Barra fx',
   'exibir.menuCompleto': 'Completo', 'exibir.menuIcones': 'Só ícones', 'exibir.menuOculto': 'Esconder',
@@ -185,7 +193,7 @@ function GrupoFaixa({ g, cx, prim, soIcone }) {
 
 /* A faixa nunca passa da tela: o que não cabe vai para "Mais" (as larguras dos grupos são medidas e guardadas) */
 function Faixa({ aba, cx, flutua, cel, estilo }) {
-  const abas = abasDoModulo(cx.mod);
+  const abas = abasDoModulo(cx.mod, cx.contexto);
   const atual = abas.find((a) => a.id === aba) || abas[1];
   const prim = (PRINCIPAL[cx.mod] || {})[atual.id];
   const ref = useRef(null);
@@ -342,6 +350,23 @@ function OpcoesFaixa({ prefs, cx, cel, compacto }) {
               </button>
             ))}
           </>}
+          {cx.setPref && (
+            <>
+              <span className="faixa-menu-sep" />
+              <span className="faixa-menu-cab">Temas favoritos</span>
+              <div className="faixa-temas" role="group" aria-label="Temas favoritos">
+                {(prefs.favTemas || []).map((id) => {
+                  const t = TEMAS.find(([x]) => x === id);
+                  if (!t || !AMOSTRAS[id]) return null;
+                  return (
+                    <button key={id} type="button" className={'faixa-tema' + (prefs.tema === id ? ' on' : '')} data-faixa-tema={id} aria-pressed={prefs.tema === id} title={t[1]} aria-label={'Tema ' + t[1]}
+                      onClick={() => { cx.setPref('tema', id); setAberto(null); }}><i style={{ '--tb': AMOSTRAS[id][0], '--ta': AMOSTRAS[id][1] }} /><span>{t[1]}</span></button>
+                  );
+                })}
+                <button type="button" className="faixa-tema-mais" data-faixa-temas-mais onClick={() => { setAberto(null); cx.executar('app.opcoes'); }}>Escolher favoritos…</button>
+              </div>
+            </>
+          )}
           <span className="faixa-menu-dica">Ctrl+F1 mostra ou esconde a faixa</span>
         </div>
       )}
@@ -381,6 +406,15 @@ function NomeArquivo({ ficha, cx }) {
 
 export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaTemp, setFaixaTemp, abrirGaveta }) {
   const temArquivo = !!ficha;
+  /* v0.6.3: a aba "Gráfico" abre sozinha quando um gráfico é selecionado e volta para a anterior quando deixa de ser */
+  const temGrafico = !!(cx.contexto && cx.contexto.grafico);
+  const antesDoGrafico = useRef('inicio');
+  const abaAtual = useRef(aba);
+  abaAtual.current = aba;
+  useEffect(() => {
+    if (temGrafico) { if (abaAtual.current !== 'grafico') { antesDoGrafico.current = abaAtual.current; setAba('grafico'); } }
+    else if (abaAtual.current === 'grafico') setAba(antesDoGrafico.current || 'inicio');
+  }, [temGrafico]); // eslint-disable-line react-hooks/exhaustive-deps
   const mostraMenu = cel || prefs.menu === 'oculto';
   const layoutA = prefs.layout === 'A';
   /* v0.4.9 (L07): no celular as abas ficam escondidas atrás do botão "Abas" da barra rápida */
@@ -400,8 +434,8 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
           <span className={'salvo' + (salvo.sujo ? ' sujo' : '')} aria-live="polite" title={salvo.texto}><i /></span>
         </span>
       )}
-      {abasDoModulo(cx.mod).map((a) => (
-        <button key={a.id} type="button" className={'tab' + (aba === a.id && mostraFaixa ? ' active' : '')} aria-pressed={aba === a.id && mostraFaixa}
+      {abasDoModulo(cx.mod, cx.contexto).map((a) => (
+        <button key={a.id} type="button" data-aba-ctx={a.contextual ? '' : undefined} className={'tab' + (a.contextual ? ' ctx' : '') + (aba === a.id && mostraFaixa ? ' active' : '')} aria-pressed={aba === a.id && mostraFaixa}
           onClick={() => {
             if (prefs.faixa !== 'tudo') setFaixaTemp(!(faixaTemp && aba === a.id));
             setAba(a.id);

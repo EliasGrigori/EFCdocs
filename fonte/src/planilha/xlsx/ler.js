@@ -17,6 +17,7 @@ import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './ex
 import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js';
 import { lerImpressaoAba, lerNomesImpressao } from './impressaoXlsx.js';
 import { idObjeto } from '../objetos.js';
+import { urlSegura } from '../inserir.js';
 import { indiceEstilo, LARG_PADRAO, ALT_PADRAO, NOME_ABA_PADRAO } from '../modelo.js';
 const RX_SO_DINAMICA = /(^|[^\w.])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|RANDARRAY|XLOOKUP|XMATCH|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS|LET|LAMBDA)\(/i;
 
@@ -41,7 +42,7 @@ function caminho(base, alvo) {
 const relsDe = (parte) => { const p = parte.split('/'); const n = p.pop(); return [...p, '_rels', n + '.rels'].join('/'); };
 function lerRels(xml, parte) {
   const out = new Map();
-  for (const r of tags(xml || '', 'Relationship')) out.set(r.a.Id, { tipo: (r.a.Type || '').replace(NS_REL, ''), alvo: r.a.TargetMode === 'External' ? null : caminho(parte, r.a.Target), externo: r.a.TargetMode === 'External' });
+  for (const r of tags(xml || '', 'Relationship')) out.set(r.a.Id, { tipo: (r.a.Type || '').replace(NS_REL, ''), alvo: r.a.TargetMode === 'External' ? null : caminho(parte, r.a.Target), externo: r.a.TargetMode === 'External', url: r.a.Target || '' });
   return out;
 }
 
@@ -160,7 +161,9 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   let grFora = 0;
   const nPartesGrafico = conta(/^xl\/charts\/chart\d+\.xml$/i);
   if (conta(/^xl\/pivotTables\//i)) juntarFora('Tabelas dinâmicas', conta(/^xl\/pivotTables\/pivotTable\d+\.xml$/i), 'vêm só os valores, que não atualizam');
-  if (conta(/^xl\/media\//i)) juntarFora('Imagens', conta(/^xl\/media\//i));
+  const nMidias = conta(/^xl\/media\//i);
+  let imgLidas = 0;
+  const linksLocais = []; // links de uma aba para outra, ligados no fim
   if (conta(/^xl\/(slicers|slicerCaches|timelines|timelineCaches)\//i)) juntarFora('Segmentações de dados e linhas do tempo', conta(/^xl\/(slicers|timelines)\/[^/]+\.xml$/i) || 1);
   if (conta(/^xl\/ctrlProps\//i)) juntarFora('Botões e caixas de controle', conta(/^xl\/ctrlProps\//i));
   if (conta(/^xl\/webextensions\//i)) juntarFora('Suplementos do Office', conta(/^xl\/webextensions\/webextension\d*\.xml$/i) || 1);
@@ -459,9 +462,11 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     /* v0.6.0: gráficos da aba */
     if (F.rels && [...F.rels.values()].some((r) => /drawing$/.test(r.tipo))) {
       const gr = await lerGraficosAba(zip, F.rels, aba, async (parte) => lerRels(await zip.texto(relsDe(parte)), parte), tema);
-      for (const o of gr.objs) { graficosLidos.push({ aba, o }); rel.extras.graficos++; }
-      for (const x of gr.fora) juntarFora('Gráficos', 1, x.motivo);
-      grFora += gr.fora.length;
+      for (const o of gr.objs) {
+        if (o.tipo === 'imagem') { (aba.objs || (aba.objs = [])).push({ id: idObjeto(), ...o }); imgLidas++; continue; }
+        graficosLidos.push({ aba, o }); rel.extras.graficos++;
+      }
+      for (const x of gr.fora) { if (x.imagem) juntarFora('Imagens', 1, x.motivo); else { juntarFora('Gráficos', 1, x.motivo); grFora += 1; } }
     }
 
     /* mescladas, e o que a aba tem que não vem */
@@ -494,17 +499,69 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const co = await lerComentarios(zip, F.rels, pessoas);
       if (Object.keys(co.com).length) { aba.com = co.com; rel.extras.notas += co.notas; rel.extras.conversas += co.conversas; rel.extras.respostas += co.respostas; }
     }
-    const nLink = (resto.match(/<hyperlink\b/g) || []).length;
-    if (nLink) juntarFora('Links nas células', nLink, 'o texto vem, o link não');
-    if (/<autoFilter\b/.test(resto)) juntarFora('Filtros', 1, 'as linhas escondidas pelo filtro continuam escondidas; os botões de filtro não vêm');
-    /* linhas escondidas por filtro: o SUBTOTAL do Excel pula sempre (não só com 101 a 111) */
-    const af = /<autoFilter\b[^>]*ref="([^"]+)"[^>]*>([\s\S]*?)<\/autoFilter>/.exec(resto);
+    /* v0.6.3: links das células (internet e e-mail já; os de dentro da planilha são ligados no fim, quando todas as abas existem) */
+    { let perdidos = 0;
+      for (const h of tags(resto, 'hyperlink')) {
+        const ref = String(h.a.ref || '').toUpperCase().split(':');
+        const p1 = lerChave(ref[0]), p2 = lerChave(ref[1] || ref[0]);
+        if (!p1 || !p2) { perdidos++; continue; }
+        const dica = h.a.tooltip ? String(h.a.tooltip).slice(0, 255) : undefined;
+        let lk = null;
+        if (h.a['r:id']) {
+          const rr = F.rels && F.rels.get(h.a['r:id']);
+          const u = rr && rr.externo ? urlSegura(rr.url) : '';
+          if (u) lk = { t: 'u', u, ...(dica ? { d: dica } : {}) };
+        } else if (h.a.location) {
+          const m = /^(?:'((?:[^']|'')+)'|([^'!]+))!\$?([A-Za-z]+)\$?(\d+)(?::.*)?$/.exec(String(h.a.location).trim());
+          if (m) linksLocais.push({ aba, p1, p2, nomeAba: (m[1] ? m[1].replace(/''/g, "'") : m[2]).toLowerCase(), r: `${m[3].toUpperCase()}${m[4]}`, d: dica });
+          else perdidos++;
+          continue;
+        }
+        if (!lk) { perdidos++; continue; }
+        for (let l = p1.l; l <= Math.min(p2.l, p1.l + 200); l++) for (let cc = p1.c; cc <= Math.min(p2.c, p1.c + 50); cc++) {
+          const x = aba.cel[chave(l, cc)]; if (x) x.lk = { ...lk };
+        }
+        rel.extras.links = (rel.extras.links || 0) + 1;
+      }
+      if (perdidos) juntarFora('Links nas células', perdidos, 'link para arquivo, nome definido ou endereço que o EFCdocs não abre; o texto vem');
+    }
+    /* v0.6.3: filtro automático (setas + critérios de lista) e aba protegida */
     const filtros = [...(F.filtros || [])];
-    if (af && /<filterColumn\b/.test(af[2])) { const [a1, b1] = af[1].split(':'); const p1 = lerChave(a1), p2 = lerChave(b1 || a1); if (p1 && p2) filtros.push({ l1: p1.l + 1, l2: p2.l }); }
+    const af = /<autoFilter\b([^>]*?)(?:\/>|>([\s\S]*?)<\/autoFilter>)/.exec(resto);
+    if (af) {
+      const at = atributos(af[1]);
+      const [a1, b1] = String(at.ref || '').split(':');
+      const p1 = lerChave(a1), p2 = lerChave(b1 || a1);
+      const colunas = tags(af[2] || '', 'filterColumn');
+      if (p1 && p2 && p2.l > p1.l) {
+        const cr = {};
+        let naoEntram = 0;
+        for (const fc of colunas) {
+          const lista = tag(fc.dentro, 'filters');
+          const col = p1.c + (+fc.a.colId || 0);
+          if (lista && !/<dateGroupItem\b/.test(lista.dentro) && col >= p1.c && col <= p2.c) {
+            const v = tags(lista.dentro, 'filter').map((x) => x.a.val ?? '');
+            if (lista.a.blank === '1' || lista.a.blank === 'true') v.push('');
+            cr[col] = { v };
+          } else naoEntram++;
+        }
+        aba.fil = { fx: `${chave(p1.l, p1.c)}:${chave(p2.l, p2.c)}`, cr };
+        if (naoEntram) juntarFora('Filtros', naoEntram, 'critérios de data, cor ou "maiores que" não entram; as linhas escondidas continuam escondidas');
+      } else if (colunas.length) juntarFora('Filtros', 1, 'as linhas escondidas pelo filtro continuam escondidas; os botões de filtro não vêm');
+      if (colunas.length && p1 && p2) filtros.push({ l1: p1.l + 1, l2: p2.l });
+    }
     if (filtros.length && aba.ocL) {
       for (const k of Object.keys(aba.ocL)) { const l = +k; if (filtros.some((x) => l >= x.l1 && l <= x.l2)) (aba.ocF || (aba.ocF = {}))[l] = 1; }
     }
-    if (/<sheetProtection\b/.test(resto)) juntarFora('Proteção de aba', 1, 'aqui a aba fica livre para editar');
+    const protTag = /<sheetProtection\b([^>]*?)\/?>/.exec(resto);
+    if (protTag) {
+      const at = atributos(protTag[1]);
+      if (at.sheet === '1' || at.sheet === 'true') {
+        const senha = {};
+        for (const k of ['password', 'algorithmName', 'hashValue', 'saltValue', 'spinCount']) if (at[k]) senha[k] = at[k];
+        aba.prot = Object.keys(senha).length ? { a: senha } : 1;
+      }
+    }
 
     if (nCel < 0) nCel = 0;
     ra.celulas = nCel; ra.formulas = nForm;
@@ -535,7 +592,22 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     a.nome = n;
   });
   if (conteudo.ordem.every((id) => conteudo.abas[id].oculta)) delete conteudo.abas[conteudo.ordem[0]].oculta;
+  if (nMidias > imgLidas && !fora.has('Imagens')) juntarFora('Imagens', nMidias - imgLidas, 'figuras dentro de formas, de células ou de fundo não vêm');
   if (nPartesGrafico > graficosLidos.length + grFora) juntarFora('Gráficos', nPartesGrafico - graficosLidos.length - grFora, 'não estão presos a nenhuma aba');
+  /* links de dentro da planilha: o nome da aba vira o id */
+  {
+    const porNomeL = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));
+    let sem = 0;
+    for (const L of linksLocais) {
+      const alvo = porNomeL.get(L.nomeAba);
+      if (!alvo) { sem++; continue; }
+      for (let l = L.p1.l; l <= Math.min(L.p2.l, L.p1.l + 200); l++) for (let cc = L.p1.c; cc <= Math.min(L.p2.c, L.p1.c + 50); cc++) {
+        const x = L.aba.cel[chave(l, cc)]; if (x) x.lk = { t: 'a', a: alvo, r: L.r, ...(L.d ? { d: L.d } : {}) };
+      }
+      rel.extras.links = (rel.extras.links || 0) + 1;
+    }
+    if (sem) juntarFora('Links nas células', sem, 'levam a uma aba que não veio; o texto vem');
+  }
   /* gráficos: o nome da aba dos dados vira o id da aba */
   {
     const porNome = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));

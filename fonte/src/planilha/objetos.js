@@ -9,6 +9,12 @@ import { normalizarG } from './graficos.js';
 /* v0.6.0: gráfico também é objeto da aba (tipo 'grafico', com g = { t, titulo, dados, op }) */
 export const GR = { W: 480, H: 300, W_MIN: 180, H_MIN: 120 };
 
+/* v0.6.3: imagem (foto ou desenho guardado no arquivo) e botão que leva a outra aba */
+export const IMG = { W: 240, H: 160, W_MIN: 24, H_MIN: 24, MAX_CHARS: 500000 }; // MAX_CHARS: tamanho do texto da imagem guardada (cerca de 370 KB)
+export const BTN = { W: 180, H: 40, W_MIN: 72, H_MIN: 26 };
+export const imagemValida = (src) => typeof src === 'string' && src.length <= IMG.MAX_CHARS && /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(src);
+const COR_BOTAO = /^#[0-9a-fA-F]{6}$/;
+
 export const MAX_OBJETOS = 40;
 const num = (v, p) => (typeof v === 'number' && Number.isFinite(v) ? v : p);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -21,8 +27,32 @@ export function normalizarObjetos(lista) {
   const ids = new Set();
   const out = [];
   for (const o of lista) {
-    if (!o || (o.tipo !== 'assinatura' && o.tipo !== 'grafico') || !o.id || ids.has(o.id) || out.length >= MAX_OBJETOS) continue;
+    if (!o || (o.tipo !== 'assinatura' && o.tipo !== 'grafico' && o.tipo !== 'imagem' && o.tipo !== 'botao') || !o.id || ids.has(o.id) || out.length >= MAX_OBJETOS) continue;
     ids.add(o.id);
+    if (o.tipo === 'imagem') {
+      if (!imagemValida(o.src)) continue;
+      out.push({
+        id: String(o.id), tipo: 'imagem',
+        l: clamp(Math.round(num(o.l, 0)), 0, MAX_LIN - 1), c: clamp(Math.round(num(o.c, 0)), 0, MAX_COL - 1),
+        dx: Math.max(0, num(o.dx, 0)), dy: Math.max(0, num(o.dy, 0)),
+        w: clamp(num(o.w, IMG.W), IMG.W_MIN, 4000), h: clamp(num(o.h, IMG.H), IMG.H_MIN, 4000),
+        src: o.src, nome: String(o.nome || '').slice(0, 200),
+      });
+      continue;
+    }
+    if (o.tipo === 'botao') {
+      const b = {
+        id: String(o.id), tipo: 'botao',
+        l: clamp(Math.round(num(o.l, 0)), 0, MAX_LIN - 1), c: clamp(Math.round(num(o.c, 0)), 0, MAX_COL - 1),
+        dx: Math.max(0, num(o.dx, 0)), dy: Math.max(0, num(o.dy, 0)),
+        w: clamp(num(o.w, BTN.W), BTN.W_MIN, 800), h: clamp(num(o.h, BTN.H), BTN.H_MIN, 300),
+        nome: String(o.nome || '').slice(0, 60), alvo: String(o.alvo || ''),
+      };
+      if (typeof o.ref === 'string' && /^[A-Za-z]{1,3}\d{1,7}$/.test(o.ref)) b.ref = o.ref.toUpperCase();
+      if (typeof o.cor === 'string' && COR_BOTAO.test(o.cor)) b.cor = o.cor.toLowerCase();
+      out.push(b);
+      continue;
+    }
     if (o.tipo === 'grafico') {
       out.push({
         id: String(o.id), tipo: 'grafico',
@@ -57,6 +87,23 @@ export function novaAssinatura({ nome, rub }, ancora, id = idObjeto()) {
   const o = { id, tipo: 'assinatura', l: ancora.l, c: ancora.c, dx: ancora.dx ?? 4, dy: ancora.dy ?? 4, w: ASN.W, h: ASN.H, nome: limparNome(nome) };
   if (rubricaValida(rub)) o.rub = rub;
   return o;
+}
+
+/** Imagem nova presa a uma célula (w e h já na proporção da foto). */
+export function novaImagem({ src, nome, w, h }, ancora, id = idObjeto()) {
+  return { id, tipo: 'imagem', l: ancora.l, c: ancora.c, dx: ancora.dx ?? 6, dy: ancora.dy ?? 6, w: Math.round(w || IMG.W), h: Math.round(h || IMG.H), src, nome: String(nome || '').slice(0, 200) };
+}
+/** Botão novo que leva a outra aba. */
+export function novoBotao({ nome, alvo, ref, cor }, ancora, id = idObjeto()) {
+  const o = { id, tipo: 'botao', l: ancora.l, c: ancora.c, dx: ancora.dx ?? 6, dy: ancora.dy ?? 6, w: BTN.W, h: BTN.H, nome: String(nome || '').slice(0, 60), alvo: String(alvo || '') };
+  if (ref) o.ref = String(ref).toUpperCase();
+  if (cor) o.cor = cor;
+  return o;
+}
+/** Tamanho que cabe em w×h mantendo a proporção da foto. */
+export function caberImagem(largura, altura, maxW = 360, maxH = 260) {
+  const k = Math.min(1, maxW / largura, maxH / altura);
+  return { w: Math.max(IMG.W_MIN, Math.round(largura * k)), h: Math.max(IMG.H_MIN, Math.round(altura * k)) };
 }
 
 /** Gráfico novo preso a uma célula. */

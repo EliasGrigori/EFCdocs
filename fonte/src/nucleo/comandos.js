@@ -87,7 +87,13 @@ export const COMANDOS = [
 
   C('inserir.tabela', 'Tabela', 'tabela', { sin: ['formatar como tabela', 'grade'], chega: porModulo(V61, V7, null), mods: ['planilha', 'docx'] }),
   C('inserir.imagem', 'Imagem', 'imagem', { sin: ['foto', 'figura'], chega: porModulo(V61, V7, null), acao: 'quadro.editar' }),
-  C('inserir.grafico', 'Gráfico', 'grafico', { sin: ['inserir gráfico', 'novo gráfico', 'velocímetro', 'chart', 'colunas', 'pizza', 'barras', 'linhas', 'dashboard'], chega: porModulo(V6, V7, V61) }),
+  /* v0.6.3: aba contextual "Gráfico" (aparece quando um gráfico está selecionado) */
+  C('grafico.editar', 'Editar gráfico', 'grafico', { sin: ['mudar gráfico', 'dados do gráfico', 'tipo de gráfico'], mods: ['planilha'], ed: true }),
+  C('grafico.estilo', 'Estilo rápido', 'grafico', { sin: ['estilo do gráfico', 'layout do gráfico', 'visual do gráfico'], mods: ['planilha'], ed: true }),
+  C('grafico.cores', 'Cores do gráfico', 'grafico', { sin: ['paleta do gráfico', 'cores das barras'], mods: ['planilha'], ed: true }),
+  C('grafico.semaforo', 'Semáforo', 'grafico', { sin: ['verde amarelo vermelho', 'meta do gráfico', 'qualidade'], mods: ['planilha'], ed: true }),
+  C('grafico.excluir', 'Excluir gráfico', 'lixeira', { sin: ['apagar gráfico', 'remover gráfico'], mods: ['planilha'], ed: true }),
+  C('inserir.grafico', 'Gráfico', 'grafico', { sin: ['inserir gráfico', 'novo gráfico', 'velocímetro', 'chart', 'colunas', 'pizza', 'barras', 'linhas', 'dashboard'], chega: porModulo(V6, V7, V7) }),
   C('inserir.link', 'Link', 'link', { sin: ['hiperlink', 'endereço', 'ir para aba'], chega: porModulo(V61, V7, null), acao: 'quadro.editar' }),
   C('inserir.botao', 'Botão que leva a outra aba', 'botao', { sin: ['botão', 'navegação', 'macro', 'atalho de aba'], chega: V61, mods: ['planilha'] }),
   C('inserir.foto', 'Foto na célula', 'foto', { sin: ['evidência', 'câmera'], chega: V8, mods: ['planilha'] }),
@@ -120,6 +126,7 @@ export const COMANDOS = [
 
   C('dados.classificar', 'Classificar', 'classificar', { sin: ['ordenar', 'a-z', 'organizar'], chega: V61, mods: ['planilha'] }),
   C('dados.filtrar', 'Filtrar', 'filtro', { sin: ['filtro', 'mostrar só'], chega: V61, mods: ['planilha'] }),
+  C('dados.reaplicar', 'Reaplicar filtro', 'filtro', { sin: ['atualizar filtro', 'refazer filtro'], chega: V61, mods: ['planilha'] }),
   C('dados.validacao', 'Validação de dados', 'validacao', { sin: ['lista suspensa', 'limite de valor', 'regra de entrada'], chega: V51, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.duplicados', 'Remover duplicados', 'dupl', { sin: ['repetidos'], chega: V61, mods: ['planilha'] }),
   C('dados.dinamica', 'Tabela dinâmica', 'tabela', { sin: ['pivot', 'resumo', 'agrupar'], chega: DEPOIS, mods: ['planilha'] }),

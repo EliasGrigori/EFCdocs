@@ -109,6 +109,8 @@ export function App() {
   const chamarFaixa = useCallback(() => { setPiscando(true); clearTimeout(chamarFaixa.t); chamarFaixa.t = setTimeout(() => setPiscando(false), 1400); }, []);
   const [espaco, setEspaco] = useState('');
   const [statusEd, setStatusEd] = useState(null);
+  const [contextoEd, setContextoEd] = useState({}); // v0.6.3: o que o editor tem selecionado (ex.: um gráfico) e muda a faixa
+  const setContexto = useCallback((c) => setContextoEd((a) => (JSON.stringify(a) === JSON.stringify(c) ? a : c)), []);
   const [alvoPainel, setAlvoPainel] = useState(null);
   const [alvoRodape, setAlvoRodape] = useState(null); /* v0.4.8 (L11): a Verificação mora no rodapé, igual em todos os arquivos */
   const [linhaTempo, setLinhaTempo] = useState(false);
@@ -242,7 +244,7 @@ export function App() {
     setGaveta(false);
     const anterior = abertoRef.current;
     if (anterior && anterior.arquivo.ficha.id !== idRota && !travadoRef.current) postar({ t: 'fechei', arq: anterior.arquivo.ficha.id });
-    if (!idRota) { setAberto(null); setStatusEd(null); setTravado(null); return undefined; }
+    if (!idRota) { setAberto(null); setStatusEd(null); setContextoEd({}); setTravado(null); return undefined; }
     if (abertoRef.current && abertoRef.current.arquivo.ficha.id === idRota) return undefined;
     setTravado(null);
     banco.abrir(idRota).then((r) => {
@@ -542,7 +544,7 @@ export function App() {
     /* para o editor */
     aplicar, avisar, chamarFaixa, perguntar: setPergunta, temJanela: !!(paleta || opcoes || pergunta || gaveta || linhaTempo),
     pode: (acao) => !semPermissao(acao), travado, buscarNoEditor: (q) => { const ed = editorRef.current; return ed && ed.buscar ? ed.buscar(q) : []; },
-    registrarEditor: (ed) => { editorRef.current = ed; }, setStatus: setStatusEd,
+    registrarEditor: (ed) => { editorRef.current = ed; }, setStatus: setStatusEd, setContexto, contexto: contextoEd,
     alvoPainel, alvoRodape, abrirPainel: () => setPref('painel', true), painelAberto: prefs.painel, cel,
   };
 

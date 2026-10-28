@@ -5,7 +5,7 @@ import { pedacosColoridos, assinatura } from './ajuda.js';
 import { Icone } from '../ui/comum.jsx';
 
 /** O campo: textarea transparente por cima das cores. */
-export const CampoFormula = forwardRef(function CampoFormula({ valor, cursor, aoMudar, aoTecla, aoFocar, aoSair, classe = '', estilo, rotulo, modoTeclado, focar, linhaUnica, fantasma }, ref) {
+export const CampoFormula = forwardRef(function CampoFormula({ valor, cursor, aoMudar, aoTecla, aoFocar, aoSair, classe = '', estilo, rotulo, modoTeclado, focar, linhaUnica, fantasma, corretor }, ref) {
   const ta = useRef(null);
   const fundo = useRef(null);
   const selUser = useRef(null); // v0.5.1: trecho selecionado de propósito (Ctrl+A, arrastar): o cursor automático não pode desfazer
@@ -47,7 +47,7 @@ export const CampoFormula = forwardRef(function CampoFormula({ valor, cursor, ao
       {!ehFormula && fantasma && fantasma.length > valor.length && (
         <div className="ef-cores" aria-hidden="true"><span style={{ color: 'transparent' }}>{valor}</span><span className="ef-fantasma">{fantasma.slice(valor.length)}</span></div>
       )}
-      <textarea ref={ta} className="ef-campo" value={valor} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off"
+      <textarea ref={ta} className="ef-campo" value={valor} spellCheck={!!corretor && !ehFormula} lang="pt-BR" autoComplete="off" autoCorrect="off" autoCapitalize="off"
         aria-label={rotulo} rows={1} inputMode={modoTeclado || 'text'} wrap={linhaUnica ? 'off' : 'soft'}
         onChange={(ev) => { selUser.current = null; aoMudar(ev.target.value, ev.target.selectionStart); }}
         onSelect={(ev) => {

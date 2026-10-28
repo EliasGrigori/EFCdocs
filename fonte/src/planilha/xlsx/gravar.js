@@ -3,6 +3,7 @@
    cor e abas ocultas, nomes definidos e matrizes que derramam (matriz dinâmica do Excel 365).
    O Excel recalcula tudo ao abrir (fullCalcOnLoad). */
 import { gravarGraficosAba } from './graficosXlsx.js';
+import { gravarImagensAba } from './imagensXlsx.js';
 import { gravarImpressaoAba } from './impressaoXlsx.js';
 import { criarZip } from './zip.js';
 import { escapar, XML_CAB } from './xml.js';
@@ -19,6 +20,21 @@ const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
 const NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
 const CT = 'application/vnd.openxmlformats-officedocument.spreadsheetml.';
+
+/** v0.6.3: <autoFilter> com os critérios de lista (textos que ficam; '' = células vazias). */
+function gravarFiltro(fil) {
+  if (!fil || !/^[A-Z]+\d+:[A-Z]+\d+$/.test(fil.fx || '')) return '';
+  const a1 = lerChave(fil.fx.split(':')[0]);
+  const cols = Object.keys(fil.cr || {}).map(Number).filter((c) => a1 && c >= a1.c).sort((x, y) => x - y);
+  if (!cols.length) return `<autoFilter ref="${fil.fx}"/>`;
+  const dentro = cols.map((col) => {
+    const v = fil.cr[col].v || [];
+    const vazio = v.includes('');
+    const itens = v.filter((t) => t !== '').map((t) => `<filter val="${escapar(t, true)}"/>`).join('');
+    return `<filterColumn colId="${col - a1.c}"><filters${vazio ? ' blank="1"' : ''}>${itens}</filters></filterColumn>`;
+  }).join('');
+  return `<autoFilter ref="${fil.fx}">${dentro}</autoFilter>`;
+}
 
 /* fórmulas que o Excel antigo não entende sem matriz dinâmica */
 const RX_MATRIZ = /(^|[^\w.])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|TRANSPOSE|RANDARRAY|XLOOKUP|XMATCH|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS|FREQUENCY|MMULT|LET|LAMBDA|MAP|REDUCE|SCAN|BYROW|BYCOL|MAKEARRAY|TRIMRANGE|SINGLE)\(/i;
@@ -46,6 +62,11 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   const notas = []; // comentários por aba: { ia, comments, vml }
   const desenhos = []; // v0.6.0: gráficos por aba: { ia, drawing, rels, charts }
   let nChart = 1;
+  let nImg = 0; // v0.6.3: imagens gravadas até agora (image1, image2...)
+  let botoes = 0;
+  let linksFora = 0;
+  const linksExt = new Map(); // ia → [{ id, url }] relações externas da aba
+  let imagensFora = 0;
   const nomesImp = []; // v0.6.0: área e títulos de impressão (nomes definidos _xlnm)
   let conversas = 0;
   const abas = c.ordem.map((id) => c.abas[id]);
@@ -53,7 +74,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
 
   abas.forEach((aba, ia) => {
     const id = aba.id || c.ordem[ia];
-    if (aba.objs && aba.objs.length) assinaturas += aba.objs.filter((o) => o.tipo === 'assinatura').length;
+    if (aba.objs && aba.objs.length) { assinaturas += aba.objs.filter((o) => o.tipo === 'assinatura').length; botoes += aba.objs.filter((o) => o.tipo === 'botao').length; }
     /* junta as células por linha */
     const linhas = new Map();
     const por = (l, cc, x) => { let L = linhas.get(l); if (!L) { L = new Map(); linhas.set(l, L); } L.set(cc, x); };
@@ -161,13 +182,34 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     cab += `<sheetFormatPr defaultColWidth="${larguraExcel(LARG_PADRAO)}" defaultRowHeight="${ptDe(ALT_PADRAO)}" customHeight="1"/>`;
     if (cols.length) cab += `<cols>${cols.join('')}</cols>`;
     let fim = '';
+    /* v0.6.3: aba protegida e filtro automático (antes das mescladas, como o Excel exige) */
+    if (aba.prot) {
+      const extra = aba.prot.a ? Object.entries(aba.prot.a).map(([k, v]) => ` ${k}="${escapar(v, true)}"`).join('') : '';
+      fim += `<sheetProtection sheet="1" objects="1" scenarios="1"${extra}/>`;
+    }
+    fim += gravarFiltro(aba.fil);
     const mesc = (aba.mesc || []).filter((t) => /^[A-Z]+\d+:[A-Z]+\d+$/.test(t));
     if (mesc.length) fim += `<mergeCells count="${mesc.length}">${mesc.map((t) => `<mergeCell ref="${t}"/>`).join('')}</mergeCells>`;
     fim += gravarCondicionais(aba.cf, dxfs);
     fim += gravarValidacoes(aba.val);
+    /* v0.6.3: links das células (internet e e-mail vão como relação externa; os de dentro da planilha, como local) */
+    { const hl = [], ext = [];
+      for (const [k, x] of Object.entries(aba.cel || {})) {
+        const lk = x && x.lk; if (!lk || typeof lk !== 'object') continue;
+        const tip = lk.d ? ` tooltip="${escapar(String(lk.d), true)}"` : '';
+        if (lk.t === 'a') {
+          const alvo = c.abas[lk.a]; if (!alvo) { linksFora++; continue; }
+          hl.push(`<hyperlink ref="${k}" location="${escapar("'" + alvo.nome.replace(/'/g, "''") + "'!" + lk.r, true)}"${tip}/>`);
+        } else if (lk.u) {
+          const id = `rIdH${ext.length + 1}`; ext.push({ id, url: lk.u });
+          hl.push(`<hyperlink ref="${k}" r:id="${id}"${tip}/>`);
+        }
+      }
+      if (hl.length) { fim += `<hyperlinks>${hl.join('')}</hyperlinks>`; if (ext.length) linksExt.set(ia, ext); } }
     fim += ip.printOptions + ip.margens + ip.pageSetup + ip.headerFooter + ip.quebras;
-    const gr = gravarGraficosAba(c, m, aba, id, nChart);
-    if (gr) { fim += '<drawing r:id="rId3"/>'; desenhos.push({ ia, ...gr }); nChart += gr.charts.length; }
+    const im = gravarImagensAba(aba, nImg);
+    const gr = gravarGraficosAba(c, m, aba, id, nChart, im);
+    if (gr) { fim += '<drawing r:id="rId3"/>'; desenhos.push({ ia, ...gr }); nChart += gr.charts.length; nImg += gr.midias.length; }
     const co = gravarComentarios(aba.com, ia);
     if (co) { fim += '<legacyDrawing r:id="rId1"/>'; notas.push({ ia, ...co }); conversas += co.conversas; }
     partes.push({
@@ -205,6 +247,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   const tipos = `${XML_CAB}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
     (notas.length ? '<Default Extension="vml" ContentType="application/vnd.openxmlformats-officedocument.vmlDrawing"/>' : '') +
+    [...new Set(desenhos.flatMap((d) => (d.midias || []).map((m) => m.ext)))].map((e) => `<Default Extension="${e}" ContentType="image/${e}"/>`).join('') +
     `<Override PartName="/xl/workbook.xml" ContentType="${CT}sheet.main+xml"/>` +
     abas.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="${CT}worksheet+xml"/>`).join('') +
     `<Override PartName="/xl/styles.xml" ContentType="${CT}styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="${CT}sharedStrings+xml"/>` +
@@ -237,17 +280,22 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       { nome: `xl/drawings/drawing${d.ia + 1}.xml`, dados: d.drawing },
       { nome: `xl/drawings/_rels/drawing${d.ia + 1}.xml.rels`, dados: d.rels },
       ...d.charts.map((ch) => ({ nome: `xl/charts/chart${ch.n}.xml`, dados: ch.xml })),
+      ...(d.midias || []).map((m) => ({ nome: m.nome, dados: m.bytes })),
     ]),
     /* rels das abas: comentários (rId1, rId2) e gráficos (rId3) */
     ...abas.map((_, ia) => {
       const n = notas.find((x) => x.ia === ia), d = desenhos.find((x) => x.ia === ia);
-      if (!n && !d) return null;
+      const le = linksExt.get(ia);
+      if (!n && !d && !le) return null;
       return { nome: `xl/worksheets/_rels/sheet${ia + 1}.xml.rels`, dados: `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
         (n ? `<Relationship Id="rId1" Type="${REL}vmlDrawing" Target="../drawings/vmlDrawing${ia + 1}.vml"/><Relationship Id="rId2" Type="${REL}comments" Target="../comments${ia + 1}.xml"/>` : '') +
-        (d ? `<Relationship Id="rId3" Type="${REL}drawing" Target="../drawings/drawing${ia + 1}.xml"/>` : '') + '</Relationships>' };
+        (d ? `<Relationship Id="rId3" Type="${REL}drawing" Target="../drawings/drawing${ia + 1}.xml"/>` : '') +
+        (le ? le.map((x) => `<Relationship Id="${x.id}" Type="${REL}hyperlink" Target="${escapar(x.url, true)}" TargetMode="External"/>`).join('') : '') + '</Relationships>' };
     }).filter(Boolean),
   ];
   if (conversas) avisos.push(`${conversas === 1 ? 'A conversa de comentários vai' : `As ${conversas} conversas de comentários vão`} como anotação comum no Excel (o texto e as respostas ficam juntos na mesma anotação).`);
+  if (linksFora) avisos.push(`${linksFora === 1 ? 'Um link' : `${linksFora} links`} que levava a uma aba apagada não ${linksFora === 1 ? 'foi' : 'foram'} gravado${linksFora === 1 ? '' : 's'}.`);
+  if (botoes) avisos.push(`${botoes === 1 ? 'O botão que leva a outra aba' : `Os ${botoes} botões que levam a outras abas`} não ${botoes === 1 ? 'vai' : 'vão'} no Excel (o Excel só faz isso com macro). ${botoes === 1 ? 'Ele fica' : 'Eles ficam'} só aqui no EFCdocs.`);
   if (assinaturas) avisos.push(`${assinaturas === 1 ? 'A assinatura' : `As ${assinaturas} assinaturas`} sobre a planilha não ${assinaturas === 1 ? 'vai' : 'vão'} no Excel (chega com o Documento, na v0.7.0).`);
   if (novas.size) {
     const l = [...novas].sort();

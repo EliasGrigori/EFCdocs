@@ -135,6 +135,7 @@ export const ICONES = {
   "dados": "<path d=\"M7 6.5h14l-4 11H3z\"/>",
   "frente": "<rect x=\"9\" y=\"9\" width=\"11.5\" height=\"11.5\" rx=\"1\" fill=\"currentColor\" fill-opacity=\".25\"/><path d=\"M15 5.5V4a.5.5 0 0 0-.5-.5h-10a1 1 0 0 0-1 1v10a.5.5 0 0 0 .5.5h1.5\"/>",
   "tras": "<rect x=\"3.5\" y=\"3.5\" width=\"11.5\" height=\"11.5\" rx=\"1\" fill=\"currentColor\" fill-opacity=\".25\"/><path d=\"M18.5 9h1a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1v-1\"/>",
+  "estrela": "<path d=\"M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.8 6.9 19.5l1-5.7-4.1-4 5.7-.8z\"/>",
   "ajustar": "<path d=\"M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5\"/><rect x=\"8.5\" y=\"8.5\" width=\"7\" height=\"7\" rx=\"1\"/>",
   "codigo": "<path d=\"M4.5 9.5h15M4.5 14.5h15M10 4.5l-2 15M16 4.5l-2 15\"/>",
   "quadro": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"1.5\"/><rect x=\"6.5\" y=\"7.5\" width=\"4.5\" height=\"4\" rx=\".5\"/><rect x=\"13\" y=\"12.5\" width=\"4.5\" height=\"4\" rx=\".5\"/>",

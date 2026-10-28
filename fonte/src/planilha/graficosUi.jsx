@@ -3,7 +3,7 @@
    Como funciona: a prévia fica grande à esquerda; clicar numa parte dela (título, barra, eixo, legenda, fundo) abre
    o que dá para mudar daquela parte, à direita. Os estilos rápidos mudam tudo de uma vez; depois dá para ajustar o detalhe.
    Os gráficos do EFCdocs guardam as mudanças em g.fx; os que vieram do Excel mudam direto no plano (g.plano). */
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Janela, Icone, usarEsc } from '../ui/comum.jsx';
 import { TIPOS_GRAFICO, NOME_TIPO, normalizarG, recomendar, cartaControle, numeroCurto } from './graficos.js';
 import { svgDoGrafico, svgDoPlano, planoDoGrafico, TEMA_CLARO } from './desenhoGrafico.js';
@@ -149,10 +149,16 @@ const ABAS = [['tipo', 'Tipo e dados', 'grafico'], ['estilo', 'Estilo', 'tema'],
  * inicial: g já salvo (editar) ou null (novo) · faixaPadrao: texto da seleção · lerDados(fx, porLinhas, ocultos) → { d, erro, ocultas }
  * lerFaixa: para os gráficos que vieram do Excel · tamanho: { w, h } do gráfico na grade (a prévia fica do mesmo jeito)
  */
-export function JanelaGrafico({ inicial, faixaPadrao, lerDados, lerFaixa, aoAplicar, aoFechar, tema, tamanho }) {
+export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, lerDados, lerFaixa, aoAplicar, aoFechar, tema, tamanho }) {
   const [g, setG] = useState(() => normalizarG(inicial || { t: '', dados: { fx: faixaPadrao } }));
   const [fx, setFx] = useState(g.dados.fx || faixaPadrao || '');
-  const [aba, setAba] = useState('tipo');
+  const [aba, setAba] = useState(abaInicial || 'tipo');
+  /* v0.6.3: vindo da aba "Gráfico" da faixa, a janela já abre na parte pedida */
+  useEffect(() => {
+    if (!secao) return undefined;
+    const t = setTimeout(() => { const el = document.querySelector(`[data-ge-sec="${secao}"]`); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' }); }, 380);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [serieSel, setSerieSel] = useState(0);
   const [pontoSel, setPontoSel] = useState(null);
   const [eixoSel, setEixoSel] = useState('y');
@@ -337,14 +343,14 @@ function AbaEstilo({ g, gv, P, setG, series }) {
   const aplicaFx = (pacote, extra) => setG(() => ({ ...aplicarPacote(gv, pacote, extra), escolhido: true }));
   return (
     <>
-      <section className="rg-cartao">
+      <section className="rg-cartao" data-ge-sec="estilo">
         <span className="rg-cab">Layout rápido</span>
         <p className="rg-dica">Onde ficam o título, a legenda e os números. Funciona com qualquer estilo.</p>
         <div className="ge-chips">
           {LAYOUTS_RAPIDOS.map(([id, nome]) => <button key={id} type="button" className="btn sm" data-ge-layout={id} onClick={() => aplicaFx(fxDoLayout(id, { titulo: gv.titulo || (P.titulo && P.titulo.texto) || 'Título do gráfico', eixoX: nomeX, eixoY: nomeY }), id === 'so' ? { titulo: g.t === 'excel' ? g.titulo : '' } : id === 'titulo-baixo' || id === 'legenda-direita' ? { titulo: gv.titulo || (g.t === 'excel' ? g.titulo : 'Título do gráfico') } : undefined)}>{nome}</button>)}
         </div>
       </section>
-      <section className="rg-cartao">
+      <section className="rg-cartao" data-ge-sec="cores">
         <span className="rg-cab">Cores</span>
         <div className="ge-paletas">
           {PALETAS.map(([id, nome, cs]) => (
@@ -354,7 +360,7 @@ function AbaEstilo({ g, gv, P, setG, series }) {
           ))}
         </div>
       </section>
-      <section className="rg-cartao">
+      <section className="rg-cartao" data-ge-sec="semaforo">
         <span className="rg-cab">Semáforo da qualidade</span>
         <label className="rg-chk"><input type="checkbox" checked={!!sem} data-ge-semaforo onChange={(ev) => aplicaFx({ semaforo: ev.target.checked ? { folga: 15 } : null })} /> Pintar cada barra ou ponto pela meta</label>
         {sem && (

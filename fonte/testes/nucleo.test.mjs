@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS, estiloDaFaixa } from '../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../src/nucleo/armazem.js';
 
-test('versão é v0.6.2', () => assert.equal(VERSAO, 'v0.6.2'));
+test('versão é v0.6.3', () => assert.equal(VERSAO, 'v0.6.3'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -150,7 +150,7 @@ test('comandos do quadro continuam funcionando', () => {
   for (const id of ['inserir.postit', 'inserir.seta', 'organizar.kanban', 'arquivo.exportarPDF', 'arquivo.exportarImagem', 'editar.colar', 'exibir.zoom', 'exibir.minimapa', 'organizar.temporizador'])
     assert.equal(chegaNa(PorId[id], 'postits'), null, id);
   assert.equal(chegaNa(PorId['arquivo.exportarPDF'], 'planilha'), null); // v0.6.0: o PDF e o Imprimir da planilha chegaram
-  assert.equal(chegaNa(PorId['inserir.grafico'], 'postits'), 'v0.6.3'); // gráficos no quadro: junto com os botões que faltam (v0.6.3)
+  assert.equal(chegaNa(PorId['inserir.grafico'], 'postits'), 'v0.7.0'); // gráficos no quadro: ficam para a v0.7.0 (o quadro ainda não tem de onde tirar os dados)
   assert.equal(chegaNa(PorId['dados.dinamica'], 'planilha'), 'depois da v1.0.0');
   assert.ok(versaoMaior('v0.10.0', 'v0.9.0'));
   assert.ok(!versaoMaior('v0.4.3', 'v0.4.3.1') && versaoMaior('v0.4.4', 'v0.4.3.1') && versaoMaior('v0.4.3.2', 'v0.4.3.1'), 'versões com 4 números');

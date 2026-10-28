@@ -9,6 +9,7 @@
 import { tags, tag, escapar, XML_CAB } from './xml.js';
 import { arvore, filho, filhos, em, val, valNum, valBool, textoDe, busca } from './xmlArvore.js';
 import { letraCol, lerChave } from '../ref.js';
+import { lerFiguraDaAncora } from './imagensXlsx.js';
 import { LARG_PADRAO, ALT_PADRAO, estiloDe } from '../modelo.js';
 import { dadosDaFaixa, normalizarG, PALETA_GRAFICO, NOME_TIPO } from '../graficos.js';
 import { construir, seriesDe, clonar, refsDoPlano, materializarCores } from '../graficoPlano.js';
@@ -421,6 +422,12 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema) {
     if (!dx) continue;
     const relsD = await lerRelsDe(r.alvo);
     for (const an of [...tags(dx, 'twoCellAnchor'), ...tags(dx, 'oneCellAnchor'), ...tags(dx, 'absoluteAnchor')]) {
+      /* v0.6.3: figuras (imagens) presas a células */
+      if (/<(?:\w+:)?pic\b/.test(an.dentro) && !/<(?:\w+:)?chart\b/.test(an.dentro)) {
+        const f = await lerFiguraDaAncora(zip, relsD, an, aba);
+        if (f.obj) objs.push(f.obj); else fora.push({ motivo: f.fora, imagem: true });
+        continue;
+      }
       const gf = /<(?:\w+:)?chart\b[^>]*\b(?:r:)?id="([^"]+)"/.exec(an.dentro);
       if (!gf) { if (/<cx:chart\b|chartex/i.test(an.dentro)) fora.push({ motivo: 'tipo novo do Excel (cascata, funil, mapa...)' }); continue; }
       const rc = relsD.get(gf[1]);
@@ -701,9 +708,10 @@ function textoDaRef(c, abaDoGrafico) {
  * n0: número do primeiro chart (chart1, chart2... em todo o livro).
  * lerFaixa(abaId, ref) → { num, txt } (para os gráficos que vieram do Excel, com os números de agora)
  */
-export function gravarGraficosAba(c, motor, aba, abaId, n0) {
+export function gravarGraficosAba(c, motor, aba, abaId, n0, extra = null) {
   const lista = (aba.objs || []).filter((o) => o.tipo === 'grafico');
-  if (!lista.length) return null;
+  const imagens = extra && extra.ancoras.length ? extra : null; // v0.6.3: imagens vão no mesmo desenho
+  if (!lista.length && !imagens) return null;
   const charts = [];
   const ancoras = [];
   lista.forEach((o, k) => {
@@ -740,11 +748,12 @@ export function gravarGraficosAba(c, motor, aba, abaId, n0) {
       `<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${k + 2}" name="Gráfico ${k + 1}" descr="${escapar(g.titulo || NOME_TIPO[g.t] || 'Gráfico do EFCdocs', true)}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>` +
       `<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="${NS_C}"><c:chart xmlns:c="${NS_C}" r:id="rIdG${charts.length}"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>`);
   });
-  if (!charts.length) return null;
-  const drawing = `${XML_CAB}<xdr:wsDr xmlns:xdr="${NS_XDR}" xmlns:a="${NS_A}" xmlns:r="${NS_R}">${ancoras.join('')}</xdr:wsDr>`;
+  if (!charts.length && !imagens) return null;
+  const drawing = `${XML_CAB}<xdr:wsDr xmlns:xdr="${NS_XDR}" xmlns:a="${NS_A}" xmlns:r="${NS_R}">${ancoras.join('')}${imagens ? imagens.ancoras.join('') : ''}</xdr:wsDr>`;
   const rels = `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
-    charts.map((ch, i) => `<Relationship Id="rIdG${i + 1}" Type="${NS_R}/chart" Target="../charts/chart${ch.n}.xml"/>`).join('') + '</Relationships>';
-  return { drawing, rels, charts };
+    charts.map((ch, i) => `<Relationship Id="rIdG${i + 1}" Type="${NS_R}/chart" Target="../charts/chart${ch.n}.xml"/>`).join('') +
+    (imagens ? imagens.rels.map((r) => `<Relationship Id="${r.id}" Type="${NS_R}/image" Target="${r.alvo}"/>`).join('') : '') + '</Relationships>';
+  return { drawing, rels, charts, midias: imagens ? imagens.midias : [] };
 }
 
 /** Linhas e colunas ocultas que ficam fora do gráfico (como no Excel, a não ser que o gráfico peça para mostrar). */

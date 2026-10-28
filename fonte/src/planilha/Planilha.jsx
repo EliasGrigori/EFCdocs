@@ -23,7 +23,12 @@ import { diagnosticar, corrigir, contextoNoCursor, sugestoes, pedacosColoridos, 
 import { formatoDaFormula } from './formatoAuto.js';
 import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt, numeroGeral } from './valores.js';
 import * as O from './operacoes.js';
-import { objetosDaAba, novaAssinatura, novoGrafico, GR, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS } from './objetos.js';
+import * as D from './dados.js';
+import { JanelaClassificar, JanelaDuplicados, JanelaTravar, MenuFiltro } from './dadosUi.jsx';
+import { objetosDaAba, novaAssinatura, novoGrafico, novaImagem, novoBotao, caberImagem, GR, IMG, BTN, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS } from './objetos.js';
+import * as I from './inserir.js';
+import { JanelaTabela, JanelaStatus, JanelaLink, JanelaBotao, JanelaImagem } from './inserirUi.jsx';
+import { lerImagem } from './imagem.js';
 import { dadosDaFaixa } from './graficos.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
 import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
@@ -162,6 +167,7 @@ export function Planilha({ arquivo, cx }) {
   const [menu, setMenu] = useState(null);
   const [janela, setJanela] = useState(null);
   const [lista, setLista] = useState(null); // lista suspensa aberta: { l, c, itens, aviso, literal }
+  const [menuFiltro, setMenuFiltro] = useState(null); // v0.6.3: menu da seta do filtro: { col }
   const [balao, setBalao] = useState(null); // comentário sob o mouse: { l, c }
   const [arrasto, setArrasto] = useState(null);
   const [copia, setCopia] = useState(null);
@@ -394,10 +400,13 @@ export function Planilha({ arquivo, cx }) {
   const mudar = useCallback((mud, rotulo, acao = 'editou') => {
     if (somenteLeitura) { avisarLeitura(); return false; }
     if (!mud || !Object.keys(mud).length) return false;
+    /* v0.6.3: aba travada (Revisão > Travar modelo): só as células liberadas mudam */
+    const trava = D.bloqueioDaProtecao(c, mud);
+    if (trava) { cx.avisar(trava, { ic: 'cadeado' }); return false; }
     /* v0.5.0: veio do Excel e é a primeira mudança: daqui em diante o EFCdocs calcula tudo (não usa mais o último valor do Excel) */
     if (c.calcExcel && !('conteudo.calcExcel' in mud)) mud = { ...mud, 'conteudo.calcExcel': undefined };
     return cx.aplicar(mud, rotulo, acao);
-  }, [somenteLeitura, cx, c.calcExcel]);
+  }, [somenteLeitura, cx, c, c.calcExcel]);
   const aplicarLote = (lote, rotulo) => (lote.vazio ? false : mudar(lote.mudancas(), rotulo));
   const contaCelulas = (fs) => fs.reduce((n, f) => n + (f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1), 0);
   const nomeSel = () => (sel.faixas.length > 1 ? `${sel.faixas.length} faixas` : textoFaixa(faixa).replace(/:?\b[A-Z]+1048576\b/, '').replace(/^A(\d+):XFD\1$/, 'linha $1'));
@@ -642,10 +651,11 @@ export function Planilha({ arquivo, cx }) {
   };
   const excluirObjeto = (o) => {
     if (somenteLeitura) { avisarLeitura(); return; }
-    const ehG = o.tipo === 'grafico';
-    if (gravarObjs(semObjeto(objs, o.id), ehG ? 'Excluir gráfico' : 'Excluir assinatura') !== false) {
+    const nomeObj = { grafico: 'gráfico', imagem: 'imagem', botao: 'botão' }[o.tipo] || 'assinatura';
+    const Nome = nomeObj[0].toUpperCase() + nomeObj.slice(1);
+    if (gravarObjs(semObjeto(objs, o.id), 'Excluir ' + nomeObj) !== false) {
       setObjSel(null);
-      cx.avisar(ehG ? 'Gráfico excluído.' : 'Assinatura excluída.', { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
+      cx.avisar((o.tipo === 'grafico' || o.tipo === 'botao' ? Nome + ' excluído.' : Nome + ' excluída.'), { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
     }
     voltarFocoGrade();
   };
@@ -663,6 +673,61 @@ export function Planilha({ arquivo, cx }) {
       if (gravarObjs([...objs, o], 'Nova assinatura') !== false) { setObjSel(o.id); cx.avisar('Assinatura inserida. Arraste para mover; dois cliques para mudar o nome ou a rubrica.', { ic: 'assinatura' }); }
     }
     setTimeout(voltarFocoGrade, 0);
+  };
+  /* ---------- v0.6.3: imagem e botão que leva a outra aba ---------- */
+  const abrirObjeto = (o) => {
+    if (o.tipo === 'grafico') abrirGrafico(o);
+    else if (o.tipo === 'imagem') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'imagem', id: o.id }); }
+    else if (o.tipo === 'botao') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'botao', id: o.id }); }
+    else abrirAssinatura(o);
+  };
+  const ancoraNova = () => {
+    const aVista = sel.ativa.l >= Math.max(G.cl, G.l0) && sel.ativa.l < G.l1 && sel.ativa.c >= Math.max(G.cc, G.c0) && sel.ativa.c < G.c1;
+    return aVista ? { l: sel.ativa.l, c: sel.ativa.c } : { l: Math.max(G.cl, G.l0) + 1, c: Math.max(G.cc, G.c0) };
+  };
+  const campoImagem = useRef(null);
+  const imagemAlvo = useRef(null); // id da imagem que vai ser trocada (null = imagem nova)
+  const pedirImagem = (trocarId = null) => { imagemAlvo.current = trocarId; if (campoImagem.current) { campoImagem.current.value = ''; campoImagem.current.click(); } };
+  const receberImagem = async (ev) => {
+    const arq = ev.target.files && ev.target.files[0];
+    if (!arq) return;
+    try {
+      const im = await lerImagem(arq);
+      const alvo = imagemAlvo.current && objs.find((o) => o.id === imagemAlvo.current);
+      if (alvo) {
+        const t = caberImagem(im.w, im.h, alvo.w, alvo.w * im.h / im.w || alvo.h);
+        gravarObjs(comObjeto(objs, alvo.id, { src: im.src, w: Math.max(IMG.W_MIN, Math.round(alvo.w)), h: Math.max(IMG.H_MIN, Math.round(alvo.w * im.h / im.w)) || t.h }), 'Trocar imagem');
+        setJanela(null);
+        return;
+      }
+      if (objs.length >= MAX_OBJETOS) { cx.avisar(`No máximo ${MAX_OBJETOS} objetos por aba.`, { ic: 'aviso' }); return; }
+      const t = caberImagem(im.w, im.h);
+      const o = novaImagem({ src: im.src, nome: im.nome, w: t.w, h: t.h }, ancoraNova());
+      if (gravarObjs([...objs, o], 'Inserir imagem') !== false) { setObjSel(o.id); cx.avisar('Imagem inserida. Arraste para mover; dois cliques mudam o tamanho e o texto.', { ic: 'imagem' }); }
+    } catch (e) {
+      cx.avisar(e && e.message ? e.message : 'Não consegui usar essa imagem.', { ic: 'aviso' });
+    }
+    setTimeout(voltarFocoGrade, 0);
+  };
+  const irAoBotao = (o) => {
+    if (!c.abas[o.alvo]) { cx.avisar('A aba desse botão foi apagada. Mude o botão (Ctrl + clique) para escolher outra.', { ic: 'aviso' }); return; }
+    const p = o.ref ? lerChave(o.ref) : null;
+    irPara({ abaId: o.alvo, l: p ? p.l : 0, c: p ? p.c : 0 });
+  };
+  const salvarBotao = (id, v) => {
+    if (!c.abas[v.alvo]) return 'Escolha a aba para onde o botão leva.';
+    if (v.ref && !lerChave(v.ref.toUpperCase())) return 'A célula precisa ser um endereço, como B3.';
+    if (id) { gravarObjs(comObjeto(objs, id, { nome: v.nome, alvo: v.alvo, ref: v.ref ? v.ref.toUpperCase() : undefined, cor: v.cor }), 'Mudar o botão'); }
+    else {
+      if (objs.length >= MAX_OBJETOS) return `No máximo ${MAX_OBJETOS} objetos por aba.`;
+      const o = novoBotao(v, ancoraNova());
+      if (gravarObjs([...objs, o], 'Inserir botão') === false) return 'Não consegui inserir o botão.';
+      setObjSel(o.id);
+      cx.avisar('Botão inserido. Clique nele para ir; para mover, arraste.', { ic: 'botao' });
+    }
+    setJanela(null);
+    setTimeout(voltarFocoGrade, 0);
+    return null;
   };
   /* ---------- gráficos (v0.6.0) ---------- */
   const temaGrafico = (() => { try { const v = getComputedStyle(document.body).getPropertyValue('--surface').trim(); const m = /^#([0-9a-f]{6})$/i.exec(v); if (!m) return TEMA_CLARO; const n = parseInt(m[1], 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 128 ? TEMA_CLARO : TEMA_ESCURO; } catch { return TEMA_CLARO; } })();
@@ -845,13 +910,22 @@ export function Planilha({ arquivo, cx }) {
     /* dois cliques (ou dois toques) no mesmo objeto abrem a janela dele; o dblclick do navegador não chega por causa do arrastar */
     const agora = Date.now(), ult = toqueObj.current;
     toqueObj.current = { id: o.id, t: agora };
-    if (modo === 'mover' && ult && ult.id === o.id && agora - ult.t < 450) { toqueObj.current = null; setObjSel(o.id); if (o.tipo === 'grafico') abrirGrafico(o); else abrirAssinatura(o); return; }
+    /* v0.6.3: o botão que leva a outra aba vale também para quem só pode ler */
+    if (o.tipo === 'botao' && somenteLeitura && modo === 'mover') { irAoBotao(o); return; }
+    if (o.tipo === 'botao' && modo === 'mover') toqueObj.current = null; // o clique leva à aba: não vale como dois cliques
+    if (modo === 'mover' && o.tipo !== 'botao' && ult && ult.id === o.id && agora - ult.t < 450) { toqueObj.current = null; setObjSel(o.id); abrirObjeto(o); return; }
     setObjSel(o.id);
     voltarFocoGrade();
     if (somenteLeitura) { avisarLeitura(); return; }
     try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* sem captura */ }
     const r = retDoObjeto(o, G);
-    setArrObj({ id: o.id, modo, px: ev.clientX, py: ev.clientY, r0: r, ...r, moveu: false });
+    const novo = { id: o.id, modo, px: ev.clientX, py: ev.clientY, r0: r, ...r, moveu: false };
+    if (o.tipo === 'botao' && modo === 'mover') {
+      novo.ctrl = !!(ev.ctrlKey || ev.metaKey);
+      /* segurar o dedo (ou Ctrl + clique) só escolhe o botão, para mover ou mudar, sem ir à outra aba */
+      novo.pressao = setTimeout(() => { const x = arrObjRef.current; if (x && x.id === o.id && !x.moveu) { arrObjRef.current = { ...x, longo: true }; setObjSel(o.id); if (navigator.vibrate) { try { navigator.vibrate(15); } catch { /* sem vibração */ } } } }, 450);
+    }
+    setArrObj(novo);
   };
   const aoMoverObj = (ev) => {
     const a = arrObjRef.current;
@@ -859,19 +933,28 @@ export function Planilha({ arquivo, cx }) {
     const dx = ev.clientX - a.px, dy = ev.clientY - a.py;
     if (!a.moveu && Math.hypot(dx, dy) < (ev.pointerType === 'touch' ? 6 : 3)) return;
     if (a.modo === 'mover') setArrObj({ ...a, moveu: true, x: a.r0.x + dx, y: a.r0.y + dy });
-    else { const o = objs.find((x) => x.id === a.id); const mn = o && o.tipo === 'grafico' ? GR : ASN; setArrObj({ ...a, moveu: true, w: Math.max(mn.W_MIN * z, a.r0.w + dx), h: Math.max(mn.H_MIN * z, a.r0.h + dy) }); }
+    else {
+      const o = objs.find((x) => x.id === a.id);
+      const mn = o && o.tipo === 'grafico' ? GR : o && o.tipo === 'imagem' ? IMG : o && o.tipo === 'botao' ? BTN : ASN;
+      if (o && o.tipo === 'imagem') { const w = Math.max(mn.W_MIN * z, a.r0.w + dx); setArrObj({ ...a, moveu: true, w, h: Math.max(mn.H_MIN * z, w * o.h / o.w) }); } // a imagem não estica
+      else setArrObj({ ...a, moveu: true, w: Math.max(mn.W_MIN * z, a.r0.w + dx), h: Math.max(mn.H_MIN * z, a.r0.h + dy) });
+    }
   };
   const aoSoltarObj = () => {
     const a = arrObjRef.current;
     setArrObj(null);
+    if (a && a.pressao) { clearTimeout(a.pressao); }
+    const oBotao = a && objs.find((x) => x.id === a.id);
+    if (a && !a.moveu && oBotao && oBotao.tipo === 'botao' && !a.ctrl && !a.longo) { irAoBotao(oBotao); return; }
     if (!a || !a.moveu) return;
     const o = objs.find((x) => x.id === a.id);
     if (!o) return;
+    const nomeDo = { grafico: 'gráfico', imagem: 'imagem', botao: 'botão' }[o.tipo] || 'assinatura';
     if (a.modo === 'mover') {
       /* o canto de cima à esquerda decide a célula; fora da área das células, volta para a borda */
       const an = ancoraNoPonto(G, Math.max(G.hw + 1, a.x), Math.max(G.hh + 1, a.y));
-      gravarObjs(comObjeto(objs, o.id, an), o.tipo === 'grafico' ? 'Mover gráfico' : 'Mover assinatura');
-    } else gravarObjs(comObjeto(objs, o.id, { w: Math.round(a.w / z), h: Math.round(a.h / z) }), o.tipo === 'grafico' ? 'Mudar o tamanho do gráfico' : 'Mudar o tamanho da assinatura');
+      gravarObjs(comObjeto(objs, o.id, an), 'Mover ' + nomeDo);
+    } else gravarObjs(comObjeto(objs, o.id, { w: Math.round(a.w / z), h: Math.round(a.h / z) }), 'Mudar o tamanho d' + (nomeDo === 'imagem' ? 'a ' : 'o ') + nomeDo);
   };
   const cancelar = () => {
     const e = editRef.current;
@@ -1065,7 +1148,7 @@ export function Planilha({ arquivo, cx }) {
     if (objSelRef.current) {
       const o = objs.find((x) => x.id === objSelRef.current);
       if (o && (k === 'Delete' || k === 'Backspace')) { ev.preventDefault(); excluirObjeto(o); return; }
-      if (o && (k === 'Enter' || k === 'F2')) { ev.preventDefault(); if (o.tipo === 'grafico') abrirGrafico(o); else abrirAssinatura(o); return; }
+      if (o && (k === 'Enter' || k === 'F2')) { ev.preventDefault(); abrirObjeto(o); return; }
       if (k === 'Escape') { setObjSel(null); return; }
       if (!ctrl && k.length > 1 && k !== 'Shift' && k !== 'Control' && k !== 'Alt' && k !== 'Meta') setObjSel(null);
     }
@@ -1752,6 +1835,121 @@ export function Planilha({ arquivo, cx }) {
   useEffect(() => { setLista(null); }, [sel.ativa.l, sel.ativa.c, abaId]);
   useEffect(() => { if (edit) { setLista(null); setBalao(null); } }, [edit]);
 
+  /* ---------- v0.6.3: Classificar, Filtrar, Remover duplicados e Travar modelo ---------- */
+  const valorDeDados = (l, cc) => { const v = motor.valor(abaId, l, cc); return v && typeof v === 'object' && !ehErro(v) ? null : v; };
+  const textoDeDados = (l, cc) => textoCelula(motor, c, abaId, l, cc).t;
+  /** A área da tabela: a seleção (se tem mais de uma célula), a área do filtro ou a região em volta da célula ativa. */
+  const areaDeDados = () => {
+    const f = normalFaixa(faixa);
+    if ((f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1) > 1) return f;
+    const ff = D.faixaDoFiltro(aba.fil);
+    if (ff && f.l1 >= ff.l1 && f.l1 <= ff.l2 && f.c1 >= ff.c1 && f.c1 <= ff.c2) return ff;
+    return regiaoAtual(f.l1, f.c1);
+  };
+  const temCabecalho = (f) => {
+    let n = 0, txt = 0;
+    for (let cc = f.c1; cc <= f.c2; cc++) { const v = valorDeDados(f.l1, cc); if (v === '' || v == null) continue; n++; if (typeof v === 'string' && !ehErro(v)) txt++; }
+    return n > 0 && txt === n;
+  };
+  const abrirClassificar = () => {
+    const f = areaDeDados();
+    if (f.l2 - f.l1 < 1) { cx.avisar('Clique numa célula da tabela (ou escolha a área) para pôr em ordem.', { ic: 'aviso' }); return; }
+    setJanela({ tipo: 'classificar', f, cab: temCabecalho(f), col: sel.ativa.c });
+  };
+  const aplicarClassificar = (f, { niveis, cabecalho }) => {
+    const r = D.classificar(c, abaId, f, niveis, { cabecalho, valorDe: valorDeDados });
+    if (r.erro) return r.erro;
+    setJanela(null);
+    if (r.lote.vazio) { cx.avisar('Já estava nessa ordem.', { ic: 'classificar' }); return null; }
+    aplicarLote(r.lote, 'Classificar');
+    cx.avisar(`${r.linhas} linhas em ordem. Dá para desfazer.`, { ic: 'classificar' });
+    return null;
+  };
+  const gravarFiltro = (fil, rotulo) => mudar(D.mudancasDoFiltro(aba, abaId, fil, textoDeDados), rotulo);
+  const alternarFiltro = () => {
+    setMenuFiltro(null);
+    if (aba.fil) { gravarFiltro(undefined, 'Tirar o filtro'); cx.avisar('Filtro tirado: todas as linhas voltam.', { ic: 'filtro' }); return; }
+    const f = areaDeDados();
+    if (f.l2 - f.l1 < 1) { cx.avisar('Clique numa célula da tabela (a primeira linha é o cabeçalho) para filtrar.', { ic: 'aviso' }); return; }
+    mudar({ [`conteudo.abas.${abaId}.fil`]: D.novoFiltro(f) }, 'Filtrar');
+    cx.avisar('Use a seta de cada título para escolher o que aparece.', { ic: 'filtro' });
+  };
+  const reaplicarFiltro = () => {
+    if (!aba.fil) { cx.avisar('Esta aba não tem filtro. Use Filtrar primeiro.', { ic: 'aviso' }); return; }
+    gravarFiltro(aba.fil, 'Reaplicar o filtro');
+  };
+  const abrirDuplicados = () => {
+    const f = areaDeDados();
+    if (f.l2 - f.l1 < 1) { cx.avisar('Clique numa célula da tabela (ou escolha a área) para procurar linhas repetidas.', { ic: 'aviso' }); return; }
+    setJanela({ tipo: 'duplicados', f, cab: temCabecalho(f) });
+  };
+  const aplicarDuplicados = (f, { colunas, cabecalho }) => {
+    const r = D.removerDuplicados(c, abaId, f, colunas, { cabecalho, valorDe: valorDeDados });
+    if (r.erro) return r.erro;
+    setJanela(null);
+    if (!r.removidas) { cx.avisar('Nenhuma linha repetida.', { ic: 'dupl' }); return null; }
+    aplicarLote(r.lote, 'Remover duplicados');
+    cx.avisar(`${r.removidas} linha${r.removidas > 1 ? 's' : ''} repetida${r.removidas > 1 ? 's' : ''} removida${r.removidas > 1 ? 's' : ''}; ficaram ${r.restantes}. Dá para desfazer.`, { ic: 'dupl' });
+    return null;
+  };
+  const liberarSelecao = (liberar) => {
+    const faixas = sel.faixas.map(normalFaixa);
+    if (liberar && faixas.some((f) => (f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1) > 20000)) { cx.avisar('Escolha uma área menor (até 20 mil células) para liberar.', { ic: 'aviso' }); return; }
+    aplicarLote(D.liberarCelulas(c, abaId, faixas, liberar), liberar ? 'Liberar células' : 'Travar células');
+  };
+
+  /* ---------- v0.6.3: Tabela, Coluna de status e Link ---------- */
+  const abrirTabela = () => {
+    const f = areaDeDados();
+    if (f.l2 - f.l1 < 1) { cx.avisar('Clique numa célula dos dados (ou escolha a área) para formatar como tabela.', { ic: 'aviso' }); return; }
+    setJanela({ tipo: 'tabela', f, cab: temCabecalho(f), nome: I.nomeNovoDeTabela(c) });
+  };
+  const aplicarTabela = (f, op) => {
+    const r = I.formatarComoTabela(c, abaId, f, op, valorDeDados);
+    if (r.erro) return r.erro;
+    setJanela(null);
+    mudar(r.mud, 'Formatar como tabela');
+    cx.avisar(`Tabela ${op.nome} criada: ${r.colunas} colunas e ${r.linhas} linhas.`, { ic: 'tabela' });
+    setTimeout(voltarFocoGrade, 0);
+    return null;
+  };
+  const abrirStatus = () => {
+    const f = normalFaixa(faixa);
+    const area = I.areaDeStatus(f, (f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1) > 1 ? null : regiaoAtual(f.l1, f.c1));
+    setJanela({ tipo: 'status', fx: textoFaixa(area), col: area.c1 });
+  };
+  const aplicarStatus = ({ fx, itens }) => {
+    const r = I.montarStatus(c, abaId, fx, itens);
+    if (r.erro) return r.erro;
+    setJanela(null);
+    mudar(r.mud, 'Coluna de status');
+    cx.avisar(`Coluna de status criada em ${r.fx} com ${r.opcoes} opções.`, { ic: 'status' });
+    setTimeout(voltarFocoGrade, 0);
+    return null;
+  };
+  const salvarLink = (l, col, { tipo, campos, texto }) => {
+    const r = I.novoLink(tipo, campos, c);
+    if (r.erro) return r.erro;
+    setJanela(null);
+    aplicarLote(I.colocarLink(c, abaId, l, col, r.lk, texto), 'Link');
+    cx.avisar('Link feito. Para abrir, escolha a célula e clique em "Abrir" embaixo dela.', { ic: 'link' });
+    setTimeout(voltarFocoGrade, 0);
+    return null;
+  };
+  const removerLink = (l, col) => { setJanela(null); aplicarLote(I.tirarLink(c, abaId, l, col), 'Tirar o link'); setTimeout(voltarFocoGrade, 0); };
+  const abrirLink = (lk) => {
+    if (!lk) return;
+    if (lk.t === 'a') {
+      if (!c.abas[lk.a]) { cx.avisar('A aba desse link foi apagada.', { ic: 'aviso' }); return; }
+      const p = lerChave(lk.r) || { l: 0, c: 0 };
+      irPara({ abaId: lk.a, l: p.l, c: p.c });
+      return;
+    }
+    const u = I.urlSegura(lk.u);
+    if (!u) { cx.avisar('Esse endereço não é seguro para abrir.', { ic: 'aviso' }); return; }
+    window.open(u, '_blank', 'noopener,noreferrer');
+  };
+
   const trata = (id) => {
     const ed = (fn) => { if (somenteLeitura) { cx.avisar('Seu perfil não permite esta ação.', { ic: 'aviso' }); return true; } fn(); return true; };
     switch (id) {
@@ -1803,6 +2001,15 @@ export function Planilha({ arquivo, cx }) {
       case 'planilha.novaAba': return ed(novaAbaFn);
       case 'inserir.assinatura': return ed(() => setAsn({ id: null, inicial: {} }));
       case 'inserir.grafico': return ed(novoGraficoJanela);
+      case 'grafico.editar': case 'grafico.estilo': case 'grafico.cores': case 'grafico.semaforo': case 'grafico.excluir': {
+        const og = objs.find((x) => x.id === objSelRef.current && x.tipo === 'grafico');
+        if (!og) { cx.avisar('Clique num gráfico primeiro.', { ic: 'aviso' }); return true; }
+        if (id === 'grafico.excluir') return ed(() => excluirObjeto(og));
+        const sec = { 'grafico.estilo': 'estilo', 'grafico.cores': 'cores', 'grafico.semaforo': 'semaforo' }[id];
+        setObjSel(og.id);
+        setJanela(sec ? { tipo: 'grafico', id: og.id, aba: 'estilo', secao: sec } : { tipo: 'grafico', id: og.id });
+        return true;
+      }
       case 'arquivo.imprimir': case 'arquivo.exportarPDF': case 'impressao.configurar': setJanela({ tipo: 'imprimir', secao: 'o-que' }); return true;
       case 'impressao.margens': setJanela({ tipo: 'imprimir', secao: 'margens' }); return true;
       case 'impressao.titulos': setJanela({ tipo: 'imprimir', secao: 'titulos' }); return true;
@@ -1833,6 +2040,20 @@ export function Planilha({ arquivo, cx }) {
       case 'exibir.folhaClara': setPrefs((p) => ({ ...p, folhaClara: !p.folhaClara })); cx.avisar(prefs.folhaClara ? 'A grade volta a seguir o tema.' : 'Folha clara: a grade fica branca neste aparelho.', { ic: 'tema' }); return true;
       case 'exibir.zoom': setJanela({ tipo: 'zoom' }); return true;
       case 'exibir.barraFormula': alternarFx(); return true;
+      case 'inserir.tabela': return ed(abrirTabela);
+      case 'inserir.status': return ed(abrirStatus);
+      case 'inserir.imagem': return ed(() => pedirImagem(null));
+      case 'inserir.link': return ed(() => setJanela({ tipo: 'link', l: sel.ativa.l, c: sel.ativa.c }));
+      case 'inserir.botao': return ed(() => setJanela({ tipo: 'botao', id: null }));
+      case 'dados.classificar': return ed(abrirClassificar);
+      case 'dados.filtrar': return ed(alternarFiltro);
+      case 'dados.reaplicar': return ed(reaplicarFiltro);
+      case 'dados.duplicados': return ed(abrirDuplicados);
+      case 'revisao.travar': setJanela({ tipo: 'travar' }); return true;
+      case 'revisao.ortografia':
+        setPrefs((p) => ({ ...p, ortografia: !p.ortografia }));
+        cx.avisar(prefs.ortografia ? 'Correção ortográfica desligada.' : 'Correção ortográfica ligada: ao escrever numa célula, o corretor do aparelho sublinha as palavras erradas (fórmulas ficam de fora).', { ic: 'ortografia' });
+        return true;
       case 'dados.validacao': return ed(() => setJanela({ tipo: 'validacao' }));
       case 'formatar.condicional': return ed(() => setJanela({ tipo: 'condicional' }));
       case 'editar.comentar': return ed(() => setJanela({ tipo: 'comentario', l: sel.ativa.l, c: sel.ativa.c }));
@@ -1870,6 +2091,10 @@ export function Planilha({ arquivo, cx }) {
       case 'exibir.grade': return !aba.semGrade;
       case 'exibir.folhaClara': return !!prefs.folhaClara;
       case 'exibir.barraFormula': return fxAltura > FX_MIN + 2;
+      case 'dados.filtrar': return !!aba.fil;
+      case 'grafico.semaforo': { const og = objs.find((x) => x.id === objSel && x.tipo === 'grafico'); return !!(og && og.g && (og.g.t === 'excel' ? og.g.plano && og.g.plano.semaforo : og.g.fx && og.g.fx.semaforo)); }
+      case 'revisao.travar': return !!aba.prot;
+      case 'revisao.ortografia': return !!prefs.ortografia;
       case 'exibir.congelar': return !!(cong && (cong.l || cong.c));
       case 'editar.pincel': return !!pincel;
       case 'formula.problemas': return probAberto;
@@ -1953,6 +2178,11 @@ export function Planilha({ arquivo, cx }) {
     }
     return out.slice(0, 8);
   };
+
+  /* v0.6.3: avisa a faixa quando um gráfico está selecionado (a aba "Gráfico" aparece) */
+  const grafSel = !!(objSel && objs.some((x) => x.id === objSel && x.tipo === 'grafico'));
+  useEffect(() => { if (cx.setContexto) cx.setContexto({ grafico: grafSel }); }, [grafSel]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { if (cx.setContexto) cx.setContexto({}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const maos = useRef({});
   maos.current = { trata, ligado, buscar };
@@ -2253,6 +2483,8 @@ export function Planilha({ arquivo, cx }) {
         !ro && { nome: 'Dar nome...', ic: 'renomear', fazer: darNome },
         !ro && { nome: 'Validação de dados...', ic: 'validacao', fazer: () => setJanela({ tipo: 'validacao', faixas: alvoFaixas }) },
         !ro && { nome: 'Formatação condicional...', ic: 'condicional', fazer: () => setJanela({ tipo: 'condicional', faixas: alvoFaixas }) },
+        I.linkDaCelula(aba, alvoCel.l, alvoCel.c) && { nome: 'Abrir o link', ic: 'link', fazer: () => abrirLink(I.linkDaCelula(aba, alvoCel.l, alvoCel.c)) },
+        !ro && { nome: I.linkDaCelula(aba, alvoCel.l, alvoCel.c) ? 'Mudar o link...' : 'Link...', ic: 'link', fazer: () => setJanela({ tipo: 'link', l: alvoCel.l, c: alvoCel.c }) },
         !ro && { nome: temCom ? 'Editar comentário...' : 'Novo comentário...', ic: 'comentario', fazer: () => setJanela({ tipo: 'comentario', l: alvoCel.l, c: alvoCel.c }) },
         !ro && temCom && { nome: 'Excluir comentário', ic: 'lixeira', fazer: () => excluirComentario(alvoCel.l, alvoCel.c) },
         ro && temCom && { nome: 'Ver comentário', ic: 'comentario', fazer: () => setJanela({ tipo: 'comentario', l: alvoCel.l, c: alvoCel.c }) },
@@ -2378,6 +2610,7 @@ export function Planilha({ arquivo, cx }) {
     aoFocar: () => { if (editRef.current && editRef.current.onde !== onde) setEdit({ ...editRef.current, onde }); },
     aoSair: () => {},
     fantasma: autoTexto,
+    corretor: !!prefs.ortografia, // v0.6.3: Revisão > Ortografia
   });
 
   /* v0.4.7: esticar a barra de fórmula */
@@ -2541,11 +2774,25 @@ export function Planilha({ arquivo, cx }) {
                   <div key={o.id} className={'pl-obj pl-obj-gr' + (xl ? ' pl-obj-xl' : '') + (escolhida ? ' sel' : '')} data-obj={o.id} data-grafico={o.g.t} role="img" aria-label={'Gráfico' + (o.g.titulo ? ': ' + o.g.titulo : '')}
                     style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
                     onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
-                    onDoubleClick={() => abrirGrafico(o)}
+                    onDoubleClick={() => abrirObjeto(o)}
                     onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
                     <div style={{ width: r.w / z, height: r.h / z, transform: `scale(${z})`, transformOrigin: '0 0' }}>
                       <GraficoView g={o.g} dados={ld.d} w={Math.round(r.w / z)} h={Math.round(r.h / z)} tema={temaGrafico} lerFaixa={xl ? lerFaixaDoLivro(c, motor, abaId, o.g.plano && o.g.plano.soVisiveis === false) : undefined} />
                     </div>
+                    {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
+                  </div>
+                );
+              }
+              if (o.tipo === 'imagem' || o.tipo === 'botao') {
+                const ehImg = o.tipo === 'imagem';
+                return (
+                  <div key={o.id} className={'pl-obj ' + (ehImg ? 'pl-obj-img' : 'pl-obj-btn') + (escolhida ? ' sel' : '')} data-obj={o.id} data-obj-tipo={o.tipo}
+                    role={ehImg ? 'img' : 'button'} aria-label={ehImg ? (o.nome || 'Imagem') : `${o.nome || 'Botão'}: leva para a aba ${c.abas[o.alvo] ? c.abas[o.alvo].nome : '(apagada)'}`}
+                    style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)`, ...(ehImg ? {} : { background: o.cor || '#1f6f8b', fontSize: Math.max(10, Math.min(16, r.h * 0.4)) }) }}
+                    onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
+                    onDoubleClick={() => { if (ehImg) abrirObjeto(o); }}
+                    onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
+                    {ehImg ? <img src={o.src} alt={o.nome || ''} draggable={false} /> : <span className="pl-btn-t"><Icone n="seta" />{o.nome || 'Botão'}</span>}
                     {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
                   </div>
                 );
@@ -2570,6 +2817,16 @@ export function Planilha({ arquivo, cx }) {
           if (!o || (arrObj && arrObj.moveu)) return null;
           const r = retDoObjeto(o, G);
           const topo = r.y - 40 >= G.hh ? r.y - 40 : r.y + r.h + 8;
+          if (o.tipo === 'imagem' || o.tipo === 'botao') {
+            const rot = o.tipo === 'imagem' ? 'Imagem' : 'Botão';
+            return (
+              <div className="pl-obj-barra" style={{ left: Math.max(4, Math.min(tam.W - 120, r.x)), top: topo }} role="toolbar" aria-label={rot}>
+                <button type="button" className="iconbtn" data-obj-ed="1" aria-label={o.tipo === 'imagem' ? 'Tamanho e texto' : 'Mudar o botão'} title={(o.tipo === 'imagem' ? 'Tamanho e texto' : 'Mudar o botão') + ' (Enter)'} onClick={() => abrirObjeto(o)}><Icone n={o.tipo === 'imagem' ? 'imagem' : 'botao'} /></button>
+                {o.tipo === 'botao' && <button type="button" className="iconbtn" data-obj-ir="1" aria-label="Ir para a aba" title="Ir para a aba" onClick={() => irAoBotao(o)}><Icone n="seta" /></button>}
+                {!somenteLeitura && <button type="button" className="iconbtn" data-obj-ex="1" aria-label={'Excluir ' + rot.toLowerCase()} title="Excluir (Delete)" onClick={() => excluirObjeto(o)}><Icone n="lixeira" /></button>}
+              </div>
+            );
+          }
           if (o.tipo === 'grafico') return <BarraGrafico x={Math.max(4, Math.min(tam.W - 80, r.x))} y={topo} somenteLeitura={somenteLeitura} aoEditar={() => abrirGrafico(o)} aoExcluir={() => excluirObjeto(o)} />;
           return (
             <div className="pl-obj-barra" style={{ left: Math.max(4, Math.min(tam.W - 80, r.x)), top: topo }} role="toolbar" aria-label="Assinatura">
@@ -2578,6 +2835,7 @@ export function Planilha({ arquivo, cx }) {
             </div>
           );
         })()}
+        <input ref={campoImagem} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="pl-arq-img" data-arq-imagem tabIndex={-1} aria-hidden="true" onChange={receberImagem} />
         {/* campo escondido que recebe o teclado da grade (e o colar do celular) */}
         <textarea ref={capRef} className="pl-cap" aria-label={`Célula ${chave(sel.ativa.l, sel.ativa.c)}: ${formatar(valorAtivo, estiloAtivo.nf).t || 'vazia'}`}
           style={{ left: Math.max(0, Math.min(tam.W - 2, G.xDe(sel.ativa.c))), top: Math.max(0, Math.min(tam.H - 2, G.yDe(sel.ativa.l))) }}
@@ -2629,6 +2887,16 @@ export function Planilha({ arquivo, cx }) {
                   style={{ left: Math.min(x1, tam.W) - 19, top: y0 + 1, height: Math.max(14, y1 - y0 - 2) }}
                   onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); if (lista) setLista(null); else abrirLista(); }}><Icone n="chevronBaixo" /></button>
               )}
+              {(() => {
+                const lk = visivel && !lista ? I.linkDaCelula(aba, al, ac) : null;
+                if (!lk) return null;
+                const q = pos(x0, y1 + 3, 220);
+                return (
+                  <button type="button" className="pl-link-pill" data-link-pill style={{ left: q.x, top: q.y }} aria-label={'Abrir o link: ' + I.descreverLink(lk, c)} title={I.descreverLink(lk, c)} onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); abrirLink(lk); }}>
+                    <Icone n="link" /><span>{I.descreverLink(lk, c)}</span><b>Abrir</b>
+                  </button>
+                );
+              })()}
               {aviso}
               {cb}
               {lista && lista.l === al && lista.c === ac && (
@@ -2638,6 +2906,40 @@ export function Planilha({ arquivo, cx }) {
               )}
             </>
           );
+        })()}
+        {/* v0.6.3: setas do filtro nos títulos e menu de valores */}
+        {aba.fil && !edit && (() => {
+          const ff = D.faixaDoFiltro(aba.fil);
+          if (!ff) return null;
+          const y0 = G.yDe(ff.l1), y1 = G.yDe(ff.l1 + 1);
+          if (y1 - y0 < 14 || y1 < G.hh + 8 || y0 > tam.H) return null;
+          const setas = [];
+          for (let cc = ff.c1; cc <= ff.c2; cc++) {
+            const x0 = G.xDe(cc), x1 = G.xDe(cc + 1);
+            if (x1 - x0 < 22 || x1 < G.hw + 22 || x0 > tam.W - 4) continue;
+            const filtrada = D.colunaFiltrada(aba.fil, cc);
+            setas.push(
+              <button key={cc} type="button" className={'pl-seta-filtro' + (filtrada ? ' on' : '')} data-seta-filtro={cc} tabIndex={-1}
+                aria-label={(filtrada ? 'Filtro ativo na coluna ' : 'Filtrar a coluna ') + letraCol(cc)} title={filtrada ? 'Esta coluna está filtrada' : 'Filtrar esta coluna'}
+                style={{ left: Math.min(x1, tam.W) - 20, top: y1 - 20 }}
+                onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); setMenuFiltro((m) => (m && m.col === cc ? null : { col: cc })); }}><Icone n={filtrada ? 'filtro' : 'chevronBaixo'} /></button>,
+            );
+          }
+          let menu = null;
+          if (menuFiltro && menuFiltro.col >= ff.c1 && menuFiltro.col <= ff.c2) {
+            const cc = menuFiltro.col;
+            const x0 = G.xDe(cc), x1 = G.xDe(cc + 1);
+            const valores = D.valoresDaColuna(aba.fil, cc, textoDeDados, valorDeDados);
+            menu = (
+              <MenuFiltro key={cc + ':' + c.abas[abaId].fil.fx} x={Math.max(G.hw, Math.min(x0, tam.W - 250))} y={Math.min(y1 + 2, Math.max(G.hh, tam.H - 330))} w={x1 - x0}
+                titulo={textoDeDados(ff.l1, cc) || 'coluna ' + letraCol(cc)} valores={valores} filtrada={D.colunaFiltrada(aba.fil, cc)}
+                aoOrdenar={(desc) => { setMenuFiltro(null); aplicarClassificar(ff, { niveis: [{ col: cc, desc }], cabecalho: true }); }}
+                aoAplicar={(esc, todos) => { setMenuFiltro(null); gravarFiltro(D.comCriterio(aba.fil, cc, esc, todos), 'Filtrar'); setTimeout(voltarFocoGrade, 0); }}
+                aoLimparColuna={() => { setMenuFiltro(null); const cr = { ...aba.fil.cr }; delete cr[cc]; gravarFiltro({ ...aba.fil, cr }, 'Limpar o filtro da coluna'); }}
+                aoFechar={() => { setMenuFiltro(null); setTimeout(voltarFocoGrade, 0); }} />
+            );
+          }
+          return <>{setas}{menu}</>;
         })()}
         {!cel && ajuda && <div className="pl-ajuda-ancora">{ajuda}</div>}
         {cel && !edit && !somenteLeitura && (<>{alcaCel('a')}{alcaCel('b')}</>)}
@@ -2696,6 +2998,41 @@ export function Planilha({ arquivo, cx }) {
       {janela && janela.tipo === 'congelar' && <JanelaCongelar ativa={sel.ativa} cong={cong} aoEscolher={(v) => mudar({ [`conteudo.abas.${abaId}.cong`]: v && (v.l || v.c) ? v : undefined }, v ? 'Congelar painéis' : 'Descongelar painéis')} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'funcoes' && <JanelaFuncoes aoEscolher={(f) => { if (editRef.current && editRef.current.texto.startsWith('=')) inserirNoCursor(f.pt + '('); else comecarEdicao({ texto: '=' + f.pt + '(', modo: 'entrar' }); }} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'numdata' && <JanelaNumeroData valor={janela.valor} mostra={janela.mostra} aoEscolher={janela.aoEscolher} aoFechar={janela.aoFechar} />}
+      {janela && janela.tipo === 'tabela' && (
+        <JanelaTabela subtitulo={`Vale em ${textoFaixa(janela.f)}`} nomeInicial={janela.nome} cabecalho0={janela.cab} aoAplicar={(op) => aplicarTabela(janela.f, op)} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
+      )}
+      {janela && janela.tipo === 'status' && (
+        <JanelaStatus subtitulo={`Coluna ${letraCol(janela.col)}`} fx0={janela.fx} aoAplicar={aplicarStatus} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
+      )}
+      {janela && janela.tipo === 'link' && (
+        <JanelaLink c={c} celula={chave(janela.l, janela.c)} atual={I.linkDaCelula(aba, janela.l, janela.c)} texto0={(() => { const x = aba.cel[chave(janela.l, janela.c)]; return x && x.f == null && x.v != null ? String(x.v) : ''; })()} abaAtualId={abaId}
+          aoSalvar={(v) => salvarLink(janela.l, janela.c, v)} aoRemover={() => removerLink(janela.l, janela.c)} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
+      )}
+      {janela && janela.tipo === 'botao' && (
+        <JanelaBotao c={c} atual={janela.id ? objs.find((o) => o.id === janela.id) : null} abaAtualId={abaId} aoSalvar={(v) => salvarBotao(janela.id, v)}
+          aoExcluir={() => { const o = objs.find((x) => x.id === janela.id); setJanela(null); if (o) excluirObjeto(o); }} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
+      )}
+      {janela && janela.tipo === 'imagem' && objs.find((o) => o.id === janela.id) && (
+        <JanelaImagem atual={objs.find((o) => o.id === janela.id)}
+          aoSalvar={(v) => { gravarObjs(comObjeto(objs, janela.id, { nome: v.nome, w: v.w, h: v.h }), 'Imagem'); setJanela(null); setTimeout(voltarFocoGrade, 0); }}
+          aoTrocar={() => pedirImagem(janela.id)} aoExcluir={() => { const o = objs.find((x) => x.id === janela.id); setJanela(null); if (o) excluirObjeto(o); }} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
+      )}
+      {janela && janela.tipo === 'classificar' && (
+        <JanelaClassificar faixa={janela.f} subtitulo={`Vale em ${textoFaixa(janela.f)}`} cabecalho0={janela.cab} colInicial={janela.col} titulos={(cc) => textoDeDados(janela.f.l1, cc)}
+          aoAplicar={(x) => aplicarClassificar(janela.f, x)} aoFechar={() => setJanela(null)} />
+      )}
+      {janela && janela.tipo === 'duplicados' && (
+        <JanelaDuplicados faixa={janela.f} subtitulo={`Procura em ${textoFaixa(janela.f)}`} cabecalho0={janela.cab} titulos={(cc) => textoDeDados(janela.f.l1, cc)}
+          contar={(cols, cab) => D.acharDuplicados(janela.f, cols, { cabecalho: cab, valorDe: valorDeDados }).length}
+          aoAplicar={(x) => aplicarDuplicados(janela.f, x)} aoFechar={() => setJanela(null)} />
+      )}
+      {janela && janela.tipo === 'travar' && (
+        <JanelaTravar travada={!!aba.prot} liberadas={D.contarLiberadas(c, aba)} selecao={nomeSel()} temSelecao
+          selecaoLivre={sel.faixas.some((f0) => O.existentes(aba, normalFaixa(f0)).some(([, , k]) => D.celulaLivre(c, aba.cel[k])))} somenteLeitura={somenteLeitura}
+          aoTravar={() => { setJanela(null); if (mudar({ [`conteudo.abas.${abaId}.prot`]: 1 }, 'Travar a aba')) cx.avisar('Aba travada: só as células liberadas aceitam mudança.', { ic: 'cadeado' }); }}
+          aoDestravar={() => { setJanela(null); if (mudar({ [`conteudo.abas.${abaId}.prot`]: undefined }, 'Destravar a aba')) cx.avisar('Aba destravada.', { ic: 'cadeado' }); }}
+          aoLiberar={liberarSelecao} aoFechar={() => setJanela(null)} />
+      )}
       {janela && janela.tipo === 'validacao' && (
         <JanelaValidacao faixaTexto={textoFaixas(faixasDoAlvo(janela))} inicial={validacaoEm(aba, (janela.faixas ? janela.faixas[0].l1 : sel.ativa.l), (janela.faixas ? janela.faixas[0].c1 : sel.ativa.c))}
           aoAplicar={aplicarValidacao} aoLimpar={limparValidacao} aoFechar={() => setJanela(null)} />
@@ -2710,7 +3047,7 @@ export function Planilha({ arquivo, cx }) {
         if (janela.id && !o) return null;
         const ini = o ? (o.g.t === 'excel' ? o.g : { ...o.g, dados: { ...o.g.dados, fx: (o.g.dados.aba && o.g.dados.aba !== abaId && c.abas[o.g.dados.aba] ? nomeAbaNaFormula(c.abas[o.g.dados.aba].nome) + '!' : '') + o.g.dados.fx } }) : null;
         return (
-          <JanelaGrafico inicial={ini} faixaPadrao={janela.fx} tema={temaGrafico} tamanho={o ? { w: o.w, h: o.h } : null}
+          <JanelaGrafico abaInicial={janela.aba} secao={janela.secao} inicial={ini} faixaPadrao={janela.fx} tema={temaGrafico} tamanho={o ? { w: o.w, h: o.h } : null}
             lerFaixa={lerFaixaDoLivro(c, motor, abaId, !!(o && o.g.plano && o.g.plano.soVisiveis === false))}
             lerDados={(fx, pl, oc) => lerDadosGrafico(fx, pl, abaId, oc)}
             aoAplicar={(g) => aplicarGrafico(g, janela)}

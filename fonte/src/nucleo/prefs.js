@@ -58,10 +58,14 @@ export const TEMA_PADRAO_PETROLEO = false;
 /* v0.4.8 (L01): abre no tema claro "Papel" (tinta petróleo; o dourado só marca o que está ativo). Quem já escolheu um tema continua com o seu. */
 export const TEMA_PADRAO = 'papel';
 
+/* v0.6.3 (R04): até 2 temas favoritos, que aparecem como bolinhas no menu da faixa */
+export const FAV_PADRAO = ['papel', 'dark'];
+export const MAX_FAV = 2;
+
 export function prefsPadrao(escuro = false) {
   return {
     tema: TEMA_PADRAO,
-    relevo: true, mesa: true, layout: 'A', faixa: 'tudo', menu: 'completo', topo: 'completo', estilo: 'auto', painel: false, perfil: 'admin',
+    relevo: true, mesa: true, layout: 'A', faixa: 'tudo', menu: 'completo', topo: 'completo', estilo: 'auto', painel: false, perfil: 'admin', favTemas: [...FAV_PADRAO],
   };
 }
 
@@ -73,5 +77,6 @@ export function normalizarPrefs(salvas, escuro = false) {
   if (typeof salvas.mesa === 'boolean') p.mesa = salvas.mesa;
   if (typeof salvas.painel === 'boolean') p.painel = salvas.painel;
   for (const k of Object.keys(OPCOES)) if (OPCOES[k].includes(salvas[k])) p[k] = salvas[k];
+  if (Array.isArray(salvas.favTemas)) p.favTemas = [...new Set(salvas.favTemas.filter((id) => IDS_TEMA.includes(id)))].slice(0, MAX_FAV);
   return p;
 }

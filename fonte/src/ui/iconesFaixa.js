@@ -5,8 +5,6 @@
 const FOLHA = 'M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5z';
 const DOBRA = 'M13.5 3.5v5h5';
 const JAN = '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/>';
-const LINHA_BASE = '<path d="M3.5 5h11M3.5 19h11"/><rect class="t" x="3.5" y="9.5" width="11" height="5" rx="1.2"/>';
-const COLUNA_BASE = '<path d="M5 3.5v11M19 3.5v11"/><rect class="t" x="9.5" y="3.5" width="5" height="11" rx="1.2"/>';
 const CANTOS = '<path d="M4 8.5V4h4.5M15.5 4H20v4.5M20 15.5V20h-4.5M8.5 20H4v-4.5"/>';
 
 export const NOVOS = {
@@ -50,10 +48,11 @@ export const NOVOS = {
   menosdec: '<path d="M3.8 16v.01" stroke-width="2.4"/><ellipse class="t" cx="8.6" cy="12.5" rx="2.2" ry="3.5"/><path d="M14 12.5h6.5"/>',
   formatoNum: '<path d="M10 4.5l-2 15M16.5 4.5l-2 15M5 9h14.5M4.5 15h14.5"/>',
   /* Células */
-  linhaMais: `${LINHA_BASE}<path d="M18.5 9.5v5M16 12h5"/>`,
-  colunaMais: `${COLUNA_BASE}<path d="M12 16.5v5M9.5 19h5"/>`,
-  linhaMenos: `${LINHA_BASE}<path d="M16.4 10.2l3.6 3.6M20 10.2l-3.6 3.6"/>`,
-  colunaMenos: `${COLUNA_BASE}<path d="M10.2 17.2l3.6 3.6M13.8 17.2l-3.6 3.6"/>`,
+  /* v0.6.2 (R02): a linha/coluna que entra ou sai é a faixa colorida no meio da tabela, com + ou x dentro; nada parecido com Nova aba */
+  linhaMais: '<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><rect class="t" x="3.5" y="9" width="17" height="6.5"/><path d="M9.5 3.5V9M9.5 15.5v5M15 3.5V9M15 15.5v5"/><path d="M12 10.6v3.3M10.35 12.25h3.3"/>',
+  linhaMenos: '<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><rect class="t" x="3.5" y="9" width="17" height="6.5"/><path d="M9.5 3.5V9M9.5 15.5v5M15 3.5V9M15 15.5v5"/><path d="M10.6 10.85l2.8 2.8M13.4 10.85l-2.8 2.8"/>',
+  colunaMais: '<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><rect class="t" x="8.75" y="3.5" width="6.5" height="17"/><path d="M3.5 9.5h5.25M15.25 9.5h5.25M3.5 15h5.25M15.25 15h5.25"/><path d="M12 10.6v3.3M10.35 12.25h3.3"/>',
+  colunaMenos: '<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><rect class="t" x="8.75" y="3.5" width="6.5" height="17"/><path d="M3.5 9.5h5.25M15.25 9.5h5.25M3.5 15h5.25M15.25 15h5.25"/><path d="M10.6 10.85l2.8 2.8M13.4 10.85l-2.8 2.8"/>',
   /* Estilos e edição */
   condicional: '<rect x="3.5" y="4" width="17" height="16" rx="2"/><rect class="t" x="10" y="9.5" width="10.5" height="5"/><path d="M3.5 9.5h17M3.5 14.5h17M10 4v16"/>',
   tabela: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M3.5 6.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v3h-17z"/><path d="M3.5 14.5h17M9.5 9.5v10M15 9.5v10"/>',
@@ -95,6 +94,12 @@ export const NOVOS = {
   verificar: '<path class="t" d="M12 3.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6.3z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/>',
   montar: '<path d="M4.5 19.5l10-10"/><path class="t" d="M13 8l3 3 1.6-1.6a1 1 0 0 0 0-1.4l-1.6-1.6a1 1 0 0 0-1.4 0z"/><path d="M18.5 3.5v3M17 5h3M19.5 13v2.6M18.2 14.3h2.6M9.5 4v2.6M8.2 5.3h2.6"/>',
   /* Dados */
+  graficoEditar: '<path d="M4 4v16h16"/><rect class="t" x="7" y="13" width="2.6" height="4" rx=".7"/><rect class="t" x="11.2" y="9" width="2.6" height="8" rx=".7"/><path d="M15.4 11.2l3.2 3.2-3.8 3.8h-3.2v-3.2z"/>',
+  graficoEstilo: '<path d="M4 4v16h16"/><rect class="t" x="7.5" y="12" width="3" height="5" rx=".8"/><rect class="t" x="12" y="7" width="3" height="10" rx=".8"/><path d="M17.2 4.2l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z"/>',
+  graficoCores: '<path d="M4 4v16h16"/><rect x="7.5" y="12" width="3" height="5" rx=".8"/><rect class="t" x="12" y="7" width="3" height="10" rx=".8"/><circle class="f" cx="18" cy="8.5" r="1.6"/><circle cx="18" cy="13" r="1.6"/>',
+  graficoSemaforo: '<path d="M4 4v16h16"/><rect class="t" x="7" y="12" width="3" height="5" rx=".8"/><rect x="11.5" y="8" width="3" height="9" rx=".8"/><rect class="t" x="16" y="10.5" width="3" height="6.5" rx=".8"/><path d="M7 7.5h12" stroke-dasharray="2 2"/>',
+  graficoExcluir: '<path d="M4 4v16h16"/><rect class="t" x="7.5" y="13" width="3" height="4" rx=".8"/><rect class="t" x="12" y="10" width="3" height="7" rx=".8"/><path d="M15.5 4.5l4 4M19.5 4.5l-4 4"/>',
+  filtroRef: '<path class="t" d="M3.5 5h12.5l-4.8 5.8v4.2l-2.9 1.4v-5.6z"/><path d="M20 13.2a3.6 3.6 0 1 0-.9 3.2M20.2 10.4v2.9h-2.9"/>',
   classificar: '<path d="M7 4.5v15M4 16.5l3 3 3-3"/><path d="M13.5 6h7M13.5 11h5M13.5 16h3"/>',
   validacao: '<rect class="t" x="3.5" y="5" width="17" height="14" rx="2"/><path d="M8.3 12.2l2.5 2.5 5-5"/>',
   duplicados: '<rect x="3.5" y="3.5" width="11" height="11" rx="2"/><rect class="t" x="9.5" y="9.5" width="11" height="11" rx="2"/><path d="M12.5 15h5"/>',
@@ -187,13 +192,14 @@ export const MAPA = {
   'formatar.condicional': 'condicional', 'inserir.tabela': 'tabela', 'formula.autosoma': 'soma', 'planilha.limparConteudo': 'borracha',
   'formatar.limpar': 'limparFormato', 'editar.historico': 'linhaTempo', 'dados.filtrar': 'filtro', 'editar.localizar': 'localizar',
   'planilha.novaAba': 'novaAba', 'inserir.status': 'status', 'inserir.foto': 'foto', 'inserir.imagem': 'imagem', 'inserir.grafico': 'grafico',
+  'grafico.editar': 'graficoEditar', 'grafico.estilo': 'graficoEstilo', 'grafico.cores': 'graficoCores', 'grafico.semaforo': 'graficoSemaforo', 'grafico.excluir': 'graficoExcluir',
   'inserir.assinatura': 'assinatura', 'inserir.link': 'link', 'inserir.botao': 'botao', 'editar.comentar': 'comentar',
   'impressao.margens': 'margens', 'impressao.orientacao': 'orientacao', 'impressao.area': 'area', 'impressao.quebra': 'quebraPag',
   'impressao.titulos': 'titulos', 'impressao.limparArea': 'limparArea', 'impressao.semQuebras': 'semQuebras', 'impressao.cabecalho': 'cabRod',
   'impressao.ajustar': 'ajustar', 'impressao.configurar': 'imprimir',
   'formula.inserir': 'funcao', 'formula.nome': 'nome', 'formula.nomes': 'nomes', 'planilha.cabecalho': 'linhaTitulos',
   'formula.explicar': 'explicar', 'formula.origem': 'origem', 'formula.fluxo': 'fluxo', 'formula.problemas': 'verificar', 'formula.montar': 'montar',
-  'dados.classificar': 'classificar', 'dados.validacao': 'validacao', 'dados.duplicados': 'duplicados', 'dados.dinamica': 'dinamica',
+  'dados.classificar': 'classificar', 'dados.reaplicar': 'filtroRef', 'dados.validacao': 'validacao', 'dados.duplicados': 'duplicados', 'dados.dinamica': 'dinamica',
   'revisao.ortografia': 'ortografia', 'revisao.comentarios': 'comentarios', 'revisao.travar': 'cadeado',
   'exibir.congelar': 'congelar', 'exibir.grade': 'grade', 'exibir.folhaClara': 'folhaClara', 'exibir.barraFormula': 'barraFx', 'exibir.zoom': 'zoom',
   'planilha.ocultarLinha': 'ocultarLinha', 'planilha.ocultarColuna': 'ocultarColuna', 'planilha.reexibir': 'reexibirLinha', 'planilha.reexibirColuna': 'reexibirColuna',

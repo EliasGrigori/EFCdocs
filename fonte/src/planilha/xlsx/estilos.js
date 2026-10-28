@@ -160,6 +160,8 @@ export function lerEstilos(xml, tema) {
     if (bo) { e.bd = bo.bd; if (bo.bdc && bo.bdc !== '#000000') e.bdc = bo.bdc; }
     const nf = fmts[+(x.a.numFmtId || 0)];
     if (nf && nf !== 'General') e.nf = nf;
+    const pr = tag(x.dentro, 'protection');
+    if (pr && (pr.a.locked === '0' || pr.a.locked === 'false')) e.lib = true; // v0.6.3: célula liberada em aba protegida
     const al = tag(x.dentro, 'alignment');
     if (al) {
       if (AL[al.a.horizontal]) e.al = AL[al.a.horizontal];
@@ -208,7 +210,7 @@ export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = []) {
     const fi = e.fundo ? idx(fundos, { tipo: 'solid', cor: e.fundo }) : 0;
     const bo = e.bd && Object.keys(e.bd).length ? idx(bordas, { bd: e.bd, cor: e.bdc || null }) : 0;
     const nf = idFmt(e.nf);
-    xfs.push({ fo, fi, bo, nf, al: e.al, av: e.av, qb: !!e.qb });
+    xfs.push({ fo, fi, bo, nf, al: e.al, av: e.av, qb: !!e.qb, lib: !!e.lib });
   }
   const fonteXml = ({ x }) => {
     let s = '<font>';
@@ -238,12 +240,14 @@ export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = []) {
     if (x.fo) s += ' applyFont="1"';
     if (x.fi) s += ' applyFill="1"';
     if (x.bo) s += ' applyBorder="1"';
-    if (!al) return s + '/>';
+    const prot = x.lib ? '<protection locked="0"/>' : '';
+    if (x.lib) s += ' applyProtection="1"';
+    if (!al) return prot ? s + '>' + prot + '</xf>' : s + '/>';
     s += ' applyAlignment="1"><alignment';
     if (AL[x.al]) s += ` horizontal="${AL[x.al]}"`;
     if (AV[x.av]) s += ` vertical="${AV[x.av]}"`;
     if (x.qb) s += ' wrapText="1"';
-    return s + '/></xf>';
+    return s + '/>' + prot + '</xf>';
   };
   const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
