@@ -166,7 +166,7 @@ export function JanelaBotao({ c, atual, abaAtualId, aoSalvar, aoExcluir, aoFecha
             {CORES_BOTAO.map((h) => <button key={h} type="button" className="st-tom" aria-pressed={cor === h} aria-label={'Cor ' + h} data-bt-cor={h} style={{ background: h, borderColor: h }} onClick={() => setCor(h)} />)}
           </span>
         </div>
-        <p className="dd-dica">Clique no botão para ir. Para mover ou mudar: arraste, ou segure o dedo (no celular) ou use Ctrl + clique, e depois Enter. Botões não existem no Excel: ao salvar como Excel eles ficam de fora e o aviso conta quantos.</p>
+        <p className="dd-dica">Clique no botão para ir. Para mover ou mudar: arraste, ou segure o dedo (no celular) ou use Ctrl + clique, e depois Enter. Ao salvar como Excel, o botão vai como forma com link: lá também um clique leva à aba.</p>
         {erro && <p className="rg-erro" role="alert">{erro}</p>}
       </div>
     </Janela>

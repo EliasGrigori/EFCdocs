@@ -15,6 +15,7 @@ import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
 import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js';
+import { ligarFormaAoLivro } from './formasXlsx.js';
 import { lerImpressaoAba, lerNomesImpressao } from './impressaoXlsx.js';
 import { idObjeto } from '../objetos.js';
 import { urlSegura } from '../inserir.js';
@@ -90,7 +91,10 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     let m;
     while ((m = rx.exec(sx))) textos.push(m[1] ? textoRico(m[1]) : '');
   }
-  const tema = lerTema(pTema ? await zip.texto(pTema) : null);
+  const xmlTema = pTema ? await zip.texto(pTema) : null;
+  const tema = lerTema(xmlTema);
+  /* v0.6.5: fontes do tema (o texto das formas usa "+mn-lt" = a fonte do corpo) */
+  const fontesTema = { menor: ((/<a:minorFont>\s*<a:latin typeface="([^"]*)"/.exec(xmlTema || '') || [])[1]) || 'Calibri', maior: ((/<a:majorFont>\s*<a:latin typeface="([^"]*)"/.exec(xmlTema || '') || [])[1]) || 'Calibri Light' };
   const est = lerEstilos(pEst ? await zip.texto(pEst) : null, tema);
   const pessoas = await lerPessoas(zip, relsWb);
 
@@ -158,6 +162,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   const conta = (rx) => nomes.filter((n) => rx.test(n)).length;
   if (conta(/vbaProject\.bin$/i)) juntarFora('Macros (VBA)', 1, 'os botões que rodam macro não funcionam aqui');
   const graficosLidos = []; // v0.6.0: { aba, o } para ligar os dados à aba certa no fim
+  const formasLidas = []; // v0.6.5: formas (links e textos ligados apontam para o nome da aba até o fim)
   let grFora = 0;
   const nPartesGrafico = conta(/^xl\/charts\/chart\d+\.xml$/i);
   if (conta(/^xl\/pivotTables\//i)) juntarFora('Tabelas dinâmicas', conta(/^xl\/pivotTables\/pivotTable\d+\.xml$/i), 'vêm só os valores, que não atualizam');
@@ -471,12 +476,25 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     { const imp = lerImpressaoAba(cab, resto, defsImp[F.idx] || {}); if (imp) aba.imp = imp; }
     /* v0.6.0: gráficos da aba */
     if (F.rels && [...F.rels.values()].some((r) => /drawing$/.test(r.tipo))) {
-      const gr = await lerGraficosAba(zip, F.rels, aba, async (parte) => lerRels(await zip.texto(relsDe(parte)), parte), tema);
+      const gr = await lerGraficosAba(zip, F.rels, aba, async (parte) => lerRels(await zip.texto(relsDe(parte)), parte), tema, fontesTema);
       for (const o of gr.objs) {
         if (o.tipo === 'imagem') { (aba.objs || (aba.objs = [])).push({ id: idObjeto(), ...o }); imgLidas++; continue; }
+        /* v0.6.5: formas e grupos (painéis, setas, botões com link, caixas de texto) */
+        if (o.tipo === 'forma') {
+          const f = { ...o, id: idObjeto() };
+          (aba.objs || (aba.objs = [])).push(f); formasLidas.push(f);
+          rel.extras.formas = (rel.extras.formas || 0) + 1;
+          imgLidas += f.partes.filter((p) => p.g === 'img').length;
+          continue;
+        }
         graficosLidos.push({ aba, o }); rel.extras.graficos++;
       }
-      for (const x of gr.fora) { if (x.gif) juntarFora('Imagens GIF animadas', 1, x.motivo); else if (x.imagem) juntarFora('Imagens', 1, x.motivo); else { juntarFora('Gráficos', 1, x.motivo); grFora += 1; } }
+      for (const x of gr.fora) {
+        if (x.gif) juntarFora('Imagens GIF animadas', 1, x.motivo);
+        else if (x.imagem) juntarFora('Imagens', 1, x.motivo);
+        else if (x.item) juntarFora(x.item, x.qtd || 1, x.motivo);
+        else { juntarFora('Gráficos', 1, x.motivo); grFora += 1; }
+      }
     }
 
     /* mescladas, e o que a aba tem que não vem */
@@ -641,9 +659,23 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     }
     if (soGuardado) rel.avisos.push(`Em ${soGuardado === 1 ? 'uma série de gráfico' : `${soGuardado} séries de gráfico`}, os dados vêm de outro arquivo, de várias áreas ou de uma aba que não veio: o gráfico mostra os números que o Excel guardou e não acompanha mais as células.`);
     for (const a of avisosG) rel.avisos.push(`Gráficos: ${a}.`);
+    /* v0.6.5: formas: o nome da aba dos links vira o id; e tudo do desenho na ordem do Excel (o de cima por último) */
+    let linksSemAba = 0;
+    for (const f of formasLidas) {
+      ligarFormaAoLivro(f, (nome) => porNome.get(String(nome).toLowerCase()) || null);
+      linksSemAba += f.partes.filter((p) => p.link && p.link.abaNome).length;
+    }
+    if (linksSemAba) juntarFora('Links de formas', linksSemAba, 'levam a uma aba que não veio');
+    for (const id of conteudo.ordem) {
+      const A = conteudo.abas[id];
+      if (!A.objs || !A.objs.some((o) => o.ordem != null)) continue;
+      A.objs = A.objs.map((o, i) => ({ o, i })).sort((a, b) => (a.o.ordem ?? 1e9) - (b.o.ordem ?? 1e9) || a.i - b.i).map(({ o }) => { const { ordem, ...resto } = o; void ordem; return resto; });
+    }
   }
   conteudo.estilos = estilos;
   if (est.fonteBase && est.fonteBase.nome) conteudo.fonteBase = est.fonteBase.nome;
+  /* v0.6.5: o tema do arquivo volta igual ao salvar (cores e estilos das formas e dos gráficos do Excel dependem dele) */
+  if (xmlTema && xmlTema.length < 120000 && /<(\w+:)?theme\b/.test(xmlTema)) conteudo.temaXml = xmlTema.replace(/^\s*<\?xml[^>]*\?>\s*/, '');
   conteudo.calcExcel = true; // até a primeira mudança, as fórmulas começam com o último valor do Excel (abre rápido)
   rel.fora = [...fora.values()];
   conteudo.importado = rel;

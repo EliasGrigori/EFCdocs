@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.4', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.5', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.4'), 'rodapé sem v0.6.4');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.5'), 'rodapé sem v0.6.5');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.4'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.5'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -3994,6 +3994,118 @@ await caso('v0.6.4: filtro: procurar e dar OK deixa só o que foi achado; avisa 
   igual(await p.locator('.pl-fmenu-i [data-filtro-v]:checked').count(), 3, 'só os 3 achados ficam marcados');
   await p.locator('[data-filtro-ok]').click(); await p.waitForTimeout(300);
   certo((await p.locator('.toast').last().innerText()).includes('3 de 5 linhas'), 'aviso com a contagem: ' + await p.locator('.toast').last().innerText());
+});
+
+/* ---------- v0.6.5: formas do Excel ---------- */
+const AMOSTRA_FORMAS = fileURLToPath(new URL('../testes/amostras/amostra-formas.xlsx', import.meta.url));
+async function abrirFormas(p) {
+  await abrirAmostra(p, AMOSTRA_FORMAS);
+  certo((await p.locator('.rel-excel').innerText()).includes('Formas'), 'o relatório conta as formas');
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-obj-fm'); await p.waitForTimeout(500);
+}
+await caso('v0.6.5: painel do Excel com formas: painel de fundo, botões, setas, texto ligado à célula, figura em grupo e o gráfico do grupo', async () => {
+  await abrirFormas(p);
+  igual(await p.locator('.pl-obj-fm').count(), 10, 'formas');
+  igual(await p.locator('.pl-obj-gr').count(), 1, 'o gráfico do grupo veio solto');
+  const html = await p.locator('.pl-objs').innerHTML();
+  for (const t of ['PAINEL DA QUALIDADE', 'Dados', 'Ações', 'Início', 'POP da coleta']) certo(html.includes(t), 'texto: ' + t);
+  certo(/>34</.test(html), 'texto ligado à célula C40 (soma = 34)');
+  certo(html.includes('linearGradient'), 'degradê do painel');
+  certo(html.includes('marker-end'), 'ponta da seta da linha');
+  certo(html.includes('<image'), 'figura do grupo');
+  /* o painel de fundo fica embaixo (primeiro) e o gráfico por cima dele */
+  const ordem = await p.locator('.pl-objs > .pl-obj').evaluateAll((els) => els.map((e) => e.getAttribute('data-obj-tipo') || (e.classList.contains('pl-obj-gr') ? 'grafico' : '')));
+  igual(ordem[0], 'forma'); certo(ordem.indexOf('grafico') > 0);
+  await print(p, 'v065-painel-formas');
+});
+await caso('v0.6.5: clicar no botão (forma com link) vai para a aba; Ctrl + clique escolhe; Enter abre a janela; mudar o texto e Ctrl+Z volta', async () => {
+  await abrirFormas(p);
+  await p.locator('.pl-obj-fm.com-link').first().locator('[data-parte="1"] path').first().click();
+  await p.waitForTimeout(300);
+  certo((await p.locator('.pl-abas').innerText()).includes('Ações Corretivas'));
+  certo(await p.locator('.pl-cv').isVisible());
+  igual(await p.locator('.pl-obj-fm').count(), 0, 'a aba Ações Corretivas não tem formas');
+  await p.locator('.pl-abas').getByText('Painel').click(); await p.waitForTimeout(300);
+  await p.locator('.pl-obj-fm.com-link').first().locator('[data-parte="0"] path').first().click({ modifiers: ['Control'] });
+  await p.waitForTimeout(200);
+  igual(await p.locator('.pl-obj-fm.sel').count(), 1, 'Ctrl + clique escolhe sem ir');
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('[data-forma-janela]');
+  igual(await p.locator('[data-fm-parte]').count(), 1, 'grupo: escolher a parte');
+  await p.locator('[data-fm-texto]').fill('Dados 2026');
+  await p.click('[data-fm-ok]'); await p.waitForTimeout(250);
+  certo((await p.locator('.pl-objs').innerHTML()).includes('Dados 2026'));
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
+  certo(!(await p.locator('.pl-objs').innerHTML()).includes('Dados 2026'), 'Ctrl+Z volta o texto');
+});
+await caso('v0.6.5: Inserir › Forma: escolher o desenho, escrever, cor e link; Delete exclui', async () => {
+  await novaPlanilha(p);
+  await celula(p, 'B3');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await cmd(p, 'inserir.formas');
+  await p.waitForSelector('[data-forma-janela]');
+  const j = p.locator('.janela.fm-jan');
+  const raio = await j.evaluate((e) => getComputedStyle(e).borderTopLeftRadius);
+  igual(raio, '12px', 'janela no estilo Camadas');
+  await p.click('[data-fm-des="rightArrow"]');
+  await p.locator('[data-fm-texto]').fill('Próximo passo');
+  await p.click('[data-ge-op="fm-sombra:sim"]');
+  await p.click('[data-ge-op="fm-link:aba"]');
+  await print(p, 'v065-inserir-forma');
+  await p.click('[data-fm-ok]'); await p.waitForTimeout(300);
+  igual(await p.locator('.pl-obj-fm').count(), 1);
+  const h = await p.locator('.pl-obj-fm').innerHTML();
+  certo(h.includes('Próximo passo') && h.includes('feDropShadow'), 'texto e sombra');
+  certo(await p.locator('.pl-obj-fm.com-link').count() === 1, 'com link');
+  igual(await p.locator('.pl-obj-fm.sel').count(), 1, 'a forma nova fica escolhida');
+  await p.keyboard.press('Delete'); await p.waitForTimeout(250);
+  igual(await p.locator('.pl-obj-fm').count(), 0, 'Delete exclui');
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
+  igual(await p.locator('.pl-obj-fm').count(), 1, 'Ctrl+Z traz de volta');
+  /* Esc fecha só a janela */
+  await p.locator('.pl-obj-fm [data-parte="0"] path').first().click({ modifiers: ['Control'] });
+  await p.keyboard.press('Enter'); await p.waitForSelector('[data-forma-janela]');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+  igual(await p.locator('[data-forma-janela]').count(), 0);
+});
+await caso('v0.6.5: salvar como Excel leva as formas (com o tema do arquivo) e abrir de novo traz as mesmas formas e links', async () => {
+  await abrirFormas(p);
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const bytes = new Uint8Array(readFileSync(await dl.path()));
+  const { lerZip } = await import('../src/planilha/xlsx/zip.js');
+  const z = lerZip(bytes);
+  const d = await z.texto('xl/drawings/drawing1.xml');
+  for (const n of ['Painel de fundo', 'Botão Dados', 'Seta Ações', 'Conector', 'Total ligado']) certo(d.includes(`name="${n}"`), n);
+  certo(!!(await z.texto('xl/theme/theme1.xml')), 'tema do arquivo');
+  const { conteudo: c } = await lerXlsxNode(bytes);
+  const A = c.abas[c.ordem.find((id) => c.abas[id].nome === 'Painel')];
+  igual(A.objs.filter((o) => o.tipo === 'forma').length, 10);
+  const nav = A.objs.find((o) => o.tipo === 'forma' && o.partes.length === 3);
+  igual(nav.partes.map((q) => c.abas[q.link.aba].nome).join(','), 'Dados,Ações Corretivas,Painel');
+});
+await caso('v0.6.5: Imprimir e PDF levam as formas (painel, texto e a seta)', async () => {
+  await abrirFormas(p);
+  await p.keyboard.press('Control+p');
+  await p.waitForSelector('[data-imprimir-janela]');
+  const svg = await p.locator('[data-imp-previa]').innerHTML();
+  certo(svg.includes('PAINEL DA QUALIDADE'), 'texto da forma na prévia');
+  certo(svg.includes('data-parte'), 'formas na prévia');
+  await p.keyboard.press('Escape');
+});
+await caso('v0.6.5: janela da forma cabe na tela do celular (390×844) sem rolagem lateral', async () => {
+  const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const p2 = await ctx2.newPage();
+  await novaPlanilha(p2);
+  await p2.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));
+  await p2.keyboard.type('Forma'); await p2.waitForTimeout(250); await p2.keyboard.press('Enter');
+  await p2.waitForSelector('[data-forma-janela]');
+  const r = await p2.locator('.janela.fm-jan').boundingBox();
+  certo(r.x >= 0 && r.x + r.width <= 391, 'cabe na largura: ' + JSON.stringify(r));
+  const lateral = await p2.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  certo(!lateral, 'sem rolagem lateral');
+  await p2.waitForTimeout(450); await print(p2, 'v065-celular-forma');
+  await ctx2.close();
 });
 
 await navegador.close();

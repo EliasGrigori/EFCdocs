@@ -96,6 +96,7 @@ export const COMANDOS = [
   C('inserir.grafico', 'Gráfico', 'grafico', { sin: ['inserir gráfico', 'novo gráfico', 'velocímetro', 'chart', 'colunas', 'pizza', 'barras', 'linhas', 'dashboard'], chega: porModulo(V6, V7, V7) }),
   C('inserir.link', 'Link', 'link', { sin: ['hiperlink', 'endereço', 'ir para aba'], chega: porModulo(V61, V7, null), acao: 'quadro.editar' }),
   C('inserir.tirarLink', 'Tirar o link', 'lixeira', { sin: ['remover link', 'remover hiperlink', 'apagar link', 'desfazer link'], mods: ['planilha'], ed: true }),
+  C('inserir.formas', 'Forma', 'forma', { sin: ['formas', 'seta', 'retângulo', 'caixa de texto', 'painel', 'desenho', 'shape', 'círculo', 'balão'], chega: V61, mods: ['planilha'] }),
   C('inserir.botao', 'Botão que leva a outra aba', 'botao', { sin: ['botão', 'navegação', 'macro', 'atalho de aba'], chega: V61, mods: ['planilha'] }),
   C('inserir.foto', 'Foto na célula', 'foto', { sin: ['evidência', 'câmera'], chega: V8, mods: ['planilha'] }),
   C('inserir.status', 'Coluna de status', 'status', { sin: ['ok não ok', 'situação'], chega: V61, mods: ['planilha'] }),

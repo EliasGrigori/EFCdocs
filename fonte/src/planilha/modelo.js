@@ -46,6 +46,8 @@ export function normalizarPlanilha(c) {
   /* v0.5.0: veio do Excel (relatório, fonte padrão do arquivo e "ainda não mexido") */
   if (c.importado && typeof c.importado === 'object') out.importado = c.importado;
   if (typeof c.fonteBase === 'string') out.fonteBase = c.fonteBase;
+  /* v0.6.5: tema do Excel (XML), para o arquivo salvo voltar com as mesmas cores do tema */
+  if (typeof c.temaXml === 'string' && c.temaXml.length < 120000 && /^<(\w+:)?theme\b/.test(c.temaXml) && !/<script/i.test(c.temaXml)) out.temaXml = c.temaXml;
   if (c.calcExcel === true) out.calcExcel = true;
   /* v0.5.1: tabelas do Excel (só os endereços, para INDIRECT("Tabela[Coluna]") das listas suspensas) */
   if (c.tabelas && typeof c.tabelas === 'object') out.tabelas = c.tabelas;

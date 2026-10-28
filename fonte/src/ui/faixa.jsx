@@ -42,7 +42,7 @@ const FAIXAS = {
     { id: 'inserir', nome: 'Inserir', grupos: [
       { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['g', 'planilha.inserirLinha'], ['g', 'planilha.inserirColuna']] }, /* v0.6.3 (R02): botões grandes com nome, para não confundir com Nova aba */
       { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
-      { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.grafico'], ['g', 'inserir.assinatura']] },
+      { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.formas'], ['g', 'inserir.grafico'], ['g', 'inserir.assinatura']] },
       { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.tirarLink'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
     { id: 'layout', nome: 'Layout da Página', grupos: [
       { nome: 'Configurar página', itens: [['g', 'impressao.margens'], ['g', 'impressao.orientacao'], ['g', 'impressao.area'], ['g', 'impressao.quebra'], ['g', 'impressao.titulos'], ['col', ['impressao.limparArea', 'impressao.semQuebras', 'impressao.cabecalho']]] },

@@ -75,6 +75,7 @@ export const DESCRICAO = {
   'inserir.link': 'Liga a célula a um endereço da internet, a um e-mail ou a outra aba.',
   'inserir.tirarLink': 'Tira o link da célula e deixa o texto como estava.',
   'inserir.botao': 'Botão que leva a outra aba.',
+  'inserir.formas': 'Retângulo, seta, balão, caixa de texto e mais: com texto, cor e link. Vão e voltam do Excel.',
   'inserir.foto': 'Guarda uma foto numa célula.',
   'inserir.status': 'Coluna com opções de status (ex.: Aberto, Em andamento, Concluído).',
   'inserir.campo': 'Campo de preencher em formulário.',

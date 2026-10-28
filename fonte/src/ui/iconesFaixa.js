@@ -73,6 +73,7 @@ export const NOVOS = {
   linkTirar: '<path d="M10 14a4 4 0 0 0 5.7 0l1.3-1.3M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l.6-.6"/><path d="M14.5 5.5l-.6 1.6M18 9l-1.6.6M5 4l14 16"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   botao: '<rect class="t" x="3.5" y="7" width="17" height="10" rx="3"/><path d="M9 12h5.5M12.5 10l2 2-2 2"/>',
+  formas: '<circle class="t" cx="9" cy="9.5" r="5"/><rect x="10.5" y="11" width="9.5" height="9" rx="2"/>',
   comentar: '<path class="t" d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 16h-8l-4.5 3.5V16H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z"/><path d="M12 8v5M9.5 10.5h5"/>',
   comentarios: '<path class="t" d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 16h-8l-4.5 3.5V16H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z"/><path d="M7.5 9h9M7.5 12h5.5"/>',
   /* Layout da Página */
@@ -195,7 +196,7 @@ export const MAPA = {
   'formatar.limpar': 'limparFormato', 'editar.historico': 'linhaTempo', 'dados.filtrar': 'filtro', 'editar.localizar': 'localizar',
   'planilha.novaAba': 'novaAba', 'inserir.status': 'status', 'inserir.foto': 'foto', 'inserir.imagem': 'imagem', 'inserir.grafico': 'grafico',
   'grafico.editar': 'graficoEditar', 'grafico.estilo': 'graficoEstilo', 'grafico.cores': 'graficoCores', 'grafico.semaforo': 'graficoSemaforo', 'grafico.excluir': 'graficoExcluir',
-  'inserir.assinatura': 'assinatura', 'inserir.link': 'link', 'inserir.tirarLink': 'linkTirar', 'inserir.botao': 'botao', 'editar.comentar': 'comentar',
+  'inserir.assinatura': 'assinatura', 'inserir.link': 'link', 'inserir.tirarLink': 'linkTirar', 'inserir.botao': 'botao', 'inserir.formas': 'formas', 'editar.comentar': 'comentar',
   'impressao.margens': 'margens', 'impressao.orientacao': 'orientacao', 'impressao.area': 'area', 'impressao.quebra': 'quebraPag',
   'impressao.titulos': 'titulos', 'impressao.limparArea': 'limparArea', 'impressao.semQuebras': 'semQuebras', 'impressao.cabecalho': 'cabRod',
   'impressao.ajustar': 'ajustar', 'impressao.configurar': 'imprimir',

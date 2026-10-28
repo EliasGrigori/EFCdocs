@@ -2,8 +2,8 @@
    Vai: valores, fórmulas (com o valor já calculado), estilos, larguras, alturas, ocultas, mescladas, congelar painéis,
    cor e abas ocultas, nomes definidos e matrizes que derramam (matriz dinâmica do Excel 365).
    O Excel recalcula tudo ao abrir (fullCalcOnLoad). */
-import { gravarGraficosAba } from './graficosXlsx.js';
-import { gravarImagensAba } from './imagensXlsx.js';
+import { gravarDesenhoAba } from './desenhoXlsx.js';
+import { TEMA_XML } from './temaPadrao.js';
 import { gravarImpressaoAba } from './impressaoXlsx.js';
 import { criarZip } from './zip.js';
 import { escapar, XML_CAB } from './xml.js';
@@ -64,6 +64,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   let nChart = 1;
   let nImg = 0; // v0.6.3: imagens gravadas até agora (image1, image2...)
   let botoes = 0;
+  let formasGravadas = 0, botoesGravados = 0; // v0.6.5
   let linksFora = 0;
   const linksExt = new Map(); // ia → [{ id, url }] relações externas da aba
   let imagensFora = 0;
@@ -208,9 +209,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       }
       if (hl.length) { fim += `<hyperlinks>${hl.join('')}</hyperlinks>`; if (ext.length) linksExt.set(ia, ext); } }
     fim += ip.printOptions + ip.margens + ip.pageSetup + ip.headerFooter + ip.quebras;
-    const im = gravarImagensAba(aba, nImg);
-    const gr = gravarGraficosAba(c, m, aba, id, nChart, im);
-    if (gr) { fim += '<drawing r:id="rId3"/>'; desenhos.push({ ia, ...gr }); nChart += gr.charts.length; nImg += gr.midias.length; }
+    /* v0.6.5: gráficos, imagens, formas e botões no mesmo desenho, na ordem da aba */
+    const gr = gravarDesenhoAba(c, m, aba, id, nChart, nImg);
+    if (gr) { fim += '<drawing r:id="rId3"/>'; desenhos.push({ ia, ...gr }); nChart += gr.charts.length; nImg += gr.midias.length; formasGravadas += gr.formas; botoesGravados += gr.botoes; }
     const co = gravarComentarios(aba.com, ia);
     if (co) { fim += '<legacyDrawing r:id="rId1"/>'; notas.push({ ia, ...co }); conversas += co.conversas; }
     partes.push({
@@ -233,6 +234,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     `<Relationship Id="rId${nA + 1}" Type="${REL}styles" Target="styles.xml"/>` +
     `<Relationship Id="rId${nA + 2}" Type="${REL}sharedStrings" Target="sharedStrings.xml"/>` +
     (usaMatriz ? `<Relationship Id="rId${nA + 3}" Type="${REL}sheetMetadata" Target="metadata.xml"/>` : '') +
+    `<Relationship Id="rId${nA + 4}" Type="${REL}theme" Target="theme/theme1.xml"/>` +
     '</Relationships>';
   const sst = `${XML_CAB}<sst xmlns="${NS}" count="${textos.length}" uniqueCount="${textos.length}">` +
     textos.map((t) => `<si><t${/^\s|\s$|\n/.test(t) ? ' xml:space="preserve"' : ''}>${escapar(t)}</t></si>`).join('') + '</sst>';
@@ -252,6 +254,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     `<Override PartName="/xl/workbook.xml" ContentType="${CT}sheet.main+xml"/>` +
     abas.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="${CT}worksheet+xml"/>`).join('') +
     `<Override PartName="/xl/styles.xml" ContentType="${CT}styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="${CT}sharedStrings+xml"/>` +
+    '<Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' +
     (usaMatriz ? `<Override PartName="/xl/metadata.xml" ContentType="${CT}sheetMetadata+xml"/>` : '') +
     notas.map((n) => `<Override PartName="/xl/comments${n.ia + 1}.xml" ContentType="${CT}comments+xml"/>`).join('') +
     desenhos.map((d) => `<Override PartName="/xl/drawings/drawing${d.ia + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>` + d.charts.map((ch) => `<Override PartName="/xl/charts/chart${ch.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`).join('')).join('') +
@@ -270,6 +273,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     { nome: 'xl/workbook.xml', dados: wb },
     { nome: 'xl/_rels/workbook.xml.rels', dados: relsWb },
     { nome: 'xl/styles.xml', dados: gravarEstilos(c.estilos || [{}], c.fonteBase || 'Calibri', dxfs) },
+    { nome: 'xl/theme/theme1.xml', dados: XML_CAB + (typeof c.temaXml === 'string' && c.temaXml ? c.temaXml : TEMA_XML) }, // v0.6.5
     { nome: 'xl/sharedStrings.xml', dados: sst },
     ...(usaMatriz ? [{ nome: 'xl/metadata.xml', dados: metadata }] : []),
     ...partes,
@@ -296,7 +300,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   ];
   if (conversas) avisos.push(`${conversas === 1 ? 'A conversa de comentários vai' : `As ${conversas} conversas de comentários vão`} como anotação comum no Excel (o texto e as respostas ficam juntos na mesma anotação).`);
   if (linksFora) avisos.push(`${linksFora === 1 ? 'Um link' : `${linksFora} links`} que levava a uma aba apagada não ${linksFora === 1 ? 'foi' : 'foram'} gravado${linksFora === 1 ? '' : 's'}.`);
-  if (botoes) avisos.push(`${botoes === 1 ? 'O botão que leva a outra aba' : `Os ${botoes} botões que levam a outras abas`} não ${botoes === 1 ? 'vai' : 'vão'} no Excel (o Excel só faz isso com macro). ${botoes === 1 ? 'Ele fica' : 'Eles ficam'} só aqui no EFCdocs.`);
+  /* v0.6.5: o botão vai como forma com link (no Excel, um clique leva à aba, sem macro) */
+  if (botoesGravados) avisos.push(`${botoesGravados === 1 ? 'O botão que leva a outra aba vai' : `Os ${botoesGravados} botões que levam a outras abas vão`} como forma com link: no Excel, um clique leva à aba.`);
+  void botoes; void formasGravadas;
   if (assinaturas) avisos.push(`${assinaturas === 1 ? 'A assinatura' : `As ${assinaturas} assinaturas`} sobre a planilha não ${assinaturas === 1 ? 'vai' : 'vão'} no Excel (chega com o Documento, na v0.7.0).`);
   if (novas.size) {
     const l = [...novas].sort();

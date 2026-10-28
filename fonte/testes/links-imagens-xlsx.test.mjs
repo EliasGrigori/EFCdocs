@@ -64,9 +64,12 @@ test('xlsx: imagem fica no desenho da aba e volta com posição e tamanho', asyn
   assert.equal(o.src, PNG);
 });
 
-test('xlsx: botão não vai para o Excel e a gente avisa', async () => {
+test('xlsx (v0.6.5): botão vai para o Excel como forma com link, e a gente avisa', async () => {
   const { c, a1 } = duasAbas();
   a1.objs = [{ id: 'b1', tipo: 'botao', l: 0, c: 3, dx: 0, dy: 0, w: 180, h: 40, nome: 'Ir ao resumo', alvo: 'a2', ref: 'A1', cor: '#2f6f4f' }];
-  const { avisos } = await gravarXlsx(c, null, {});
-  assert.ok(avisos.some((x) => /botão/.test(x) && /macro/.test(x)));
+  const { avisos, bytes } = await gravarXlsx(c, null, {});
+  assert.ok(avisos.some((x) => /botão/.test(x) && /forma com link/.test(x)));
+  const z = lerZip(bytes);
+  assert.ok((await z.texto('xl/drawings/drawing1.xml')).includes('<a:t>Ir ao resumo</a:t>'));
+  assert.ok(/Target="#[^"]*!A1"/.test(await z.texto('xl/drawings/_rels/drawing1.xml.rels')));
 });

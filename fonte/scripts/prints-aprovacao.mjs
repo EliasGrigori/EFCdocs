@@ -1,12 +1,13 @@
-/* EFCdocs — prints de antes (v0.6.3, servida em outro endereço) e depois (v0.6.4) para a página de aprovação.
+/* EFCdocs — prints de antes (v0.6.4, servida em outro endereço) e depois (v0.6.5) para a página de aprovação.
    Só amostras inventadas (testes/amostras/): nenhum dado real nos prints.
+   Também baixa o "Salvar como Excel" de antes e de depois (para abrir no LibreOffice e comparar).
    Uso: node scripts/prints-aprovacao.mjs <endereço-depois> <endereço-antes> <pasta> */
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, copyFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const DEPOIS = process.argv[2], ANTES = process.argv[3], OUT = process.argv[4];
 const am = (n) => fileURLToPath(new URL(`../testes/amostras/${n}`, import.meta.url));
-const QUALIDADE = am('amostra-qualidade.xlsx'), V064 = am('amostra-v064.xlsx');
+const FORMAS = am('amostra-formas.xlsx'), QUALIDADE = am('amostra-qualidade.xlsx');
 mkdirSync(OUT, { recursive: true });
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome', env: { ...process.env, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' } });
 const PC = { viewport: { width: 1366, height: 800 }, acceptDownloads: true };
@@ -21,66 +22,66 @@ async function abrir(raiz, arq, opc = PC) {
   await p.setInputFiles('[data-excel-arquivo]', arq);
   await p.waitForSelector('[data-excel-abrir]'); await espera(p, 300);
   await p.click('[data-excel-abrir]');
-  await p.waitForSelector('.pl-cv'); await espera(p, 700);
+  await p.waitForSelector('.pl-cv'); await espera(p, 900);
   await p.addStyleTag({ content: '.toasts{visibility:hidden!important}' });
   return p;
 }
 const tentar = async (nome, f) => { try { await f(); } catch (e) { console.log('FALHOU', nome, String(e.message).split('\n')[0]); } };
 const aba = (p, nome) => p.click(`.tabs .tab:has-text("${nome}")`).then(() => espera(p, 250));
+const GRADE = { x: 212, y: 228, width: 1154, height: 505 };
 
 for (const [qual, raiz] of [['antes', ANTES], ['depois', DEPOIS]]) {
-  await tentar('estilo E ' + qual, async () => {
-    const p = await abrir(raiz, QUALIDADE);
-    await p.click('[data-opcoes-faixa]'); await p.click('[data-faixa-estilo=E]'); await espera(p, 300);
-    await shot(p, `${qual}-faixa-E`, { x: 212, y: 50, width: 1154, height: 110 });
-    await p.click('[data-opcoes-faixa]'); await p.click('[data-faixa-estilo=B]'); await espera(p, 300);
-    await aba(p, 'Inserir'); const a1 = await p.locator('.ribbon').evaluate((e) => Math.round(e.getBoundingClientRect().height));
-    await aba(p, 'Exibir'); const a2 = await p.locator('.ribbon').evaluate((e) => Math.round(e.getBoundingClientRect().height));
-    writeFileSync(`${OUT}/${qual}-alturas.txt`, `Inserir=${a1}px Exibir=${a2}px`);
-    await shot(p, `${qual}-faixa-exibir`, { x: 212, y: 50, width: 1154, height: 160 });
-    await p.context().close();
-  });
-  await tentar('filtro ' + qual, async () => {
-    const p = await abrir(raiz, QUALIDADE);
-    await aba(p, 'Dados');
-    await p.locator('[data-cmd="dados.filtrar"]').first().click(); await espera(p, 400);
-    await p.locator('[data-seta-filtro="1"]').dispatchEvent('pointerdown'); await p.waitForSelector('[data-filtro-menu]');
-    await p.locator('.pl-fmenu-q').fill('Rede'); await espera(p, 250);
-    await shot(p, `${qual}-filtro`, { x: 212, y: 190, width: 700, height: 420 });
-    await p.context().close();
-  });
-  await tentar('alt-enter e congelada ' + qual, async () => {
-    const p = await abrir(raiz, V064);
-    await shot(p, `${qual}-altenter`, { x: 212, y: 190, width: 900, height: 330 });
-    await p.mouse.move(700, 500); await p.mouse.wheel(0, 37); await espera(p, 700);
-    await shot(p, `${qual}-congelada`, { x: 212, y: 190, width: 900, height: 420 });
+  await tentar('painel ' + qual, async () => {
+    const p = await abrir(raiz, FORMAS);
+    await shot(p, `${qual}-painel`, GRADE);
+    await aba(p, 'Inserir');
+    await shot(p, `${qual}-faixa-inserir`, { x: 212, y: 50, width: 1154, height: 140 });
+    await aba(p, 'Arquivo');
+    const [dl] = await Promise.all([p.waitForEvent('download'), p.locator('[data-cmd="arquivo.exportarExcel"]').first().click()]);
+    copyFileSync(await dl.path(), `${OUT}/${qual}-salvo.xlsx`);
     await p.context().close();
   });
   await tentar('celular ' + qual, async () => {
-    const p = await abrir(raiz, QUALIDADE, CEL);
-    await p.locator('.tbar-fixo .abas-cel').first().tap(); await espera(p, 400);
-    await shot(p, `${qual}-celular`, { x: 0, y: 0, width: 390, height: 330 });
+    const p = await abrir(raiz, FORMAS, CEL);
+    await shot(p, `${qual}-celular`, { x: 0, y: 0, width: 390, height: 640 });
     await p.context().close();
   });
 }
-/* só depois: editor do gráfico com histórico, "Tirar a formatação" e a pergunta ao cancelar; aba Gráfico desligável */
-await tentar('editor', async () => {
-  const p = await abrir(DEPOIS, QUALIDADE);
-  await p.locator('.pl-nome').fill('A1:C20'); await p.locator('.pl-nome').press('Enter'); await espera(p, 150);
-  await aba(p, 'Inserir'); await p.locator('[data-cmd="inserir.grafico"]').first().click();
-  await p.waitForSelector('[data-grafico-janela]'); await espera(p, 600);
-  await p.locator('[data-ge-estilo=escuro]').click(); await espera(p, 300);
-  await shot(p, 'depois-editor');
-  await p.locator('[data-ge-cancelar]').click(); await espera(p, 300);
-  await shot(p, 'depois-editor-cancelar');
+/* só depois: botão leva à aba; janela da forma (grupo e nova); Imprimir com as formas */
+await tentar('clique no botão', async () => {
+  const p = await abrir(DEPOIS, FORMAS);
+  await p.locator('.pl-obj-fm.com-link').first().locator('[data-parte="1"] path').first().hover(); await espera(p, 200);
+  await shot(p, 'depois-botao-hover', { x: 212, y: 228, width: 900, height: 260 });
+  await p.locator('.pl-obj-fm.com-link').first().locator('[data-parte="1"] path').first().click(); await espera(p, 500);
+  await shot(p, 'depois-botao-foi', { x: 212, y: 190, width: 900, height: 300 });
   await p.context().close();
 });
-await tentar('exibir aba grafico', async () => {
+await tentar('janela da forma do grupo', async () => {
+  const p = await abrir(DEPOIS, FORMAS);
+  await p.locator('.pl-obj-fm.com-link').first().locator('[data-parte="0"] path').first().click({ modifiers: ['Control'] }); await espera(p, 250);
+  await shot(p, 'depois-escolhida', { x: 212, y: 228, width: 900, height: 260 });
+  await p.keyboard.press('Enter'); await p.waitForSelector('[data-forma-janela]'); await espera(p, 600);
+  await shot(p, 'depois-janela-grupo');
+  await p.context().close();
+});
+await tentar('inserir forma', async () => {
   const p = await abrir(DEPOIS, QUALIDADE);
-  await aba(p, 'Exibir');
-  await shot(p, 'depois-exibir-abagrafico', { x: 212, y: 50, width: 1154, height: 160 });
+  await p.locator('.pl-nome').fill('E3'); await p.locator('.pl-nome').press('Enter'); await espera(p, 150);
+  await aba(p, 'Inserir'); await p.locator('[data-cmd="inserir.formas"]').first().click();
+  await p.waitForSelector('[data-forma-janela]'); await espera(p, 400);
+  await p.click('[data-fm-des="wedgeRoundRectCallout"]');
+  await p.locator('[data-fm-texto]').fill('Cloro abaixo de 0,5 mg/L: avisar a equipe');
+  await p.click('[data-ge-op="fm-sombra:sim"]'); await espera(p, 500);
+  await shot(p, 'depois-inserir-forma');
+  await p.click('[data-fm-ok]'); await espera(p, 500);
+  await shot(p, 'depois-forma-nova', GRADE);
+  await p.context().close();
+});
+await tentar('imprimir', async () => {
+  const p = await abrir(DEPOIS, FORMAS);
+  await p.keyboard.press('Control+p'); await p.waitForSelector('[data-imprimir-janela]'); await espera(p, 900);
+  await shot(p, 'depois-imprimir');
   await p.context().close();
 });
 await b.close();
-writeFileSync(`${OUT}/ok.txt`, 'ok');
 console.log('prints prontos');

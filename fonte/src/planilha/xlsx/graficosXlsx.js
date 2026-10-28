@@ -10,6 +10,7 @@ import { tags, tag, escapar, XML_CAB } from './xml.js';
 import { arvore, filho, filhos, em, val, valNum, valBool, textoDe, busca } from './xmlArvore.js';
 import { letraCol, lerChave } from '../ref.js';
 import { lerFiguraDaAncora } from './imagensXlsx.js';
+import { lerFormaDaAncora, elementoDaAncora, tipoDoElemento, ancoraMais } from './formasXlsx.js';
 import { LARG_PADRAO, ALT_PADRAO, estiloDe } from '../modelo.js';
 import { dadosDaFaixa, normalizarG, PALETA_GRAFICO, NOME_TIPO } from '../graficos.js';
 import { construir, seriesDe, clonar, refsDoPlano, materializarCores } from '../graficoPlano.js';
@@ -42,7 +43,7 @@ function paraHsl(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r,
 function deHsl(h, s, l) { if (!s) return [l * 255, l * 255, l * 255]; const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; const f = (t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1 / 6) return p + (q - p) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6; return p; }; return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255]; }
 
 /** Nó de cor (srgbClr, schemeClr, sysClr, prstClr, scrgbClr) → { cor:'#rrggbb', alfa } */
-function lerCor(no, tema) {
+export function lerCor(no, tema) {
   if (!no) return null;
   const c = no.k.find((x) => /^(srgbClr|schemeClr|sysClr|prstClr|scrgbClr|hslClr)$/.test(x.n));
   if (!c) return null;
@@ -69,7 +70,7 @@ function lerCor(no, tema) {
 }
 
 /** spPr → { preench, contorno, efeito } (undefined = automático) */
-function lerSpPr(sp, tema) {
+export function lerSpPr(sp, tema) {
   const out = {};
   if (!sp) return out;
   for (const x of sp.k) {
@@ -92,7 +93,7 @@ function lerSpPr(sp, tema) {
   }
   return out;
 }
-function lerLn(ln, tema) {
+export function lerLn(ln, tema) {
   if (!ln) return undefined;
   const o = {};
   if (filho(ln, 'noFill')) o.t = 'nenhum';
@@ -413,46 +414,118 @@ function limparXo(xml) {
     .replace(/<(\w+:)?externalData\b[^>]*\/>|<(\w+:)?externalData\b[\s\S]*?<\/(\w+:)?externalData>/g, '').replace(/<(\w+:)?userShapes\b[^>]*\/>/g, '');
 }
 
-/** Lê os gráficos de uma aba (desenho ligado pela rels da aba). Devolve { objs:[...], fora:[{ motivo }] }. */
-export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema) {
+/** Âncoras do desenho na ordem em que estão (a ordem é a de cima para baixo na tela). */
+export function ancorasEmOrdem(dx) {
+  const out = [];
+  const rx = /<(?:\w+:)?(twoCellAnchor|oneCellAnchor|absoluteAnchor)\b([^>]*)>([\s\S]*?)<\/(?:\w+:)?\1>/g;
+  let m;
+  while ((m = rx.exec(dx))) { const ed = /editAs="(\w+)"/.exec(m[2]); out.push({ tipo: m[1], dentro: m[3], ed: ed ? ed[1] : m[1] === 'twoCellAnchor' ? 'twoCell' : '' }); }
+  return out;
+}
+/** Namespaces declarados na raiz do desenho (para o XML guardado das formas voltar válido). */
+function nsDaRaiz(dx) {
+  const m = /<(?:\w+:)?wsDr\b([^>]*)>/.exec(dx);
+  const ns = {};
+  if (m) for (const x of m[1].matchAll(/xmlns(?::(\w+))?="([^"]*)"/g)) ns[x[1] || ''] = x[2];
+  return ns;
+}
+
+/** Gráfico de um XML de gráfico já achado → objeto (ou { fora }). */
+async function graficoDoRid(zip, relsD, rid, tema, geo) {
+  const rc = relsD.get(rid);
+  if (!rc || !rc.alvo) return null;
+  const xml = await zip.texto(rc.alvo);
+  if (!xml) return null;
+  const r2 = gDoXml(xml, tema);
+  if (r2.fora) return { fora: r2.fora };
+  return { obj: { tipo: 'grafico', ...geo, w: Math.max(60, Math.round(geo.w)), h: Math.max(40, Math.round(geo.h)), g: r2.g, nomeAbaDados: r2.efc ? null : r2.g.dados.aba, avisos: r2.avisos } };
+}
+
+/**
+ * Lê o desenho de uma aba (gráficos, imagens e, desde a v0.6.5, formas e grupos). Devolve { objs:[...], fora:[{ motivo }] }.
+ * Os objetos vêm na ordem do desenho (o de cima fica por último), cada um com 'ordem'.
+ */
+export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema, fontes = {}) {
   const objs = [], fora = [];
+  let ordem = 0;
   for (const r of relsAba.values()) {
     if (!/drawing$/.test(r.tipo) || !r.alvo) continue;
     const dx = await zip.texto(r.alvo);
     if (!dx) continue;
     const relsD = await lerRelsDe(r.alvo);
-    for (const an of [...tags(dx, 'twoCellAnchor'), ...tags(dx, 'oneCellAnchor'), ...tags(dx, 'absoluteAnchor')]) {
+    const ns = nsDaRaiz(dx);
+    for (const an of ancorasEmOrdem(dx)) {
+      ordem++;
+      let el = elementoDaAncora(an.dentro);
+      let tipo = tipoDoElemento(el);
+      /* v0.6.5: bloco "AlternateContent" no topo: segmentação de dados fica fora; o resto usa a versão compatível */
+      if (tipo === 'AlternateContent') {
+        if (/slicer|timeslicer/i.test(el)) { fora.push({ motivo: 'chegam numa versão futura', item: 'Segmentações de dados (slicers)' }); continue; }
+        if (/<cx:chart\b|chartex/i.test(el)) { fora.push({ motivo: 'tipo novo do Excel (cascata, funil, mapa...)' }); continue; }
+        const fb = /<(?:\w+:)?Fallback\b[^>]*>([\s\S]*?)<\/(?:\w+:)?Fallback>/.exec(el);
+        const ch = /<(?:\w+:)?Choice\b[^>]*>([\s\S]*?)<\/(?:\w+:)?Choice>/.exec(el);
+        el = ((ch && /^\s*<(?:\w+:)?(sp|grpSp|cxnSp|pic|graphicFrame)\b/.test(ch[1]) && !/contentPart/.test(ch[1]) ? ch[1] : fb ? fb[1] : '') || '').trim();
+        tipo = tipoDoElemento(el);
+        if (!el) { fora.push({ item: 'Objetos do desenho', motivo: 'tipo que o EFCdocs não abre' }); continue; }
+      }
+      const geo = geoDaAncora(an, aba);
       /* v0.6.3: figuras (imagens) presas a células */
-      if (/<(?:\w+:)?pic\b/.test(an.dentro) && !/<(?:\w+:)?chart\b/.test(an.dentro)) {
+      if (tipo === 'pic') {
         const f = await lerFiguraDaAncora(zip, relsD, an, aba);
-        if (f.obj) objs.push(f.obj); else fora.push({ motivo: f.fora, imagem: true });
+        if (f.obj) objs.push({ ...f.obj, ordem }); else fora.push({ motivo: f.fora, imagem: true });
         if (f.animada) fora.push({ motivo: 'GIF animado: a figura veio parada, só com o primeiro quadro', gif: true });
         continue;
       }
-      const gf = /<(?:\w+:)?chart\b[^>]*\b(?:r:)?id="([^"]+)"/.exec(an.dentro);
-      if (!gf) { if (/<cx:chart\b|chartex/i.test(an.dentro)) fora.push({ motivo: 'tipo novo do Excel (cascata, funil, mapa...)' }); continue; }
-      const rc = relsD.get(gf[1]);
-      if (!rc || !rc.alvo) continue;
-      const xml = await zip.texto(rc.alvo);
-      if (!xml) continue;
-      const r2 = gDoXml(xml, tema);
-      if (r2.fora) { fora.push({ motivo: r2.fora }); continue; }
-      const fr = tag(an.dentro, 'from');
-      const num = (x, n) => { const m = new RegExp(`<(?:\\w+:)?${n}>(-?\\d+)</(?:\\w+:)?${n}>`).exec(x || ''); return m ? +m[1] : 0; };
-      const l = num(fr && fr.dentro, 'row'), c = num(fr && fr.dentro, 'col');
-      const ddx = num(fr && fr.dentro, 'colOff') / EMU, ddy = num(fr && fr.dentro, 'rowOff') / EMU;
-      let w = 480, h = 300;
-      const ext = /<(?:\w+:)?ext\b[^>]*cx="(\d+)"[^>]*cy="(\d+)"/.exec(an.dentro);
-      const to = tag(an.dentro, 'to');
-      if (to) {
-        const tl = num(to.dentro, 'row'), tc = num(to.dentro, 'col');
-        w = -ddx + num(to.dentro, 'colOff') / EMU; for (let k = c; k < tc; k++) w += largCol(aba, k);
-        h = -ddy + num(to.dentro, 'rowOff') / EMU; for (let k = l; k < tl; k++) h += altLin(aba, k);
-      } else if (ext) { w = +ext[1] / EMU; h = +ext[2] / EMU; }
-      objs.push({ tipo: 'grafico', l, c, dx: Math.max(0, ddx), dy: Math.max(0, ddy), w: Math.max(60, Math.round(w)), h: Math.max(40, Math.round(h)), g: r2.g, nomeAbaDados: r2.efc ? null : r2.g.dados.aba, avisos: r2.avisos });
+      if (tipo === 'graphicFrame') {
+        const gf = /<(?:\w+:)?chart\b[^>]*\b(?:r:)?id="([^"]+)"/.exec(el);
+        if (!gf) { if (/<cx:chart\b|chartex/i.test(el)) fora.push({ motivo: 'tipo novo do Excel (cascata, funil, mapa...)' }); else fora.push({ item: 'Objetos do desenho', motivo: 'tipo que o EFCdocs não abre' }); continue; }
+        const g = await graficoDoRid(zip, relsD, gf[1], tema, geo);
+        if (!g) continue;
+        if (g.fora) { fora.push({ motivo: g.fora }); continue; }
+        objs.push({ ...g.obj, ordem });
+        continue;
+      }
+      if (tipo === 'sp' || tipo === 'cxnSp' || tipo === 'grpSp') {
+        const fm = await lerFormaDaAncora(el, { zip, relsD, tema, fontes, aba, geo, ed: an.ed, ns });
+        for (const x of fm.fora) fora.push({ forma: true, ...x });
+        if (fm.aprox) fora.push({ forma: true, item: 'Formas com desenho que o EFCdocs ainda não tem', qtd: fm.aprox, motivo: 'vieram como retângulo' });
+        if (fm.obj) objs.push({ ...fm.obj, ordem });
+        /* gráficos que estavam dentro do grupo: saem soltos, no mesmo lugar */
+        for (const gq of fm.graficos) {
+          const an2 = ancoraMais(aba, geo.l, geo.c, geo.dx, geo.dy, gq.x, gq.y);
+          const g = await graficoDoRid(zip, relsD, gq.rid, tema, { ...an2, w: gq.w, h: gq.h });
+          if (!g) continue;
+          if (g.fora) { fora.push({ motivo: g.fora }); continue; }
+          objs.push({ ...g.obj, ordem: ordem + 0.5 });
+        }
+        continue;
+      }
+      if (tipo === 'contentPart') fora.push({ forma: true, item: 'Desenhos à tinta', motivo: 'chegam numa versão futura' });
     }
   }
   return { objs, fora };
+}
+
+/** Posição e tamanho (px) da âncora, sem mínimo (uma linha reta tem altura zero). */
+export function geoDaAncora(an, aba) {
+  const num = (x, n) => { const m = new RegExp(`<(?:\\w+:)?${n}>(-?\\d+)</(?:\\w+:)?${n}>`).exec(x || ''); return m ? +m[1] : 0; };
+  const fr = tag(an.dentro, 'from');
+  let l = num(fr && fr.dentro, 'row'), c = num(fr && fr.dentro, 'col');
+  let ddx = num(fr && fr.dentro, 'colOff') / EMU, ddy = num(fr && fr.dentro, 'rowOff') / EMU;
+  if (an.tipo === 'absoluteAnchor') {
+    const pos = /<(?:\w+:)?pos\b[^>]*x="(-?\d+)"[^>]*y="(-?\d+)"/.exec(an.dentro);
+    const a = ancoraMais(aba, 0, 0, 0, 0, pos ? +pos[1] / EMU : 0, pos ? +pos[2] / EMU : 0);
+    l = a.l; c = a.c; ddx = a.dx; ddy = a.dy;
+  }
+  let w = 480, h = 300;
+  const ext = /^\s*(?:<(?:\w+:)?from>[\s\S]*?<\/(?:\w+:)?from>|<(?:\w+:)?pos\b[^>]*\/>)\s*<(?:\w+:)?ext\b[^>]*cx="(\d+)"[^>]*cy="(\d+)"/.exec(an.dentro);
+  const to = tag(an.dentro, 'to');
+  if (to && an.tipo !== 'oneCellAnchor' && an.tipo !== 'absoluteAnchor') {
+    const tl = num(to.dentro, 'row'), tc = num(to.dentro, 'col');
+    w = -ddx + num(to.dentro, 'colOff') / EMU; for (let k = c; k < tc; k++) w += largCol(aba, k);
+    h = -ddy + num(to.dentro, 'rowOff') / EMU; for (let k = l; k < tl; k++) h += altLin(aba, k);
+  } else if (ext) { w = +ext[1] / EMU; h = +ext[2] / EMU; }
+  return { l, c, dx: Math.max(0, ddx), dy: Math.max(0, ddy), w: Math.max(0, w), h: Math.max(0, h) };
 }
 
 /** Depois de ler todas as abas: nomes de aba das referências → ids. Devolve quantas referências ficaram só com o que veio guardado. */
@@ -717,6 +790,43 @@ function textoDaRef(c, abaDoGrafico) {
  * n0: número do primeiro chart (chart1, chart2... em todo o livro).
  * lerFaixa(abaId, ref) → { num, txt } (para os gráficos que vieram do Excel, com os números de agora)
  */
+/** v0.6.5: o XML do gráfico de um objeto (null se não dá para gravar). */
+export function xmlDoGraficoObjeto(c, motor, aba, abaId, o) {
+    const g = normalizarG(o.g);
+    let xml = null;
+    if (g.t === 'excel') {
+      /* veio do Excel: se nada mudou (formatação, referências e nomes das abas), volta o XML original */
+      const nomesIguais = Object.entries(o.g.xoAbas || {}).every(([id, nome]) => c.abas[id] && c.abas[id].nome === nome);
+      /* v0.6.4 (Grok X05): também olha as fórmulas do próprio XML guardado; se alguma aponta para uma aba que mudou de nome (ou sumiu), o XML é refeito com os nomes de agora */
+      const nomesDoXml = [...String(g.xo || '').matchAll(/<c:f>([^<]*)<\/c:f>/g)].flatMap((m) => [...m[1].matchAll(/(?:'((?:[^']|'')+)'|([^'!,()\s]+))!/g)].map((x) => (x[1] ? x[1].replace(/''/g, "'") : x[2]).toLowerCase()));
+      const nomesVivos = new Set(Object.values(c.abas).map((a) => a.nome.toLowerCase()));
+      const xmlAtual = nomesDoXml.every((n) => nomesVivos.has(n));
+      if (g.xo && g.xoSig && assinaturaPlano(g.plano) === g.xoSig && nomesIguais && xmlAtual) xml = g.xo;
+      else xml = xmlDoPlano(lerNumeros(c, motor, g.plano, abaId), { textoRef: textoDaRef(c, abaId) });
+    } else {
+      const abaD = g.dados.aba && c.abas[g.dados.aba] ? g.dados.aba : abaId;
+      const A = c.abas[abaD];
+      const fs = faixasDe(g.dados.fx);
+      if (!fs.length) return null;
+      const f = fs[0];
+      const ler = (l, cc) => { let v; try { v = motor.valor(abaD, l, cc); } catch { v = null; } return v && typeof v === 'object' ? null : v; };
+      const texto = (l, cc) => { const v = ler(l, cc); if (v == null) return ''; const cel = A.cel && A.cel[letraCol(cc) + (l + 1)]; const e = estiloDe(c, cel || {}); try { return formatar(v, e.nf).t; } catch { return String(v); } };
+      const fmtDe = (l, cc) => { const cel = A.cel && A.cel[letraCol(cc) + (l + 1)]; return estiloDe(c, cel || {}).nf || null; };
+      const d = dadosDaFaixa(f, ler, texto, !!g.porLinhas, fmtDe, ocultosDe(A, g));
+      if (!d.series.length) return null;
+      const refs = refsDaFaixa(A.nome, f, d, !!g.porLinhas);
+      xml = xmlDoGrafico(g, { d, refs, nomeAba: A.nome });
+    }
+    return xml;
+}
+/** v0.6.5: a parte de dentro da âncora de um gráfico (graphicFrame) com o r:id dado. */
+export function frameDoGrafico(o, id, rid) {
+  const g = normalizarG(o.g);
+  return `<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${id}" name="Gráfico ${id}" descr="${escapar(g.titulo || NOME_TIPO[g.t] || 'Gráfico do EFCdocs', true)}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>` +
+    `<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="${NS_C}"><c:chart xmlns:c="${NS_C}" r:id="${rid}"/></a:graphicData></a:graphic></xdr:graphicFrame>`;
+}
+export { NS_C, NS_A, NS_R, NS_XDR };
+
 export function gravarGraficosAba(c, motor, aba, abaId, n0, extra = null) {
   const lista = (aba.objs || []).filter((o) => o.tipo === 'grafico');
   const imagens = extra && extra.ancoras.length ? extra : null; // v0.6.3: imagens vão no mesmo desenho

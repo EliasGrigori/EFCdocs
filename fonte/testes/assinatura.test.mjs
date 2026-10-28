@@ -206,7 +206,7 @@ test('comando Assinatura: liga no quadro e na planilha agora; no Docx só na v0.
 const abaComObjs = (objs) => ({ ...planilhaVazia(), abas: { a1: { id: 'a1', nome: 'Planilha1', cel: {}, objs } } });
 const obj = (o = {}) => ({ id: 'o1', tipo: 'assinatura', l: 5, c: 2, dx: 4, dy: 4, w: 280, h: 96, nome: 'Ana Lima', rub: RUB, ...o });
 
-test('planilha: ao abrir, descarta objeto quebrado, rubrica de fora e passa de 40', () => {
+test('planilha: ao abrir, descarta objeto quebrado, rubrica de fora e passa do limite (v0.6.5: 400)', () => {
   const lista = [obj(), { id: 'x', tipo: 'xyz', l: 0, c: 0 }, obj({ id: 'o2', rub: 'http://x/y.png', nome: '  Bia   Souza ', w: 5, h: 5 }), obj({ id: 'o1' }), null];
   const c = normalizarPlanilha(abaComObjs(lista));
   const objs = c.abas.a1.objs;
@@ -214,7 +214,7 @@ test('planilha: ao abrir, descarta objeto quebrado, rubrica de fora e passa de 4
   assert.equal(objs[1].rub, undefined);
   assert.equal(objs[1].nome, 'Bia Souza');
   assert.equal(objs[1].w, A.ASN.W_MIN);
-  const muitos = Array.from({ length: 60 }, (_, i) => obj({ id: 'k' + i }));
+  const muitos = Array.from({ length: OB.MAX_OBJETOS + 20 }, (_, i) => obj({ id: 'k' + i }));
   assert.equal(OB.normalizarObjetos(muitos).length, OB.MAX_OBJETOS);
   assert.equal(normalizarPlanilha(abaComObjs([])).abas.a1.objs, undefined, 'lista vazia não fica no arquivo');
   assert.equal(OB.novaAssinatura({ nome: ' Ana  Lima ', rub: 'x' }, { l: 1, c: 1 }).rub, undefined);

@@ -2,6 +2,7 @@
    Os da v0.2.0 vieram iguais; os do quadro entram na v0.3.0. */
 
 export const ICONES = {
+  "forma": "<circle cx=\"9\" cy=\"9.5\" r=\"5\"/><rect x=\"10.5\" y=\"11\" width=\"9.5\" height=\"9\" rx=\"2\"/>",
   "menu": "<path d=\"M4 7h16M4 12h16M4 17h16\"/>",
   "casa": "<path d=\"M4 11l8-6.5 8 6.5\"/><path d=\"M6 9.5V20h12V9.5\"/>",
   "planilha": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"15\" rx=\"1.5\"/><path d=\"M3.5 9.5h17M3.5 14.5h17M9.5 4.5v15\"/>",

@@ -25,7 +25,9 @@ import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt
 import * as O from './operacoes.js';
 import * as D from './dados.js';
 import { JanelaClassificar, JanelaDuplicados, JanelaTravar, MenuFiltro } from './dadosUi.jsx';
-import { objetosDaAba, novaAssinatura, novoGrafico, novaImagem, novoBotao, caberImagem, GR, IMG, BTN, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS } from './objetos.js';
+import { objetosDaAba, novaAssinatura, novoGrafico, novaImagem, novoBotao, caberImagem, GR, IMG, BTN, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS, idObjeto } from './objetos.js';
+import { FM, temLink, textoDaForma, svgDaForma } from './formas.js';
+import { FormaView, JanelaForma, valoresLigados } from './formasUi.jsx';
 import * as I from './inserir.js';
 import { JanelaTabela, JanelaStatus, JanelaLink, JanelaBotao, JanelaImagem } from './inserirUi.jsx';
 import { lerImagem } from './imagem.js';
@@ -667,7 +669,7 @@ export function Planilha({ arquivo, cx }) {
   };
   const excluirObjeto = (o) => {
     if (somenteLeitura) { avisarLeitura(); return; }
-    const nomeObj = { grafico: 'gráfico', imagem: 'imagem', botao: 'botão' }[o.tipo] || 'assinatura';
+    const nomeObj = { grafico: 'gráfico', imagem: 'imagem', botao: 'botão', forma: 'forma' }[o.tipo] || 'assinatura';
     const Nome = nomeObj[0].toUpperCase() + nomeObj.slice(1);
     if (gravarObjs(semObjeto(objs, o.id), 'Excluir ' + nomeObj) !== false) {
       setObjSel(null);
@@ -695,6 +697,7 @@ export function Planilha({ arquivo, cx }) {
     if (o.tipo === 'grafico') abrirGrafico(o);
     else if (o.tipo === 'imagem') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'imagem', id: o.id }); }
     else if (o.tipo === 'botao') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'botao', id: o.id }); }
+    else if (o.tipo === 'forma') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'forma', id: o.id }); }
     else abrirAssinatura(o);
   };
   const ancoraNova = () => {
@@ -726,6 +729,14 @@ export function Planilha({ arquivo, cx }) {
     }
     setTimeout(voltarFocoGrade, 0);
   };
+  /* v0.6.5: link de uma forma (como no Excel: um clique vai para a aba ou abre o site) */
+  const irAoLink = (lk) => {
+    if (!lk) return;
+    if (lk.url) { try { window.open(lk.url, '_blank', 'noopener'); } catch { /* sem janela */ } return; }
+    if (!lk.aba || !c.abas[lk.aba]) { cx.avisar(lk.abaNome ? `A aba "${lk.abaNome}" não veio do Excel.` : 'A aba desse link foi apagada. Mude a forma (Ctrl + clique) para escolher outra.', { ic: 'aviso' }); return; }
+    const p = lk.ref ? lerChave(lk.ref) : null;
+    irPara({ abaId: lk.aba, l: p ? p.l : 0, c: p ? p.c : 0 });
+  };
   const irAoBotao = (o) => {
     if (!c.abas[o.alvo]) { cx.avisar('A aba desse botão foi apagada. Mude o botão (Ctrl + clique) para escolher outra.', { ic: 'aviso' }); return; }
     const p = o.ref ? lerChave(o.ref) : null;
@@ -749,6 +760,14 @@ export function Planilha({ arquivo, cx }) {
   /* ---------- gráficos (v0.6.0) ---------- */
   const temaGrafico = (() => { try { const v = getComputedStyle(document.body).getPropertyValue('--surface').trim(); const m = /^#([0-9a-f]{6})$/i.exec(v); if (!m) return TEMA_CLARO; const n = parseInt(m[1], 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 128 ? TEMA_CLARO : TEMA_ESCURO; } catch { return TEMA_CLARO; } })();
   /** Lê a faixa dos dados ("A1:C20" ou "Resumo!A1:C20") e devolve { d, erro, fx, aba }. */
+  /* v0.6.5: texto da célula ligada a uma forma (caixa de texto que mostra o valor da célula) */
+  const lerLigadoDe = (idPadrao) => (lg) => {
+    const idA = lg && lg.aba && c.abas[lg.aba] ? lg.aba : idPadrao;
+    const p = lg && lerChave(lg.ref);
+    if (!p) return '';
+    try { return textoCelula(motor, c, idA, p.l, p.c).t; } catch { return ''; }
+  };
+  const lerLigado = lerLigadoDe(abaId);
   const lerDadosGrafico = (texto, porLinhas, abaPadrao = abaId, mostrarOcultos = false) => {
     let t = String(texto || '').trim();
     let abaD = abaPadrao;
@@ -798,6 +817,7 @@ export function Planilha({ arquivo, cx }) {
         const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : idA, !!o.g.op.ocultos);
         return { ...o, svg: svgDoGrafico(o.g, ld.d, { w: o.w, h: o.h, tema: TEMA_CLARO }) };
       }
+      if (o.tipo === 'forma') return { ...o, svg: svgDaForma(o, Math.max(1, o.w), Math.max(1, o.h), { lerLigado: lerLigadoDe(idA), uid: 'imp' + o.id }) };
       const nome = String(o.nome || '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
       const lin = Math.round(o.h * 0.72);
       return { ...o, svg: `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${o.w} ${o.h}" width="${o.w}" height="${o.h}">${o.rub ? `<image href="${o.rub}" xlink:href="${o.rub}" x="6" y="2" width="${o.w - 12}" height="${lin - 4}" preserveAspectRatio="xMidYMax meet"/>` : ''}<line x1="6" y1="${lin}" x2="${o.w - 6}" y2="${lin}" stroke="#222" stroke-width="1"/><text x="${o.w / 2}" y="${lin + 14}" text-anchor="middle" font-size="12" font-family="Helvetica, Arial" fill="#222">${nome}</text></svg>` };
@@ -928,17 +948,26 @@ export function Planilha({ arquivo, cx }) {
     /* v0.6.4: vale a hora em que o clique chegou (ev.timeStamp), não a hora em que o desenho terminou: tela pesada não pode atrasar o segundo clique */
     const agora = ev.timeStamp || Date.now(), ult = toqueObj.current;
     toqueObj.current = { id: o.id, t: agora };
+    /* v0.6.5: forma com link (botão do Excel): a parte clicada decide para onde vai */
+    let linkP = null;
+    if (o.tipo === 'forma' && modo === 'mover') {
+      const el = ev.target && ev.target.closest ? ev.target.closest('[data-parte]') : null;
+      const k = el ? +el.getAttribute('data-parte') : -1;
+      linkP = k >= 0 && o.partes[k] && o.partes[k].link ? o.partes[k].link : null;
+    }
+    const comoBotao = (o.tipo === 'botao' || !!linkP) && modo === 'mover';
     /* v0.6.3: o botão que leva a outra aba vale também para quem só pode ler */
-    if (o.tipo === 'botao' && somenteLeitura && modo === 'mover') { irAoBotao(o); return; }
-    if (o.tipo === 'botao' && modo === 'mover') toqueObj.current = null; // o clique leva à aba: não vale como dois cliques
-    if (modo === 'mover' && o.tipo !== 'botao' && ult && ult.id === o.id && agora - ult.t < 450) { toqueObj.current = null; setObjSel(o.id); abrirObjeto(o); return; }
+    if (comoBotao && somenteLeitura) { if (linkP) irAoLink(linkP); else irAoBotao(o); return; }
+    if (comoBotao) toqueObj.current = null; // o clique leva à aba: não vale como dois cliques
+    if (modo === 'mover' && !comoBotao && ult && ult.id === o.id && agora - ult.t < 450) { toqueObj.current = null; setObjSel(o.id); abrirObjeto(o); return; }
     setObjSel(o.id);
     voltarFocoGrade();
     if (somenteLeitura) { avisarLeitura(); return; }
     try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* sem captura */ }
     const r = retDoObjeto(o, G);
     const novo = { id: o.id, modo, px: ev.clientX, py: ev.clientY, r0: r, ...r, moveu: false };
-    if (o.tipo === 'botao' && modo === 'mover') {
+    if (comoBotao) {
+      if (linkP) novo.link = linkP;
       novo.ctrl = !!(ev.ctrlKey || ev.metaKey);
       /* segurar o dedo (ou Ctrl + clique) só escolhe o botão, para mover ou mudar, sem ir à outra aba */
       novo.pressao = setTimeout(() => { const x = arrObjRef.current; if (x && x.id === o.id && !x.moveu) { arrObjRef.current = { ...x, longo: true }; setObjSel(o.id); if (navigator.vibrate) { try { navigator.vibrate(15); } catch { /* sem vibração */ } } } }, 450);
@@ -953,7 +982,7 @@ export function Planilha({ arquivo, cx }) {
     if (a.modo === 'mover') setArrObj({ ...a, moveu: true, x: a.r0.x + dx, y: a.r0.y + dy });
     else {
       const o = objs.find((x) => x.id === a.id);
-      const mn = o && o.tipo === 'grafico' ? GR : o && o.tipo === 'imagem' ? IMG : o && o.tipo === 'botao' ? BTN : ASN;
+      const mn = o && o.tipo === 'grafico' ? GR : o && o.tipo === 'imagem' ? IMG : o && o.tipo === 'botao' ? BTN : o && o.tipo === 'forma' ? FM : ASN;
       if (o && o.tipo === 'imagem') { const w = Math.max(mn.W_MIN * z, a.r0.w + dx); setArrObj({ ...a, moveu: true, w, h: Math.max(mn.H_MIN * z, w * o.h / o.w) }); } // a imagem não estica
       else setArrObj({ ...a, moveu: true, w: Math.max(mn.W_MIN * z, a.r0.w + dx), h: Math.max(mn.H_MIN * z, a.r0.h + dy) });
     }
@@ -964,15 +993,16 @@ export function Planilha({ arquivo, cx }) {
     if (a && a.pressao) { clearTimeout(a.pressao); }
     const oBotao = a && objs.find((x) => x.id === a.id);
     if (a && !a.moveu && oBotao && oBotao.tipo === 'botao' && !a.ctrl && !a.longo) { irAoBotao(oBotao); return; }
+    if (a && !a.moveu && a.link && !a.ctrl && !a.longo) { irAoLink(a.link); return; }
     if (!a || !a.moveu) return;
     const o = objs.find((x) => x.id === a.id);
     if (!o) return;
-    const nomeDo = { grafico: 'gráfico', imagem: 'imagem', botao: 'botão' }[o.tipo] || 'assinatura';
+    const nomeDo = { grafico: 'gráfico', imagem: 'imagem', botao: 'botão', forma: 'forma' }[o.tipo] || 'assinatura';
     if (a.modo === 'mover') {
       /* o canto de cima à esquerda decide a célula; fora da área das células, volta para a borda */
       const an = ancoraNoPonto(G, Math.max(G.hw + 1, a.x), Math.max(G.hh + 1, a.y));
       gravarObjs(comObjeto(objs, o.id, an), 'Mover ' + nomeDo);
-    } else gravarObjs(comObjeto(objs, o.id, { w: Math.round(a.w / z), h: Math.round(a.h / z) }), 'Mudar o tamanho d' + (nomeDo === 'imagem' ? 'a ' : 'o ') + nomeDo);
+    } else gravarObjs(comObjeto(objs, o.id, { w: Math.round(a.w / z), h: Math.round(a.h / z) }), 'Mudar o tamanho d' + (nomeDo === 'imagem' || nomeDo === 'forma' ? 'a ' : 'o ') + nomeDo);
   };
   const cancelar = () => {
     const e = editRef.current;
@@ -2078,6 +2108,7 @@ export function Planilha({ arquivo, cx }) {
       case 'inserir.imagem': return ed(() => pedirImagem(null));
       case 'inserir.link': return ed(() => setJanela({ tipo: 'link', l: sel.ativa.l, c: sel.ativa.c }));
       case 'inserir.botao': return ed(() => setJanela({ tipo: 'botao', id: null }));
+      case 'inserir.formas': return ed(() => setJanela({ tipo: 'forma', id: null, ancora: ancoraNova() }));
       case 'dados.classificar': return ed(abrirClassificar);
       case 'dados.filtrar': return ed(alternarFiltro);
       case 'dados.reaplicar': return ed(reaplicarFiltro);
@@ -2827,6 +2858,21 @@ export function Planilha({ arquivo, cx }) {
                   </div>
                 );
               }
+              if (o.tipo === 'forma') {
+                const comLink = temLink(o);
+                const txt = textoDaForma(o);
+                return (
+                  <div key={o.id} className={'pl-obj pl-obj-fm' + (comLink ? ' com-link' : '') + (escolhida ? ' sel' : '')} data-obj={o.id} data-obj-tipo="forma" role={comLink ? 'button' : 'img'} aria-label={(comLink ? 'Botão' : 'Forma') + (txt ? ': ' + txt.slice(0, 80) : '')}
+                    style={{ left: r.x - G.hw, top: r.y - G.hh, width: Math.max(1, r.w), height: Math.max(1, r.h), zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
+                    onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
+                    onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
+                    <div style={{ width: Math.max(1, o.w), height: Math.max(1, o.h), transform: `scale(${z})`, transformOrigin: '0 0' }}>
+                      <FormaView o={o} w={Math.max(1, o.w)} h={Math.max(1, o.h)} lerLigado={lerLigado} valores={valoresLigados(o, lerLigado)} />
+                    </div>
+                    {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
+                  </div>
+                );
+              }
               if (o.tipo === 'imagem' || o.tipo === 'botao') {
                 const ehImg = o.tipo === 'imagem';
                 return (
@@ -2868,6 +2914,16 @@ export function Planilha({ arquivo, cx }) {
                 <button type="button" className="iconbtn" data-obj-ed="1" aria-label={o.tipo === 'imagem' ? 'Tamanho e texto' : 'Mudar o botão'} title={(o.tipo === 'imagem' ? 'Tamanho e texto' : 'Mudar o botão') + ' (Enter)'} onClick={() => abrirObjeto(o)}><Icone n={o.tipo === 'imagem' ? 'imagem' : 'botao'} /></button>
                 {o.tipo === 'botao' && <button type="button" className="iconbtn" data-obj-ir="1" aria-label="Ir para a aba" title="Ir para a aba" onClick={() => irAoBotao(o)}><Icone n="seta" /></button>}
                 {!somenteLeitura && <button type="button" className="iconbtn" data-obj-ex="1" aria-label={'Excluir ' + rot.toLowerCase()} title="Excluir (Delete)" onClick={() => excluirObjeto(o)}><Icone n="lixeira" /></button>}
+              </div>
+            );
+          }
+          if (o.tipo === 'forma') {
+            const lk = (o.partes.find((p) => p.link) || {}).link;
+            return (
+              <div className="pl-obj-barra" style={{ left: Math.max(4, Math.min(tam.W - 120, r.x)), top: topo }} role="toolbar" aria-label="Forma">
+                <button type="button" className="iconbtn" data-obj-ed="1" aria-label="Mudar a forma" title="Mudar a forma (Enter)" onClick={() => abrirObjeto(o)}><Icone n="forma" /></button>
+                {lk && <button type="button" className="iconbtn" data-obj-ir="1" aria-label="Seguir o link" title="Seguir o link" onClick={() => irAoLink(lk)}><Icone n="seta" /></button>}
+                {!somenteLeitura && <button type="button" className="iconbtn" data-obj-ex="1" aria-label="Excluir forma" title="Excluir (Delete)" onClick={() => excluirObjeto(o)}><Icone n="lixeira" /></button>}
               </div>
             );
           }
@@ -3054,6 +3110,19 @@ export function Planilha({ arquivo, cx }) {
       )}
       {janela && janela.tipo === 'botao' && (
         <JanelaBotao c={c} atual={janela.id ? objs.find((o) => o.id === janela.id) : null} abaAtualId={abaId} aoSalvar={(v) => salvarBotao(janela.id, v)}
+          aoExcluir={() => { const o = objs.find((x) => x.id === janela.id); setJanela(null); if (o) excluirObjeto(o); }} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
+      )}
+      {janela && janela.tipo === 'forma' && (janela.id === null || objs.find((o) => o.id === janela.id)) && (
+        <JanelaForma c={c} atual={janela.id ? objs.find((o) => o.id === janela.id) : null} ancora={janela.ancora} abaAtualId={abaId} novoId={() => idObjeto()} lerLigado={lerLigado} cores={coresDaPlanilha(c)}
+          aoSalvar={(v) => {
+            if (janela.id) gravarObjs(objs.map((x) => (x.id === janela.id ? v : x)), 'Mudar a forma');
+            else {
+              if (objs.length >= MAX_OBJETOS) return `No máximo ${MAX_OBJETOS} objetos por aba.`;
+              if (gravarObjs([...objs, v], 'Inserir forma') !== false) { setObjSel(v.id); cx.avisar('Forma inserida. Arraste para mover; dois cliques para mudar.', { ic: 'forma' }); }
+            }
+            setJanela(null); setTimeout(voltarFocoGrade, 0);
+            return '';
+          }}
           aoExcluir={() => { const o = objs.find((x) => x.id === janela.id); setJanela(null); if (o) excluirObjeto(o); }} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
       )}
       {janela && janela.tipo === 'imagem' && objs.find((o) => o.id === janela.id) && (

@@ -530,3 +530,27 @@ svg.ic-novo .barra { stroke: var(--primary); }
 /* v0.6.4: coluna de 4 botões pequenos cabe na mesma altura das outras abas (a aba Exibir não fica mais alta) */
 .ribbon:not([data-estilo=E]) .rb-col:has(> :nth-child(4)) { grid-auto-rows: 18px; gap: 1px; }
 .ribbon:not([data-estilo=E]) .rb-col:has(> :nth-child(4)) .rbs { height: 18px; font-size: 11.5px; }
+
+/* ---------- v0.6.5: formas do Excel (painéis, setas, botões com link, caixas de texto) ---------- */
+/* a caixa não recebe clique: só o que está pintado (como no Excel, clicar no vazio de uma forma sem fundo pega a célula de baixo) */
+.pl-obj-fm { pointer-events: none; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+.pl-obj-fm .fm-view svg { display: block; overflow: visible; }
+.pl-obj-fm .fm-view svg * { pointer-events: visiblePainted; cursor: move; }
+.pl-obj-fm.com-link .fm-view svg [data-parte] * { cursor: pointer; }
+.pl-obj-fm.com-link .fm-view [data-parte]:hover { filter: brightness(1.06); }
+.pl-obj-fm .pl-obj-alca { pointer-events: auto; }
+.pl-obj-fm.sel { outline: 1.5px solid var(--primary); outline-offset: 2px; }
+.fm-jan { width: min(980px, calc(100vw - 20px)); }
+.fm-corpo { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+.fm-previa { display: grid; place-items: center; border-radius: var(--r-card); background: repeating-conic-gradient(var(--surface-3) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px; padding: 8px; overflow: hidden; }
+.fm-previa .fm-view svg { display: block; overflow: visible; }
+.fm-previa-in { position: relative; }
+.fm-marca { position: absolute; border: 1.5px dashed var(--primary); border-radius: 4px; pointer-events: none; }
+.fm-jan .janela-r .iconbtn.perigo { margin-right: auto; }
+.fm-galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 4px; }
+.fm-des { display: grid; place-items: center; height: 38px; border: 1px solid var(--border-light); border-radius: var(--r-chip); background: var(--surface); color: var(--text-muted); box-shadow: var(--sh-1); }
+.fm-des:hover { color: var(--text); box-shadow: var(--sh-2); }
+.fm-des.on { border-color: var(--primary); color: var(--primary); box-shadow: var(--anel); }
+.fm-texto { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; border: 1px solid var(--border-light); border-radius: var(--r-ctl); background: var(--surface); color: var(--text); padding: 8px 10px; font: inherit; }
+.fm-texto:focus { outline: none; box-shadow: var(--anel); border-color: var(--primary); }
+@media (max-width: 720px) { .fm-corpo { grid-template-columns: 1fr; } .fm-corpo .ge-esq { position: static; } }

@@ -5,6 +5,7 @@
 import { MAX_COL, MAX_LIN } from './ref.js';
 import { ASN, limparNome, rubricaValida } from '../nucleo/assinatura.js';
 import { normalizarG } from './graficos.js';
+import { limparForma } from './formas.js';
 
 /* v0.6.0: gráfico também é objeto da aba (tipo 'grafico', com g = { t, titulo, dados, op }) */
 export const GR = { W: 480, H: 300, W_MIN: 180, H_MIN: 120 };
@@ -15,7 +16,7 @@ export const BTN = { W: 180, H: 40, W_MIN: 72, H_MIN: 26 };
 export const imagemValida = (src) => typeof src === 'string' && src.length <= IMG.MAX_CHARS && /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(src);
 const COR_BOTAO = /^#[0-9a-fA-F]{6}$/;
 
-export const MAX_OBJETOS = 40;
+export const MAX_OBJETOS = 400; // v0.6.5: painéis do Excel têm muitas formas
 const num = (v, p) => (typeof v === 'number' && Number.isFinite(v) ? v : p);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -27,8 +28,13 @@ export function normalizarObjetos(lista) {
   const ids = new Set();
   const out = [];
   for (const o of lista) {
-    if (!o || (o.tipo !== 'assinatura' && o.tipo !== 'grafico' && o.tipo !== 'imagem' && o.tipo !== 'botao') || !o.id || ids.has(o.id) || out.length >= MAX_OBJETOS) continue;
+    if (!o || (o.tipo !== 'assinatura' && o.tipo !== 'grafico' && o.tipo !== 'imagem' && o.tipo !== 'botao' && o.tipo !== 'forma') || !o.id || ids.has(o.id) || out.length >= MAX_OBJETOS) continue;
     ids.add(o.id);
+    if (o.tipo === 'forma') {
+      const f = limparForma(o, { id: String(o.id), l: clamp(Math.round(num(o.l, 0)), 0, MAX_LIN - 1), c: clamp(Math.round(num(o.c, 0)), 0, MAX_COL - 1), dx: Math.max(0, num(o.dx, 0)), dy: Math.max(0, num(o.dy, 0)) });
+      if (f) { if (o.xoRels && typeof o.xoRels === 'object' && f.xo) f.xoRels = o.xoRels; out.push(f); }
+      continue;
+    }
     if (o.tipo === 'imagem') {
       if (!imagemValida(o.src)) continue;
       out.push({
@@ -160,6 +166,6 @@ export function recorteDoObjeto(o, r, G) {
   const x0 = o.c < G.cc ? G.hw : G.hw + G.fx, x1 = o.c < G.cc ? G.hw + G.fx : G.W;
   const y0 = o.l < G.cl ? G.hh : G.hh + G.fy, y1 = o.l < G.cl ? G.hh + G.fy : G.H;
   const corte = { l: Math.max(0, x0 - r.x), t: Math.max(0, y0 - r.y), r: Math.max(0, r.x + r.w - x1), b: Math.max(0, r.y + r.h - y1) };
-  const visivel = corte.l + corte.r < r.w && corte.t + corte.b < r.h;
+  const visivel = corte.l + corte.r < Math.max(1, r.w) && corte.t + corte.b < Math.max(1, r.h); // v0.6.5: linha reta tem altura zero
   return { visivel, corte, semCorte: !corte.l && !corte.t && !corte.r && !corte.b };
 }

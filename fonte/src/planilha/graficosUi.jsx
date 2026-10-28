@@ -27,14 +27,14 @@ const TIPOS_SERIE = [['bar', 'Colunas'], ['line', 'Linha'], ['area', 'Área']];
 const DIRETOS = new Set(['colunas', 'barras', 'linha', 'area']);
 
 /* ---------- peças pequenas ---------- */
-function Seg({ valor, opcoes, aoMudar, rotulo, dado }) {
+export function Seg({ valor, opcoes, aoMudar, rotulo, dado }) {
   return (
     <div className="rg-seg ge-seg" role="group" aria-label={rotulo}>
       {opcoes.map(([v, t]) => <button key={String(v)} type="button" aria-pressed={valor === v} data-ge-op={dado ? `${dado}:${v}` : undefined} onClick={() => aoMudar(v)}>{t}</button>)}
     </div>
   );
 }
-function Campo({ rotulo, children, dica }) {
+export function Campo({ rotulo, children, dica }) {
   return <label className="rg-campo ge-campo"><span>{rotulo}</span>{children}{dica && <em className="ge-dica">{dica}</em>}</label>;
 }
 function Num({ valor, aoMudar, placeholder, dado, passo }) {
@@ -44,7 +44,7 @@ function Num({ valor, aoMudar, placeholder, dado, passo }) {
   return <input value={t} inputMode="decimal" placeholder={placeholder} data-ge={dado} step={passo} onChange={(ev) => { setT(ev.target.value); const n = lerNum(ev.target.value); if (!Number.isNaN(n)) aoMudar(n); }} />;
 }
 /** Botão de cor: abre o painel de cores (os 6 módulos do estilo Camadas) por cima. */
-function Cor({ valor, aoMudar, rotulo, semCor = 'Sem cor', cores, dado }) {
+export function Cor({ valor, aoMudar, rotulo, semCor = 'Sem cor', cores, dado }) {
   const [aberto, setAberto] = useState(false);
   const ref = useRef(null);
   usarEsc(() => setAberto(false), aberto, ref);
@@ -63,7 +63,7 @@ function Cor({ valor, aoMudar, rotulo, semCor = 'Sem cor', cores, dado }) {
 }
 const corDe = (pr) => (pr && pr.t === 'solido' ? pr.cor : pr && pr.t === 'degrade' && pr.paradas && pr.paradas[0] ? pr.paradas[0].cor : null);
 /** Preenchimento: Cor / Degradê / Sem preenchimento */
-function Preench({ valor, aoMudar, rotulo, cores, corPadrao, dado }) {
+export function Preench({ valor, aoMudar, rotulo, cores, corPadrao, dado }) {
   const t = valor ? valor.t : 'auto';
   const c1 = corDe(valor) || corPadrao || '#0f6e8c';
   const c2 = valor && valor.t === 'degrade' && valor.paradas && valor.paradas[valor.paradas.length - 1] ? valor.paradas[valor.paradas.length - 1].cor : '#0b3d52';
@@ -76,7 +76,7 @@ function Preench({ valor, aoMudar, rotulo, cores, corPadrao, dado }) {
   );
 }
 /** Linha / contorno: Sem / cor + espessura + tracejado */
-function Traco({ valor, aoMudar, rotulo, cores, corPadrao, dado, semNenhum }) {
+export function Traco({ valor, aoMudar, rotulo, cores, corPadrao, dado, semNenhum }) {
   const ativo = valor ? valor.t !== 'nenhum' : !!corPadrao;
   return (
     <div className="ge-linha">
@@ -93,7 +93,7 @@ function Traco({ valor, aoMudar, rotulo, cores, corPadrao, dado, semNenhum }) {
     </div>
   );
 }
-function Fonte({ valor = {}, aoMudar, rotulo, cores, semNegrito }) {
+export function Fonte({ valor = {}, aoMudar, rotulo, cores, semNegrito }) {
   return (
     <div className="ge-linha">
       <select aria-label={rotulo + ': tamanho'} value={String(valor.tam || '')} onChange={(ev) => aoMudar({ tam: ev.target.value ? +ev.target.value : null })}>
