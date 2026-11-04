@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.9', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.9.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.9'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.9.1'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -729,7 +729,7 @@ async function pontoCelula(p, ref) {
   const cv = await p.locator('.pl-cv').boundingBox();
   const m = /^([A-Z])(\d+)$/.exec(ref);
   const c = m[1].charCodeAt(0) - 65, l = +m[2] - 1;
-  return { x: cv.x + 46 + c * 80 + 40, y: cv.y + 24 + l * 22 + 11 };
+  return { x: cv.x + 30 + c * 80 + 40, y: cv.y + 24 + l * 22 + 11 };
 }
 
 ({ ctx, p } = await novaPagina());
@@ -1037,7 +1037,7 @@ await caso('v0.4.0 celular: faixa de edição embaixo com ; ( ) e funções; pr�
   const cv = await p.locator('.pl-cv').boundingBox();
   /* a faixa e as abas de cima saem de cena ao editar, então a grade muda de lugar: toca até a faixa aparecer */
   for (let i = 0; i < 4 && !(await p.locator('.pl-banda').count()); i++) {
-    await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+    await p.touchscreen.tap(cv.x + 30 + 40, cv.y + 24 + 11);
     await p.waitForTimeout(120);
   }
   await p.waitForSelector('.pl-banda');
@@ -1251,9 +1251,9 @@ await caso('v0.4.1 celular: dois toques na célula e o primeiro número digitado
   await p.waitForSelector('.pl-cv');
   await p.waitForTimeout(300);
   const cv = await p.locator('.pl-cv').boundingBox();
-  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+  await p.touchscreen.tap(cv.x + 30 + 40, cv.y + 24 + 11);
   await p.waitForTimeout(120);
-  await p.touchscreen.tap(cv.x + 46 + 40, cv.y + 24 + 11);
+  await p.touchscreen.tap(cv.x + 30 + 40, cv.y + 24 + 11);
   await p.waitForTimeout(150);
   await p.keyboard.type('123');
   await p.waitForTimeout(80);
@@ -1530,7 +1530,7 @@ await caso('v0.4.3: PL18 Montar a conta: Contar quantos "Ajustar" na Situação'
 });
 await caso('v0.4.3: N04 botão direito no cabeçalho seleciona a coluna e insere depois dela', async () => {
   const cv = await p.locator('.pl-cv').boundingBox();
-  await p.mouse.click(cv.x + 46 + 80 * 2 + 40, cv.y + 10, { button: 'right' });
+  await p.mouse.click(cv.x + 30 + 80 * 2 + 40, cv.y + 10, { button: 'right' });
   await p.waitForSelector('.pl-menu');
   const t = await p.locator('.pl-menu').innerText();
   certo(/Inserir coluna antes/.test(t) && /Inserir coluna depois/.test(t) && /Excluir coluna C/.test(t) && /Largura da coluna/.test(t) && /Ajustar à largura/.test(t), t);
@@ -1817,7 +1817,7 @@ await caso('v0.4.3.1: código com zero na frente: pergunta, lembra a escolha da 
   igual(await celula(p, 'D3'), '0,5');
   /* o menu do cabeçalho deixa desfazer a escolha da coluna */
   const cv = await p.locator('.pl-cv').boundingBox();
-  await p.mouse.click(cv.x + 46 + 40, cv.y + 10, { button: 'right' });
+  await p.mouse.click(cv.x + 30 + 40, cv.y + 10, { button: 'right' });
   await p.waitForSelector('.pl-menu');
   certo((await p.locator('.pl-menu').innerText()).includes('Zeros à esquerda: perguntar de novo (hoje: texto)'), await p.locator('.pl-menu').innerText());
   await p.click('.pl-menu button:has-text("Zeros à esquerda")');
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.9'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.9.1'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -2388,8 +2388,8 @@ await caso('v0.4.5 planilha: Assinatura pela faixa Inserir cai na célula escolh
   await p.waitForSelector('.pl-obj');
   const cv = await p.locator('.pl-cv').boundingBox();
   const r1 = await p.locator('.pl-obj').boundingBox();
-  /* B3: x = 46 + 80, y = 24 + 2 * 22, mais a folga de 4 px */
-  certo(Math.abs(r1.x - (cv.x + 46 + 80 + 4)) <= 3 && Math.abs(r1.y - (cv.y + 24 + 44 + 4)) <= 3, 'não caiu em B3: ' + JSON.stringify(r1) + ' grade ' + JSON.stringify(cv));
+  /* B3: x = 30 + 80, y = 24 + 2 * 22, mais a folga de 4 px */
+  certo(Math.abs(r1.x - (cv.x + 30 + 80 + 4)) <= 3 && Math.abs(r1.y - (cv.y + 24 + 44 + 4)) <= 3, 'não caiu em B3: ' + JSON.stringify(r1) + ' grade ' + JSON.stringify(cv));
   igual(Math.round(r1.width), 280);
   certo((await p.locator('.pl-obj .asn-nome').innerText()).includes('Maria da Silva Souza'));
   await print(p, 'v045-04-planilha');
@@ -3755,7 +3755,7 @@ await caso('v0.6.3: Coluna de status: lista suspensa e cor por opção', async (
   await p.locator('[data-lista-item]:has-text("OK")').first().dispatchEvent('pointerdown');
   await p.waitForTimeout(250);
   igual(await celula(p, 'D2'), 'OK');
-  const cor = await p.evaluate(() => { const cv = document.querySelector('.pl-cv'); const x = cv.getContext('2d').getImageData(Math.round(46 + 3 * 80 + 40) * devicePixelRatio | 0, Math.round(24 + 22 + 5) * devicePixelRatio | 0, 1, 1).data; return [x[0], x[1], x[2]]; });
+  const cor = await p.evaluate(() => { const cv = document.querySelector('.pl-cv'); const x = cv.getContext('2d').getImageData(Math.round(30 + 3 * 80 + 40) * devicePixelRatio | 0, Math.round(24 + 22 + 5) * devicePixelRatio | 0, 1, 1).data; return [x[0], x[1], x[2]]; });
   certo(cor[1] > cor[0] && cor[1] > 220, 'célula OK fica verde clara: ' + cor);
   await print(p, 'v063-status-pronto');
 });
@@ -4390,7 +4390,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('v0.6.9'));
+  certo((await p.locator('[data-versao]').innerText()).includes('v0.6.9.1'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4532,6 +4532,59 @@ await caso('v0.6.9: a grade tem contraste suficiente para aparecer no branco', a
   const lz = (a) => { const f = (x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(a[0]) + 0.7152 * f(a[1]) + 0.0722 * f(a[2]); };
   const contraste = (1.05) / (lz(cor) + 0.05);
   certo(contraste >= 1.5, `contraste da grade com o branco: ${contraste.toFixed(2)}`);
+});
+
+/* v0.6.9.1: o cabeçalho das linhas tem 30 px (era 46); os casos antigos que clicam por coordenada usam 30 */
+/* ---------- v0.6.9.1: seleção e linhas da ponta no congelado, coluna dos números, alça da imagem, tabelas ---------- */
+/* só a faixa das colunas congeladas (as primeiras 350 px da esquerda): rolar para o lado não pode mexer nela */
+const hashParado = (pg) => pg.evaluate(() => {
+  const cg = document.querySelector('.pl-cv-cong'); const g = cg.getContext('2d'); const d = window.devicePixelRatio || 1;
+  const im = g.getImageData(0, 0, Math.round(350 * d), cg.height).data;
+  let h = 0; for (let i = 0; i < im.length; i += 4) { h = (h * 31 + im[i] + im[i + 1] * 3 + im[i + 2] * 7 + im[i + 3] * 11) | 0; }
+  return h;
+});
+await caso('v0.6.9.1: célula selecionada que rolou para baixo do painel congelado não aparece por cima das colunas congeladas, nem deixa risco solto', async () => {
+  await abrirV069(p, 'RESUMO');
+  const r = await p.locator('.pl-cv').boundingBox();
+  await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('J20'); await p.locator('.pl-nome').press('Enter'); await p.waitForTimeout(500);
+  await p.mouse.move(r.x + 700, r.y + 400);
+  const antes = await hashParado(p);
+  await p.mouse.wheel(150, 0); await p.waitForTimeout(700);
+  const depois = await hashParado(p);
+  await p.mouse.wheel(600, 0); await p.waitForTimeout(700);
+  const longe = await hashParado(p);
+  igual(depois, antes, 'rolar para o lado não pode mudar o desenho das colunas congeladas (seleção ou risco solto)');
+  igual(longe, antes, 'nem rolando bem longe');
+  await print(p, 'v0691-congelado-selecao');
+});
+await caso('v0.6.9.1: a coluna dos números é mais fina (30 px a 100%, mais larga só com muitos dígitos)', async () => {
+  await abrirV069(p, 'RESUMO');
+  const w = await p.evaluate(() => { const cg = document.querySelector('.pl-cv-cong'); return cg ? cg.getBoundingClientRect().width : 0; });
+  certo(w > 100, 'canvas do congelado existe');
+  /* o número da primeira linha fica entre as bordas: lê onde começa a grade (cabeçalho de linhas = largura do cabeçalho) */
+  const hw = await p.evaluate(() => { const cv = document.querySelector('.pl-cv'); const g = cv.getContext('2d'); const d = window.devicePixelRatio || 1; const im = g.getImageData(0, Math.round(300 * d), Math.round(80 * d), 1).data; let ult = 0; for (let x = 0; x < Math.round(80 * d); x++) { const i = x * 4; if (im[i + 3] > 0 && !(im[i] > 246 && im[i + 1] > 246 && im[i + 2] > 246)) ult = x / d; } return ult; });
+  certo(hw > 0, 'achou o cabeçalho de linhas');
+});
+await caso('v0.6.9.1: imagem escolhida: a alça de tamanho recebe o clique e a imagem muda de tamanho', async () => {
+  await abrirV069(p, 'LARGURAS');
+  const png = await p.evaluate(() => { const c = document.createElement('canvas'); c.width = 120; c.height = 60; const x = c.getContext('2d'); x.fillStyle = '#e07b39'; x.fillRect(0, 0, 120, 60); return c.toDataURL('image/png').split(',')[1]; });
+  const arq = join(mkdtempSync(join(tmpdir(), 'efc-img-')), 'logo-exemplo.png');
+  writeFileSync(arq, Buffer.from(png, 'base64'));
+  await celula(p, 'B12');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await p.locator('[data-arq-imagem]').setInputFiles(arq);
+  await p.waitForSelector('[data-obj-tipo=imagem]');
+  const img = p.locator('[data-obj-tipo=imagem]');
+  const bb = await img.boundingBox();
+  await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.waitForTimeout(400);
+  const ab = await p.locator('.pl-obj-alca').first().boundingBox();
+  const topo = await p.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y); return e && e.className; }, { x: ab.x + ab.width / 2, y: ab.y + ab.height / 2 });
+  certo(String(topo).includes('pl-obj-alca'), 'o centro da alça é a alça, não a grade: ' + topo);
+  await p.mouse.move(ab.x + ab.width / 2, ab.y + ab.height / 2); await p.mouse.down();
+  await p.mouse.move(ab.x + ab.width / 2 + 50, ab.y + ab.height / 2 + 50, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(500);
+  const dep = await img.boundingBox();
+  certo(dep.width > bb.width + 20, `largura ${Math.round(bb.width)} → ${Math.round(dep.width)}`);
+  certo(Math.abs(dep.width / dep.height - 2) < 0.05, 'proporção mantida');
 });
 
 await navegador.close();

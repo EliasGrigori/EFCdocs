@@ -14,7 +14,7 @@ export function estiloVisto(c, cel, motor, abaId, l, col) {
   return estiloComRegras(base, estiloCondicional(motor, c, abaId, l, col));
 }
 
-export const CAB_W = 46, CAB_H = 24; // cabeçalhos (a 100%)
+export const CAB_W = 30, CAB_H = 24; // cabeçalhos (a 100%); v0.6.9.1: a coluna dos números era de 46 px e roubava espaço
 const PAD = 4;
 
 /** Geometria da tela: posições das linhas/colunas considerando zoom, rolagem e painéis congelados. */
@@ -22,7 +22,7 @@ export function geometria({ linhas, colunas, z, sx, sy, cong, W, H }) {
   const cl = cong ? cong.l : 0, cc = cong ? cong.c : 0;
   /* a coluna dos números das linhas alarga quando a linha passa de 9999 */
   const ultimaVisivel = Math.min(MAX_LIN, linhas.em(linhas.pos(cl) + sy + H / z) + 2);
-  const hw = Math.round(Math.max(CAB_W, 14 + 8 * String(ultimaVisivel).length) * Math.max(0.8, z)), hh = Math.round(CAB_H * Math.max(0.8, z));
+  const hw = Math.round(Math.max(CAB_W, 10 + 7 * String(ultimaVisivel).length) * Math.max(0.8, z)), hh = Math.round(CAB_H * Math.max(0.8, z));
   const fy = linhas.pos(cl) * z, fx = colunas.pos(cc) * z;
   /* v0.6.8 (Elias): com linhas congeladas, a rolagem anda de linha em linha, como no Excel (antes a linha aparecia
      cortada pela metade embaixo do cabeçalho e parecia passar por cima das congeladas); o mesmo com colunas congeladas */
@@ -251,14 +251,16 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
     ctx.strokeStyle = cores.grade;
     ctx.lineWidth = 1 / dpr;
     ctx.beginPath();
+    /* v0.6.9.1 (Elias): a linha da ponta (depois da última linha/coluna do quadrante) sai da borda da última célula.
+       Antes usava a posição da próxima, que, no painel congelado, está rolada e deixava uma linha solta por cima. */
     for (let l = la; l <= lb + 1; l++) {
       if (!G.linhas.tam(l - 1) && l > 0) continue;
-      const y = meio(G.yDe(l) - 1 / dpr, 1);
+      const y = meio((l <= lb ? G.yDe(l) : G.yFim(lb)) - 1 / dpr, 1);
       ctx.moveTo(G.xDe(ca), y); ctx.lineTo(G.xFim(cb), y);
     }
     for (let col = ca; col <= cb + 1; col++) {
       if (!G.colunas.tam(col - 1) && col > 0) continue;
-      const x = meio(G.xDe(col) - 1 / dpr, 1);
+      const x = meio((col <= cb ? G.xDe(col) : G.xFim(cb)) - 1 / dpr, 1);
       ctx.moveTo(x, G.yDe(la)); ctx.lineTo(x, G.yFim(lb));
     }
     ctx.stroke();
@@ -470,13 +472,25 @@ export function quebrar(ctx, texto, larg) {
 function desenharSelecao(p, q) {
   const { ctx, G, cores, sel } = p;
   const z = G.z;
+  /* v0.6.9.1 (Elias): cada quadrante desenha só a parte da seleção que é dele. Antes a caixa de uma célula rolada para
+     baixo do painel congelado era desenhada na posição rolada e aparecia por cima das colunas/linhas congeladas. */
+  const R = q && q.reg ? q.reg : null;
   const ret = (f) => {
-    const x = G.xDe(f.c1), y = G.yDe(f.l1);
-    return { x, y, w: G.xFim(f.c2) - x, h: G.yFim(f.l2) - y };
+    const c1 = R ? Math.max(f.c1, R.C[0]) : f.c1, c2 = R ? Math.min(f.c2, R.C[1]) : f.c2;
+    const l1 = R ? Math.max(f.l1, R.L[0]) : f.l1, l2 = R ? Math.min(f.l2, R.L[1]) : f.l2;
+    if (c2 < c1 || l2 < l1) return null;
+    let x = G.xDe(c1), y = G.yDe(l1), x2 = G.xFim(c2), y2 = G.yFim(l2);
+    const cort = { e: f.c1 < c1, d: f.c2 > c2, c: f.l1 < l1, b: f.l2 > l2 };
+    /* o lado que continua no outro quadrante vai até além da emenda, para a borda ficar fora do recorte (a emenda não vira moldura) */
+    if (q && R) {
+      if (cort.e) x = q.x - 4; if (cort.d) x2 = q.x + q.w + 4; if (cort.c) y = q.y - 4; if (cort.b) y2 = q.y + q.h + 4;
+    }
+    return { x, y, w: x2 - x, h: y2 - y, cort: cort.d || cort.b };
   };
   /* referências da fórmula sendo digitada (cores iguais às da fórmula) */
   for (const r of p.refsFormula || []) {
     const a = ret(r);
+    if (!a) continue;
     ctx.fillStyle = r.cor + '22';
     ctx.fillRect(a.x, a.y, a.w, a.h);
     ctx.strokeStyle = r.cor;
@@ -486,14 +500,17 @@ function desenharSelecao(p, q) {
   /* área derramada da célula ativa */
   if (p.spill) {
     const a = ret(p.spill);
+    if (a) {
     ctx.setLineDash([4, 3]); ctx.strokeStyle = cores.spill; ctx.lineWidth = 1;
     ctx.strokeRect(a.x + 0.5, a.y + 0.5, a.w - 1, a.h - 1);
     ctx.setLineDash([]);
+    }
   }
   if (sel && !p.escondeSel) {
     for (const f of sel.faixas) {
       if (f.l1 === f.l2 && f.c1 === f.c2 && sel.faixas.length === 1) continue;
       const a = ret(f);
+      if (!a) continue;
       ctx.fillStyle = cores.selFundo;
       ctx.fillRect(a.x, a.y, a.w, a.h);
     }
@@ -504,13 +521,13 @@ function desenharSelecao(p, q) {
     const ua = ret(u);
     ctx.strokeStyle = cores.sel;
     ctx.lineWidth = 2;
-    ctx.strokeRect(ua.x + 0.5, ua.y + 0.5, ua.w - 1, ua.h - 1);
-    if (sel.faixas.length > 1 || u.l1 !== u.l2 || u.c1 !== u.c2) {
+    if (ua) ctx.strokeRect(ua.x + 0.5, ua.y + 0.5, ua.w - 1, ua.h - 1);
+    if (ua && aa && (sel.faixas.length > 1 || u.l1 !== u.l2 || u.c1 !== u.c2)) {
       ctx.lineWidth = 1;
       ctx.strokeRect(aa.x + 1.5, aa.y + 1.5, aa.w - 3, aa.h - 3);
     }
-    /* alça de preenchimento */
-    if (!p.celular && !p.somenteLeitura) {
+    /* alça de preenchimento (só no quadrante onde o canto da seleção está) */
+    if (ua && !ua.cort && !p.celular && !p.somenteLeitura) {
       ctx.fillStyle = cores.sel;
       const s = 7;
       ctx.fillRect(ua.x + ua.w - s / 2 - 1, ua.y + ua.h - s / 2 - 1, s, s);
@@ -519,7 +536,7 @@ function desenharSelecao(p, q) {
       ctx.fillRect(ua.x + ua.w - s / 2 - 1, ua.y + ua.h - s / 2 - 1, s, 1);
     }
     /* alças do celular (para aumentar a seleção sem mouse) */
-    if (p.celular && !p.editando) {
+    if (ua && p.celular && !p.editando) {
       ctx.fillStyle = cores.fundo; ctx.strokeStyle = cores.sel; ctx.lineWidth = 2;
       for (const [cx, cy] of [[ua.x, ua.y], [ua.x + ua.w, ua.y + ua.h]]) {
         ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -529,16 +546,20 @@ function desenharSelecao(p, q) {
   /* marca do copiar (tracejado) */
   if (p.copia) {
     const a = ret(p.copia);
+    if (a) {
     ctx.setLineDash([5, 4]); ctx.strokeStyle = cores.sel; ctx.lineWidth = 2;
     ctx.strokeRect(a.x + 1, a.y + 1, a.w - 2, a.h - 2);
     ctx.setLineDash([]);
+    }
   }
   /* arrastando a alça: contorno do destino */
   if (p.destino) {
     const a = ret(p.destino);
+    if (a) {
     ctx.setLineDash([3, 3]); ctx.strokeStyle = cores.textoFraco; ctx.lineWidth = 1;
     ctx.strokeRect(a.x + 0.5, a.y + 0.5, a.w - 1, a.h - 1);
     ctx.setLineDash([]);
+    }
   }
 }
 

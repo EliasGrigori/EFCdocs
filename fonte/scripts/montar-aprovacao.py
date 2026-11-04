@@ -1,51 +1,61 @@
-"""EFCdocs — monta a página de aprovação da v0.6.9 (um arquivo só, imagens embutidas).
+"""EFCdocs — monta a página de aprovação da v0.6.9.1 (um arquivo só, imagens embutidas).
 Uso: python3 scripts/montar-aprovacao.py <pasta-dos-prints> <saida.html> "<tamanho>" <testes-de-regras> <testes-no-navegador>"""
 import html, json, sys
 
 pasta, saida, tamanho = sys.argv[1], sys.argv[2], sys.argv[3]
-VERSAO = 'v0.6.9'
+VERSAO = 'v0.6.9.1'
 img = json.load(open(f'{pasta}/imagens.json'))
 
 # (código, título, grupo, texto em html, pergunta (ou ''), fotos [(legenda, chave)], estilo das fotos)
-GA = 'A. Congelamento (o que você viu na tela de toque)'
-GB = 'B. Largura e altura'
-GC = 'C. Grade'
+GA = 'A. Congelado (o que você viu nos prints de hoje)'
+GB = 'B. Coluna dos números'
+GC = 'C. Imagens'
+GD = 'D. Tabelas do Excel'
+GE = 'E. Aviso ao abrir'
+GF = 'F. Memória do projeto'
 GP = 'P. Publicação'
 ITENS = [
-    ('A01', 'O que fica parado agora é desenhado por cima do que rola', GA,
-     '<p>Pelos seus prints, o problema aparece <b>depois de rolar</b>: os riscos das células somem dentro do quadro verde (a parte congelada). A causa é como a tela era montada: o cabeçalho, os números das linhas e os painéis congelados eram desenhados <b>dentro da mesma área que rola</b>. No computador com <b>tela de toque</b> o navegador rola por conta própria, fora do nosso código, e nesse intervalo a parte congelada chega a deslizar junto — e o que está rolando passa por cima dela.</p>'
-     '<p>Agora o que fica parado vai num <b>desenho próprio, por cima e fora da área que rola</b>. Por mais rápido que o dedo role, o cabeçalho e as colunas congeladas ficam inteiros, com os riscos no lugar.</p>'
-     '<p class="obs">Aviso honesto: no meu computador (sem tela de toque) eu <b>não consegui fazer o defeito acontecer</b> — testei com mouse, com toque simulado, em 100%, 80% e com a tela em 125%, e a grade continuou lá. Então esta correção ataca a causa mais provável, mas quem confirma é você, no seu aparelho.</p>',
-     'Na sua tela de toque, os riscos continuam no lugar depois de rolar?',
-     [('Antes (v0.6.8): depois de rolar e voltar', 'antes-congelado'), ('Depois (v0.6.9)', 'depois-congelado')], 'par'),
-    ('A02', 'Testado com uma amostra que imita a sua planilha', GA,
-     '<p>Fiz uma amostra <b>inventada</b> (<code>amostra-v069.xlsx</code>) com a mesma estrutura da sua: congelada nos <b>dois sentidos</b> (8 colunas e 7 linhas), cabeçalho alto nas linhas 1 a 5 mescladas, <b>coluna F oculta</b>, <b>coluna H quase invisível</b> (0,109 de largura, igual à sua), linhas ocultas logo abaixo das congeladas e mais de 400 linhas. A sua planilha ficou só aqui comigo para eu reproduzir; ela não entra nos testes nem nos pacotes.</p>',
+    ('A01', 'A célula escolhida some por baixo do congelado', GA,
+     '<p>Reproduzi o seu defeito com a sua planilha: com a célula <b>K13</b> escolhida e rolando para a direita, a caixa da seleção era desenhada <b>por cima das colunas congeladas</b> (a célula já estava escondida por baixo, mas o contorno aparecia). Agora cada parte da tela desenha só o pedaço da seleção que é dela. A célula que rolou para baixo do congelado <b>some</b>, como no Excel.</p>'
+     '<p class="obs">Nos prints: a amostra inventada <code>amostra-v069.xlsx</code>, célula J20 escolhida, rolando bem para a direita.</p>',
+     'A caixa deixou de aparecer por cima do congelado?',
+     [('Antes (v0.6.9)', 'antes-congelado'), ('Depois (v0.6.9.1)', 'depois-congelado')], 'par'),
+    ('A02', 'Risco solto dentro do congelado', GA,
+     '<p>O outro defeito dos seus prints: <b>um risco extra</b> dentro das colunas congeladas. A linha da ponta do painel congelado era desenhada na posição da coluna seguinte, que já tinha rolado. Agora sai da borda da última coluna congelada. O mesmo vale para as linhas de cima.</p>',
      'Aprovado?', [], ''),
-    ('B01', 'Várias colunas (ou linhas) mudam de tamanho juntas', GB,
-     '<p>Como no Excel: com várias colunas inteiras escolhidas, arrastar a divisa de uma <b>muda todas</b>. O mesmo com linhas. Um Ctrl+Z devolve todas de uma vez ("Largura de 3 colunas"). Se a coluna arrastada estiver fora da seleção, muda só ela.</p>',
-     'Aprovado?',
-     [('Antes (v0.6.8): só a arrastada muda', 'antes-larguras'), ('Depois (v0.6.9): as três ficam iguais', 'depois-larguras')], 'par'),
-    ('B02', 'A guia acompanha o cursor enquanto você arrasta', GB,
-     '<p>Antes a largura só mudava <b>quando você soltava</b>: nada acompanhava o movimento. Agora uma linha fina da cor do tema anda junto com o mouse (ou com o dedo) mostrando onde a borda vai ficar, junto com a etiqueta "Largura: N px". Ao soltar, a coluna fica exatamente onde a guia estava.</p>',
-     'Aprovado?',
-     [('Antes (v0.6.8): arrastando, nada se move', 'antes-arrastando'), ('Depois (v0.6.9): a guia segue o cursor', 'depois-arrastando')], 'par'),
-    ('C01', 'Grade com mais contraste', GC,
-     '<p>A grade vinha da cor de borda do tema e ficava mais fraca que a do Excel, ainda mais com a tela em 125%. Agora a cor é afastada do fundo até aparecer de verdade, sem virar borda preta — e isso vale em todos os temas, claro e escuro. Prints com a tela em 125%.</p>',
-     'Ficou melhor de ler?',
-     [('Antes (v0.6.8)', 'antes-grade'), ('Depois (v0.6.9)', 'depois-grade')], 'par'),
+    ('B01', 'Coluna dos números mais fina', GB,
+     '<p>Era de 46 px e roubava espaço. Agora tem <b>30 px</b> (a 100%) e só cresce quando o número da linha tem 4 dígitos ou mais (linha 1000 em diante).</p>',
+     'Ficou bom?',
+     [('Antes (v0.6.9)', 'antes-numeros'), ('Depois (v0.6.9.1)', 'depois-numeros')], 'par'),
+    ('C01', 'Imagens: a alça de tamanho funciona', GC,
+     '<p>A alça (o quadradinho do canto) ficava <b>metade para fora</b> da imagem, e a imagem corta o que passa da caixa: só o pedaço de dentro aparecia e recebia o clique, por isso não dava para redimensionar. Agora a alça fica <b>dentro do canto</b> (e maior no toque). Arrastar muda o tamanho e mantém a proporção. Vale também para botão de aba e gráfico.</p>',
+     'Redimensiona bem?',
+     [('Antes (v0.6.9): alça cortada', 'antes-imagem'), ('Depois (v0.6.9.1)', 'depois-imagem'), ('Depois de arrastar a alça', 'depois-imagem-depois-de-arrastar')], 'tres'),
+    ('D01', 'As tabelas do Excel voltam ao exportar', GD,
+     '<p>Achei a causa: o EFCdocs gravava o nome de cada coluna da tabela <b>"aparado"</b> (sem o espaço no fim) e com a quebra de linha em outro formato. O Excel exige que o nome seja <b>idêntico</b> ao texto da célula do título; vendo diferença, ele "repara" o arquivo e <b>apaga a tabela</b>. Agora o nome sai igual ao do Excel original.</p>'
+     '<p>Conferido na sua planilha de teste: as 3 tabelas (<code>Tabela1</code>, <code>Tabela4</code>, <code>NOMES</code>) saem com todos os nomes iguais aos do Excel, por exemplo <code>Data _x000a_Colheita</code> e <code>Hora da Coleta </code> (com espaço no fim).</p>'
+     '<p class="obs">Não tenho o Excel aqui para abrir o arquivo: <b>quem confirma é você</b>, salvando como Excel e abrindo (a tabela continua tabela, sem pedido de reparo?).</p>',
+     'No seu Excel a tabela voltou?', [], ''),
+    ('E01', 'Aviso ao abrir: fórmulas que já vêm com #REF! do Excel', GE,
+     '<p>As 14.200 fórmulas do exemplo <code>=SINGLE(IF(SINGLE(ANÁLISES!#REF!:ANÁLISES!#REF!)=0,"",ANÁLISES!#REF!))</code> <b>já estão com #REF! guardado no próprio arquivo do Excel</b> (a referência à aba ANÁLISES foi apagada e o valor guardado também é #REF!). No Excel elas mostram o mesmo. Agora o aviso tem uma <b>linha só para elas</b>, e não diz mais que "o EFCdocs ainda não calcula".</p>',
+     'O aviso ficou claro?',
+     [('Antes (v0.6.9)', 'antes-aviso'), ('Depois (v0.6.9.1)', 'depois-aviso')], 'par'),
+    ('F01', 'Memória do projeto (MEMORIA-DO-PROJETO.md)', GF,
+     '<p>Pela sua ideia de não perder nenhum dado: um arquivo único com as <b>15 regras suas numeradas</b>, o estado atual, o passo a passo de entrega, os <b>defeitos com situação</b> (inclusive os que continuam abertos), as pendências, as limitações do Excel (as duas frases que você mandou estão lá), a tabela de versões e as decisões aprovadas copiadas na íntegra. Ao fim há um <b>registro onde cada regra nova entra com data</b>. Vai em <b>toda entrega</b>: na pasta da versão, no ZIP da fonte e no repositório, e eu o leio no começo de cada conversa. Para gravar uma regra, é só dizer "regra nova: ...".</p>',
+     'Aprovado o formato?', [], ''),
     ('P01', 'Publicação', GP,
-     '<p>A v0.6.9 corrige o que você mandou hoje de madrugada. Se aprovar, publico sozinha (a v0.6.7 e a v0.6.8 já estão no ar desde ontem, commit 44c573c) e sigo com a <b>v0.7.0 (Documento e gráfico no Quadro)</b>, que eu já tinha começado. <b>Nada a configurar no Firebase.</b></p>',
-     'Pode publicar a v0.6.9?', [], ''),
+     '<p>Se aprovar, publico com a ordem "Poste do Github": a v0.6.9.1 entra no repositório e no site (e o app da raiz é atualizado no mesmo commit). <b>Ficam abertos</b>, porque não consegui reproduzir sem a sua planilha completa: a <b>célula sem linha lateral</b> (aba RESUMO, perto da linha 1009) e a <b>linha mais grossa depois do cabeçalho</b> nas colunas vazias. Se puder, me diga o endereço da célula (por exemplo E1010) ou mande uma amostra com dados inventados. <b>Nada a configurar no Firebase.</b></p>',
+     'Pode publicar a v0.6.9.1?', [], ''),
 ]
 
 n = len(ITENS)
 resumo = (
     f'<div class="nums"><span>{sys.argv[4]} testes de regras</span><span>{sys.argv[5]} testes no navegador</span><span>console sem erros</span><span>{html.escape(tamanho)}</span><span>{n} itens para decidir</span></div>'
     '<ul>'
-    '<li>Congelamento: o cabeçalho e os painéis congelados passam a ser desenhados por cima do que rola (é o que explica os riscos sumindo na sua tela de toque).</li>'
-    '<li>Largura e altura: várias colunas ou linhas mudam juntas, e uma guia acompanha o cursor enquanto você arrasta.</li>'
-    '<li>Grade com mais contraste, em todos os temas.</li>'
-    '<li>Testado com uma amostra inventada que imita a estrutura da sua planilha (amostra-v069.xlsx); a sua planilha não entrou nos testes. Nada a configurar no Firebase.</li>'
+    '<li>Congelado: a caixa da célula escolhida deixa de aparecer por cima das colunas congeladas e o risco solto some (reproduzido com a sua planilha).</li>'
+    '<li>Coluna dos números mais fina (30 px) e imagens que voltam a redimensionar.</li>'
+    '<li>Tabelas do Excel: o nome das colunas sai idêntico ao do Excel (era a causa de o Excel apagar a tabela).</li>'
+    '<li>Aviso ao abrir separa as fórmulas que já vêm com #REF! do Excel. Memória do projeto em arquivo único. Nada a configurar no Firebase.</li>'
     '</ul>'
 )
 
@@ -71,7 +81,7 @@ for cod, titulo, g, texto, pergunta, fotos, estilo in ITENS:
 
 modelo = open('scripts/aprovacao.modelo.html', encoding='utf-8').read()
 saida_html = (modelo.replace('{{ITENS}}', '\n'.join(partes)).replace('{{RESUMO}}', resumo)
-              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Congelamento na tela de toque, largura de várias colunas e grade')
+              .replace('{{VERSAO}}', VERSAO).replace('{{SUBTITULO}}', 'Congelado, coluna dos números, imagens, tabelas do Excel e memória do projeto')
               .replace('{{N}}', str(n)))
 assert saida_html.count('class="item"') == n and '{{' not in saida_html
 open(saida, 'w', encoding='utf-8').write(saida_html)

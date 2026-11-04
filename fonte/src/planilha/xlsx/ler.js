@@ -80,7 +80,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   const zip = lerZip(bytes);
   const rel = {
     arquivo: nomeArquivo, em: agora.toISOString(), bytes: bytes.length || bytes.byteLength || 0,
-    abas: [], fora: [], avisos: [], semCalculo: 0, exemplosSemCalculo: [], celulas: 0, formulas: 0,
+    abas: [], fora: [], avisos: [], semCalculo: 0, exemplosSemCalculo: [], comRef: 0, exemploRef: '', celulas: 0, formulas: 0,
     /* v0.5.1: o que veio de validação de dados, formatação condicional e comentários */
     extras: { validacoes: 0, listas: 0, condicionais: 0, notas: 0, conversas: 0, respostas: 0, abasComRegras: [], graficos: 0 },
   };
@@ -283,7 +283,9 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         if (x.f != null) {
           cel.f = x.f; if (x.fo && porPrefixos(x.f) !== x.fo) cel.fo = [x.fo, x.f]; if (x.da || (RX_SO_DINAMICA.test(x.f) && !x.excelNovo)) cel.da = 1; else cel.lg = 1; nForm++; // FILTRO, ÚNICO, CLASSIFICAR... só existem no Excel novo: sempre matriz dinâmica, mesmo se o arquivo (LibreOffice, etc.) não marcou
           const motivo = checarFormula(x.f);
-          if (motivo) avisoFormula(x.f, motivo);
+          /* v0.6.9.1 (Elias): fórmula que já veio quebrada do Excel (#REF!: a referência foi apagada lá) não é "falta de cálculo" nossa */
+          if (motivo && motivo === MOTIVO_NAO_LE && x.f.includes('#REF!')) { rel.comRef++; if (!rel.exemploRef) rel.exemploRef = x.f.slice(0, 120); }
+          else if (motivo) avisoFormula(x.f, motivo);
           if (motivo === MOTIVO_NAO_LE && !cel.fo) cel.fo = [x.fo || x.f, x.f]; // v0.6.8: o EFCdocs não lê, mas veio do Excel: volta igual
         }
         if (x.s) cel.s = x.s;

@@ -26,7 +26,7 @@ export function RelatorioExcel({ rel }) {
   const cortes = abas.filter((a) => a.cortes && a.cortes.length);
   const fora = rel.fora || [];
   const avisos = rel.avisos || [];
-  const bom = cortes.reduce((t, a) => t + a.cortes.length, 0) + avisos.length + (rel.semCalculo > 0 ? 1 : 0);
+  const bom = cortes.reduce((t, a) => t + a.cortes.length, 0) + avisos.length + (rel.semCalculo > 0 ? 1 : 0) + (rel.comRef > 0 ? 1 : 0);
   const veio = [
     <><b>Valores e fórmulas</b>: cada fórmula começa com o <Dest tom="verde">último valor que o Excel calculou</Dest>.</>,
     <><b>Formatação</b>: fonte, negrito, cores, preenchimento, bordas, alinhamento e formato de número.</>,
@@ -64,6 +64,11 @@ export function RelatorioExcel({ rel }) {
           <ul className="rel-lista">
             {cortes.map((a) => a.cortes.map((t, i) => <li key={a.nome + i}><Dest>{a.nome}</Dest> {t}.</li>))}
             {avisos.map((t) => <li key={t}>{t}</li>)}
+            {rel.comRef > 0 && (
+              <li data-rel-ref>
+                <Dest>{n(rel.comRef)} {rel.comRef === 1 ? 'fórmula já vem' : 'fórmulas já vêm'} com #REF! do próprio Excel</Dest>: a referência foi apagada na planilha original e o valor guardado lá também é #REF!, então o Excel mostra o mesmo (geralmente em linhas ocultas). Se quiser limpar, apague essas fórmulas na planilha.
+              </li>
+            )}
             {rel.semCalculo > 0 && (
               <li>
                 <Dest>{n(rel.semCalculo)} {rel.semCalculo === 1 ? 'fórmula mostra' : 'fórmulas mostram'} o último valor do Excel</Dest>: o EFCdocs ainda não calcula

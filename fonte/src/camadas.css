@@ -489,6 +489,10 @@ svg.ic-novo .barra { stroke: var(--primary); }
 .pl-obj-img.sel { box-shadow: 0 0 0 2px var(--primary); }
 .pl-obj-btn { display: grid; place-items: center; border-radius: var(--r-ctl); color: #fff; font-weight: 700; box-shadow: var(--sh-2), inset 0 1px 0 rgba(255,255,255,.22); cursor: pointer; overflow: hidden; }
 .pl-obj-btn:hover { filter: brightness(1.08); }
+/* v0.6.9.1 (Elias): imagem, botão e gráfico cortam o que passa da caixa (cantos redondos); a alça de tamanho ficava metade
+   para fora e só o pedaço de dentro aparecia e recebia o clique, então não dava para redimensionar. Agora fica dentro do canto. */
+.pl-obj-img .pl-obj-alca, .pl-obj-btn .pl-obj-alca, .pl-obj-gr .pl-obj-alca { right: 0; bottom: 0; width: 14px; height: 14px; border-radius: 4px 0 var(--r-chip) 0; z-index: 2; }
+@media (pointer: coarse) { .pl-obj-img .pl-obj-alca, .pl-obj-btn .pl-obj-alca, .pl-obj-gr .pl-obj-alca { width: 22px; height: 22px; } }
 .pl-obj-btn.sel { outline: 2px solid var(--primary); outline-offset: 2px; }
 .pl-btn-t { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-btn-t svg { width: 1.1em; height: 1.1em; flex: none; }

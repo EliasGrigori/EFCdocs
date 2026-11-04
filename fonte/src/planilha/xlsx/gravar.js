@@ -57,10 +57,12 @@ function tabelasDaAba(c, abaId, aba, fora) {
       for (let cc = t.c1; cc <= t.c2; cc++) {
         const x = aba.cel && aba.cel[letraCol(cc) + (t.l1 + 1)];
         const v = x && x.f == null ? valorGuardado(x) : null;
-        cols.push(typeof v === 'string' ? v.trim() : '');
+        /* v0.6.9.1: o nome da coluna da tabela tem de ser IGUAL ao texto da célula do título (espaço no fim e quebra de linha
+           contam). Antes o texto era aparado e o Excel, ao ver nomes diferentes, "reparava" o arquivo e apagava a tabela. */
+        cols.push(typeof v === 'string' ? v : '');
       }
       const vistos = new Set();
-      if (cols.some((x) => { const k = x.toLowerCase(); if (!x || vistos.has(k) || x.length > 255) return true; vistos.add(k); return false; })) { fora.push(t.nome); continue; }
+      if (cols.some((x) => { const k = x.toLowerCase(); if (!x.trim() || vistos.has(k) || x.length > 255) return true; vistos.add(k); return false; })) { fora.push(t.nome); continue; }
     } else {
       cols = Array.from({ length: n }, (_, i) => (Array.isArray(t.cols) && typeof t.cols[i] === 'string' && t.cols[i] ? t.cols[i] : 'Coluna' + (i + 1)));
     }
@@ -69,13 +71,18 @@ function tabelasDaAba(c, abaId, aba, fora) {
   }
   return out;
 }
+/** Nome de coluna como o Excel grava na tabela, já pronto para o atributo do XML: quebra de linha vira _x000a_ (e o resto, como em escapar). */
+export function nomeDeColunaXlsx(nm) {
+  /* o Excel lê a quebra de linha do texto como \n (o XML junta \r\n em \n), e é assim que o nome da coluna tem de ficar */
+  return escapar(String(nm).replace(/\r\n?/g, '\n'), true).replace(/&#13;/g, '_x000d_').replace(/&#10;/g, '_x000a_').replace(/&#9;/g, '_x0009_');
+}
 function xmlDaTabela(tb, id, autoXml) {
   const { t, ref, cols } = tb;
   const est = t.est || { nome: 'TableStyleLight1', pc: 0, uc: 0, ll: 0, lc: 0 };
   const nome = escapar(t.nome, true);
   return `${XML_CAB}<table xmlns="${NS}" id="${id}" name="${nome}" displayName="${nome}" ref="${ref}"${t.cab ? '' : ' headerRowCount="0"'}${t.tot ? ' totalsRowCount="1"' : ' totalsRowShown="0"'}>` +
     (t.cab ? autoXml : '') +
-    `<tableColumns count="${cols.length}">${cols.map((nm, i) => `<tableColumn id="${i + 1}" name="${escapar(nm, true)}"/>`).join('')}</tableColumns>` +
+    `<tableColumns count="${cols.length}">${cols.map((nm, i) => `<tableColumn id="${i + 1}" name="${nomeDeColunaXlsx(nm)}"/>`).join('')}</tableColumns>` +
     (est.sem ? '' : `<tableStyleInfo${est.nome ? ` name="${escapar(est.nome, true)}"` : ''} showFirstColumn="${est.pc ? 1 : 0}" showLastColumn="${est.uc ? 1 : 0}" showRowStripes="${est.ll ? 1 : 0}" showColumnStripes="${est.lc ? 1 : 0}"/>`) + '</table>';
 }
 
