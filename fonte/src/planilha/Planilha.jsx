@@ -13,7 +13,7 @@ import { PortalPainel } from '../quadro/partes.jsx';
 import { Motor } from './motor.js';
 import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, textoFaixaCaixa, normalFaixa, lerEndereco, lerEnderecoCaixa, nomeAbaNaFormula } from './ref.js';
 import { eixo, ALT_PADRAO, LARG_PADRAO, largPadrao, altPadrao, estiloDe, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
-import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, estiloVisto } from './grade.js';
+import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, corDaGrade, estiloVisto } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
 import { paraMostrar, refTexto, tokenizar, ler as lerFormula, paraGuardar, escrever } from './formula.js';
@@ -54,7 +54,7 @@ import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, Jan
 
 const Z_MIN = 0.5, Z_MAX = 2;
 const CORES_FOLHA_CLARA = {
-  fundo: '#ffffff', fundoHex: '#ffffff', texto: '#1f1f1f', textoFraco: '#777777', grade: '#dadcdf', borda: '#1f1f1f',
+  fundo: '#ffffff', fundoHex: '#ffffff', texto: '#1f1f1f', textoFraco: '#777777', grade: '#c9c9c9', borda: '#1f1f1f',
   cab: '#f3f4f6', cabTexto: '#555b66', cabSel: '#dbe7f6', cabSelTexto: '#1d4f91', cabLinha: '#c9ccd1',
   sel: '#1a73e8', selFundo: 'rgba(26,115,232,.12)', congelado: '#9aa3ad', spill: '#1a73e8',
 };
@@ -77,7 +77,7 @@ function lerCores(el) {
   const prim = v('--primary', '#1a73e8');
   return {
     fundo, fundoHex: fundo.startsWith('#') ? fundo : '#ffffff', texto: v('--text', '#1f1f1f'), textoFraco: v('--text-muted', '#777'),
-    grade: v('--border', '#dadcdf'), borda: v('--text', '#1f1f1f'),
+    grade: corDaGrade(v('--border', '#dadcdf'), fundo.startsWith('#') ? fundo : '#ffffff'), borda: v('--text', '#1f1f1f'),
     cab: v('--surface-2', '#f3f4f6'), cabTexto: v('--text-muted', '#555'), cabSel: v('--primary-soft', 'rgba(26,115,232,.16)'), cabSelTexto: v('--text', '#111'), cabLinha: v('--border-light', '#ccc'),
     sel: prim, selFundo: v('--primary-soft', 'rgba(26,115,232,.12)'), congelado: v('--text-dim', '#999'), spill: prim,
   };
@@ -211,6 +211,8 @@ export function Planilha({ arquivo, cx }) {
   const raiz = useRef(null);
   const rolRef = useRef(null);
   const cvRef = useRef(null);
+  /* v0.6.9: canvas só do que fica parado (cabeçalhos e congelados), fora da área que rola */
+  const cvCongRef = useRef(null);
   const capRef = useRef(null);
   const campoCel = useRef(null);
   const campoBarra = useRef(null);
@@ -2629,16 +2631,33 @@ export function Planilha({ arquivo, cx }) {
     const ctx = cv.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const spill = motor.areaDerramada(abaId, sel.ativa.l, sel.ativa.c);
-    desenhar({
-      ctx, dpr, c, motor, abaId, G, cores, familia, grade: !aba.semGrade, mesclas: mesc,
+    const comum = {
+      dpr, c, motor, abaId, G, cores, familia, grade: !aba.semGrade, mesclas: mesc,
       sel: edit && edit.abaId === abaId && ehFormula ? null : sel, refsFormula: refsDaFormula,
       copia: copia && !edit ? copia : null, spill, celular: cel, editando: !!edit, somenteLeitura,
       destino: arrasto && arrasto.tipo === 'alca' ? arrasto.destino : null,
-    });
+    };
+    desenhar({ ...comum, ctx });
+    /* v0.6.9 (Elias): o mesmo desenho, só a parte parada, num canvas por cima e fora do rolador.
+       Com o dedo o navegador rola sozinho e o canvas de baixo desliza um quadro antes do redesenho:
+       assim o cabeçalho congelado nunca é coberto nem aparece cortado no meio. */
+    const cg = cvCongRef.current;
+    if (cg) {
+      if (cg.width !== cv.width || cg.height !== cv.height) {
+        cg.width = cv.width; cg.height = cv.height;
+        cg.style.width = tam.W + 'px'; cg.style.height = tam.H + 'px';
+      }
+      const ctxC = cg.getContext('2d');
+      ctxC.setTransform(dpr, 0, 0, dpr, 0, 0);
+      desenhar({ ...comum, ctx: ctxC, parte: 'congelado' });
+    }
   });
 
   /* ---------- toque e mouse na grade ---------- */
   const ponto = (ev) => { const r = cvRef.current.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; };
+  /* v0.6.9: colunas/linhas inteiras selecionadas mudam de tamanho juntas (ver operacoes.js) */
+  const inteirasNaSelecao = (qual, k) => O.inteirasSelecionadas(sel.faixas, qual, k, { maxLin: MAX_LIN, maxCol: MAX_COL });
+
   const pertoDaAlca = (p) => {
     if (cel || somenteLeitura) return false;
     const x = G.xFim(Math.max(faixa.c1, faixa.c2)), y = G.yFim(Math.max(faixa.l1, faixa.l2));
@@ -2802,8 +2821,20 @@ export function Planilha({ arquivo, cx }) {
     const a = arrasto;
     if (!a) return;
     setArrasto(null);
-    if (a.tipo === 'largura' && a.w != null && a.w !== a.w0) mudar({ [`conteudo.abas.${abaId}.larg.${a.c}`]: a.w }, `Largura da coluna ${letraCol(a.c)}`);
-    if (a.tipo === 'altura' && a.h != null && a.h !== a.h0) mudar({ [`conteudo.abas.${abaId}.alt.${a.l}`]: a.h }, `Altura da linha ${a.l + 1}`);
+    /* v0.6.9 (Elias): com várias colunas (ou linhas) inteiras selecionadas, arrastar a divisa de uma
+       muda todas, como no Excel. Fora da seleção, muda só a que foi arrastada. */
+    if (a.tipo === 'largura' && a.w != null && a.w !== a.w0) {
+      const alvo = inteirasNaSelecao('col', a.c);
+      const mud = {};
+      for (const k of alvo) mud[`conteudo.abas.${abaId}.larg.${k}`] = a.w;
+      mudar(mud, alvo.length > 1 ? `Largura de ${alvo.length} colunas` : `Largura da coluna ${letraCol(a.c)}`);
+    }
+    if (a.tipo === 'altura' && a.h != null && a.h !== a.h0) {
+      const alvo = inteirasNaSelecao('lin', a.l);
+      const mud = {};
+      for (const k of alvo) mud[`conteudo.abas.${abaId}.alt.${k}`] = a.h;
+      mudar(mud, alvo.length > 1 ? `Altura de ${alvo.length} linhas` : `Altura da linha ${a.l + 1}`);
+    }
     if (a.tipo === 'alca' && a.alvo) {
       const n = (a.alvo.l2 - a.alvo.l1 + 1) * (a.alvo.c2 - a.alvo.c1 + 1);
       if (n > 200000) { cx.avisar('Preenchimento grande demais.', { ic: 'aviso' }); return; }
@@ -3155,6 +3186,13 @@ export function Planilha({ arquivo, cx }) {
               onPointerCancel={() => { if (toque.current) { clearTimeout(toque.current.longo); toque.current = null; } setArrasto(null); }} />
           </div>
         </div>
+        {/* v0.6.9: cabeçalhos e painéis congelados por cima, fora do que rola (tela de toque) */}
+        <canvas ref={cvCongRef} className="pl-cv-cong" aria-hidden="true" />
+        {arrasto && (arrasto.tipo === 'largura' || arrasto.tipo === 'altura') && (
+          <div className={'pl-guia ' + (arrasto.tipo === 'largura' ? 'vert' : 'horiz')} data-pl-guia style={arrasto.tipo === 'largura'
+            ? { left: Math.round(G.xDe(arrasto.c) + (arrasto.w ?? arrasto.w0) * z), top: G.hh, width: 1, height: Math.max(0, tam.H - G.hh) }
+            : { left: G.hw, top: Math.round(G.yDe(arrasto.l) + (arrasto.h ?? arrasto.h0) * z), height: 1, width: Math.max(0, tam.W - G.hw) }} />
+        )}
         {/* assinaturas sobre a grade (v0.4.5) */}
         {objs.length > 0 && !painelAtivo && (
           <div className="pl-objs" style={{ left: G.hw, top: G.hh, width: Math.max(0, tam.W - G.hw), height: Math.max(0, tam.H - G.hh) }}>

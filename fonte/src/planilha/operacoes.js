@@ -758,4 +758,23 @@ export function perdeValoresAoMesclar(c, abaId, f) {
   return false;
 }
 
+/**
+ * v0.6.9 — quais colunas (ou linhas) mudam de tamanho quando se arrasta a divisa de uma delas.
+ * Como no Excel: se a arrastada faz parte de uma seleção de colunas (ou linhas) INTEIRAS, todas mudam juntas;
+ * fora da seleção, muda só ela. O limite evita um passo gigante ao selecionar a planilha toda.
+ */
+export function inteirasSelecionadas(faixas, qual, k, { maxLin, maxCol, limite = 500 } = {}) {
+  const dentro = new Set();
+  for (const f of faixas || []) {
+    const l1 = Math.min(f.l1, f.l2), l2 = Math.max(f.l1, f.l2);
+    const c1 = Math.min(f.c1, f.c2), c2 = Math.max(f.c1, f.c2);
+    const inteira = qual === 'col' ? l1 === 0 && l2 >= maxLin - 1 : c1 === 0 && c2 >= maxCol - 1;
+    if (!inteira) continue;
+    const de = qual === 'col' ? c1 : l1, ate = qual === 'col' ? c2 : l2;
+    for (let i = de; i <= ate; i++) { dentro.add(i); if (dentro.size > limite) break; }
+  }
+  if (!dentro.has(k)) return [k];
+  return [...dentro].sort((a, b) => a - b).slice(0, limite);
+}
+
 export { paraMostrar, lerGuardada, letraCol, normalFaixa };

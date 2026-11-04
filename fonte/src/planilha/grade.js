@@ -92,6 +92,26 @@ const neutra = (a) => Math.max(...a) - Math.min(...a) < 28;
  * - cor com matiz (amarelo, vermelho...): mantém o matiz e só escurece ou clareia até ler bem (amarelo no claro vira ocre).
  * fundo: cor do fundo da célula. textoTema: a cor normal do texto (quando o fundo é o do tema).
  */
+/**
+ * v0.6.9 (Elias): a grade do app vinha da borda do tema e ficava mais fraca que a do Excel, ainda mais na
+ * tela em 125%: as divisas das células quase sumiam nas áreas sem conteúdo. Aqui a cor é empurrada para
+ * longe do fundo até dar o contraste alvo — discreta, mas sempre visível, em qualquer tema.
+ */
+export function corDaGrade(cor, fundo, alvo = 1.6) {
+  try {
+    const a = rgb(cor), b = rgb(fundo);
+    if (contraste(a, b) >= alvo) return cor;
+    const escuro = luz(b) < 0.4;
+    const [h, s, l0] = paraHsl(a);
+    for (let i = 1; i <= 24; i++) {
+      const l = escuro ? Math.min(1, l0 + (1 - l0) * (i / 24)) : Math.max(0, l0 * (1 - i / 24));
+      const m = deHsl([h, s, l]);
+      if (contraste(m, b) >= alvo) return hex(m);
+    }
+    return escuro ? '#c8d0d8' : '#9aa3ad';
+  } catch { return cor; }
+}
+
 export function corLegivel(cor, fundo, textoTema) {
   try {
     const a = rgb(cor), b = rgb(fundo);
@@ -140,9 +160,14 @@ export function desenhar(p) {
   const { ctx, c, motor, abaId, G, cores, sel, familia } = p;
   const aba = c.abas[abaId];
   const { W, H, hw, hh, z } = G;
+  /* v0.6.9 (Elias, tela de toque): parte 'congelado' desenha só o que fica parado — cabeçalhos e painéis
+     congelados — num canvas por cima e fora da área que rola. Com o dedo, o navegador rola por conta própria
+     e o canvas de baixo chega a deslizar um quadro: sem isto, as linhas de dentro apareciam por cima do
+     cabeçalho congelado e a emenda ficava com meia linha cortada. */
+  const soParado = p.parte === 'congelado';
   ctx.save();
-  ctx.fillStyle = cores.fundo;
-  ctx.fillRect(0, 0, W, H);
+  if (soParado) ctx.clearRect(0, 0, W, H);
+  else { ctx.fillStyle = cores.fundo; ctx.fillRect(0, 0, W, H); }
 
   const mesc = p.mesclas || mescladas(aba);
 
@@ -153,15 +178,17 @@ export function desenhar(p) {
   const colsCong = G.cc ? [0, G.cc - 1] : null, linsCong = G.cl ? [0, G.cl - 1] : null;
   /* reg: as linhas/colunas que cada quadrante mostra (para a mesclada que atravessa a linha do congelamento) */
   const rLiv = [G.cl, Infinity], rCong = [0, G.cl - 1], cLiv = [G.cc, Infinity], cCong = [0, G.cc - 1];
-  quad.push({ L: linsLivres, C: colsLivres, x: hw + G.fx, y: hh + G.fy, w: fimX - hw - G.fx, h: fimY - hh - G.fy, reg: { L: rLiv, C: cLiv } });
+  quad.push({ L: linsLivres, C: colsLivres, x: hw + G.fx, y: hh + G.fy, w: fimX - hw - G.fx, h: fimY - hh - G.fy, reg: { L: rLiv, C: cLiv }, livre: true });
   if (linsCong) quad.push({ L: linsCong, C: colsLivres, x: hw + G.fx, y: hh, w: fimX - hw - G.fx, h: G.fy, reg: { L: rCong, C: cLiv } });
   if (colsCong) quad.push({ L: linsLivres, C: colsCong, x: hw, y: hh + G.fy, w: G.fx, h: fimY - hh - G.fy, reg: { L: rLiv, C: cCong } });
   if (linsCong && colsCong) quad.push({ L: linsCong, C: colsCong, x: hw, y: hh, w: G.fx, h: G.fy, reg: { L: rCong, C: cCong } });
 
   for (const q of quad) {
     if (q.w <= 0 || q.h <= 0) continue;
+    if (soParado && q.livre) continue;
     ctx.save();
     ctx.beginPath(); ctx.rect(q.x, q.y, q.w, q.h); ctx.clip();
+    if (soParado) { ctx.fillStyle = cores.fundo; ctx.fillRect(q.x, q.y, q.w, q.h); }
     desenharCelulas(p, q.L, q.C, mesc, q.reg);
     desenharSelecao(p, q);
     ctx.restore();

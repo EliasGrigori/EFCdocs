@@ -109,6 +109,23 @@ body[data-theme=papel] .tk-num, body[data-theme=light] .tk-num, body[data-theme=
   position: absolute; z-index: 8; padding: 3px 8px; font-size: 12px; font-weight: 600; border-radius: 6px;
   background: var(--text); color: var(--surface); pointer-events: none;
 }
+/* v0.6.9: o que fica parado (cabeçalhos e congelados) vai num canvas próprio, fora da área que rola */
+.pl-cv-cong { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; }
+/* v0.6.9: a guia acompanha o dedo/mouse enquanto se muda a largura ou a altura.
+   Fina (1 px da cor do tema), com um fio claro ao redor e sombra suave: fica nítida sobre a grade
+   e sobre as células pintadas, com a profundidade do estilo Camadas. */
+.pl-guia { position: absolute; z-index: 7; pointer-events: none; background: var(--primary); border-radius: 1px; }
+.pl-guia.vert { box-shadow: -1px 0 0 rgba(255,255,255,.75), 1px 0 0 rgba(255,255,255,.75), 0 0 7px rgba(0,0,0,.22); }
+.pl-guia.horiz { box-shadow: 0 -1px 0 rgba(255,255,255,.75), 0 1px 0 rgba(255,255,255,.75), 0 0 7px rgba(0,0,0,.22); }
+/* pontinha nas duas extremidades, como a alça de uma régua */
+.pl-guia::before, .pl-guia::after {
+  content: ''; position: absolute; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--primary); box-shadow: 0 0 0 1.5px var(--surface), 0 1px 3px rgba(0,0,0,.3);
+}
+.pl-guia.vert::before { left: -2px; top: 0; }
+.pl-guia.vert::after { left: -2px; bottom: 0; }
+.pl-guia.horiz::before { top: -2px; left: 0; }
+.pl-guia.horiz::after { top: -2px; right: 0; }
 .pl-leitura { position: static; margin: 6px 8px 0; }
 .pl-modo { top: auto; bottom: 10px; }
 

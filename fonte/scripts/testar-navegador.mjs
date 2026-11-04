@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.8', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.9', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.8'), 'rodapé sem v0.6.8');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.9'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.8'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.9'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -4390,7 +4390,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('v0.6.8'));
+  certo((await p.locator('[data-versao]').innerText()).includes('v0.6.9'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4417,6 +4417,121 @@ await caso('v0.6.8: velocímetro do Excel: Girar e Tamanho do furo ficam em Tipo
   igual(await p.locator('[data-ge-furo]').count(), 0, 'não fica em Fundo');
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   if (await p.locator('[data-ge-descartar]').count()) await p.locator('[data-ge-descartar]').click();
+});
+
+/* ---------- v0.6.9: congelamento nos dois sentidos, largura de várias colunas e grade (amostra-v069.xlsx) ---------- */
+const AMOSTRA_V069 = fileURLToPath(new URL('../testes/amostras/amostra-v069.xlsx', import.meta.url));
+async function abrirV069(pg, aba) {
+  await abrirAmostra(pg, AMOSTRA_V069);
+  await pg.click('[data-excel-abrir]'); await pg.waitForSelector('.pl-cv'); await pg.waitForTimeout(600);
+  if (aba) { await pg.locator(`.pl-aba:has-text("${aba}")`).click(); await pg.waitForTimeout(400); }
+}
+/* conta os riscos da grade numa faixa de pixels dos dois canvas (é o que a pessoa vê) */
+const riscos = (pg, { x, y, w, h, sentido }) => pg.evaluate(({ x, y, w, h, sentido }) => {
+  const cvs = [document.querySelector('.pl-cv'), document.querySelector('.pl-cv-cong')].filter(Boolean);
+  const d = window.devicePixelRatio || 1;
+  const claro = (a, i) => a[i] > 246 && a[i + 1] > 246 && a[i + 2] > 246;
+  let n = 0;
+  for (const cv of cvs) {
+    const g = cv.getContext('2d');
+    const im = g.getImageData(Math.round(x * d), Math.round(y * d), Math.round(w * d), Math.round(h * d)).data;
+    let ult = -9;
+    for (let i = 0; i < im.length; i += 4) {
+      const pos = (sentido === 'v' ? (i / 4) % Math.round(w * d) : Math.floor((i / 4) / Math.round(w * d))) / d;
+      if (im[i + 3] > 0 && !claro(im, i) && pos - ult > 3) { n++; ult = pos; }
+    }
+  }
+  return n;
+}, { x, y, w, h, sentido });
+
+await caso('v0.6.9: o que fica parado (cabeçalhos e congelados) vai num canvas próprio, por cima da área que rola', async () => {
+  await abrirV069(p, 'RESUMO');
+  igual(await p.locator('.pl-cv-cong').count(), 1, 'canvas do congelado');
+  const alfa = await p.evaluate(() => {
+    const cg = document.querySelector('.pl-cv-cong'); const g = cg.getContext('2d'); const d = window.devicePixelRatio || 1;
+    const a = (x, y) => g.getImageData(Math.round(x * d), Math.round(y * d), 1, 1).data[3];
+    return { cabecalho: a(300, 10), congelado: a(300, 150), livre: a(900, 420) };
+  });
+  certo(alfa.cabecalho > 0 && alfa.congelado > 0, `o parado é desenhado: ${JSON.stringify(alfa)}`);
+  igual(alfa.livre, 0, 'a área que rola fica transparente no canvas de cima');
+});
+
+await caso('v0.6.9: com linhas e colunas congeladas ao mesmo tempo, a grade continua na área congelada depois de rolar', async () => {
+  await abrirV069(p, 'RESUMO');
+  await p.mouse.move(700, 450);
+  const faixa = { x: 60, y: 330, w: 420, h: 1, sentido: 'v' };
+  for (let i = 0; i < 20; i++) { await p.mouse.wheel(0, 600); await p.waitForTimeout(20); }
+  for (let i = 0; i < 10; i++) { await p.mouse.wheel(600, 0); await p.waitForTimeout(20); }
+  await p.waitForTimeout(500);
+  const longe = await riscos(p, faixa);
+  for (let i = 0; i < 4; i++) { await p.mouse.wheel(-400, 0); await p.waitForTimeout(60); }
+  await p.waitForTimeout(400);
+  const esquerda = await riscos(p, faixa);
+  for (let i = 0; i < 4; i++) { await p.mouse.wheel(0, -400); await p.waitForTimeout(60); }
+  await p.waitForTimeout(400);
+  const cima = await riscos(p, faixa);
+  certo(longe >= 4 && esquerda >= 4 && cima >= 4, `riscos: longe ${longe}, esquerda ${esquerda}, cima ${cima}`);
+  await print(p, 'v069-grade-congelada');
+});
+
+/* posições das divisas de coluna: onde o app deixa redimensionar (cursor col-resize) */
+const divisas = async (pg, cv, de = 50, ate = 700, passo = 3) => {
+  const saida = [];
+  for (let x = de; x < ate; x += passo) {
+    await pg.mouse.move(cv.x + x, cv.y + 10);
+    if (await pg.evaluate(() => document.querySelector('.pl-cv').style.cursor) === 'col-resize') {
+      if (!saida.length || x - saida[saida.length - 1] > 8) saida.push(x);
+    }
+  }
+  return saida;
+};
+
+await caso('v0.6.9: com várias colunas selecionadas, arrastar uma divisa muda todas (e a guia acompanha o cursor)', async () => {
+  await abrirV069(p, 'LARGURAS');
+  const cv = await p.locator('.pl-cv').boundingBox();
+  /* escolhe as colunas B a D pelo cabeçalho (larguras diferentes na amostra) */
+  await p.mouse.click(cv.x + 150, cv.y + 10); await p.waitForTimeout(150);
+  await p.keyboard.down('Shift'); await p.mouse.click(cv.x + 350, cv.y + 10); await p.keyboard.up('Shift'); await p.waitForTimeout(250);
+  const sel = await p.locator('.pl-nome').inputValue();
+  certo(/^[A-Z]+:[A-Z]+$/.test(sel), `colunas inteiras selecionadas: ${sel}`);
+  const antes = await divisas(p, cv);
+  certo(antes.length >= 4, `divisas antes: ${antes.join(',')}`);
+  /* a divisa do fim da segunda coluna escolhida */
+  const dx = antes.find((x) => x > 180 && x < 430);
+  certo(dx > 0, 'achou a divisa de uma coluna selecionada');
+  const x0 = cv.x + dx;
+  await p.mouse.move(x0, cv.y + 10); await p.waitForTimeout(150);
+  await p.mouse.down();
+  await p.mouse.move(x0 + 60, cv.y + 10, { steps: 8 }); await p.waitForTimeout(250);
+  igual(await p.locator('[data-pl-guia]').count(), 1, 'a guia aparece enquanto arrasta');
+  const guia = await p.locator('[data-pl-guia]').boundingBox();
+  certo(Math.abs(guia.x - (x0 + 60)) < 14, `a guia acompanha o cursor (guia ${Math.round(guia.x)}, cursor ${Math.round(x0 + 60)})`);
+  await print(p, 'v069-arrastando-largura');
+  await p.mouse.up(); await p.waitForTimeout(500);
+  igual(await p.locator('[data-pl-guia]').count(), 0, 'a guia some ao soltar');
+  const depois = await divisas(p, cv);
+  /* as três colunas escolhidas ficaram do mesmo tamanho: três espaços iguais seguidos */
+  const esp = depois.slice(1).map((x, i) => x - depois[i]);
+  const trio = esp.some((_, i) => i + 2 < esp.length && Math.abs(esp[i] - esp[i + 1]) <= 6 && Math.abs(esp[i + 1] - esp[i + 2]) <= 6 && esp[i] > 40);
+  certo(trio, `três colunas do mesmo tamanho: ${depois.join(',')} (espaços ${esp.join(',')})`);
+  await print(p, 'v069-larguras-iguais');
+});
+
+await caso('v0.6.9: a grade tem contraste suficiente para aparecer no branco', async () => {
+  await abrirV069(p, 'LARGURAS');
+  const cor = await p.evaluate(() => {
+    const cv = document.querySelector('.pl-cv'); const g = cv.getContext('2d'); const d = window.devicePixelRatio || 1;
+    const im = g.getImageData(Math.round(60 * d), Math.round(300 * d), Math.round(400 * d), 1).data;
+    let achou = null;
+    for (let i = 0; i < im.length; i += 4) {
+      if (im[i + 3] > 0 && !(im[i] > 246 && im[i + 1] > 246 && im[i + 2] > 246)) { achou = [im[i], im[i + 1], im[i + 2]]; break; }
+    }
+    return achou;
+  });
+  certo(!!cor, 'a grade aparece');
+  const lz = (a) => { const f = (x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(a[0]) + 0.7152 * f(a[1]) + 0.0722 * f(a[2]); };
+  const contraste = (1.05) / (lz(cor) + 0.05);
+  certo(contraste >= 1.5, `contraste da grade com o branco: ${contraste.toFixed(2)}`);
 });
 
 await navegador.close();
