@@ -149,7 +149,7 @@ const ABAS = [['tipo', 'Tipo e dados', 'grafico'], ['estilo', 'Estilo', 'tema'],
  * inicial: g já salvo (editar) ou null (novo) · faixaPadrao: texto da seleção · lerDados(fx, porLinhas, ocultos) → { d, erro, ocultas }
  * lerFaixa: para os gráficos que vieram do Excel · tamanho: { w, h } do gráfico na grade (a prévia fica do mesmo jeito)
  */
-export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, celulaUnica, lerDados, lerFaixa, aoAplicar, aoFechar, tema, tamanho }) {
+export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, celulaUnica, lerDados, lerFaixa, aoAplicar, aoFechar, tema, tamanho, modelos = [], aoTirarModelo }) {
   const [g, setGraw] = useState(() => normalizarG(inicial || { t: '', dados: { fx: faixaPadrao } }));
   /* v0.6.4 (Grok E03): Ctrl+Z / Ctrl+Y valem dentro do editor (cada mudança, inclusive estilo rápido, é um passo) */
   const gRef = useRef(g);
@@ -245,7 +245,36 @@ export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, celulaU
     aoFechar();
   };
   /* clicar numa parte da prévia: abre o que dá para mudar dela */
+  /* v0.6.7: arrastar a linha da meta na prévia (solta = um passo do desfazer) */
+  const arrMeta = useRef(null);
+  const valorDaMeta = (ev, a) => {
+    const pt = a.svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    const q = pt.matrixTransform(a.svg.getScreenCTM().inverse());
+    const y = a.eixoX ? q.x : q.y; // v0.6.8: barras deitadas: a meta anda para o lado
+    const [v0, p0, v1, p1] = a.esc;
+    if (p1 === p0) return null;
+    const v = v0 + ((y - p0) * (v1 - v0)) / (p1 - p0);
+    const passo = Math.pow(10, Math.floor(Math.log10(Math.max(1e-9, Math.abs(v1 - v0) / 100))));
+    return Math.round(v / passo) * passo;
+  };
+  const metaBaixo = (ev) => {
+    const t = ev.target.closest && ev.target.closest('[data-meta-arrastar]');
+    if (!t) return;
+    ev.preventDefault(); ev.stopPropagation();
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    arrMeta.current = { svg: t.ownerSVGElement, esc: t.getAttribute('data-meta-arrastar').split(',').map(Number), linhas: [...t.ownerSVGElement.querySelectorAll('[data-parte="meta"]')], v: null, eixoX: t.getAttribute('data-meta-eixo') === 'x' };
+  };
+  const metaMove = (ev) => {
+    const a = arrMeta.current; if (!a) return;
+    const v = valorDaMeta(ev, a); if (v == null) return;
+    a.v = v;
+    const [v0, p0, v1, p1] = a.esc, y = p0 + ((v - v0) * (p1 - p0)) / (v1 - v0);
+    for (const l of a.linhas) { if (a.eixoX) { l.setAttribute('x1', y); l.setAttribute('x2', y); } else { l.setAttribute('y1', y); l.setAttribute('y2', y); } }
+  };
+  const metaSolta = () => { const a = arrMeta.current; arrMeta.current = null; if (a && a.v != null) { mudaOp({ meta: Math.round(a.v * 1e6) / 1e6 }); ignorarClique.current = true; } };
+  const ignorarClique = useRef(false);
   const aoClicarPrevia = (ev) => {
+    if (ignorarClique.current) { ignorarClique.current = false; return; }
     /* o número em cima da barra não tem parte: vale o que está embaixo dele (e o fundo só se não houver outra coisa) */
     const lista = (document.elementsFromPoint ? document.elementsFromPoint(ev.clientX, ev.clientY) : [ev.target]).map((x) => x && x.closest && x.closest('[data-parte]')).filter(Boolean);
     const el = lista.find((x) => !/^(fundo|area)$/.test(x.getAttribute('data-parte'))) || lista[0] || ev.target.closest('[data-parte]');
@@ -286,9 +315,29 @@ export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, celulaU
         <div className="ge-esq">
           <section className="rg-cartao ge-previa-c">
             <span className="rg-cab">Prévia <em>clique numa parte para mudar</em></span>
-            <div className="gr-previa ge-previa" data-gr-previa onClick={aoClicarPrevia} dangerouslySetInnerHTML={{ __html: svg }} />
+            <div className="gr-previa ge-previa" data-gr-previa onClick={aoClicarPrevia} onPointerDown={metaBaixo} onPointerMove={metaMove} onPointerUp={metaSolta} onPointerCancel={() => { arrMeta.current = null; }} dangerouslySetInnerHTML={{ __html: svg }} />
+            {typeof g.op.meta === 'number' && !ehX && <p className="rg-dica ge-dica-meta">Arraste a linha da meta na prévia para mudar o valor.</p>}
             {erro && <p className="rg-erro" role="alert">{erro}</p>}
           </section>
+          {modelos.length > 0 && (
+            <section className="rg-cartao" data-ge-modelos>
+              <span className="rg-cab">Meus estilos</span>
+              <div className="ge-estilos">
+                {modelos.map((m) => {
+                  const gx = aplicarPacote(gv, m.fx);
+                  return (
+                    <span key={m.id} className="ge-modelo">
+                      <button type="button" className="ge-est" title={'Usar o estilo "' + m.nome + '"'} data-ge-modelo={m.id} onClick={() => setG(() => ({ ...aplicarPacote(gv, m.fx), escolhido: true }))}>
+                        <span dangerouslySetInnerHTML={{ __html: svgDoPlano(planoDoGrafico(gx, d, lerFaixa), { w: 120, h: 72, mini: true }) }} />
+                        <span>{m.nome}</span>
+                      </button>
+                      {aoTirarModelo && <button type="button" className="iconbtn ge-modelo-x" aria-label={'Tirar o estilo ' + m.nome} title="Tirar este estilo da lista" onClick={() => aoTirarModelo(m.id)}><Icone n="x" /></button>}
+                    </span>
+                  );
+                })}
+              </div>
+            </section>
+          )}
           <section className="rg-cartao">
             <span className="rg-cab">Estilos rápidos <button type="button" className="btn sm ge-tirar" data-ge-tirar-formato title="Volta o gráfico ao padrão, sem cores e formatos escolhidos" onClick={tirarFormatacao}>Tirar a formatação</button></span>
             <div className="ge-estilos">
@@ -327,6 +376,18 @@ export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, celulaU
 function AbaTipo({ g, gv, ehX, tipo, rec, d, fx, setFx, setErro, lido, muda, mudaOp, mx, P, series, tema, carta }) {
   const empilhavel = ['colunas', 'barras', 'area'].includes(tipo);
   const temMeta = !['pizza', 'rosca', 'pareto', 'dispersao', 'excel'].includes(tipo);
+  /* v0.6.8 (Grok): girar e furo ficam em Tipo e dados, também nos gráficos do Excel (velocímetro) */
+  const blocoRedondo = (() => {
+        const pz = P && P.grupos && P.grupos.find((G) => G.tipo === 'pie' || G.tipo === 'doughnut');
+        if (!pz) return null;
+        return (
+          <section className="rg-cartao">
+            <span className="rg-cab">{pz.tipo === 'doughnut' ? 'Rosca' : 'Pizza'}</span>
+            <Campo rotulo="Girar" dica={(pz.giro || 0) + ' graus'}><input type="range" min="0" max="359" step="1" aria-label="Girar (graus)" value={pz.giro || 0} data-ge-giro onChange={(ev) => mx((x) => setGrupo(x, { giro: +ev.target.value }))} /></Campo>
+            {pz.tipo === 'doughnut' && <Campo rotulo="Tamanho do furo" dica={(pz.furo ?? 50) + '%'}><input type="range" min="10" max="90" step="1" aria-label="Tamanho do furo (%)" value={pz.furo ?? 50} data-ge-furo onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
+          </section>
+        );
+      })();
   if (ehX) {
     return (
       <>
@@ -343,6 +404,7 @@ function AbaTipo({ g, gv, ehX, tipo, rec, d, fx, setFx, setErro, lido, muda, mud
             ))}
           </div>
         </section>
+        {blocoRedondo}
       </>
     );
   }
@@ -400,17 +462,7 @@ function AbaTipo({ g, gv, ehX, tipo, rec, d, fx, setFx, setErro, lido, muda, mud
         )}
         {void mx}
       </section>
-      {(tipo === 'pizza' || tipo === 'rosca') && (() => {
-        const pz = P.grupos.find((G) => G.tipo === 'pie' || G.tipo === 'doughnut');
-        if (!pz) return null;
-        return (
-          <section className="rg-cartao">
-            <span className="rg-cab">{pz.tipo === 'doughnut' ? 'Rosca' : 'Pizza'}</span>
-            <Campo rotulo="Girar" dica="graus"><input type="range" min="0" max="359" step="5" value={pz.giro || 0} data-ge-giro onChange={(ev) => mx((x) => setGrupo(x, { giro: +ev.target.value }))} /></Campo>
-            {pz.tipo === 'doughnut' && <Campo rotulo="Tamanho do furo" dica={(pz.furo ?? 50) + '%'}><input type="range" min="10" max="90" step="1" value={pz.furo ?? 50} data-ge-furo onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
-          </section>
-        );
-      })()}
+      {blocoRedondo}
     </>
   );
 }
@@ -550,6 +602,15 @@ function AbaSeries({ g, ehX, tipo, P, series, serieSel, setSerieSel, pontoSel, s
           {S.tendencia && S.tendencia.tipo === 'media' && <Campo rotulo="Período"><Num valor={S.tendencia.periodo || 3} aoMudar={(n) => setS({ tendencia: { ...S.tendencia, periodo: Math.max(2, Math.round(n || 2)) } })} /></Campo>}
         </section>
       )}
+      {!redondo && G.tipo !== 'gauge' && (G.tipo === 'bar' || G.tipo === 'line') && (
+        <section className="rg-cartao" data-ge-sec="erro">
+          <span className="rg-cab">Barras de erro</span>
+          <Seg rotulo="Barras de erro" dado="erro" valor={S.erro ? S.erro.tipo : 'nao'} opcoes={[['nao', 'Nenhuma'], ['pct', '%'], ['fixo', 'Valor fixo'], ['desvio', 'Desvio padrão']]}
+            aoMudar={(v) => setS({ erro: v === 'nao' ? null : { tipo: v, v: v === 'pct' ? 5 : v === 'desvio' ? 1 : (S.erro && S.erro.tipo === 'fixo' ? S.erro.v : 1) } })} />
+          {S.erro && <Campo rotulo={S.erro.tipo === 'pct' ? 'Quanto (%)' : S.erro.tipo === 'desvio' ? 'Quantos desvios' : 'Valor'}><Num valor={S.erro.v} dado="erro-v" aoMudar={(n) => setS({ erro: { ...S.erro, v: Math.abs(n || 0) } })} /></Campo>}
+          {S.erro && G.agrup && G.agrup !== 'clustered' && G.agrup !== 'standard' && <p className="rg-dica">Em colunas empilhadas as barras de erro não aparecem (como no Excel, só fazem sentido em colunas lado a lado).</p>}
+        </section>
+      )}
       <section className="rg-cartao">
         <span className="rg-cab">Cor de cada {redondo ? 'fatia' : 'ponto'}</span>
         <p className="rg-dica">Clique numa {redondo ? 'fatia' : 'barra ou ponto'} na prévia, ou escolha aqui. "Invisível" esconde (é assim que se faz o velocímetro no Excel).</p>
@@ -656,7 +717,6 @@ function AbaFundo({ P, mx, cores }) {
   const F = P.fundo || {};
   const A = P.area || {};
   const barras = P.grupos.some((G) => G.tipo === 'bar');
-  const pizza = P.grupos.find((G) => G.tipo === 'pie' || G.tipo === 'doughnut');
   const gb = P.grupos.find((G) => G.tipo === 'bar') || {};
   return (
     <>
@@ -677,13 +737,7 @@ function AbaFundo({ P, mx, cores }) {
           <Campo rotulo="Sobrepor" dica="-100 a 100"><input type="range" min="-100" max="100" step="10" value={gb.sobrepor ?? 0} onChange={(ev) => mx((x) => setGrupo(x, { sobrepor: +ev.target.value }))} /></Campo>
         </section>
       )}
-      {pizza && (
-        <section className="rg-cartao">
-          <span className="rg-cab">{pizza.tipo === 'doughnut' ? 'Rosca' : 'Pizza'}</span>
-          <Campo rotulo="Girar" dica="graus"><input type="range" min="0" max="359" step="5" value={pizza.giro || 0} data-ge-giro onChange={(ev) => mx((x) => setGrupo(x, { giro: +ev.target.value }))} /></Campo>
-          {pizza.tipo === 'doughnut' && <Campo rotulo="Tamanho do furo" dica={(pizza.furo ?? 50) + "%"}><input type="range" min="10" max="90" step="1" value={pizza.furo ?? 50} data-ge-furo2 onChange={(ev) => mx((x) => setGrupo(x, { furo: +ev.target.value }))} /></Campo>}
-        </section>
-      )}
+
     </>
   );
 }

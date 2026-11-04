@@ -64,8 +64,10 @@ export function normalizarObjetos(lista) {
         id: String(o.id), tipo: 'grafico',
         l: clamp(Math.round(num(o.l, 0)), 0, MAX_LIN - 1), c: clamp(Math.round(num(o.c, 0)), 0, MAX_COL - 1),
         dx: Math.max(0, num(o.dx, 0)), dy: Math.max(0, num(o.dy, 0)),
-        w: clamp(num(o.w, GR.W), GR.W_MIN, 2400), h: clamp(num(o.h, GR.H), GR.H_MIN, 1600),
+        /* v0.6.8: gráfico do Excel pode ser pequeno (velocímetro de 130 × 70): o mínimo de 180 × 120 vale só para mudar o tamanho com o mouse */
+        w: clamp(num(o.w, GR.W), 16, 4000), h: clamp(num(o.h, GR.H), 16, 3000),
         g: normalizarG(o.g),
+        ...(o.noGrupo && typeof o.noGrupo.tok === 'string' && Number.isInteger(o.noGrupo.k) && Array.isArray(o.noGrupo.p0) && o.noGrupo.p0.length === 6 ? { noGrupo: { tok: o.noGrupo.tok.slice(0, 40), k: o.noGrupo.k, p0: o.noGrupo.p0.map(Number) } } : {}),
       });
       continue;
     }

@@ -86,7 +86,7 @@ test('gráfico: objeto da aba, e a faixa dos dados acompanha inserir e excluir l
   mud = O.estrutura(c, 'a1', 'c', 1, 1);
   assert.equal(mud['conteudo.abas.a1.objs'][0].g.dados.fx, 'A1:C3', 'coluna no meio alarga a faixa');
   const lista = normalizarObjetos([{ ...a.objs[0], w: 5, h: 99999 }]);
-  assert.equal(lista[0].w, 180); assert.equal(lista[0].h, 1600);
+  assert.equal(lista[0].w, 16); assert.equal(lista[0].h, 3000); // v0.6.8: o mínimo é 16 px (velocímetro pequeno do Excel)
 });
 
 test('gráfico: salvar como Excel grava gráfico nativo (colunas com referências) e abrir de novo traz igual', async () => {

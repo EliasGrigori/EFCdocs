@@ -621,6 +621,8 @@ export function limparForma(o, base) {
   if (typeof o.xo === 'string' && o.xo.length < 400000) { f.xo = o.xo; if (typeof o.xoSig === 'string') f.xoSig = o.xoSig; if (o.xoNs && typeof o.xoNs === 'object') f.xoNs = o.xoNs; if (o.xoRels && typeof o.xoRels === 'object') f.xoRels = o.xoRels; }
   if (o.ed === 'oneCell' || o.ed === 'absolute' || o.ed === 'twoCell') f.ed = o.ed;
   if (o.trava) f.trava = true;
+  /* v0.6.8: grupo do Excel com gráfico dentro (o gráfico volta para dentro do grupo se nenhum dos dois mudou de lugar) */
+  if (typeof o.grTok === 'string' && o.grTok.length < 40 && f.xo) { f.grTok = o.grTok; if (Array.isArray(o.grP0) && o.grP0.length === 6 && o.grP0.every((x) => typeof x === 'number')) f.grP0 = o.grP0; }
   return f;
 }
 

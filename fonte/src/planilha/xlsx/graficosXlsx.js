@@ -238,6 +238,16 @@ function lerSerie(s, tema) {
       (S.pontos[i] || (S.pontos[i] = {})).rotulo = Ru === null ? false : Ru || undefined;
     }
   }
+  /* v0.6.7: barras de erro (porcentagem, valor fixo ou desvio padrão; as outras viram porcentagem de 5) */
+  const eb = filho(s, 'errBars');
+  if (eb && val(eb, 'errDir') !== 'x') {
+    const tp = val(eb, 'errValType');
+    const v = valNum(eb, 'val');
+    if (tp === 'percentage') S.erro = { tipo: 'pct', v: ehNum(v) ? v : 5 };
+    else if (tp === 'fixedVal') S.erro = { tipo: 'fixo', v: ehNum(v) ? v : 1 };
+    else if (tp === 'stdDev') S.erro = { tipo: 'desvio', v: ehNum(v) ? v : 1 };
+    else if (tp) S.erro = { tipo: 'pct', v: 5 };
+  }
   const tl = filho(s, 'trendline');
   if (tl) {
     const tp = val(tl, 'trendlineType');
@@ -264,7 +274,12 @@ function lerEixo(ax, tema) {
   const gr = filho(ax, 'majorGridlines');
   E.grade = gr ? lerSpPr(filho(gr, 'spPr'), tema).contorno || { t: 'solido', cor: '#d9d9d9', larg: 0.75 } : null;
   const ti = filho(ax, 'title');
-  if (ti) E.titulo = { texto: textoDe(filho(ti, 'tx')) || (E.tipo === 'val' ? 'Título do eixo' : 'Título do eixo'), ...lerFonte(em(ti, 'tx/rich') || filho(ti, 'txPr'), tema) };
+  if (ti) {
+    E.titulo = { texto: textoDe(filho(ti, 'tx')) || (E.tipo === 'val' ? 'Título do eixo' : 'Título do eixo'), ...lerFonte(em(ti, 'tx/rich') || filho(ti, 'txPr'), tema) };
+    /* v0.6.8 (Grok): título do eixo posto à mão no Excel (ex.: à direita do gráfico) */
+    const lt = lerLayout(filho(ti, 'layout'));
+    if (lt && lt.mx === 'edge' && lt.my === 'edge') E.titulo.lay = { x: lt.x, y: lt.y };
+  }
   const nf = filho(ax, 'numFmt');
   if (nf && nf.a.formatCode && nf.a.formatCode !== 'General') { E.fmt = nf.a.formatCode; if (nf.a.sourceLinked === '1') E.fmtLigado = true; }
   const tl = val(ax, 'tickLblPos');
@@ -590,12 +605,15 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema, fontes 
         if (fm.aprox) fora.push({ forma: true, item: 'Formas com desenho que o EFCdocs ainda não tem', qtd: fm.aprox, motivo: 'vieram como retângulo' });
         if (fm.obj) objs.push({ ...fm.obj, ordem });
         /* gráficos que estavam dentro do grupo: saem soltos, no mesmo lugar */
-        for (const gq of fm.graficos) {
+        for (const [k, gq] of fm.graficos.entries()) {
           const an2 = ancoraMais(aba, geo.l, geo.c, geo.dx, geo.dy, gq.x, gq.y);
           const g = await graficoDoRid(zip, relsD, gq.rid, tema, { ...an2, w: gq.w, h: gq.h }, lerRelsDe, fontes, aba);
           if (!g) continue;
           if (g.fora) { fora.push({ motivo: g.fora }); continue; }
-          objs.push({ ...g.obj, ordem: ordem + 0.5 });
+          /* v0.6.8: o gráfico lembra de que grupo veio (para voltar para dentro dele ao salvar) */
+          const go = g.obj;
+          const noGrupo = fm.obj && fm.obj.grTok ? { noGrupo: { tok: fm.obj.grTok, k, p0: [go.l, go.c, go.dx, go.dy, go.w, go.h] } } : {};
+          objs.push({ ...go, ...noGrupo, ordem: ordem + 0.5 });
         }
         continue;
       }
@@ -762,6 +780,7 @@ export function xmlDoPlano(P0, ctx = {}) {
     const dLbls = S.rotulos || dl ? `<c:dLbls>${dl}${S.rotulos ? rotulosXml(S.rotulos, G.tipo) : '<c:showLegendKey val="0"/><c:showVal val="0"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/>'}${G.tipo === 'pie' ? '<c:showLeaderLines val="1"/>' : ''}${faixaRot ? `<c:extLst><c:ext uri="${URI_ROT_MOSTRA}" xmlns:c15="${NS_C15}"><c15:showDataLabelsRange val="1"/></c:ext></c:extLst>` : ''}</c:dLbls>` : '';
     /* v0.6.6: "valor das células" nos rótulos (extensão do Excel 2013), no fim da série */
     const extRot = faixaRot ? `<c:extLst><c:ext uri="${URI_ROT_FAIXA}" xmlns:c15="${NS_C15}"><c15:datalabelsRange><c15:f>${escapar(faixaRot)}</c15:f><c15:dlblRangeCache><c:ptCount val="${(S.rotFaixa.txt || []).length}"/>${(S.rotFaixa.txt || []).map((t, k) => `<c:pt idx="${k}"><c:v>${escapar(t ?? '')}</c:v></c:pt>`).join('')}</c15:dlblRangeCache></c15:datalabelsRange></c:ext></c:extLst>` : '';
+    const erroB = S.erro && ehNum(S.erro.v) && (G.tipo === 'bar' || G.tipo === 'line') ? `<c:errBars>${G.tipo === 'line' ? '<c:errDir val="y"/>' : ''}<c:errBarType val="both"/><c:errValType val="${{ pct: 'percentage', fixo: 'fixedVal', desvio: 'stdDev' }[S.erro.tipo] || 'percentage'}"/><c:noEndCap val="0"/><c:val val="${S.erro.v}"/>${spPr(null, { t: 'solido', cor: '#404040', larg: 1 })}</c:errBars>` : '';
     const tend = S.tendencia ? `<c:trendline>${spPr(null, S.tendencia.linha || { t: 'solido', cor: corS, larg: 1.5, tr: 'sysDash' })}<c:trendlineType val="${S.tendencia.tipo === 'media' ? 'movingAvg' : 'linear'}"/>${S.tendencia.tipo === 'media' ? `<c:period val="${Math.max(2, S.tendencia.periodo || 2)}"/>` : ''}<c:dispRSqr val="0"/><c:dispEq val="0"/></c:trendline>` : '';
     /* categorias (ou X da dispersão) e valores */
     const catRef = tr(S.cats && S.cats.ref);
@@ -776,11 +795,11 @@ export function xmlDoPlano(P0, ctx = {}) {
     const nomeVal = G.tipo === 'scatter' ? 'yVal' : 'val';
     const vals = valRef ? `<c:${nomeVal}><c:numRef><c:f>${escapar(valRef)}</c:f>${numCache(S.vals.num || [], S.vals.fmt)}</c:numRef></c:${nomeVal}>` : `<c:${nomeVal}>${numCache(S.vals.num || [], S.vals.fmt, 'numLit')}</c:${nomeVal}>`;
     const ini = `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}${sp}`;
-    if (G.tipo === 'bar') return `${ini}<c:invertIfNegative val="0"/>${pts}${dLbls}${tend}${cat}${vals}${extRot}</c:ser>`;
+    if (G.tipo === 'bar') return `${ini}<c:invertIfNegative val="0"/>${pts}${dLbls}${tend}${erroB}${cat}${vals}${extRot}</c:ser>`;
     if (G.tipo === 'area') return `${ini}${pts}${dLbls}${tend}${cat}${vals}${extRot}</c:ser>`;
     if (G.tipo === 'pie' || G.tipo === 'doughnut') return `${ini}${S.explodir ? `<c:explosion val="${Math.round(S.explodir)}"/>` : ''}${pts}${dLbls}${cat}${vals}${extRot}</c:ser>`;
     const mk = S.marcador ? marcadorXml(S.marcador, S.linha && S.linha.cor || corS) : G.tipo === 'line' && P.nativo ? '<c:marker><c:symbol val="none"/></c:marker>' : '';
-    return `${ini}${mk}${pts}${dLbls}${tend}${cat}${vals}<c:smooth val="${S.suave ? 1 : 0}"/>${extRot}</c:ser>`;
+    return `${ini}${mk}${pts}${dLbls}${tend}${G.tipo === 'line' ? erroB : ''}${cat}${vals}<c:smooth val="${S.suave ? 1 : 0}"/>${extRot}</c:ser>`;
   };
   const eixoIds = (G) => (G.eixo2 ? [A3, A4] : [A1, A2]);
   for (const G of P.grupos) {
@@ -1028,9 +1047,9 @@ export function gravarGraficosAba(c, motor, aba, abaId, n0, extra = null) {
     charts.push({ n, xml });
     /* âncora de duas células (o canto de baixo calculado pelas larguras/alturas) */
     let col = o.c, x = o.dx + o.w;
-    while (col < 16383 && x >= largCol(aba, col) && largCol(aba, col) > 0) { x -= largCol(aba, col); col++; }
+    while (col < 16383 && (largCol(aba, col) <= 0 ? x > 0 : x >= largCol(aba, col))) { x -= Math.max(0, largCol(aba, col)); col++; }
     let lin = o.l, y = o.dy + o.h;
-    while (lin < 1048575 && y >= altLin(aba, lin) && altLin(aba, lin) > 0) { y -= altLin(aba, lin); lin++; }
+    while (lin < 1048575 && (altLin(aba, lin) <= 0 ? y > 0 : y >= altLin(aba, lin))) { y -= Math.max(0, altLin(aba, lin)); lin++; }
     ancoras.push(`<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>${o.c}</xdr:col><xdr:colOff>${Math.round(o.dx * EMU)}</xdr:colOff><xdr:row>${o.l}</xdr:row><xdr:rowOff>${Math.round(o.dy * EMU)}</xdr:rowOff></xdr:from>` +
       `<xdr:to><xdr:col>${col}</xdr:col><xdr:colOff>${Math.round(x * EMU)}</xdr:colOff><xdr:row>${lin}</xdr:row><xdr:rowOff>${Math.round(y * EMU)}</xdr:rowOff></xdr:to>` +
       `<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${k + 2}" name="Gráfico ${k + 1}" descr="${escapar(g.titulo || NOME_TIPO[g.t] || 'Gráfico do EFCdocs', true)}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>` +

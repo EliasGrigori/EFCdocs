@@ -115,7 +115,7 @@ export function desenharPaginas(pg, fonte) {
     for (const o of fonte.objetos || []) {
       const pos = posObjeto(o, p, xs, ys, tc, tl, fonte, esc);
       if (!pos) continue;
-      ops.push({ k: 'img', ...pos, svg: o.svg, clip: { x: x0, y: y0, w: xFim - x0, h: yFim - y0 } });
+      ops.push({ k: 'img', ...pos, svg: o.svg, clip: { x: x0, y: y0, w: xFim - x0, h: yFim - y0 }, ...(o.textoOculto ? { oculto: o.textoOculto } : {}) });
     }
     /* cabeçalho e rodapé */
     const campos = { pagina: n + 1, paginas: total, aba: fonte.aba, arquivo: fonte.arquivo, agora: fonte.agora };

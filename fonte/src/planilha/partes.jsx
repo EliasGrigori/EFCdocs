@@ -27,10 +27,11 @@ export function AbasPlanilha({ c, abaId, aoTrocar, aoNova, aoMenu, somenteLeitur
           const a = c.abas[id];
           return (
             <button key={id} type="button" role="tab" aria-selected={id === abaId} className={'pl-aba' + (id === abaId ? ' on' : '')}
-              style={a.cor ? { '--aba-cor': a.cor } : undefined} data-aba={a.nome}
+              style={a.cor ? { '--aba-cor': a.cor } : undefined} data-aba={a.nome} data-painel={a.painel ? '' : undefined} title={a.painel ? 'Painel' : undefined}
               onClick={() => aoTrocar(id)} onDoubleClick={() => !somenteLeitura && aoMenu(id, null, 'renomear')}
               onContextMenu={(ev) => { ev.preventDefault(); aoMenu(id, { x: ev.clientX, y: ev.clientY }); }}>
               {a.cor && <span className="pl-aba-ponto" aria-hidden="true" />}
+              {a.painel && <span className="pl-aba-pn" aria-hidden="true"><Icone n="n:painelNovo" /></span>}
               {a.nome}
               {id === abaId && <span className="pl-aba-mais" role="button" tabIndex={-1} aria-label="Opções da aba" onClick={(ev) => { ev.stopPropagation(); const r = ev.currentTarget.getBoundingClientRect(); aoMenu(id, { x: r.left, y: r.top }); }}><Icone n="chevronBaixo" /></span>}
             </button>

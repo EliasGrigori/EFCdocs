@@ -29,7 +29,8 @@ export const COMANDOS = [
   C('arquivo.exportarPDF', 'Exportar PDF', 'pdf', { sin: ['pdf', 'baixar pdf', 'gerar pdf', 'paisagem'], chega: porModulo(V6, V7, null), acao: 'exportar' }),
   C('arquivo.exportarImagem', 'Exportar imagem (PNG)', 'imagem', { sin: ['png', 'jpg', 'foto do quadro', 'print'], mods: ['postits'], acao: 'exportar' }),
   C('arquivo.imprimir', 'Imprimir', 'imprimir', { sin: ['impressora'], chega: porModulo(V6, V7, null), acao: 'exportar' }),
-  C('arquivo.versoes', 'Versões e revisões', 'historico', { sin: ['histórico', 'revisão antiga', 'versão anterior'], chega: V7, mods: ['docx', 'planilha'] }),
+  /* v0.6.8 (Grok): na planilha já abre a linha do tempo (o que foi feito, para voltar a um passo); versões salvas chegam na v0.7.0 */
+  C('arquivo.versoes', 'Versões e revisões', 'historico', { sin: ['histórico', 'revisão antiga', 'versão anterior', 'linha do tempo'], chega: porModulo(null, V7, null), mods: ['docx', 'planilha'] }),
   C('arquivo.lancar', 'Lançar na pasta', 'pasta', { sin: ['lançamento', 'registrar', 'enviar para pasta'], chega: V8, acao: 'lancar' }),
   C('arquivo.cancelar', 'Cancelar com motivo', 'arquivar', { sin: ['cancelar lançamento', 'anular'], chega: V8, acao: 'lancamento.cancelar' }),
 
@@ -93,6 +94,21 @@ export const COMANDOS = [
   C('grafico.cores', 'Cores do gráfico', 'grafico', { sin: ['paleta do gráfico', 'cores das barras'], mods: ['planilha'], ed: true }),
   C('grafico.semaforo', 'Semáforo', 'grafico', { sin: ['verde amarelo vermelho', 'meta do gráfico', 'qualidade'], mods: ['planilha'], ed: true }),
   C('grafico.excluir', 'Excluir gráfico', 'lixeira', { sin: ['apagar gráfico', 'remover gráfico'], mods: ['planilha'], ed: true }),
+  /* v0.6.7: aba Gráfico */
+  C('grafico.imagem', 'Baixar imagem do gráfico', 'baixar', { sin: ['exportar gráfico', 'png do gráfico', 'salvar gráfico como imagem', 'figura do gráfico'], mods: ['planilha'] }),
+  C('grafico.duplicar', 'Duplicar gráfico', 'copiar', { sin: ['copiar gráfico', 'clonar gráfico', 'gráfico igual'], mods: ['planilha'], ed: true }),
+  C('grafico.modelo', 'Guardar estilo como modelo', 'grafico', { sin: ['modelo de gráfico', 'meu estilo', 'salvar estilo do gráfico', 'reaproveitar formatação'], mods: ['planilha'], ed: true }),
+  C('grafico.erro', 'Barras de erro', 'grafico', { sin: ['margem de erro', 'desvio padrão no gráfico', 'incerteza', 'barras de erro'], mods: ['planilha'], ed: true }),
+  /* v0.6.7: Painel */
+  C('inserir.painel', 'Painel', 'painel', { sin: ['dashboard', 'novo painel', 'painel de indicadores', 'quadro de gráficos', 'indicadores', 'kpi'], mods: ['planilha'], ed: true }),
+  C('painel.grafico', 'Gráfico no painel', 'grafico', { sin: ['pôr gráfico no painel', 'adicionar gráfico ao painel'], mods: ['planilha'], ed: true }),
+  C('painel.numero', 'Número grande', 'grafico', { sin: ['cartão', 'indicador', 'kpi', 'número do painel', 'total grande'], mods: ['planilha'], ed: true }),
+  C('painel.texto', 'Texto no painel', 'texto', { sin: ['título do painel', 'observação no painel'], mods: ['planilha'], ed: true }),
+  C('painel.tabela', 'Tabela no painel', 'tabela', { sin: ['pedaço da planilha no painel', 'células no painel'], mods: ['planilha'], ed: true }),
+  C('painel.arrumar', 'Arrumar o painel', 'grade', { sin: ['alinhar peças', 'organizar painel', 'tirar buracos'], mods: ['planilha'], ed: true }),
+  C('painel.mudar', 'Mudar a peça', 'renomear', { sin: ['editar peça', 'mudar número', 'mudar texto'], mods: ['planilha'], ed: true }),
+  C('painel.excluir', 'Excluir a peça', 'lixeira', { sin: ['apagar peça', 'tirar do painel'], mods: ['planilha'], ed: true }),
+  C('painel.pdf', 'PDF do painel', 'pdf', { sin: ['imprimir painel', 'baixar painel', 'pdf de uma página'], mods: ['planilha'] }),
   C('inserir.grafico', 'Gráfico', 'grafico', { sin: ['inserir gráfico', 'novo gráfico', 'velocímetro', 'chart', 'colunas', 'pizza', 'barras', 'linhas', 'dashboard'], chega: porModulo(V6, V7, V7) }),
   C('inserir.link', 'Link', 'link', { sin: ['hiperlink', 'endereço', 'ir para aba'], chega: porModulo(V61, V7, null), acao: 'quadro.editar' }),
   C('inserir.tirarLink', 'Tirar o link', 'lixeira', { sin: ['remover link', 'remover hiperlink', 'apagar link', 'desfazer link'], mods: ['planilha'], ed: true }),

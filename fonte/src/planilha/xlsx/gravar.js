@@ -3,12 +3,14 @@
    cor e abas ocultas, nomes definidos e matrizes que derramam (matriz dinâmica do Excel 365).
    O Excel recalcula tudo ao abrir (fullCalcOnLoad). */
 import { gravarDesenhoAba } from './desenhoXlsx.js';
+import { comPaineisParaExcel, extDoPainel } from './painelXlsx.js';
 import { TEMA_XML } from './temaPadrao.js';
 import { gravarImpressaoAba } from './impressaoXlsx.js';
 import { criarZip } from './zip.js';
 import { escapar, XML_CAB } from './xml.js';
 import { gravarEstilos } from './estilos.js';
 import { porPrefixos } from './formulas.js';
+import { lerGuardada } from '../formula.js';
 import { chave, letraCol, lerChave } from '../ref.js';
 import { valorGuardado, LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao } from '../modelo.js';
 import { ehErro } from '../valores.js';
@@ -74,10 +76,24 @@ function xmlDaTabela(tb, id, autoXml) {
   return `${XML_CAB}<table xmlns="${NS}" id="${id}" name="${nome}" displayName="${nome}" ref="${ref}"${t.cab ? '' : ' headerRowCount="0"'}${t.tot ? ' totalsRowCount="1"' : ' totalsRowShown="0"'}>` +
     (t.cab ? autoXml : '') +
     `<tableColumns count="${cols.length}">${cols.map((nm, i) => `<tableColumn id="${i + 1}" name="${escapar(nm, true)}"/>`).join('')}</tableColumns>` +
-    `<tableStyleInfo${est.nome ? ` name="${escapar(est.nome, true)}"` : ''} showFirstColumn="${est.pc ? 1 : 0}" showLastColumn="${est.uc ? 1 : 0}" showRowStripes="${est.ll ? 1 : 0}" showColumnStripes="${est.lc ? 1 : 0}"/></table>`;
+    (est.sem ? '' : `<tableStyleInfo${est.nome ? ` name="${escapar(est.nome, true)}"` : ''} showFirstColumn="${est.pc ? 1 : 0}" showLastColumn="${est.uc ? 1 : 0}" showRowStripes="${est.ll ? 1 : 0}" showColumnStripes="${est.lc ? 1 : 0}"/>`) + '</table>';
 }
 
 /* fórmulas que o Excel antigo não entende sem matriz dinâmica */
+/** v0.6.8: o Excel recusa (e apaga ao "reparar") fórmula que não dá para ler, com mais de 8.192 letras ou mais de 64 parênteses um dentro do outro. */
+function formulaRuimParaExcel(f) {
+  if (f.length > 8192) return true;
+  let prof = 0, max = 0, q = null;
+  for (let i = 0; i < f.length; i++) {
+    const ch = f[i];
+    if (q) { if (ch === q) { if (f[i + 1] === q) i++; else q = null; } continue; }
+    if (ch === '"' || ch === "'") { q = ch; continue; }
+    if (ch === '(') { prof++; if (prof > max) max = prof; } else if (ch === ')') { prof--; if (prof < 0) return true; }
+  }
+  if (q || prof !== 0 || max > 64) return true;
+  try { lerGuardada(f); } catch { return true; }
+  return false;
+}
 const RX_MATRIZ = /(^|[^\w.])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|TRANSPOSE|RANDARRAY|XLOOKUP|XMATCH|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS|FREQUENCY|MMULT|LET|LAMBDA|MAP|REDUCE|SCAN|BYROW|BYCOL|MAKEARRAY|TRIMRANGE|SINGLE)\(/i;
 
 const larguraExcel = (px) => Math.max(0, Math.trunc((px / 7) * 256) / 256);
@@ -90,12 +106,14 @@ const hexArgb = (h) => 'FF' + String(h).replace('#', '').toUpperCase().padStart(
  * motor: o motor de cálculo já carregado (para os valores das fórmulas); se faltar, calcula aqui.
  */
 export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo = '' } = {}) {
-  const c = conteudo;
-  const m = motor || new Motor(c);
+  const m = motor || new Motor(conteudo);
+  /* v0.6.7: abas Painel viram abas comuns com gráficos, formas e células (e o painel vai junto no extLst) */
+  const c = comPaineisParaExcel(conteudo, m);
   const avisos = [];
   const textos = [], idxTexto = new Map();
   const ss = (t) => { let i = idxTexto.get(t); if (i == null) { i = textos.length; textos.push(t); idxTexto.set(t, i); } return i; };
   let usaMatriz = false;
+  const formulasFora = []; // v0.6.8: fórmulas que o Excel não aceitaria (vão só com o valor)
   let assinaturas = 0;
   const novas = new Set(); // funções do Excel 2019/2021/365 (PL21: avisar quem vai abrir num Excel antigo)
   const partes = [];
@@ -104,6 +122,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   const desenhos = []; // v0.6.0: gráficos por aba: { ia, drawing, rels, charts }
   let nChart = 1;
   let nImg = 0; // v0.6.3: imagens gravadas até agora (image1, image2...)
+  const cacheImg = { mapa: new Map(), n: 0 }; // v0.6.8: a mesma imagem vai uma vez só
   let botoes = 0;
   let formasGravadas = 0, botoesGravados = 0; // v0.6.5
   let linksFora = 0;
@@ -129,7 +148,18 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       por(p.l, p.c, { cel });
     }
     /* valores das áreas derramadas (o Excel guarda o valor em cada célula da área) */
-    const spills = (m.spillDe && m.spillDe[id]) || new Map();
+    const spills0 = (m.spillDe && m.spillDe[id]) || new Map();
+    /* v0.6.8: área derramada que cobre uma célula com fórmula ou valor próprio não vai (o Excel apagaria a fórmula ao reparar) */
+    const spills = new Map();
+    for (const [k, s] of spills0) {
+      let livre = true;
+      for (let i = s.l1; i <= s.l2 && livre; i++) for (let j = s.c1; j <= s.c2; j++) {
+        if (i === s.l1 && j === s.c1) continue;
+        const L = linhas.get(i), atual = L && L.get(j);
+        if (atual && atual.derramado === undefined && (atual.cel.f != null || (atual.cel.v !== undefined && atual.cel.v !== ''))) { livre = false; break; }
+      }
+      if (livre) spills.set(k, s);
+    }
     for (const s of spills.values()) {
       for (let i = s.l1; i <= s.l2; i++) for (let j = s.c1; j <= s.c2; j++) {
         if (i === s.l1 && j === s.c1) continue;
@@ -140,7 +170,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       }
     }
     for (const k of Object.keys(aba.alt || {})) if (!linhas.has(+k)) linhas.set(+k, new Map());
-    for (const k of Object.keys(aba.ocL || {})) if (aba.ocL[k] && !linhas.has(+k)) linhas.set(+k, new Map());
+    /* v0.6.8 (Grok): com zeroHeight, linha oculta e vazia não precisa ir listada (o Excel já esconde quem não está na lista) */
+    if (!aba.zeroH) for (const k of Object.keys(aba.ocL || {})) if (aba.ocL[k] && !linhas.has(+k)) linhas.set(+k, new Map());
     /* v0.6.6 (Grok): aba com zeroHeight (o Excel esconde toda linha que o arquivo não lista): cada linha que aparece vai listada */
     if (aba.zeroH) {
       let lim = -1;
@@ -176,14 +207,25 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
           else cels.push(`<c r="${r}"${s} t="s"><v>${ss(String(derramado))}</v></c>`);
           continue;
         }
+        /* v0.6.8: antes de gravar, confere se o Excel aceitaria a fórmula; se não, vai só o valor (sem o "reparo" do Excel) */
+        if (cel.f != null && !(Array.isArray(cel.fo) && cel.fo[1] === cel.f) && formulaRuimParaExcel(cel.f)) {
+          formulasFora.push(`${aba.nome}!${r}`);
+          let v; try { v = m.valor(id, l, cc); } catch { v = null; }
+          const x = valorXml(v);
+          if (x) { if (x.v) cels.push(`<c r="${r}"${s}${x.t}>${x.v}</c>`); else if (cel.s) cels.push(`<c r="${r}"${s}/>`); }
+          else cels.push(`<c r="${r}"${s} t="s"><v>${ss(String(v))}</v></c>`);
+          continue;
+        }
         if (cel.f != null) {
           for (const mm of cel.f.matchAll(/([A-Z][A-Z0-9.]*)\(/g)) { const meta = POR_EN[mm[1]]; if (meta && (meta.v === '21' || meta.v === '19') && !meta.oculta) novas.add(meta.pt); }
           let v;
-          try { v = m.valor(id, l, cc); } catch { v = null; }
+          if (cel.vc !== undefined) v = cel.vc; // v0.6.7: célula feita para o painel (o valor de agora)
+          else { try { v = m.valor(id, l, cc); } catch { v = null; } }
           if (v == null) v = 0;
           const area = spills.get(l * 16384 + cc);
           const ehMatriz = !!area || !!cel.da || (!cel.lg && RX_MATRIZ.test(cel.f)) || (!cel.lg && /[A-Z]\$?\d+#/.test(cel.f));
-          const f = escapar(porPrefixos(cel.f));
+          /* v0.6.8: fórmula que ninguém mexeu volta como veio do arquivo */
+          const f = escapar(Array.isArray(cel.fo) && cel.fo[1] === cel.f && typeof cel.fo[0] === 'string' ? cel.fo[0] : porPrefixos(cel.f));
           let fx;
           if (ehMatriz) {
             usaMatriz = true;
@@ -243,7 +285,13 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     const filFx = aba.fil && aba.fil.fx;
     const cruza = (tb) => { if (!filFx) return false; const [a, b] = filFx.split(':').map(lerChave); return a && b && !(b.l < tb.t.l1 || a.l > tb.t.l2 || b.c < tb.t.c1 || a.c > tb.t.c2); };
     const filNaTabela = tabsAba.find((tb) => tb.t.cab && filFx === tb.refAuto);
-    if (!filNaTabela && !tabsAba.some(cruza)) fim += gravarFiltro(aba.fil);
+    if (!filNaTabela && !tabsAba.some(cruza) && aba.fil) {
+      fim += gravarFiltro(aba.fil);
+      /* v0.6.8 (Grok): o Excel guarda a faixa do filtro também no nome escondido _FilterDatabase */
+      const [fa, fb] = aba.fil.fx.split(':');
+      const dol = (r) => r.replace(/^([A-Z]+)(\d+)$/, '$$$1$$$2');
+      nomesImp.push({ nome: '_xlnm._FilterDatabase', ref: `'${String(aba.nome).replace(/'/g, "''")}'!${dol(fa)}:${dol(fb || fa)}`, ia, oculto: true });
+    }
     const mesc = (aba.mesc || []).filter((t) => /^[A-Z]+\d+:[A-Z]+\d+$/.test(t));
     if (mesc.length) fim += `<mergeCells count="${mesc.length}">${mesc.map((t) => `<mergeCell ref="${t}"/>`).join('')}</mergeCells>`;
     fim += gravarCondicionais(aba.cf, dxfs);
@@ -264,8 +312,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       if (hl.length) { fim += `<hyperlinks>${hl.join('')}</hyperlinks>`; if (ext.length) linksExt.set(ia, ext); } }
     fim += ip.printOptions + ip.margens + ip.pageSetup + ip.headerFooter + ip.quebras;
     /* v0.6.5: gráficos, imagens, formas e botões no mesmo desenho, na ordem da aba */
-    const gr = gravarDesenhoAba(c, m, aba, id, nChart, nImg);
-    if (gr) { fim += '<drawing r:id="rId3"/>'; desenhos.push({ ia, ...gr }); nChart += gr.charts.length; nImg += gr.midias.length; formasGravadas += gr.formas; botoesGravados += gr.botoes; }
+    const gr = gravarDesenhoAba(c, m, aba, id, nChart, nImg, cacheImg);
+    if (gr) { fim += '<drawing r:id="rId3"/>'; desenhos.push({ ia, ...gr }); nChart += gr.charts.length; nImg = cacheImg.n; formasGravadas += gr.formas; botoesGravados += gr.botoes; }
     const co = gravarComentarios(aba.com, ia);
     if (co) { fim += '<legacyDrawing r:id="rId1"/>'; notas.push({ ia, ...co }); conversas += co.conversas; }
     if (tabsAba.length) {
@@ -277,6 +325,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       });
       fim += `<tableParts count="${ids.length}">${ids.map((n) => `<tablePart r:id="rIdT${n}"/>`).join('')}</tableParts>`;
     }
+    if (aba.painelJson) fim += extDoPainel(aba.painelJson);
     partes.push({
       nome: `xl/worksheets/sheet${ia + 1}.xml`,
       dados: `${XML_CAB}<worksheet xmlns="${NS}" xmlns:r="${NS_R}">${cab}<sheetData>${corpo.join('')}</sheetData>${fim}</worksheet>`,
@@ -289,7 +338,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     `<bookViews><workbookView activeTab="${primeiraVisivel}"/></bookViews><sheets>` +
     abas.map((a, i) => `<sheet name="${escapar(a.nome, true)}" sheetId="${i + 1}"${a.oculta ? ' state="hidden"' : ''} r:id="rId${i + 1}"/>`).join('') +
     '</sheets>' +
-    (nomes.length || nomesImp.length ? `<definedNames>${nomesImp.map((n) => `<definedName name="${n.nome}" localSheetId="${n.ia}">${escapar(n.ref)}</definedName>`).join('')}${nomes.map((n) => `<definedName name="${escapar(n.n, true)}">${escapar(porPrefixos(n.ref))}</definedName>`).join('')}</definedNames>` : '') +
+    (nomes.length || nomesImp.length ? `<definedNames>${nomesImp.map((n) => `<definedName name="${n.nome}" localSheetId="${n.ia}"${n.oculto ? ' hidden="1"' : ''}>${escapar(n.ref)}</definedName>`).join('')}${nomes.map((n) => `<definedName name="${escapar(n.n, true)}">${escapar(porPrefixos(n.ref))}</definedName>`).join('')}</definedNames>` : '') +
     '<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>';
   const nA = abas.length;
   const relsWb = `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
@@ -370,6 +419,13 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
         tb.map((x) => `<Relationship Id="rIdT${x.n}" Type="${REL}table" Target="../tables/table${x.n}.xml"/>`).join('') + '</Relationships>' };
     }).filter(Boolean),
   ];
+  /* v0.6.8 (Grok): o arquivo veio com macros: dizer ao salvar que elas e os botões de macro não vão */
+  const imp = c.importado || {};
+  if (imp.temMacros || (imp.botoesMacro && imp.botoesMacro.length)) {
+    const bs = imp.botoesMacro || [];
+    avisos.push(`As macros (VBA)${bs.length ? ` e ${bs.length === 1 ? `o botão ${'"' + bs[0] + '"'}` : `os botões ${bs.map((b) => '"' + b + '"').join(', ')}`}` : ''} do arquivo original não vão no Excel salvo (ele sai como .xlsx, sem macro).`);
+  }
+  if (formulasFora.length) avisos.push(`${formulasFora.length === 1 ? 'Uma fórmula que o Excel não aceitaria foi' : `${formulasFora.length} fórmulas que o Excel não aceitaria foram`} salva${formulasFora.length === 1 ? '' : 's'} só com o valor (para o Excel não pedir para reparar): ${formulasFora.slice(0, 4).join(', ')}${formulasFora.length > 4 ? ` e mais ${formulasFora.length - 4}` : ''}.`);
   if (tabelasFora.length) avisos.push(`${tabelasFora.length === 1 ? `A tabela "${tabelasFora[0]}" vai` : `${tabelasFora.length} tabelas vão`} como faixa normal (com as cores): os títulos precisam ser textos, sem repetir e sem célula vazia.`);
   if (conversas) avisos.push(`${conversas === 1 ? 'A conversa de comentários vai' : `As ${conversas} conversas de comentários vão`} como anotação comum no Excel (o texto e as respostas ficam juntos na mesma anotação).`);
   if (linksFora) avisos.push(`${linksFora === 1 ? 'Um link' : `${linksFora} links`} que levava a uma aba apagada não ${linksFora === 1 ? 'foi' : 'foram'} gravado${linksFora === 1 ? '' : 's'}.`);

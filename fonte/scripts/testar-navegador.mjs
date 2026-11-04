@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.6', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.8', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.6'), 'rodapé sem v0.6.6');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.8'), 'rodapé sem v0.6.8');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.6'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.8'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -4212,6 +4212,211 @@ await caso('v0.6.6: salvar como Excel: tabela do Excel volta, aba renomeada vai 
   certo(/Resumo!\$B\$2/.test(ch) && !/Painel!/.test(ch), 'gráfico com o nome novo');
   certo(/userShapes r:id="rIdUS1"/.test(ch), 'caixa por cima');
   certo(/textlink="Resumo!\$C\$3"/.test(await z.texto('xl/drawings/drawingGr1.xml') || ''), 'desenho da caixa');
+});
+
+/* ---------- v0.6.7: Painel e aba Gráfico ---------- */
+async function painelComPecas(p) {
+  await abrirFormas(p);
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await cmd(p, 'inserir.painel'); await p.waitForSelector('[data-pn-branco]'); await p.waitForTimeout(300);
+  certo(await p.locator('.tabs .tab.ctx:has-text("Painel")').isVisible(), 'a aba Painel aparece na faixa');
+  await p.click('[data-pn-add="numero"]'); await p.waitForSelector('[data-pn-janela="numero"]');
+  await p.fill('[data-pn-rotulo]', 'Não conformidades'); await p.fill('[data-pn-conta]', '=SOMA(Dados!B2:B7)'); await p.fill('[data-pn-meta]', '30');
+  await p.click('[data-ge-op="pn-sentido:menor"]'); await p.click('[data-pn-ok]'); await p.waitForTimeout(300);
+  await cmd(p, 'painel.texto'); await p.waitForSelector('[data-pn-texto]');
+  await p.fill('[data-pn-texto]', 'Painel da semana (inventado)'); await p.click('[data-pn-ok]'); await p.waitForTimeout(250);
+  await cmd(p, 'painel.tabela'); await p.waitForSelector('[data-pn-faixa]');
+  await p.fill('[data-pn-faixa]', 'Dados!A1:C7'); await p.click('[data-pn-ok]'); await p.waitForTimeout(250);
+  await cmd(p, 'painel.grafico'); await p.waitForSelector('[data-pn-gr-lista]');
+  await p.locator('[data-pn-gr]').first().click(); await p.waitForTimeout(400);
+}
+await caso('v0.6.7: Inserir › Painel: número grande com meta, texto, tabela e gráfico da planilha; muda junto com a planilha', async () => {
+  await painelComPecas(p);
+  igual(await p.locator('.pn-peca').count(), 4);
+  igual((await p.locator('[data-pn-valor]').innerText()).trim(), '34');
+  const cor = await p.locator('.pn-num').evaluate((e) => getComputedStyle(e).getPropertyValue('--pn-cor').trim());
+  igual(cor, '#c0392b', 'acima da meta (menor é melhor): vermelho');
+  certo((await p.locator('.pn-t-tabela').innerText()).includes('Jan'), 'tabela com os dados');
+  certo((await p.locator('.pn-t-grafico svg').count()) > 0, 'gráfico');
+  await print(p, 'v067-painel');
+  /* a planilha muda e o painel acompanha */
+  await p.locator('.pl-aba:has-text("Dados")').click(); await p.waitForTimeout(200);
+  await digitarEm(p, 'B2', ['17']);
+  await p.locator('.pl-aba[data-painel]').click(); await p.waitForTimeout(300);
+  igual((await p.locator('[data-pn-valor]').innerText()).trim(), '44');
+});
+await caso('v0.6.7: Painel: arrastar encaixa na grade (linha dourada), Arrumar, Delete exclui e Ctrl+Z volta', async () => {
+  await painelComPecas(p);
+  const num = p.locator('.pn-t-numero');
+  const b0 = await num.boundingBox();
+  await p.mouse.move(b0.x + 30, b0.y + 30); await p.mouse.down();
+  await p.mouse.move(b0.x + 30, b0.y + 260, { steps: 8 }); await p.waitForTimeout(150);
+  certo(await p.locator('.pn-alvo').isVisible(), 'a linha dourada mostra o encaixe');
+  await p.mouse.up(); await p.waitForTimeout(300);
+  const b1 = await num.boundingBox();
+  certo(b1.y > b0.y + 150, `desceu: ${b0.y} → ${b1.y}`);
+  await cmd(p, 'painel.arrumar'); await p.waitForTimeout(300);
+  const ys = await p.locator('.pn-peca').evaluateAll((els) => els.map((e) => e.offsetTop));
+  certo(Math.min(...ys) <= 20, 'Arrumar subiu as peças');
+  await p.locator('.pn-t-texto').click(); await p.waitForTimeout(150);
+  await p.locator('.pn-area').focus();
+  await p.keyboard.press('Delete'); await p.waitForTimeout(250);
+  igual(await p.locator('.pn-peca').count(), 3, 'Delete tira a peça');
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(300);
+  igual(await p.locator('.pn-peca').count(), 4, 'Ctrl+Z volta');
+});
+await caso('v0.6.7: PDF do painel numa página e Salvar como Excel: abrir de novo traz o Painel', async () => {
+  await painelComPecas(p);
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'painel.pdf')]);
+  const pdf = new TextDecoder('latin1').decode(readFileSync(await dl.path()));
+  igual((pdf.match(/\/Type \/Page\b/g) || []).length, 1, 'uma página');
+  certo(pdf.includes('(34)') && pdf.includes('Painel da semana'), 'número e texto em vetor');
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dx] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const bytes = new Uint8Array(readFileSync(await dx.path()));
+  const { conteudo: c } = await lerXlsxNode(bytes);
+  const A = Object.values(c.abas).find((a) => a.painel);
+  certo(!!A, 'a aba voltou como Painel');
+  igual(A.painel.pecas.length, 4);
+});
+await caso('v0.6.7: Painel no celular: peças uma embaixo da outra, sem rolagem lateral', async () => {
+  const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const p2 = await ctx2.newPage();
+  await novaPlanilha(p2);
+  await p2.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));
+  await p2.keyboard.type('Painel'); await p2.waitForTimeout(250); await p2.keyboard.press('Enter');
+  await p2.waitForSelector('[data-pn-branco]');
+  await p2.click('[data-pn-add="texto"]'); await p2.waitForSelector('[data-pn-texto]');
+  await p2.fill('[data-pn-texto]', 'Primeiro'); await p2.click('[data-pn-ok]'); await p2.waitForTimeout(300);
+  await p2.waitForSelector('.pn-pilha .pn-peca');
+  const lateral = await p2.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  certo(!lateral, 'sem rolagem lateral');
+  igual(await p2.locator('.pl-alca-cel').count(), 0, 'sem as alças da seleção de células por cima do painel');
+  await print(p2, 'v067-celular-painel');
+  await ctx2.close();
+});
+await caso('v0.6.7: aba Gráfico: Duplicar, Baixar imagem, barras de erro, meta arrastável e Meus estilos', async () => {
+  await abrirAmostraNaPlanilha(p);
+  await celula(p, 'B1:C10');
+  await p.click('.tabs .tab:has-text("Inserir")');
+  await cmd(p, 'inserir.grafico'); await p.waitForSelector('[data-grafico-janela]');
+  await p.click('[data-gr-aplicar]'); await p.waitForSelector('.pl-obj-gr'); await p.waitForTimeout(400);
+  await cmd(p, 'grafico.duplicar'); await p.waitForTimeout(300);
+  igual(await p.locator('.pl-obj-gr').count(), 2, 'duplicou');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'grafico.imagem')]);
+  certo(/\.png$/.test(dl.suggestedFilename()), 'png');
+  const png = readFileSync(await dl.path());
+  igual(png.slice(1, 4).toString(), 'PNG');
+  await cmd(p, 'grafico.editar'); await p.waitForSelector('[data-grafico-janela]'); await p.waitForTimeout(300);
+  await p.locator('[data-ge-estilo=escuro]').click(); await p.waitForTimeout(150);
+  await p.locator('[data-ge-aba="tipo"]').click(); await p.locator('[data-ge="meta"]').fill('0,6'); await p.waitForTimeout(300);
+  const box = await p.locator('[data-gr-previa] [data-meta-arrastar]').boundingBox();
+  await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down();
+  await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(300);
+  const meta = Number((await p.locator('[data-ge="meta"]').inputValue()).replace(',', '.'));
+  certo(meta > 0.6, 'a meta subiu arrastando: ' + meta);
+  await p.locator('[data-ge-aba="series"]').click(); await p.locator('[data-ge-op="erro:pct"]').click(); await p.waitForTimeout(300);
+  certo((await p.locator('[data-gr-previa] [data-erro]').count()) > 3, 'barras de erro na prévia');
+  await print(p, 'v067-editor');
+  await p.click('[data-gr-aplicar]'); await p.waitForTimeout(300);
+  await cmd(p, 'grafico.modelo'); await p.waitForTimeout(200);
+  await p.locator('.janela input').fill('Escuro da qualidade'); await p.locator('.janela .btn.primary').click(); await p.waitForTimeout(300);
+  await cmd(p, 'grafico.editar'); await p.waitForSelector('[data-ge-modelos]');
+  certo((await p.locator('[data-ge-modelos]').innerText()).includes('Escuro da qualidade'), 'Meus estilos');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+});
+
+/* ---------- v0.6.8: teste real no Excel (estrutura imitada em amostra-v068.xlsx) e relatórios do Grok ---------- */
+const AMOSTRA_V068 = fileURLToPath(new URL('../testes/amostras/amostra-v068.xlsx', import.meta.url));
+async function abrirV068(pg, aba) {
+  await abrirAmostra(pg, AMOSTRA_V068);
+  await pg.click('[data-excel-abrir]'); await pg.waitForSelector('.pl-cv'); await pg.waitForTimeout(600);
+  if (aba) { await pg.locator(`.pl-aba:has-text("${aba}")`).click(); await pg.waitForTimeout(400); }
+}
+/* pixels da cor da seleção (--primary) num retângulo do canvas */
+const pixelsDaSelecao = (pg, r) => pg.evaluate((r) => {
+  const cv = document.querySelector('.pl-cv'); const k = cv.width / cv.getBoundingClientRect().width;
+  const cor = getComputedStyle(document.body).getPropertyValue('--primary').trim().replace('#', '');
+  const alvo = [0, 2, 4].map((i) => parseInt(cor.slice(i, i + 2), 16));
+  const d = cv.getContext('2d').getImageData(Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k)).data;
+  let n = 0;
+  for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - alvo[0]) < 30 && Math.abs(d[i + 1] - alvo[1]) < 30 && Math.abs(d[i + 2] - alvo[2]) < 30) n++;
+  return n;
+}, r);
+await caso('v0.6.8: zoom 80%, planilha rolada: escolher o cabeçalho congelado (última linha congelada) desenha a seleção nele, não na célula de cima', async () => {
+  await abrirV068(p, 'CON. COLETA');
+  for (let i = 0; i < 2; i++) { await p.locator('[aria-label="Diminuir o zoom"]').click(); await p.waitForTimeout(150); }
+  await p.mouse.move(700, 500);
+  for (let i = 0; i < 8; i++) { await p.mouse.wheel(0, 600); await p.waitForTimeout(60); }
+  await p.waitForTimeout(400);
+  await celula(p, 'C7'); await p.waitForTimeout(300);
+  const cv = await p.locator('.pl-cv').boundingBox();
+  /* a linha 7 (alta) fica logo acima da linha grossa do congelamento; as linhas 1 a 6 ficam em cima */
+  const emCima = await pixelsDaSelecao(p, { x: 140, y: 30, w: 120, h: 60 });
+  const noCab = await pixelsDaSelecao(p, { x: 140, y: 110, w: 120, h: 40 });
+  certo(noCab > 40 && emCima < 10, `seleção no cabeçalho: ${noCab}, em cima: ${emCima}`);
+  void cv;
+  await print(p, 'v068-selecao-congelada');
+  for (let i = 0; i < 2; i++) { await p.locator('[aria-label="Aumentar o zoom"]').click(); await p.waitForTimeout(100); }
+});
+await caso('v0.6.8: velocímetro dentro do grupo e logotipo que passa por coluna oculta voltam iguais no Excel salvo; proteção e senha também', async () => {
+  await abrirV068(p, 'VERIF. CLORO');
+  certo((await p.locator('.pl-aba:has-text("VERIF. CLORO")').getAttribute('title') || '').length >= 0);
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const z = (await import('../src/planilha/xlsx/zip.js')).lerZip(new Uint8Array(readFileSync(await dl.path())));
+  const arq = {}; for (const n of z.nomes) arq[n] = await z.texto(n);
+  const dv = Object.entries(arq).find(([k, v]) => /drawings\/drawing\d+\.xml$/.test(k) && /Painel do velocímetro/.test(v))[1];
+  certo(/<xdr:grpSp>(?:(?!<\/xdr:grpSp>)[\s\S])*<xdr:graphicFrame\b/.test(dv), 'gráfico dentro do grupo');
+  igual(Object.keys(arq).filter((k) => /^xl\/media\//.test(k)).length, 1, 'uma imagem só');
+  certo(Object.values(arq).some((v) => /<sheetProtection sheet="1"[^>]*password=/.test(v)), 'proteção com senha');
+});
+await caso('v0.6.8: Painel: Ctrl+Z desfaz um passo só; Ctrl+P baixa o PDF; "Nova tabela"; colar avisa', async () => {
+  await painelComPecas(p);
+  igual(await p.locator('.pn-peca').count(), 4);
+  await p.locator('.pn-area').focus();
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(300);
+  igual(await p.locator('.pn-peca').count(), 3, 'um passo só');
+  await p.keyboard.press('Control+y'); await p.waitForTimeout(300);
+  igual(await p.locator('.pn-peca').count(), 4);
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.keyboard.press('Control+p')]);
+  certo(/\.pdf$/.test(dl.suggestedFilename()), 'Ctrl+P baixa o PDF do painel');
+  await cmd(p, 'painel.tabela'); await p.waitForSelector('[data-pn-faixa]');
+  certo((await p.locator('.janela .jan-tit, .janela h2, .janela-cab').first().innerText()).includes('Nova tabela'), 'título');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+});
+await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparece no menu lateral', async () => {
+  await novaPlanilha(p);
+  await digitarEm(p, 'B2', ['5']);
+  await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
+  await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
+  certo((await p.locator('[data-versao]').innerText()).includes('v0.6.8'));
+});
+await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
+  const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const p2 = await ctx2.newPage();
+  await novaPlanilha(p2);
+  await p2.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));
+  await p2.keyboard.type('Painel'); await p2.waitForTimeout(250); await p2.keyboard.press('Enter');
+  await p2.waitForSelector('[data-pn-branco]');
+  await p2.click('[data-pn-add="texto"]'); await p2.waitForSelector('[data-pn-texto]');
+  await p2.fill('[data-pn-texto]', 'Primeiro texto bem comprido que precisa quebrar em várias linhas no celular (inventado)'); await p2.click('[data-pn-ok]'); await p2.waitForTimeout(300);
+  await p2.waitForSelector('[data-pn-add-cel] [data-pn-add="numero"]');
+  const tp = await p2.locator('.pn-peca').first().evaluate((e) => getComputedStyle(e).touchAction);
+  igual(tp, 'pan-y');
+  await ctx2.close();
+});
+
+await caso('v0.6.8: velocímetro do Excel: Girar e Tamanho do furo ficam em Tipo e dados, com nome para o leitor de tela', async () => {
+  await abrirAmostra(p, AMOSTRA_V066); await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-obj-gr'); await p.waitForTimeout(400);
+  await p.locator('.pl-obj-gr').first().dblclick(); await p.waitForSelector('[data-grafico-janela]'); await p.waitForTimeout(300);
+  await p.locator('[data-ge-aba="tipo"]').click(); await p.waitForTimeout(200);
+  igual(await p.locator('[data-ge-furo]').getAttribute('aria-label'), 'Tamanho do furo (%)');
+  igual(await p.locator('[data-ge-giro]').getAttribute('aria-label'), 'Girar (graus)');
+  await p.locator('[data-ge-aba="fundo"]').click(); await p.waitForTimeout(200);
+  igual(await p.locator('[data-ge-furo]').count(), 0, 'não fica em Fundo');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+  if (await p.locator('[data-ge-descartar]').count()) await p.locator('[data-ge-descartar]').click();
 });
 
 await navegador.close();

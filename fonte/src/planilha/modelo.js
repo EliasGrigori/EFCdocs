@@ -6,6 +6,7 @@
 import { chave, lerChave, letraCol, MAX_COL, MAX_LIN, normalFaixa } from './ref.js';
 import { erroPorCodigo, Erro } from './valores.js';
 import { normalizarObjetos } from './objetos.js';
+import { normalizarPainel } from './painel.js';
 
 export const LARG_PADRAO = 80; // px a 100% (o Excel usa 64 px; aqui um pouco mais largo para o toque)
 export const ALT_PADRAO = 22;
@@ -40,6 +41,8 @@ export function normalizarPlanilha(c) {
     out.abas[id] = { cel: {}, ...c.abas[id], id };
     /* v0.4.5: objetos sobre a grade (assinatura); o que vier quebrado ou com imagem estranha é descartado */
     if (out.abas[id].objs !== undefined) { const lista = normalizarObjetos(out.abas[id].objs); if (lista.length) out.abas[id].objs = lista; else delete out.abas[id].objs; }
+    /* v0.6.7: aba Painel */
+    if (out.abas[id].painel !== undefined) { if (out.abas[id].painel && typeof out.abas[id].painel === 'object') out.abas[id].painel = normalizarPainel(out.abas[id].painel); else delete out.abas[id].painel; }
   }
   out.ordem = ordem;
   if (!out.ordem.length) return planilhaVazia();

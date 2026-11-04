@@ -42,7 +42,6 @@ const NOVAS = ('ACOT ACOTH AGGREGATE ARABIC ARRAYTOTEXT BASE BETA.DIST BETA.INV 
   'VALUETOTEXT VAR.P VAR.S VSTACK WEBSERVICE WEIBULL.DIST WORKDAY.INTL WRAPCOLS WRAPROWS XLOOKUP XMATCH XOR Z.TEST ANCHORARRAY').split(' ');
 const COM_XLWS = new Set(['FILTER', 'SORT', 'SORTBY']);
 const SET_NOVAS = new Set(NOVAS);
-const RX_FN = /(^|[^\w.À-ÿ])((?:_xlfn\.|_xlws\.|_xlpm\.)*)([A-Za-z][\w.]*)\(/g;
 
 /** Do arquivo para o EFCdocs: sem prefixos; ANCHORARRAY(A1) → A1#; _xlpm.x → x (nomes do LET/LAMBDA). */
 export function tirarPrefixos(f) {
@@ -70,16 +69,59 @@ function trocarTro(f) {
   return f;
 }
 
-/** Do EFCdocs para o arquivo: põe os prefixos; A1# → _xlfn.ANCHORARRAY(A1). */
+/** Os argumentos de uma chamada: s[iAbre] === '(' → [{ ini, fim }] (fim exclusivo) e o índice do ')' que fecha. */
+function argumentos(s, iAbre) {
+  const out = [];
+  let prof = 0, ini = iAbre + 1, i = iAbre;
+  for (; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '"' || ch === "'") { const q = ch; i++; while (i < s.length && !(s[i] === q && s[i + 1] !== q)) i += s[i] === q ? 2 : 1; continue; }
+    if (ch === '(' || ch === '{') prof++;
+    else if (ch === ')' || ch === '}') { prof--; if (prof === 0) { out.push({ ini, fim: i }); return { args: out, fecha: i }; } }
+    else if (ch === ',' && prof === 1) { out.push({ ini, fim: i }); ini = i + 1; }
+  }
+  return { args: out, fecha: -1 };
+}
+
+/** v0.6.8: nomes do LET e do LAMBDA (o Excel exige _xlpm. neles; sem o prefixo ele "repara" o arquivo e apaga a fórmula). */
+function nomesDoLet(f) {
+  const nomes = new Set();
+  const rx = /(?<![\w.À-ÿ])(?:_xlfn\.)?(LET|LAMBDA)\(/gi;
+  for (const m of f.matchAll(rx)) {
+    const { args, fecha } = argumentos(f, m.index + m[0].length - 1);
+    if (fecha < 0 || args.length < 2) continue;
+    const ehLet = m[1].toUpperCase() === 'LET';
+    args.forEach((a, i) => {
+      if (i === args.length - 1 || (ehLet && i % 2 === 1)) return;
+      const n = f.slice(a.ini, a.fim).trim().replace(/^_xlpm\./i, '');
+      if (/^[A-Za-z_À-ÿ][\wÀ-ÿ.]*$/.test(n) && !/^[A-Za-z]{1,3}\d+$/.test(n)) nomes.add(n.toLowerCase());
+    });
+  }
+  return nomes;
+}
+
+const TRO = { '2,2': 'TRAILING', '1,1': 'LEADING', '3,3': 'ALL' };
+
+/** Do EFCdocs para o arquivo: põe os prefixos; A1# → _xlfn.ANCHORARRAY(A1); nomes do LET/LAMBDA com _xlpm.;
+ *  TRIMRANGE(ref,2,2) volta como o Excel grava (_xlfn._TRO_TRAILING(ref)). */
 export function porPrefixos(f) {
   let s = foraDeTexto(f, (t) => t.replace(/((?:'(?:[^']|'')*'|[\wÀ-ÿ.]+)!)?(\$?[A-Z]{1,3}\$?\d+)#/g, (_, aba, ref) => `_xlfn.ANCHORARRAY(${aba || ''}${ref})`), true);
-  s = foraDeTexto(s, (t) => t.replace(RX_FN, (m, antes, pre, nome) => {
+  s = foraDeTexto(s, (t) => t.replace(/(?<![\w.À-ÿ])TRIMRANGE\(((?:'(?:[^']|'')*'!|[\wÀ-ÿ.]+!)?\$?[A-Z]{0,3}\$?\d*(?::\$?[A-Z]{0,3}\$?\d*)?),\s*([123]),\s*([123])\)/gi,
+    (m, ref, a, b) => (TRO[a + ',' + b] && ref ? `_xlfn._TRO_${TRO[a + ',' + b]}(${ref})` : m)), true);
+  /* lookbehind (e não "consumir" o caractere de antes): senão a função de dentro, como UNIQUE em SORT(UNIQUE(...)), ficava sem prefixo */
+  s = foraDeTexto(s, (t) => t.replace(/(?<![\w.À-ÿ])((?:_xlfn\.|_xlws\.|_xlpm\.)*)([A-Za-z][\w.]*)\(/g, (m, pre, nome) => {
     const up = nome.toUpperCase();
     if (pre) return m;
-    if (COM_XLWS.has(up)) return `${antes}_xlfn._xlws.${nome}(`;
-    if (SET_NOVAS.has(up)) return `${antes}_xlfn.${nome}(`;
+    if (COM_XLWS.has(up)) return `_xlfn._xlws.${nome}(`;
+    if (SET_NOVAS.has(up)) return `_xlfn.${nome}(`;
     return m;
   }));
+  if (/LET\(|LAMBDA\(/i.test(s)) {
+    const nomes = nomesDoLet(s);
+    if (nomes.size) {
+      s = foraDeTexto(s, (t) => t.replace(/(?<![\w.!$:À-ÿ])([A-Za-z_À-ÿ][\wÀ-ÿ.]*)(?![\w.!(:À-ÿ])/g, (m, n) => (nomes.has(n.toLowerCase()) ? '_xlpm.' + n : m)));
+    }
+  }
   return s;
 }
 

@@ -40,7 +40,7 @@ const FAIXAS = {
       { nome: 'Estilos', itens: [['g', 'formatar.condicional'], ['g', 'inserir.tabela']] },
       { nome: 'Edição', itens: [['g', 'formula.autosoma'], ['lin', ['planilha.limparConteudo', 'formatar.limpar', 'editar.historico'], 3], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
     { id: 'inserir', nome: 'Inserir', grupos: [
-      { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['g', 'planilha.inserirLinha'], ['g', 'planilha.inserirColuna']] }, /* v0.6.3 (R02): botões grandes com nome, para não confundir com Nova aba */
+      { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['g', 'inserir.painel'], ['g', 'planilha.inserirLinha'], ['g', 'planilha.inserirColuna']] }, /* v0.6.3 (R02): botões grandes com nome, para não confundir com Nova aba; v0.6.7: Painel */
       { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
       { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.formas'], ['g', 'inserir.grafico'], ['g', 'inserir.assinatura']] },
       { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.tirarLink'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
@@ -105,14 +105,21 @@ export const BARRA_CURTA = {
 
 /** v0.6.3: aba que só aparece com um gráfico selecionado (como no Excel) */
 export const ABA_GRAFICO = { id: 'grafico', nome: 'Gráfico', contextual: true, grupos: [
-  { nome: 'Gráfico', itens: [['g', 'grafico.editar'], ['g', 'grafico.estilo'], ['g', 'grafico.cores'], ['g', 'grafico.semaforo']] },
+  { nome: 'Gráfico', itens: [['g', 'grafico.editar'], ['g', 'grafico.estilo'], ['g', 'grafico.cores'], ['g', 'grafico.semaforo'], ['g', 'grafico.erro']] },
+  { nome: 'Usar de novo', itens: [['g', 'grafico.duplicar'], ['g', 'grafico.modelo'], ['g', 'grafico.imagem']] }, /* v0.6.7 */
   { nome: 'Remover', itens: [['g', 'grafico.excluir']] },
   { nome: 'Faixa', itens: [['g', 'exibir.abaGrafico']] }] };
 
-/** Abas da faixa do módulo, só com o que vale nele. ctx.grafico: há um gráfico selecionado. */
+/** v0.6.7: aba que aparece quando a aba da planilha é um Painel */
+export const ABA_PAINEL = { id: 'painel', nome: 'Painel', contextual: true, grupos: [
+  { nome: 'Pôr no painel', itens: [['g', 'painel.grafico'], ['g', 'painel.numero'], ['g', 'painel.texto'], ['g', 'painel.tabela']] },
+  { nome: 'Peça', itens: [['g', 'painel.mudar'], ['g', 'painel.excluir']] },
+  { nome: 'Painel', itens: [['g', 'painel.arrumar'], ['g', 'painel.pdf']] }] };
+
+/** Abas da faixa do módulo, só com o que vale nele. ctx.grafico: há um gráfico selecionado; ctx.painel: a aba é um Painel. */
 export function abasDoModulo(mod, ctx = {}) {
   const vale = (id) => PorId[id] && valeNoModulo(PorId[id], mod);
-  const base = [...(FAIXAS[mod] || []), ...(mod === 'planilha' && ctx.grafico ? [ABA_GRAFICO] : [])];
+  const base = [...(FAIXAS[mod] || []), ...(mod === 'planilha' && ctx.painel ? [ABA_PAINEL] : []), ...(mod === 'planilha' && ctx.grafico ? [ABA_GRAFICO] : [])];
   return base.map((aba) => ({
     ...aba,
     grupos: aba.grupos.map((g) => ({
@@ -128,6 +135,9 @@ export const ROTULO_CURTO = {
   'exibir.abaGrafico': 'Aba Gráfico',
   'inserir.tirarLink': 'Tirar link',
   'grafico.editar': 'Editar', 'grafico.estilo': 'Estilo rápido', 'grafico.cores': 'Cores', 'grafico.semaforo': 'Semáforo', 'grafico.excluir': 'Excluir',
+  'grafico.imagem': 'Baixar imagem', 'grafico.duplicar': 'Duplicar', 'grafico.modelo': 'Guardar estilo', 'grafico.erro': 'Barras de erro',
+  'inserir.painel': 'Painel', 'painel.grafico': 'Gráfico', 'painel.numero': 'Número', 'painel.texto': 'Texto', 'painel.tabela': 'Tabela',
+  'painel.arrumar': 'Arrumar', 'painel.pdf': 'PDF', 'painel.mudar': 'Mudar', 'painel.excluir': 'Excluir',
   'exibir.faixaTudo': 'Mostrar tudo', 'exibir.faixaAbas': 'Só as abas', 'exibir.faixaOculta': 'Esconder',
   'exibir.topoCompleto': 'Completa', 'exibir.topoCompacto': 'Só as abas', 'exibir.barraFormula': 'Barra fx',
   'exibir.menuCompleto': 'Completo', 'exibir.menuIcones': 'Só ícones', 'exibir.menuOculto': 'Esconder',
@@ -412,13 +422,20 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
   const temArquivo = !!ficha;
   /* v0.6.3: a aba "Gráfico" abre sozinha quando um gráfico é selecionado e volta para a anterior quando deixa de ser */
   const temGrafico = !!(cx.contexto && cx.contexto.grafico);
+  const temPainel = !!(cx.contexto && cx.contexto.painel); // v0.6.7
   const antesDoGrafico = useRef('inicio');
   const abaAtual = useRef(aba);
   abaAtual.current = aba;
   useEffect(() => {
     if (temGrafico) { if (abaAtual.current !== 'grafico') { antesDoGrafico.current = abaAtual.current; setAba('grafico'); } }
-    else if (abaAtual.current === 'grafico') setAba(antesDoGrafico.current || 'inicio');
+    else if (abaAtual.current === 'grafico') setAba(temPainel ? 'painel' : antesDoGrafico.current || 'inicio');
   }, [temGrafico]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* v0.6.7: na aba Painel a faixa abre a aba "Painel"; ao sair dela volta para a anterior */
+  const antesDoPainel = useRef('inicio');
+  useEffect(() => {
+    if (temPainel) { if (abaAtual.current !== 'painel' && abaAtual.current !== 'grafico') { antesDoPainel.current = abaAtual.current; setAba('painel'); } }
+    else if (abaAtual.current === 'painel') setAba(antesDoPainel.current || 'inicio');
+  }, [temPainel]); // eslint-disable-line react-hooks/exhaustive-deps
   const mostraMenu = cel || prefs.menu === 'oculto';
   const layoutA = prefs.layout === 'A';
   /* v0.4.9 (L07): no celular as abas ficam escondidas atrás do botão "Abas" da barra rápida */

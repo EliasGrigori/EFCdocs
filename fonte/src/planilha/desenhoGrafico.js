@@ -320,6 +320,22 @@ function caminho(pts, suave) {
 }
 
 /* ---------- textos dos rótulos de dados ---------- */
+/** v0.6.7: quanto a barra de erro sobe e desce no ponto de valor v (S.erro = { tipo: 'pct'|'fixo'|'desvio', v }) */
+export function tamanhoDoErro(S, v) {
+  const e = S && S.erro;
+  if (!e || !ehNum(e.v) || !ehNum(v)) return 0;
+  if (e.tipo === 'pct') return Math.abs(v) * e.v / 100;
+  if (e.tipo === 'fixo') return Math.abs(e.v);
+  const xs = (S.vals.num || []).filter(ehNum);
+  if (xs.length < 2) return 0;
+  const m = xs.reduce((a, b) => a + b, 0) / xs.length;
+  return Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1)) * Math.abs(e.v);
+}
+function barraDeErro(add, cx, pa, pb, cap, horiz, cor) {
+  const d = horiz ? `M${r1(pa)} ${r1(cx)}H${r1(pb)}M${r1(pa)} ${r1(cx - cap)}V${r1(cx + cap)}M${r1(pb)} ${r1(cx - cap)}V${r1(cx + cap)}`
+    : `M${r1(cx)} ${r1(pa)}V${r1(pb)}M${r1(cx - cap)} ${r1(pa)}H${r1(cx + cap)}M${r1(cx - cap)} ${r1(pb)}H${r1(cx + cap)}`;
+  add(`<path d="${d}" fill="none" stroke="${cor}" stroke-width="1.2" stroke-linecap="round" data-erro="1"/>`);
+}
 function textoRotulo(P, R, S, k, v, tot) {
   const p = [];
   /* v0.6.6: "valor das células" (o Excel põe na frente) */
@@ -427,7 +443,7 @@ function velocimetro(P, G, A, { C, add, fs, corTexto, mini }) {
 }
 
 /* ============================================================ gráficos com eixos ============================================================ */
-function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T }) {
+function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T, w = A.x + A.w, h = A.y + A.h }) {
   const E = P.eixos || {};
   const ex = E.x || { tipo: 'cat', pos: 'b' }, ey = E.y || { tipo: 'val', pos: 'l' };
   const grupos = P.grupos.filter((G) => G.tipo !== 'pie' && G.tipo !== 'doughnut' && G.tipo !== 'gauge');
@@ -459,7 +475,7 @@ function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T }) {
           for (const S of G.series) { const v = (S.vals.num || [])[k]; if (ehNum(v)) { if (v >= 0) pos += v; else neg += v; tot += Math.abs(v); } }
           if (G.agrup === 'percentStacked') vs.push(tot ? pos / tot : 0, tot ? neg / tot : 0); else vs.push(pos, neg);
         }
-      } else for (const S of G.series) vs.push(...(S.vals.num || []));
+      } else for (const S of G.series) { vs.push(...(S.vals.num || [])); if (S.erro) for (const v of S.vals.num || []) { const e = tamanhoDoErro(S, v); if (e) vs.push(v + e, v - e); } }
     }
     for (const r of P.ref || []) if (!!r.eixo2 === e2) vs.push(r.v);
     return { vs: vs.filter(ehNum), temBarra, pct };
@@ -615,6 +631,7 @@ function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T }) {
         const raio = P.nativo && !P.colado && !st ? 2 : 0;
         const r = horiz ? { x: Math.min(pa, pb), y: c0, w: Math.max(1, Math.abs(pb - pa)), h: Math.max(1, larg - (P.colado ? 0.5 : 0)) } : { x: c0, y: Math.min(pa, pb), w: Math.max(1, larg - (P.colado ? 0.5 : 0)), h: Math.max(1, Math.abs(pb - pa)) };
         add(`<rect x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(r.w)}" height="${r1(r.h)}" rx="${raio}"${C.preench(pr, cor)}${st}${pt.efeito ? C.efeito(pt.efeito) : ''} data-parte="ponto:${i}:${k}"/>`);
+        if (S.erro && !emp && !tot) { const e = tamanhoDoErro(S, v0); if (e) barraDeErro(add, horiz ? r.y + r.h / 2 : r.x + r.w / 2, pYg(v0 + e), pYg(v0 - e), Math.max(2, Math.min(6, (horiz ? r.h : r.w) * 0.3)), horiz, corTexto); }
         const R2 = rotuloDoPonto(S, k);
         if (R2 && !mini && (R2.val || R2.pct || R2.cat || R2.nome || R2.faixa)) {
           const t = textoRotulo(P, R2, S, k, v0, tot ? tot[k] : 0);
@@ -707,6 +724,7 @@ function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T }) {
         const mm = P.nativo && !m.preench ? { ...m, preench: { t: 'solido', cor: '#ffffff' }, contorno: m.contorno || { t: 'solido', cor, larg: 1.5 } } : m;
         add(marcador(mm, p[0], p[1], cor, C, mini ? 0.6 : 1));
       });
+      if (S.erro && !emp && G.tipo === 'line') pts.forEach((p) => { if (!p) return; const v = (S.vals.num || [])[p[2]]; const e = tamanhoDoErro(S, v); if (e) barraDeErro(add, p[0], pYg(v + e), pYg(v - e), 4, false, cor); });
       add('</g>');
       /* rótulos */
       if (!mini) pts.forEach((p) => {
@@ -745,9 +763,17 @@ function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T }) {
   /* linhas de referência (meta, LSC, média, LIC, 80% do Pareto) */
   for (const r of P.ref || []) {
     const p = r1((r.eixo2 && EY2 ? pY2 : pY)(r.v));
-    if (horiz) { if (!(p >= x0 - 1 && p <= x1 + 1)) continue; add(`<line x1="${p}" y1="${r1(y0)}" x2="${p}" y2="${r1(y1)}" stroke="${r.cor}" stroke-width="1.5"${r.tr || r.eixo2 ? ' stroke-dasharray="6 4"' : ''}/>`); continue; }
+    if (horiz) {
+      if (!(p >= x0 - 1 && p <= x1 + 1)) continue;
+      add(`<line x1="${p}" y1="${r1(y0)}" x2="${p}" y2="${r1(y1)}" stroke="${r.cor}" stroke-width="1.5"${r.tr || r.eixo2 ? ' stroke-dasharray="6 4"' : ''} data-parte="meta"/>`);
+      /* v0.6.8 (Grok): nas barras deitadas a meta é vertical e se arrasta para o lado */
+      if (!mini && r.arrastar) { const px0 = pY(EY.min), px1 = pY(EY.max); add(`<line x1="${p}" y1="${r1(y0)}" x2="${p}" y2="${r1(y1)}" stroke="#000" stroke-opacity="0" stroke-width="12" data-parte="meta" data-meta-eixo="x" data-meta-arrastar="${EY.min},${r1(px0)},${EY.max},${r1(px1)}" style="cursor:ew-resize"/>`); }
+      continue;
+    }
     if (!(p >= y0 - 1 && p <= y1 + 1)) continue;
     add(`<line x1="${r1(x0)}" y1="${p}" x2="${r1(x1)}" y2="${p}" stroke="${r.cor}" stroke-width="1.5"${r.tr || r.eixo2 ? ' stroke-dasharray="6 4"' : ''} data-parte="meta"/>`);
+    /* v0.6.7: a linha da meta se arrasta no editor (faixa invisível mais grossa, com a escala para virar valor) */
+    if (!mini && r.arrastar) { const E2 = r.eixo2 && EY2 ? EY2 : EY, py0 = (r.eixo2 && EY2 ? pY2 : pY)(E2.min), py1 = (r.eixo2 && EY2 ? pY2 : pY)(E2.max); add(`<line x1="${r1(x0)}" y1="${p}" x2="${r1(x1)}" y2="${p}" stroke="#000" stroke-opacity="0" stroke-width="12" data-parte="meta" data-meta-arrastar="${E2.min},${r1(py0)},${E2.max},${r1(py1)}" style="cursor:ns-resize"/>`); }
     if (r.rot && !mini) add(txt(x1 - 4, p - 4, r.rot, { tam: fs - 1, cor: r.cor, negrito: true, anc: 'end' }).replace('<text ', `<text paint-order="stroke" stroke="${(P.fundo && P.fundo.preench && P.fundo.preench.cor) || T.fundo}" stroke-width="3" stroke-linejoin="round" `));
   }
 
@@ -800,6 +826,13 @@ function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T }) {
       if (!t) return;
       const tam = ehNum(t.tam) ? t.tam * PT : fs - 1;
       const o = { tam, cor: t.cor || corFraco, negrito: t.negrito !== false, anc: 'middle', parte: onde === 'b' ? 'eixo:x' : onde === 'r' ? 'eixo:y2' : 'eixo:y' };
+      /* v0.6.8: lugar escolhido à mão no Excel (canto de cima, em frações do gráfico) */
+      if (t.lay && ehNum(t.lay.x) && ehNum(t.lay.y)) {
+        const lw = larguraTexto(t.texto, tam, o.negrito);
+        if (onde === 'b') add(txt(t.lay.x * w + lw / 2, t.lay.y * h + tam, t.texto, o));
+        else add(txt(t.lay.x * w + tam * 0.9, t.lay.y * h + lw / 2, t.texto, { ...o, rot: -90 }));
+        return;
+      }
       if (onde === 'l') add(txt(A.x + tam, (y0 + y1) / 2, t.texto, { ...o, rot: -90 }));
       else if (onde === 'r') add(txt(A.x + A.w - 2, (y0 + y1) / 2, t.texto, { ...o, rot: 90 }));
       else add(txt((x0 + x1) / 2, A.y + A.h - 2, t.texto, o));

@@ -37,7 +37,10 @@ export function RelatorioExcel({ rel }) {
   if (ex.condicionais > 0) veio.push(<><b>Cores por regra (formatação condicional)</b>: <Dest tom="verde">{n(ex.condicionais)} {plural(ex.condicionais, 'regra', 'regras')}</Dest>.</>);
   if (ex.graficos > 0) veio.push(<><b>Gráficos</b>: <Dest tom="verde">{n(ex.graficos)} {plural(ex.graficos, 'gráfico', 'gráficos')}</Dest> (desenhados pelo EFCdocs; ao salvar, voltam como gráficos do Excel).</>);
   if (ex.formas > 0) veio.push(<><b>Formas</b>: <Dest tom="verde">{n(ex.formas)} {plural(ex.formas, 'forma ou grupo', 'formas e grupos')}</Dest> (painéis, setas, caixas de texto e botões com link; ao salvar, voltam para o Excel).</>);
-  if (ex.notas > 0) veio.push(<><b>Comentários</b>: <Dest tom="verde">{n(ex.notas)} {plural(ex.notas, 'comentário', 'comentários')}</Dest>{ex.conversas > 0 ? <>, sendo {n(ex.conversas)} {plural(ex.conversas, 'conversa', 'conversas')} do Excel 365 (ao salvar, viram anotações comuns)</> : null}.</>);
+  /* v0.6.8 (Grok): o total junta anotações e conversas ("12 comentários (9 eram conversas do Excel 365...)") */
+  const totCom = (ex.notas || 0) + (ex.conversas || 0);
+  if (totCom > 0) veio.push(<><b>Comentários</b>: <Dest tom="verde">{n(totCom)} {plural(totCom, 'comentário', 'comentários')}</Dest>{ex.conversas > 0 ? <> ({ex.conversas === totCom ? (totCom === 1 ? 'era conversa' : 'todos eram conversas') : <>{n(ex.conversas)} {plural(ex.conversas, 'era conversa', 'eram conversas')}</>} do Excel 365; ao salvar, {plural(ex.conversas, 'vira anotação comum', 'viram anotações comuns')})</> : null}.</>);
+  if (ex.protegidas > 0) veio.push(<><b>Abas protegidas</b>: <Dest tom="verde">{n(ex.protegidas)} {plural(ex.protegidas, 'aba', 'abas')}</Dest> ({ex.nomesProtegidas && ex.nomesProtegidas.length ? ex.nomesProtegidas.slice(0, 4).join(', ') + (ex.nomesProtegidas.length > 4 ? '…' : '') + '; ' : ''}aqui ficam travadas, só as células liberadas mudam; ao salvar, voltam protegidas, com a mesma senha).</>);
   return (
     <div className="rel-excel">
       <div className="rel-nums">

@@ -24,9 +24,18 @@ export function geometria({ linhas, colunas, z, sx, sy, cong, W, H }) {
   const ultimaVisivel = Math.min(MAX_LIN, linhas.em(linhas.pos(cl) + sy + H / z) + 2);
   const hw = Math.round(Math.max(CAB_W, 14 + 8 * String(ultimaVisivel).length) * Math.max(0.8, z)), hh = Math.round(CAB_H * Math.max(0.8, z));
   const fy = linhas.pos(cl) * z, fx = colunas.pos(cc) * z;
-  const baseY = linhas.pos(cl) + sy, baseX = colunas.pos(cc) + sx;
+  /* v0.6.8 (Elias): com linhas congeladas, a rolagem anda de linha em linha, como no Excel (antes a linha aparecia
+     cortada pela metade embaixo do cabeçalho e parecia passar por cima das congeladas); o mesmo com colunas congeladas */
+  let baseY = linhas.pos(cl) + sy, baseX = colunas.pos(cc) + sx;
+  if (cl > 0 && sy > 0) { const l = linhas.em(baseY); const p0 = linhas.pos(l); if (p0 < baseY - 0.01) baseY = baseY - p0 > linhas.tam(l) / 2 ? linhas.pos(l + 1) : p0; }
+  if (cc > 0 && sx > 0) { const c = colunas.em(baseX); const p0 = colunas.pos(c); if (p0 < baseX - 0.01) baseX = baseX - p0 > colunas.tam(c) / 2 ? colunas.pos(c + 1) : p0; }
   const yDe = (l) => (l < cl ? hh + linhas.pos(l) * z : hh + fy + (linhas.pos(l) - baseY) * z);
   const xDe = (c) => (c < cc ? hw + colunas.pos(c) * z : hw + fx + (colunas.pos(c) - baseX) * z);
+  /* v0.6.8: a borda de baixo (ou da direita) de uma linha/coluna. yDe(l + 1) não serve na última linha congelada:
+     a linha seguinte já é da parte que rola e, com a planilha rolada, ficava lá em cima (a seleção do cabeçalho
+     congelado aparecia na célula de cima) */
+  const yFim = (l) => yDe(l) + linhas.tam(l) * z;
+  const xFim = (c) => xDe(c) + colunas.tam(c) * z;
   const linEm = (y) => {
     if (y < hh) return -1;
     if (y < hh + fy) return linhas.em((y - hh) / z);
@@ -40,7 +49,7 @@ export function geometria({ linhas, colunas, z, sx, sy, cong, W, H }) {
   const l0 = linhas.em(baseY), c0 = colunas.em(baseX);
   let l1 = linEm(H - 1); if (l1 < 0) l1 = l0;
   let c1 = colEm(W - 1); if (c1 < 0) c1 = c0;
-  return { hw, hh, fy, fx, cl, cc, yDe, xDe, linEm, colEm, l0, l1: Math.min(MAX_LIN - 1, l1 + 1), c0, c1: Math.min(MAX_COL - 1, c1 + 1), z, W, H, linhas, colunas };
+  return { hw, hh, fy, fx, cl, cc, yDe, xDe, yFim, xFim, linEm, colEm, l0, l1: Math.min(MAX_LIN - 1, l1 + 1), c0, c1: Math.min(MAX_COL - 1, c1 + 1), z, W, H, linhas, colunas };
 }
 
 /* ---------- cores ---------- */
@@ -181,6 +190,12 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
   const aba = c.abas[abaId];
   const { z } = G;
   const vistas = new Set();
+  /* v0.6.8 (Elias): tudo no pixel da tela. Com a tela em 125% ou 150% (comum no Windows), a linha de 1 px caía entre
+     dois pixels e saía borrada e cinza (o preto da borda virava cinza, a grade e as cores ficavam sem força) */
+  const dpr = p.dpr || 1;
+  const px = (v) => Math.round(v * dpr) / dpr; // borda de um retângulo
+  const meio = (v, n) => (Math.round(v * dpr) + (n % 2 ? 0.5 : 0)) / dpr; // linha de n pixels da tela
+  const preencher = (x, y, w, h) => { const x0 = px(x), y0 = px(y); ctx.fillRect(x0, y0, px(x + w) - x0, px(y + h) - y0); };
   /* fundos */
   for (let l = la; l <= lb; l++) {
     const h = G.linhas.tam(l) * z;
@@ -191,7 +206,7 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       if (!w) continue;
       const cel = aba.cel[chave(l, col)];
       const e = estiloVisto(c, cel, motor, abaId, l, col);
-      if (e.fundo) { ctx.fillStyle = e.fundo; ctx.fillRect(G.xDe(col), y, w, h); }
+      if (e.fundo) { ctx.fillStyle = e.fundo; preencher(G.xDe(col), y, w, h); }
     }
   }
   /* mescladas: fundo e área */
@@ -202,22 +217,22 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
     const R = retMescla(G, m, reg);
     if (!R) continue;
     ctx.fillStyle = e.fundo || cores.fundo;
-    ctx.fillRect(R.x, R.y, R.w, R.h);
+    preencher(R.x, R.y, R.w, R.h);
   }
   /* linhas de grade */
   if (p.grade) {
     ctx.strokeStyle = cores.grade;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1 / dpr;
     ctx.beginPath();
     for (let l = la; l <= lb + 1; l++) {
       if (!G.linhas.tam(l - 1) && l > 0) continue;
-      const y = Math.round(G.yDe(l)) - 0.5;
-      ctx.moveTo(G.xDe(ca), y); ctx.lineTo(G.xDe(cb + 1), y);
+      const y = meio(G.yDe(l) - 1 / dpr, 1);
+      ctx.moveTo(G.xDe(ca), y); ctx.lineTo(G.xFim(cb), y);
     }
     for (let col = ca; col <= cb + 1; col++) {
       if (!G.colunas.tam(col - 1) && col > 0) continue;
-      const x = Math.round(G.xDe(col)) - 0.5;
-      ctx.moveTo(x, G.yDe(la)); ctx.lineTo(x, G.yDe(lb + 1));
+      const x = meio(G.xDe(col) - 1 / dpr, 1);
+      ctx.moveTo(x, G.yDe(la)); ctx.lineTo(x, G.yFim(lb));
     }
     ctx.stroke();
     /* apaga a grade dentro das mescladas e das células pintadas (como o Excel) */
@@ -228,7 +243,7 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       const R = retMescla(G, m, reg);
       if (!R) continue;
       ctx.fillStyle = e.fundo || cores.fundo;
-      ctx.fillRect(R.x + 0.5, R.y + 0.5, R.w - 1.5, R.h - 1.5);
+      { const x0 = px(R.x), y0 = px(R.y); ctx.fillRect(x0, y0, px(R.x + R.w) - x0 - 1 / dpr, px(R.y + R.h) - y0 - 1 / dpr); }
     }
   }
   /* textos */
@@ -267,16 +282,21 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       if (!e.bd) continue;
       const x = G.xDe(col), y = G.yDe(l), w = G.colunas.tam(col) * z, h = G.linhas.tam(l) * z;
       ctx.strokeStyle = e.bdc || cores.borda;
-      const lado = (k, x1, y1, x2, y2) => {
+      /* largura em pixels da tela: fina = 1 (2 na tela de 200%), média = 2, grossa = 3, como o Excel */
+      const nPx = (k) => Math.max(1, Math.round((e.bd[k] === 3 ? 3 : e.bd[k] === 2 ? 2 : 1) * Math.max(1, Math.floor(dpr))));
+      const lado = (k, horiz, v, a1, a2) => {
         if (!e.bd[k]) return;
-        ctx.lineWidth = e.bd[k] === 3 ? 3 : e.bd[k] === 2 ? 2 : 1;
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        const n = nPx(k);
+        ctx.lineWidth = n / dpr;
+        const q = meio(v - 1 / dpr, n);
+        ctx.beginPath();
+        if (horiz) { ctx.moveTo(px(a1) - (n - 1) / dpr / 2, q); ctx.lineTo(px(a2), q); } else { ctx.moveTo(q, px(a1) - (n - 1) / dpr / 2); ctx.lineTo(q, px(a2)); }
+        ctx.stroke();
       };
-      const r = (n) => Math.round(n) - 0.5;
-      lado('t', x, r(y), x + w, r(y));
-      lado('b', x, r(y + h), x + w, r(y + h));
-      lado('l', r(x), y, r(x), y + h);
-      lado('r', r(x + w), y, r(x + w), y + h);
+      lado('t', true, y, x, x + w);
+      lado('b', true, y + h, x, x + w);
+      lado('l', false, x, y, y + h);
+      lado('r', false, x + w, y, y + h);
     }
   }
   /* comentários: triângulo vermelho no canto de cima, à direita (como o Excel) */
@@ -286,7 +306,7 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       if (!q || q.l < la || q.l > lb || q.c < ca || q.c > cb) continue;
       if (!G.linhas.tam(q.l) || !G.colunas.tam(q.c)) continue;
       const m = mesc.length ? mesclaEm(mesc, q.l, q.c) : null;
-      const xd = G.xDe(m ? m.c2 + 1 : q.c + 1), yt = G.yDe(q.l);
+      const xd = m ? G.xFim(m.c2) : G.xFim(q.c), yt = G.yDe(q.l);
       const t = Math.max(5, 6 * z);
       ctx.fillStyle = '#c00000';
       ctx.beginPath(); ctx.moveTo(xd, yt); ctx.lineTo(xd - t, yt); ctx.lineTo(xd, yt + t); ctx.closePath(); ctx.fill();
@@ -425,7 +445,7 @@ function desenharSelecao(p, q) {
   const z = G.z;
   const ret = (f) => {
     const x = G.xDe(f.c1), y = G.yDe(f.l1);
-    return { x, y, w: G.xDe(f.c2 + 1) - x, h: G.yDe(f.l2 + 1) - y };
+    return { x, y, w: G.xFim(f.c2) - x, h: G.yFim(f.l2) - y };
   };
   /* referências da fórmula sendo digitada (cores iguais às da fórmula) */
   for (const r of p.refsFormula || []) {
@@ -572,7 +592,7 @@ export function ondeCaiu(G, x, y) {
   if (x < hw && y < hh) return { tipo: 'canto' };
   if (y < hh) {
     const c = G.colEm(x);
-    const xd = G.xDe(c + 1);
+    const xd = G.xFim(c);
     const xe = G.xDe(c);
     if (Math.abs(x - xd) <= 4) return { tipo: 'bordaCol', c };
     if (Math.abs(x - xe) <= 4 && c > 0) return { tipo: 'bordaCol', c: c - 1 };
@@ -580,7 +600,7 @@ export function ondeCaiu(G, x, y) {
   }
   if (x < hw) {
     const l = G.linEm(y);
-    const yd = G.yDe(l + 1);
+    const yd = G.yFim(l);
     const ye = G.yDe(l);
     if (Math.abs(y - yd) <= 3) return { tipo: 'bordaLin', l };
     if (Math.abs(y - ye) <= 3 && l > 0) return { tipo: 'bordaLin', l: l - 1 };

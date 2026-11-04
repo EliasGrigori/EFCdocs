@@ -22,10 +22,9 @@ export function ancoraMais(aba, l, c, dx, dy, ox, oy) {
   let x = dx + ox, y = dy + oy;
   while (x < 0 && c > 0) { c--; x += largCol(aba, c); }
   while (y < 0 && l > 0) { l--; y += altLin(aba, l); }
-  while (c < 16383 && largCol(aba, c) > 0 && x >= largCol(aba, c)) { x -= largCol(aba, c); c++; }
-  while (c < 16383 && largCol(aba, c) === 0) c++;
-  while (l < 1048575 && altLin(aba, l) > 0 && y >= altLin(aba, l)) { y -= altLin(aba, l); l++; }
-  while (l < 1048575 && altLin(aba, l) === 0) l++;
+  /* v0.6.8: colunas e linhas ocultas (largura zero) no caminho são puladas sem parar a conta */
+  while (c < 16383 && (largCol(aba, c) <= 0 || x >= largCol(aba, c))) { x -= Math.max(0, largCol(aba, c)); c++; }
+  while (l < 1048575 && (altLin(aba, l) <= 0 || y >= altLin(aba, l))) { y -= Math.max(0, altLin(aba, l)); l++; }
   return { l, c, dx: Math.max(0, x), dy: Math.max(0, y) };
 }
 
@@ -49,7 +48,14 @@ function limparGrupoBruto(el) {
     return b;
   });
   const graficos = [];
-  s = s.replace(/<(\w+:)?graphicFrame\b[\s\S]*?<\/(\w+:)?graphicFrame>/g, (b) => { graficos.push(b); return ''; });
+  /* v0.6.8: o gráfico continua no XML do grupo, com uma marca (efcgr="k") no lugar do r:id: ao salvar, se nem o grupo
+     nem o gráfico mudaram de lugar, ele volta para dentro do grupo (como o velocímetro do Excel) */
+  s = s.replace(/<(\w+:)?graphicFrame\b[\s\S]*?<\/(\w+:)?graphicFrame>/g, (b) => {
+    if (!/<(?:\w+:)?chart\b[^>]*\b(?:r:)?id="/.test(b)) return '';
+    const k = graficos.length;
+    graficos.push(b);
+    return b.replace(/(<(?:\w+:)?chart\b[^>]*?)\s(?:r:)?id="[^"]+"/, `$1 efcgr="${k}"`);
+  });
   return { s, segmentacoes, graficos };
 }
 
@@ -335,21 +341,26 @@ export async function lerFormaDaAncora(el, ctx) {
   if (!partes.length) return { graficos, fora, aprox };
   /* v0.6.6 (Grok): grupo que tinha um gráfico e só mais uma forma: o gráfico sai solto e o grupo é desfeito
      (a forma fica sozinha, no lugar e no tamanho dela; ao salvar vai como forma simples, não como grupo de um só) */
-  if (tipo === 'grpSp' && gruposGraficos.length && partes.length === 1) {
+  /* o XML guardado: os r:id viram marcas (__EFC_R_id__) que a gravação troca pelos novos */
+  let xo = bruto;
+  const idsUsados = [...xo.matchAll(/\br:(?:id|embed|link|pict)="([^"]+)"/g)].map((m) => m[1]);
+  if (idsUsados.some((id) => !xoRels[id])) xoOk = false;
+  const guardaXo = xoOk && xo.length < 400000;
+  /* v0.6.8: com o XML do grupo guardado, o gráfico volta para dentro dele: o grupo não é desfeito */
+  if (tipo === 'grpSp' && gruposGraficos.length && partes.length === 1 && !guardaXo) {
     const p0 = partes[0];
     const an = ancoraMais(ctx.aba, ctx.geo.l, ctx.geo.c, ctx.geo.dx, ctx.geo.dy, p0.x, p0.y);
     const solta = limparForma({ partes: [{ ...p0, x: 0, y: 0 }], w: p0.w, h: p0.h, w0: p0.w, h0: p0.h, nome: p0.nome || 'Forma' }, { id: 'x', ...an });
     if (solta) { if (ctx.ed) solta.ed = ctx.ed; return { obj: solta, graficos, fora, aprox }; }
   }
-  /* o XML guardado: os r:id viram marcas (__EFC_R_id__) que a gravação troca pelos novos */
-  let xo = bruto;
-  const idsUsados = [...xo.matchAll(/\br:(?:id|embed|link|pict)="([^"]+)"/g)].map((m) => m[1]);
-  if (idsUsados.some((id) => !xoRels[id])) xoOk = false;
   xo = xo.replace(/\b(r:(?:id|embed|link|pict))="([^"]+)"/g, (_, a, id) => `${a}="__EFC_R_${id}__"`);
   const obj = limparForma({ partes, w: W, h: H, w0: W, h0: H, nome: (partes.length === 1 && partes[0].nome) || (tipo === 'grpSp' ? 'Grupo' : 'Forma') }, { id: 'x', l: ctx.geo.l, c: ctx.geo.c, dx: ctx.geo.dx, dy: ctx.geo.dy });
   if (!obj) return { graficos, fora, aprox };
   if (ctx.ed) obj.ed = ctx.ed;
-  if (xoOk && xo.length < 400000) { obj.xo = xo; obj.xoRels = xoRels; obj.xoNs = ctx.ns || {}; }
+  if (guardaXo) {
+    obj.xo = xo; obj.xoRels = xoRels; obj.xoNs = ctx.ns || {};
+    if (/\befcgr="\d+"/.test(xo) && graficos.length) { obj.grTok = 'g' + Math.random().toString(36).slice(2, 10); obj.grP0 = [obj.l, obj.c, obj.dx, obj.dy, obj.w, obj.h]; }
+  } else if (/\befcgr="/.test(xo)) { /* sem o XML guardado, a marca não serve */ }
   return { obj, graficos, fora, aprox };
 }
 
@@ -407,7 +418,8 @@ function textoXml(t, ctx) {
   const bp = `<a:bodyPr wrap="${t.wrap === false ? 'none' : 'square'}" lIns="${Math.round(ins[0] * EMU)}" tIns="${Math.round(ins[1] * EMU)}" rIns="${Math.round(ins[2] * EMU)}" bIns="${Math.round(ins[3] * EMU)}"` +
     `${t.vert ? ` vert="${t.vert}"` : ''}${t.rotT ? ` rot="${Math.round(t.rotT * 60000)}"` : ''}${t.clip ? ' vertOverflow="clip" horzOverflow="clip"' : ''} rtlCol="0" anchor="${t.anc || 't'}"/>`;
   let valor = null;
-  if (t.ligado && ctx.lerLigado) { try { valor = ctx.lerLigado(t.ligado); } catch { valor = null; } }
+  if (t.ligado && t.ligado.v != null) valor = t.ligado.v; // v0.6.7: número do painel (o valor de agora já pronto)
+  else if (t.ligado && ctx.lerLigado) { try { valor = ctx.lerLigado(t.ligado); } catch { valor = null; } }
   const pars = valor != null ? [{ al: (t.pars[0] && t.pars[0].al) || 'l', runs: [{ ...((t.pars[0] && t.pars[0].runs[0]) || {}), t: String(valor) }] }] : t.pars;
   const runXml = (r) => {
     const rp = `<a:rPr lang="pt-BR" sz="${Math.round((r.tam || t.tam || 11) * 100)}"${r.neg ? ' b="1"' : ' b="0"'}${r.it ? ' i="1"' : ''}${r.sub ? ' u="sng"' : ''}${r.tach ? ' strike="sngStrike"' : ''}>` +
@@ -454,10 +466,12 @@ function absoluto(aba, o) {
 
 /** Âncora de duas células para um objeto (o canto de baixo calculado pelas larguras/alturas). */
 export function ancoraXml(aba, o, inner, editAs = 'oneCell') {
+  /* v0.6.8: coluna ou linha oculta (largura zero) no meio do objeto é pulada; antes a conta parava nela e o Excel
+     encolhia o objeto até a borda dela (o velocímetro virava um ponto e o logotipo ficava pequeno) */
   let col = o.c, x = o.dx + o.w;
-  while (col < 16383 && x >= largCol(aba, col) && largCol(aba, col) > 0) { x -= largCol(aba, col); col++; }
+  while (col < 16383 && (largCol(aba, col) <= 0 ? x > 0 : x >= largCol(aba, col))) { x -= Math.max(0, largCol(aba, col)); col++; }
   let lin = o.l, y = o.dy + o.h;
-  while (lin < 1048575 && y >= altLin(aba, lin) && altLin(aba, lin) > 0) { y -= altLin(aba, lin); lin++; }
+  while (lin < 1048575 && (altLin(aba, lin) <= 0 ? y > 0 : y >= altLin(aba, lin))) { y -= Math.max(0, altLin(aba, lin)); lin++; }
   return `<xdr:twoCellAnchor${editAs && editAs !== 'twoCell' ? ` editAs="${editAs}"` : ''}><xdr:from><xdr:col>${o.c}</xdr:col><xdr:colOff>${Math.round(o.dx * EMU)}</xdr:colOff><xdr:row>${o.l}</xdr:row><xdr:rowOff>${Math.round(o.dy * EMU)}</xdr:rowOff></xdr:from>` +
     `<xdr:to><xdr:col>${col}</xdr:col><xdr:colOff>${Math.round(x * EMU)}</xdr:colOff><xdr:row>${lin}</xdr:row><xdr:rowOff>${Math.round(y * EMU)}</xdr:rowOff></xdr:to>${inner}<xdr:clientData/></xdr:twoCellAnchor>`;
 }
@@ -493,12 +507,14 @@ export function gravarForma(o, ctx) {
     const m = /^data:image\/(png|jpeg|webp|gif);base64,(.+)$/.exec(v || '');
     if (!m) return null;
     const ext = m[1] === 'jpeg' ? 'jpeg' : m[1];
-    const md = ctx.novaMidia(ext);
-    midias.push({ nome: md.nome, bytes: deBase64(m[2]), ext });
+    const md = ctx.novaMidia(ext, v);
+    if (!md.ja) midias.push({ nome: md.nome, bytes: deBase64(m[2]), ext });
     const id = ctx.novoRel(); rels.push({ id, tipo: 'image', alvo: md.alvo }); return id;
   };
   const abs = absoluto(ctx.aba, o);
   let inner = '';
+  const usouGrupo = []; // v0.6.8: gráficos que foram dentro do grupo
+  let faltouGrafico = false;
   if (o.xo && o.xoSig && o.xoSig === assinaturaForma(o) && o.xoRels) {
     /* sem mexer: o XML de antes, com r:id novos e a posição de agora */
     let ok = true;
@@ -513,11 +529,22 @@ export function gravarForma(o, ctx) {
     }
     if (ok) {
       inner = o.xo.replace(/__EFC_R_([^"]+?)__/g, (_, id) => mapa[id] || id);
+      /* v0.6.8: gráficos de dentro do grupo: o r:id novo, ou o gráfico sai do grupo (vai solto, gravado por quem chamou) */
+      inner = inner.replace(/<(\w+:)?graphicFrame\b[\s\S]*?<\/(\w+:)?graphicFrame>/g, (b) => {
+        const mk = /\befcgr="(\d+)"/.exec(b);
+        if (!mk) return b;
+        const rid = ctx.graficoDoGrupo ? ctx.graficoDoGrupo(+mk[1]) : null;
+        if (!rid) { faltouGrafico = true; return ''; }
+        usouGrupo.push(+mk[1]);
+        return b.replace(/\befcgr="\d+"/, `r:id="${rid}"`);
+      });
       /* ids únicos no desenho */
       inner = inner.replace(/(<(?:\w+:)?cNvPr\b[^>]*?\bid=")(\d+)"/g, (_, a) => `${a}${ctx.novoId()}"`);
       /* o primeiro xfrm (da forma ou do grupo) vai para a posição e o tamanho de agora */
       inner = inner.replace(/(<a:xfrm\b[^>]*>\s*)<a:off x="-?\d+" y="-?\d+"\/>\s*<a:ext cx="\d+" cy="\d+"\/>/, (_, a) => `${a}<a:off x="${abs.x}" y="${abs.y}"/><a:ext cx="${Math.round(o.w * EMU)}" cy="${Math.round(o.h * EMU)}"/>`);
     } else { rels.length = 0; midias.length = 0; }
+    /* v0.6.8: o gráfico de dentro saiu do grupo: o grupo é refeito pelas partes (grupo de uma forma só vira forma simples) */
+    if (faltouGrafico) { inner = ''; rels.length = 0; midias.length = 0; usouGrupo.length = 0; }
   }
   if (!inner) {
     const w0 = o.w0 || o.w || 1, h0 = o.h0 || o.h || 1;
@@ -534,7 +561,7 @@ export function gravarForma(o, ctx) {
   }
   if (!inner) return null;
   /* forma com altura ou largura zero (linha reta) não pode ter âncora invertida */
-  return { ancora: ancoraXml(ctx.aba, o, inner, o.ed || (o.xo ? 'twoCell' : 'oneCell')), rels, midias };
+  return { ancora: ancoraXml(ctx.aba, o, inner, o.ed || (o.xo ? 'twoCell' : 'oneCell')), rels, midias, usouGrupo };
 }
 
 export { NS_A, PT_PX };

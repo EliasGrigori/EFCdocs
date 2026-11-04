@@ -231,10 +231,15 @@ export function sugestaoPainel(imp0, formas) {
   const grandes = (formas || []).filter((o) => o && o.w > 0 && o.h > 0);
   if (!grandes.length) return null;
   const nunca = !imp0;
-  const larga = grandes.some((o) => o.w >= o.h);
+  /* v0.6.8 (Grok): vale o conjunto (formas e gráficos espalhados pela aba), não só a maior forma; x/y = onde o objeto
+     começa na aba, em px (sem x/y, só o tamanho dele conta) */
+  const temPos = grandes.every((o) => typeof o.x === 'number' && typeof o.y === 'number');
+  const W = temPos ? Math.max(...grandes.map((o) => o.x + o.w)) : Math.max(...grandes.map((o) => o.w));
+  const H = temPos ? Math.max(...grandes.map((o) => o.y + o.h)) : Math.max(...grandes.map((o) => o.h));
+  const larga = temPos ? W >= H : grandes.some((o) => o.w >= o.h);
   const orient = nunca ? (larga ? 'paisagem' : 'retrato') : imp.orient;
   const u = areaUtil({ ...imp, orient });
-  const passa = grandes.some((o) => o.w * PX_PT > u.w + 0.5 || o.h * PX_PT > u.h + 0.5);
+  const passa = grandes.some((o) => o.w * PX_PT > u.w + 0.5 || o.h * PX_PT > u.h + 0.5) || (temPos && (W * PX_PT > u.w + 0.5 || H * PX_PT > u.h + 0.5) && grandes.length > 1);
   if (!passa) return null;
   return {
     imp: { ...imp, orient, escala: { ...imp.escala, modo: 'pagina' } },

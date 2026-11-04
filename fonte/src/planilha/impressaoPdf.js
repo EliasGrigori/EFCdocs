@@ -70,6 +70,13 @@ export function pdfDasPaginas(paginas, { titulo = 'Planilha', imagens = new Map(
         usadas.add(n);
         const clip = o.clip ? `${f2(o.clip.x)} ${f2(H - o.clip.y - o.clip.h)} ${f2(o.clip.w)} ${f2(o.clip.h)} re W n ` : '';
         c.push(`q ${clip}${f2(o.w)} 0 0 ${f2(o.h)} ${f2(o.x)} ${f2(H - o.y - o.h)} cm /Im${n} Do Q`);
+        /* v0.6.8: texto invisível (modo 3) por cima da forma: dá para pesquisar e copiar */
+        if (o.oculto) {
+          const sz = Math.max(4, Math.min(12, o.h * 0.5));
+          const lw = larguraHelvetica(o.oculto, sz, false) || 1;
+          const tz = Math.max(1, Math.min(100, (o.w * 0.95 / lw) * 100));
+          c.push(`q ${clip}BT 3 Tr /F1 ${f2(sz)} Tf ${f2(tz)} Tz ${f2(o.x + o.w * 0.02)} ${f2(H - o.y - o.h / 2 - sz / 3)} Td ${textoPdf(o.oculto)} Tj ET Q`);
+        }
       }
     }
     const cb = bytesLatin1(c.join('\n'));

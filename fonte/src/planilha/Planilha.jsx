@@ -34,6 +34,9 @@ import { lerImagem } from './imagem.js';
 import { dadosDaFaixa } from './graficos.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
 import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
+import { ehPainel, painelVazio, novaPeca, arrumar, textoDoNumero, textoDaMeta, NOME_PECA, PAINEL, alturaDoPainel } from './painel.js';
+import { PainelView, JanelaPeca, JanelaGraficoPainel } from './painelUi.jsx';
+import { refsDoPlano, pacoteDoGrafico } from './graficoPlano.js';
 import { lerFaixaDoLivro } from './xlsx/graficosXlsx.js';
 import { svgDoGrafico } from './desenhoGrafico.js';
 import { paginar, normalizarImp, impParaGuardar, sugestaoPainel } from './impressao.js';
@@ -815,6 +818,196 @@ export function Planilha({ arquivo, cx }) {
     }
     return f;
   };
+  /* ---------- v0.6.7: Painel (aba que junta gráficos, números, textos e tabelas das outras abas) ---------- */
+  const painelAtivo = ehPainel(aba);
+  const [pecaSel, setPecaSel] = useState(null);
+  useEffect(() => { setPecaSel(null); }, [abaId]);
+  const pecas = painelAtivo ? aba.painel.pecas : [];
+  const gravarPecas = (lista, rotulo) => mudar({ [`conteudo.abas.${abaId}.painel`]: { ...aba.painel, pecas: lista } }, rotulo);
+  /** formato da célula quando a conta é só uma célula (=Dados!C40) */
+  const nfDaConta = (f) => {
+    const m = /^(?:'((?:[^']|'')+)'|([A-Za-z_À-ÿ][\w.À-ÿ]*))!\$?([A-Z]{1,3})\$?(\d+)$/.exec(String(f || '').trim());
+    if (!m) return null;
+    const nome = (m[1] != null ? m[1].replace(/''/g, "'") : m[2]).toLowerCase();
+    const id = c.ordem.find((x) => c.abas[x].nome.toLowerCase() === nome);
+    const cl = id && c.abas[id].cel[m[3] + m[4]];
+    return cl ? estiloDe(c, cl).nf || null : null;
+  };
+  const valorDaConta = (f) => {
+    if (!f) return null;
+    try { const r = motor.previa(paraMostrar(f), abaId, 0, 0); if (r.erro) return { cod: '#ERRO' }; if (r.circular) return { cod: '#CIRC' }; return ehErro(r.valor) ? { cod: r.valor.cod } : r.valor; } catch { return { cod: '#ERRO' }; }
+  };
+  const numeroDaPeca = (p) => {
+    const nf = p.nf || nfDaConta(p.f) || 'General';
+    return textoDoNumero({ ...p, nf }, valorDaConta(p.f), p.fc ? valorDaConta(p.fc) : null, (v, f) => { try { return formatar(v, f).t; } catch { return String(v); } });
+  };
+  const tabelaDaPeca = (p) => {
+    const idT = p.aba && c.abas[p.aba] ? p.aba : null;
+    if (!idT) return { linhas: [], cab: p.cab };
+    const A = c.abas[idT];
+    const m = /^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/.exec(p.fx || '');
+    if (!m) return { linhas: [], cab: p.cab };
+    const a = lerChave(m[1] + m[2]), b = lerChave((m[3] || m[1]) + (m[4] || m[2]));
+    const linhas = [];
+    let cortou = false;
+    for (let l = Math.min(a.l, b.l); l <= Math.max(a.l, b.l); l++) {
+      if (A.ocL && A.ocL[l]) continue;
+      if (linhas.length >= 50) { cortou = true; break; }
+      const ln = [];
+      for (let k = Math.min(a.c, b.c); k <= Math.max(a.c, b.c) && ln.length < 12; k++) {
+        if (A.ocC && A.ocC[k]) continue;
+        const tc = textoCelula(motor, c, idT, l, k);
+        const e = tc.e || {};
+        ln.push({ t: tc.t, al: tc.al, b: !!e.b, fundo: /^#[0-9a-f]{6}$/i.test(e.fundo || '') ? e.fundo : null, cor: tc.cor || null });
+      }
+      linhas.push(ln);
+    }
+    return { linhas, cab: p.cab !== 0, cortou };
+  };
+  const svgDaPeca = (p, w, h, tema = temaGrafico) => {
+    const g = p.g;
+    /* v0.6.8 (Grok): gráfico do Excel leva as cores dele: no tema escuro fica no claro (senão o número escuro do meio do velocímetro sumia) */
+    if (g.t === 'excel') return svgDoGrafico(g, null, { w, h, tema: TEMA_CLARO, lerFaixa: lerFaixaDoLivro(c, motor, abaId, g.plano && g.plano.soVisiveis === false) });
+    const ld = lerDadosGrafico(g.dados.fx, !!g.porLinhas, g.dados.aba && c.abas[g.dados.aba] ? g.dados.aba : abaId, !!(g.op && g.op.ocultos));
+    return svgDoGrafico(g, ld.d, { w, h, tema });
+  };
+  /** o gráfico copiado para o painel continua lendo a aba de onde veio (o "" das referências vira o id dela) */
+  const graficoParaPainel = (g0, abaOrigem) => {
+    const g = JSON.parse(JSON.stringify(g0));
+    if (g.t === 'excel' && g.plano) {
+      for (const r of refsDoPlano(g.plano)) if (r && !r.aba) r.aba = abaOrigem;
+      for (const us of g.plano.formas || []) for (const q of (us.f && us.f.partes) || []) if (q.texto && q.texto.ligado && !q.texto.ligado.aba) q.texto.ligado.aba = abaOrigem;
+    } else if (g.dados && !g.dados.aba) g.dados.aba = abaOrigem;
+    return g;
+  };
+  const graficosDaPlanilha = () => {
+    const out = [];
+    for (const id of c.ordem) {
+      const A = c.abas[id];
+      if (ehPainel(A)) continue;
+      for (const o of objetosDaAba(A)) {
+        if (o.tipo !== 'grafico') continue;
+        let svg = '';
+        try { const g = graficoParaPainel(o.g, id); svg = svgDaPeca({ g }, 120, 72); } catch { svg = ''; }
+        out.push({ id: o.id, aba: A.nome, abaId: id, titulo: o.g.titulo || (o.g.plano && o.g.plano.titulo && o.g.plano.titulo.texto) || 'Gráfico sem título', svg, g: o.g });
+      }
+    }
+    return out;
+  };
+  const porPeca = (p, rotulo) => { if (gravarPecas([...pecas, p], rotulo) !== false) setPecaSel(p.id); };
+  const adicionarPeca = (t) => {
+    if (!painelAtivo) { cx.avisar('Abra uma aba de Painel (Inserir › Painel) para pôr peças.', { ic: 'info' }); return; }
+    if (pecas.length >= PAINEL.MAX) { cx.avisar(`No máximo ${PAINEL.MAX} peças por painel.`, { ic: 'aviso' }); return; }
+    if (t === 'grafico') { setJanela({ tipo: 'painelGrafico' }); return; }
+    setJanela({ tipo: 'peca', p: t === 'texto' ? { t, texto: '', tam: 14, al: 'e' } : { t, cab: 1 } });
+  };
+  const abrirPeca = (p) => {
+    if (!p) { cx.avisar('Escolha uma peça do painel (clique nela).', { ic: 'info' }); return; }
+    if (somenteLeitura) { avisarLeitura(); return; }
+    if (p.t === 'grafico') { setJanela({ tipo: 'grafico', paraPainel: true, pecaId: p.id }); return; }
+    setJanela({ tipo: 'peca', p });
+  };
+  const excluirPeca = (id) => { const p = pecas.find((q) => q.id === id); if (!p) return; if (gravarPecas(pecas.filter((q) => q.id !== id), 'Excluir ' + NOME_PECA[p.t].toLowerCase() + ' do painel') !== false) setPecaSel(null); };
+  const aplicarPeca = (p) => {
+    setJanela(null);
+    if (p.id) gravarPecas(pecas.map((q) => (q.id === p.id ? p : q)), 'Mudar ' + NOME_PECA[p.t].toLowerCase() + ' do painel');
+    else porPeca(novaPeca(p.t, p, pecas), 'Pôr ' + NOME_PECA[p.t].toLowerCase() + ' no painel');
+  };
+  const aplicarGraficoPainel = (g, jan) => {
+    setJanela(null);
+    if (jan.pecaId) { gravarPecas(pecas.map((q) => (q.id === jan.pecaId ? { ...q, g } : q)), 'Mudar gráfico do painel'); return; }
+    porPeca(novaPeca('grafico', { g }, pecas), 'Pôr gráfico no painel');
+  };
+  const novoPainel = () => {
+    const r = O.novaAba(c, abaId);
+    const usados = new Set(c.ordem.map((x) => c.abas[x].nome.toLowerCase()));
+    let nome = 'Painel', n = 2;
+    while (usados.has(nome.toLowerCase())) nome = 'Painel ' + n++;
+    const abaNova = { ...r.mud[`conteudo.abas.${r.id}`], nome, painel: painelVazio() };
+    if (mudar({ ...r.mud, [`conteudo.abas.${r.id}`]: abaNova }, 'Novo painel')) { setTimeout(() => trocarAba(r.id), 0); cx.avisar('Painel novo: ponha gráficos, números grandes, textos e tabelas pela aba Painel da faixa.', { ic: 'grafico' }); }
+  };
+  const contaPainel = {
+    mostrar: (f) => paraMostrar(f),
+    guardar: (t) => {
+      let s = String(t || '').trim();
+      if (!s) return { erro: 'Escreva a conta ou a célula (por exemplo =Dados!C40).' };
+      if (s[0] === '=') s = s.slice(1);
+      try { const f = paraGuardar(s); const v = (() => { try { return motor.previa(s, abaId, 0, 0); } catch { return { erro: true }; } })(); if (v.erro) return { erro: 'Essa conta não está completa ou tem um erro.' }; return { f }; } catch { return { erro: 'Essa conta não está completa ou tem um erro.' }; }
+    },
+    lerFaixa: (t) => {
+      const s = String(t || '').trim().replace(/^=/, '');
+      const m = /^(?:'((?:[^']|'')+)'|([^!]+))!\$?([A-Z]{1,3})\$?(\d+)(?::\$?([A-Z]{1,3})\$?(\d+))?$/i.exec(s);
+      if (!m) return { erro: 'Escreva a aba e as células, como Dados!A1:C8.' };
+      const nome = (m[1] != null ? m[1].replace(/''/g, "'") : m[2]).toLowerCase();
+      const id = c.ordem.find((x) => c.abas[x].nome.toLowerCase() === nome);
+      if (!id) return { erro: `Não existe a aba "${m[1] || m[2]}".` };
+      if (ehPainel(c.abas[id])) return { erro: 'Escolha células de uma aba comum (não de um painel).' };
+      const a = (m[3] + m[4]).toUpperCase(), b = m[5] ? (m[5] + m[6]).toUpperCase() : a;
+      return { aba: id, fx: a === b ? a : `${a}:${b}` };
+    },
+    faixaTexto: (p) => (p.aba && c.abas[p.aba] ? nomeAbaNaFormula(c.abas[p.aba].nome) + '!' : '') + p.fx,
+  };
+  /** PDF do painel: uma página deitada, com as peças em vetor (os gráficos como imagem nítida). */
+  const paginaDoPainel = () => {
+    const W0 = 1100;
+    const col = (W0 - 2 * PAINEL.PAD - PAINEL.GAP * (PAINEL.COLS - 1)) / PAINEL.COLS;
+    const ret = (p) => ({ x: PAINEL.PAD + p.x * (col + PAINEL.GAP), y: PAINEL.PAD + p.y * PAINEL.LIN, w: p.w * (col + PAINEL.GAP) - PAINEL.GAP, h: p.h * PAINEL.LIN - PAINEL.GAP });
+    const H0 = alturaDoPainel(pecas) * PAINEL.LIN + 2 * PAINEL.PAD;
+    const Wp = 841.89, Hp = 595.28, m = 24, topo = 30;
+    const k = Math.min((Wp - 2 * m) / W0, (Hp - m - topo - 18) / Math.max(1, H0));
+    const ox = m + ((Wp - 2 * m) - W0 * k) / 2, oy = topo;
+    const ops = [{ k: 'text', x: m, y: 20, t: aba.nome, size: 13, bold: true, cor: '#1f2d36', anchor: 'start' }, { k: 'rect', x: ox, y: oy, w: W0 * k, h: H0 * k, fill: aba.painel.fundo || '#eef2f5' }];
+    for (const p of [...pecas].sort((a, b) => a.y - b.y || a.x - b.x)) {
+      const r = ret(p); const x = ox + r.x * k, y = oy + r.y * k, w = r.w * k, h = r.h * k;
+      const fundo = p.t === 'texto' ? (p.fundo && p.fundo !== 'nenhum' ? p.fundo : null) : '#ffffff';
+      if (fundo) ops.push({ k: 'rect', x, y, w, h, fill: fundo });
+      if (p.t !== 'texto') ops.push({ k: 'rectL', x, y, w, h, cor: '#d5dde3', w2: 0.6 });
+      const clip = { x, y, w, h };
+      if (p.t === 'grafico') ops.push({ k: 'img', x, y, w, h, svg: svgDaPeca(p, Math.round(r.w), Math.round(r.h), TEMA_CLARO), clip });
+      else if (p.t === 'numero') {
+        const n = numeroDaPeca(p);
+        if (p.rotulo) ops.push({ k: 'text', x: x + 10 * k, y: y + 22 * k, t: p.rotulo, size: 11 * k, cor: '#5b6b76', anchor: 'start', clip });
+        const tam = Math.max(16, Math.min(56, r.h * 0.36)) * k * 0.75;
+        ops.push({ k: 'text', x: x + 10 * k, y: y + h * 0.62, t: n.texto, size: tam, bold: true, cor: n.cor || '#1f2d36', anchor: 'start', clip });
+        const extra = [n.comp, textoDaMeta(p.meta)].filter(Boolean).join('   ');
+        if (extra) ops.push({ k: 'text', x: x + 10 * k, y: y + h - 10 * k, t: extra.replace('−', '-'), size: 9 * k, cor: '#5b6b76', anchor: 'start', clip });
+      } else if (p.t === 'texto') {
+        const tam = p.tam * k * 1.0;
+        const linhas = String(p.texto || '').split('\n');
+        linhas.forEach((ln, i) => ops.push({ k: 'text', x: p.al === 'c' ? x + w / 2 : p.al === 'd' ? x + w - 6 * k : x + 6 * k, y: y + 6 * k + tam * (1.05 + i * 1.25), t: ln, size: tam, bold: !!p.negrito, cor: p.cor || '#1f2d36', anchor: p.al === 'c' ? 'middle' : p.al === 'd' ? 'end' : 'start', clip }));
+      } else if (p.t === 'tabela') {
+        const tb = tabelaDaPeca(p);
+        const nl = tb.linhas.length, nc = Math.max(1, ...tb.linhas.map((l) => l.length));
+        const lh = Math.min(18 * k, (h - 8 * k) / Math.max(1, nl)), cw = (w - 8 * k) / nc;
+        tb.linhas.forEach((ln, i) => {
+          const yy = y + 4 * k + i * lh;
+          if (i === 0 && tb.cab) ops.push({ k: 'rect', x: x + 4 * k, y: yy, w: w - 8 * k, h: lh, fill: '#eef2f5' });
+          ln.forEach((cl, j) => {
+            if (cl.fundo) ops.push({ k: 'rect', x: x + 4 * k + j * cw, y: yy, w: cw, h: lh, fill: cl.fundo });
+            const xx = x + 4 * k + j * cw;
+            ops.push({ k: 'text', x: cl.al === 'd' ? xx + cw - 3 * k : cl.al === 'c' ? xx + cw / 2 : xx + 3 * k, y: yy + lh * 0.7, t: cl.t, size: Math.max(5, lh * 0.55), bold: cl.b || (i === 0 && tb.cab), cor: cl.cor || '#1f2d36', anchor: cl.al === 'd' ? 'end' : cl.al === 'c' ? 'middle' : 'start', clip: { x: xx, y: yy, w: cw, h: lh } });
+          });
+          ops.push({ k: 'line', x1: x + 4 * k, y1: yy + lh, x2: x + w - 4 * k, y2: yy + lh, cor: '#e3e8ed', w: 0.4 });
+        });
+      }
+    }
+    ops.push({ k: 'text', x: Wp / 2, y: Hp - 10, t: `${ficha.nome || 'Planilha'} · ${aba.nome} · ${new Date().toLocaleDateString('pt-BR')}`, size: 8, cor: '#5b6b76', anchor: 'middle' });
+    return { W: Wp, H: Hp, ops, n: 1 };
+  };
+  const baixarPdfPainel = async (paraImprimir = false) => {
+    if (!pecas.length) { cx.avisar('O painel está vazio: ponha peças antes de fazer o PDF.', { ic: 'aviso' }); return; }
+    const pg = paginaDoPainel();
+    const imagens = new Map();
+    for (const o of pg.ops) if (o.k === 'img' && !imagens.has(o.svg)) { try { imagens.set(o.svg, await svgParaImagemPdf(o.svg, o.w, o.h)); } catch { imagens.set(o.svg, null); } }
+    const bytes = pdfDasPaginas([pg], { titulo: `${ficha.nome || 'Planilha'} · ${aba.nome}`, imagens });
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `${nomeArquivoSaida()} - ${aba.nome.replace(/[\\/:*?"<>|]/g, '_')}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    if (paraImprimir) cx.avisar('O PDF do painel foi baixado: abra e imprima (uma página, deitada).', { ic: 'pdf' });
+    else cx.avisar('PDF do painel pronto (uma página).', { ic: 'pdf' });
+  };
   /* ---------- Imprimir e PDF (v0.6.0) ---------- */
   const fonteImpressao = (idA) => {
     const A = c.abas[idA];
@@ -826,7 +1019,12 @@ export function Planilha({ arquivo, cx }) {
         const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : idA, !!o.g.op.ocultos);
         return { ...o, svg: svgDoGrafico(o.g, ld.d, { w: o.w, h: o.h, tema: TEMA_CLARO }) };
       }
-      if (o.tipo === 'forma') return { ...o, svg: svgDaForma(o, Math.max(1, o.w), Math.max(1, o.h), { lerLigado: lerLigadoDe(idA), uid: 'imp' + o.id }) };
+      /* v0.6.8 (Grok): o texto das formas também vai como texto (invisível, por cima da imagem) para dar para pesquisar no PDF */
+      if (o.tipo === 'forma') {
+        const ll = lerLigadoDe(idA);
+        const texto = (o.partes || []).map((pp) => (pp.texto && pp.texto.ligado ? ll(pp.texto.ligado) || '' : pp.texto && pp.texto.pars ? pp.texto.pars.map((q) => (q.runs || []).map((r) => r.t || '').join('')).join(' ') : '')).filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+        return { ...o, svg: svgDaForma(o, Math.max(1, o.w), Math.max(1, o.h), { lerLigado: ll, uid: 'imp' + o.id }), ...(texto ? { textoOculto: texto.slice(0, 500) } : {}) };
+      }
       const nome = String(o.nome || '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
       const lin = Math.round(o.h * 0.72);
       return { ...o, svg: `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${o.w} ${o.h}" width="${o.w}" height="${o.h}">${o.rub ? `<image href="${o.rub}" xlink:href="${o.rub}" x="6" y="2" width="${o.w - 12}" height="${lin - 4}" preserveAspectRatio="xMidYMax meet"/>` : ''}<line x1="6" y1="${lin}" x2="${o.w - 6}" y2="${lin}" stroke="#222" stroke-width="1"/><text x="${o.w / 2}" y="${lin + 14}" text-anchor="middle" font-size="12" font-family="Helvetica, Arial" fill="#222">${nome}</text></svg>` };
@@ -909,6 +1107,56 @@ export function Planilha({ arquivo, cx }) {
   const mudarImp = (fn, rotulo) => { const atual = normalizarImp(aba.imp); mudar({ [`conteudo.abas.${abaId}.imp`]: impParaGuardar(fn(atual)) }, rotulo); };
 
   const abrirGrafico = (o) => { setObjSel(o.id); setJanela({ tipo: 'grafico', id: o.id }); };
+  /* ---------- v0.6.7: aba Gráfico: baixar imagem, duplicar e meus estilos ---------- */
+  const svgDoObjGrafico = (o, tema = TEMA_CLARO, k = 1) => {
+    if (o.g.t === 'excel') return svgDoGrafico(o.g, null, { w: o.w * k, h: o.h * k, tema, lerFaixa: lerFaixaDoLivro(c, motor, abaId, o.g.plano && o.g.plano.soVisiveis === false) });
+    const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : abaId, !!o.g.op.ocultos);
+    return svgDoGrafico(o.g, ld.d, { w: o.w, h: o.h, tema });
+  };
+  const baixarImagemGrafico = async (o) => {
+    const svg = svgDoObjGrafico(o);
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    try {
+      const img = new Image();
+      await new Promise((ok, erro) => { img.onload = ok; img.onerror = erro; img.src = url; });
+      const f = 2, cv = document.createElement('canvas');
+      cv.width = Math.round(o.w * f); cv.height = Math.round(o.h * f);
+      const ctx = cv.getContext('2d');
+      /* v0.6.8 (Grok): fundo branco embaixo (gráfico sem fundo saía transparente e o ponteiro preto sumia nos visualizadores escuros) */
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      const blob = await new Promise((ok) => cv.toBlob(ok, 'image/png'));
+      const nome = String(o.g.titulo || (o.g.plano && o.g.plano.titulo && o.g.plano.titulo.texto) || 'grafico').replace(/[\\/:*?"<>|\n]/g, '_').slice(0, 80) || 'grafico';
+      const u2 = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = u2; a.download = nome + '.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u2), 30000);
+      cx.avisar(`Imagem do gráfico baixada (${cv.width} × ${cv.height} pontos).`, { ic: 'imagem' });
+    } catch { cx.avisar('Não deu para fazer a imagem deste gráfico.', { ic: 'aviso' }); } finally { URL.revokeObjectURL(url); }
+  };
+  const duplicarGrafico = (o) => {
+    const lista = objetosDaAba(c.abas[abaId]);
+    if (lista.length >= MAX_OBJETOS) { cx.avisar(`No máximo ${MAX_OBJETOS} objetos por aba.`, { ic: 'aviso' }); return; }
+    const novo = { ...JSON.parse(JSON.stringify(o)), id: idObjeto(), dx: (o.dx || 0) + 24, dy: (o.dy || 0) + 24 };
+    if (gravarObjs([...lista, novo], 'Duplicar gráfico') !== false) { setObjSel(novo.id); cx.avisar('Cópia do gráfico pronta, ligada aos mesmos dados. Arraste para o lugar.', { ic: 'grafico' }); }
+  };
+  const [modelosGrafico, setModelosGrafico] = useState(() => { try { const v = ler('planilha-modelos-grafico', []); return Array.isArray(v) ? v.slice(0, 8) : []; } catch { return []; } });
+  const guardarModelos = (lista) => { setModelosGrafico(lista); try { gravar('planilha-modelos-grafico', lista); } catch { /* fica só nesta sessão */ } };
+  const guardarModeloGrafico = (o) => {
+    const fx = pacoteDoGrafico(o.g);
+    if (!Object.keys(fx).length) { cx.avisar('Este gráfico ainda está no estilo padrão: mude cores ou fundo antes de guardar.', { ic: 'info' }); return; }
+    cx.perguntar({
+      titulo: 'Guardar estilo como modelo', campo: 'Nome do estilo', valor: 'Meu estilo ' + (modelosGrafico.length + 1), confirmar: 'Guardar',
+      /* v0.6.8 (Grok): com os 8 lugares ocupados, avisa qual sai antes de guardar */
+      ...(modelosGrafico.length >= 8 ? { texto: `Já há 8 estilos guardados: ao guardar este, o mais antigo ("${modelosGrafico[modelosGrafico.length - 1].nome}") sai da lista (um nome igual troca o de mesmo nome).` } : {}),
+      validar: (t) => (String(t || '').trim() ? '' : 'Dê um nome ao estilo.'),
+      aoConfirmar: (t) => {
+        const m = { id: 'm' + Date.now().toString(36), nome: String(t).trim().slice(0, 40), fx };
+        guardarModelos([m, ...modelosGrafico.filter((x) => x.nome.toLowerCase() !== m.nome.toLowerCase())].slice(0, 8));
+        cx.avisar(`Estilo "${m.nome}" guardado: aparece em Editar gráfico › Meus estilos (neste aparelho).`, { ic: 'grafico' });
+      },
+    });
+  };
   const novoGraficoJanela = () => {
     const f = normalFaixa(faixa);
     const area = (f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1);
@@ -1010,7 +1258,24 @@ export function Planilha({ arquivo, cx }) {
     if (a.modo === 'mover') {
       /* o canto de cima à esquerda decide a célula; fora da área das células, volta para a borda */
       const an = ancoraNoPonto(G, Math.max(G.hw + 1, a.x), Math.max(G.hh + 1, a.y));
-      gravarObjs(comObjeto(objs, o.id, an), 'Mover ' + nomeDo);
+      let lista = comObjeto(objs, o.id, an);
+      /* v0.6.8: grupo do Excel com gráfico dentro (velocímetro sobre o painel): o gráfico vai junto, e os dois continuam
+         voltando juntos para o Excel */
+      if (o.tipo === 'forma' && o.grTok) {
+        const ddx = a.x - a.r0.x, ddy = a.y - a.r0.y;
+        const p0 = (x) => [x.l, x.c, x.dx, x.dy, x.w, x.h];
+        const igual0 = (x, q) => Array.isArray(q) && p0(x).every((v, i) => Math.abs(v - q[i]) < 1.5);
+        const nf = lista.find((x) => x.id === o.id);
+        const juntos = o.grP0 && objs.filter((x) => x.tipo === 'grafico' && x.noGrupo && x.noGrupo.tok === o.grTok);
+        for (const gq of juntos || []) {
+          const rg = retDoObjeto(gq, G);
+          const an2 = ancoraNoPonto(G, Math.max(G.hw + 1, rg.x + ddx), Math.max(G.hh + 1, rg.y + ddy));
+          const estava = igual0(gq, gq.noGrupo.p0);
+          lista = comObjeto(lista, gq.id, { ...an2, ...(estava ? { noGrupo: { ...gq.noGrupo, p0: p0({ ...gq, ...an2 }) } } : {}) });
+        }
+        if (nf && igual0(o, o.grP0)) lista = comObjeto(lista, o.id, { grP0: p0(nf) });
+      }
+      gravarObjs(lista, 'Mover ' + nomeDo);
     } else gravarObjs(comObjeto(objs, o.id, { w: Math.round(a.w / z), h: Math.round(a.h / z) }), 'Mudar o tamanho d' + (nomeDo === 'imagem' || nomeDo === 'forma' ? 'a ' : 'o ') + nomeDo);
   };
   const cancelar = () => {
@@ -2013,7 +2278,26 @@ export function Planilha({ arquivo, cx }) {
 
   const trata = (id) => {
     const ed = (fn) => { if (somenteLeitura) { cx.avisar('Seu perfil não permite esta ação.', { ic: 'aviso' }); return true; } fn(); return true; };
+    /* v0.6.7: na aba Painel, os comandos de células não valem; Imprimir e PDF fazem o painel numa página */
+    if (painelAtivo) {
+      /* v0.6.8 (Grok): Ctrl+P e Imprimir fazem o PDF do painel numa página (a janela de impressão escondida não abria em todo navegador) */
+      if (id === 'arquivo.imprimir') { baixarPdfPainel(true); return true; }
+      if (id === 'arquivo.exportarPDF' || id === 'impressao.configurar') { baixarPdfPainel(); return true; }
+      if (/^(formatar|planilha\.(inserir|excluir|limpar|ocultar|reexibir)|formula|dados|impressao|exibir\.congelar)/.test(id) || id === 'editar.localizar' || /^editar\.(colar|recortar)/.test(id) || id === 'inserir.grafico' || id === 'inserir.tabela' || id === 'inserir.status' || id === 'inserir.link' || id === 'inserir.formas' || id === 'inserir.imagem' || id === 'inserir.botao' || id === 'inserir.assinatura' || id === 'editar.comentar') {
+        cx.avisar('Esta aba é um Painel: use a aba Painel da faixa para pôr gráficos, números, textos e tabelas.', { ic: 'info' });
+        return true;
+      }
+    }
     switch (id) {
+      case 'inserir.painel': return ed(novoPainel);
+      case 'painel.grafico': return ed(() => adicionarPeca('grafico'));
+      case 'painel.numero': return ed(() => adicionarPeca('numero'));
+      case 'painel.texto': return ed(() => adicionarPeca('texto'));
+      case 'painel.tabela': return ed(() => adicionarPeca('tabela'));
+      case 'painel.arrumar': return ed(() => { if (!painelAtivo) return; const n = arrumar(pecas); if (JSON.stringify(n) === JSON.stringify(pecas)) cx.avisar('O painel já está arrumado.', { ic: 'info' }); else gravarPecas(n, 'Arrumar o painel'); });
+      case 'painel.mudar': return ed(() => abrirPeca(pecas.find((q) => q.id === pecaSel)));
+      case 'painel.excluir': return ed(() => { if (!pecaSel) { cx.avisar('Escolha uma peça do painel (clique nela).', { ic: 'info' }); return; } excluirPeca(pecaSel); });
+      case 'painel.pdf': if (!painelAtivo) { cx.avisar('Abra uma aba de Painel.', { ic: 'info' }); return true; } baixarPdfPainel(); return true;
       case 'formatar.negrito': return ed(() => alternarEstilo('b', 'Negrito'));
       case 'formatar.italico': return ed(() => alternarEstilo('i', 'Itálico'));
       case 'formatar.sublinhado': return ed(() => alternarEstilo('u', 'Sublinhado'));
@@ -2073,6 +2357,16 @@ export function Planilha({ arquivo, cx }) {
         removerLink(sel.ativa.l, sel.ativa.c);
       });
       case 'inserir.grafico': return ed(novoGraficoJanela);
+      case 'grafico.imagem': case 'grafico.duplicar': case 'grafico.modelo': case 'grafico.erro': {
+        const og = objs.find((x) => x.id === objSelRef.current && x.tipo === 'grafico');
+        if (!og) { cx.avisar('Clique num gráfico primeiro.', { ic: 'aviso' }); return true; }
+        if (id === 'grafico.imagem') { baixarImagemGrafico(og); return true; }
+        if (id === 'grafico.duplicar') return ed(() => duplicarGrafico(og));
+        if (id === 'grafico.modelo') return ed(() => guardarModeloGrafico(og));
+        setObjSel(og.id);
+        setJanela({ tipo: 'grafico', id: og.id, aba: 'series', secao: 'erro' });
+        return true;
+      }
       case 'grafico.editar': case 'grafico.estilo': case 'grafico.cores': case 'grafico.semaforo': case 'grafico.excluir': {
         const og = objs.find((x) => x.id === objSelRef.current && x.tipo === 'grafico');
         if (!og) { cx.avisar('Clique num gráfico primeiro.', { ic: 'aviso' }); return true; }
@@ -2255,7 +2549,7 @@ export function Planilha({ arquivo, cx }) {
 
   /* v0.6.3: avisa a faixa quando um gráfico está selecionado (a aba "Gráfico" aparece) */
   const grafSel = !!(objSel && objs.some((x) => x.id === objSel && x.tipo === 'grafico'));
-  useEffect(() => { if (cx.setContexto) cx.setContexto({ grafico: grafSel && prefs.abaGrafico !== false }); }, [grafSel, prefs.abaGrafico]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (cx.setContexto) cx.setContexto({ grafico: grafSel && prefs.abaGrafico !== false, painel: painelAtivo }); }, [grafSel, prefs.abaGrafico, painelAtivo]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { if (cx.setContexto) cx.setContexto({}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const maos = useRef({});
@@ -2347,7 +2641,7 @@ export function Planilha({ arquivo, cx }) {
   const ponto = (ev) => { const r = cvRef.current.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; };
   const pertoDaAlca = (p) => {
     if (cel || somenteLeitura) return false;
-    const x = G.xDe(faixa.c2 + 1 > faixa.c1 ? Math.max(faixa.c1, faixa.c2) + 1 : faixa.c1 + 1), y = G.yDe(Math.max(faixa.l1, faixa.l2) + 1);
+    const x = G.xFim(Math.max(faixa.c1, faixa.c2)), y = G.yFim(Math.max(faixa.l1, faixa.l2));
     return Math.abs(p.x - x) <= 6 && Math.abs(p.y - y) <= 6;
   };
 
@@ -2682,8 +2976,8 @@ export function Planilha({ arquivo, cx }) {
   const posEditor = editandoAqui ? (() => {
     const m = mesclaEm(mesc, edit.l, edit.c);
     const x = G.xDe(edit.c), y = G.yDe(edit.l);
-    const w = m ? G.xDe(m.c2 + 1) - x : colunas.tam(edit.c) * z;
-    const h = m ? G.yDe(m.l2 + 1) - y : linhas.tam(edit.l) * z;
+    const w = m ? G.xFim(m.c2) - x : colunas.tam(edit.c) * z;
+    const h = m ? G.yFim(m.l2) - y : linhas.tam(edit.l) * z;
     return { x, y, w, h };
   })() : null;
   const estEdit = edit ? estiloDe(c, c.abas[edit.abaId] && c.abas[edit.abaId].cel[chave(edit.l, edit.c)]) : {};
@@ -2796,7 +3090,7 @@ export function Planilha({ arquivo, cx }) {
   /* alças do celular (aumentar a seleção sem mouse) */
   const alcaCel = (qual) => {
     const f = normalFaixa(faixa);
-    const x = qual === 'a' ? G.xDe(f.c1) : G.xDe(f.c2 + 1), y = qual === 'a' ? G.yDe(f.l1) : G.yDe(f.l2 + 1);
+    const x = qual === 'a' ? G.xDe(f.c1) : G.xFim(f.c2), y = qual === 'a' ? G.yDe(f.l1) : G.yFim(f.l2);
     if (x < G.hw - 10 || y < G.hh - 10 || x > tam.W + 10 || y > tam.H + 10) return null;
     return (
       <span className={'pl-alca-cel ' + qual} style={{ left: x, top: y }} aria-label={qual === 'a' ? 'Alça do início da seleção' : 'Alça do fim da seleção'}
@@ -2815,7 +3109,7 @@ export function Planilha({ arquivo, cx }) {
   const temSelMulti = faixa.l1 !== faixa.l2 || faixa.c1 !== faixa.c2;
 
   return (
-    <div className={'sup sup-planilha pl' + (somenteLeitura ? ' leitura' : '') + (prefs.folhaClara ? ' clara' : '') + (cel ? ' pl-cel' : '')} ref={raiz}>
+    <div className={'sup sup-planilha pl' + (somenteLeitura ? ' leitura' : '') + (prefs.folhaClara ? ' clara' : '') + (cel ? ' pl-cel' : '') + (painelAtivo ? ' pl-com-painel' : '')} ref={raiz}>
       {/* barra de fórmula */}
       <div className={'pl-fx' + (fxAberta ? ' aberta' : '') + (fxArr != null ? ' arrastando' : '')} role="group" aria-label="Barra de fórmula" style={fxAberta ? { height: fxAltura } : undefined} data-fx-alt={fxAltura}>
         <input className="pl-nome" aria-label="Caixa de nome: endereço ou nome (digite para ir até lá ou para dar nome)" spellCheck={false}
@@ -2846,6 +3140,12 @@ export function Planilha({ arquivo, cx }) {
       {somenteLeitura && <div className="qd-modo leitura pl-leitura"><Icone n="ver" />{cx.travado && cx.travado.motivo === 'conflito' ? 'Em espera: escolha no aviso do topo o que fazer.' : cx.travado ? 'Só para ver' : 'Só leitura: seu perfil de teste não edita a planilha.'}</div>}
 
       <div className="pl-area">
+        {painelAtivo && (
+          <PainelView painel={aba.painel} nome={aba.nome} larg={tam.W} cel={cel} somenteLeitura={somenteLeitura} sel={pecaSel} setSel={setPecaSel} aoColar={() => cx.avisar('Esta aba é um Painel: não dá para colar células aqui. Cole na aba dos dados e ponha uma Tabela no painel.', { ic: 'info' })}
+            ler={{ numero: numeroDaPeca, tabela: tabelaDaPeca, grafico: (p, w, h) => svgDaPeca(p, w, h) }}
+            aoMudar={(lista, rotulo) => gravarPecas(lista, rotulo)} aoAbrir={abrirPeca} aoAdicionar={adicionarPeca} aoExcluir={excluirPeca}
+            aoDesfazer={() => cx.executar('editar.desfazer')} aoRefazer={() => cx.executar('editar.refazer')} />
+        )}
         <div className="pl-rol" ref={rolRef} onScroll={aoRolar} onContextMenu={aoMenuContexto}>
           <div className="pl-esp" style={{ width: espW, height: espH }}>
             <canvas ref={cvRef} className="pl-cv" role="grid" aria-label={'Planilha ' + ficha.nome + ', aba ' + aba.nome}
@@ -2856,7 +3156,7 @@ export function Planilha({ arquivo, cx }) {
           </div>
         </div>
         {/* assinaturas sobre a grade (v0.4.5) */}
-        {objs.length > 0 && (
+        {objs.length > 0 && !painelAtivo && (
           <div className="pl-objs" style={{ left: G.hw, top: G.hh, width: Math.max(0, tam.W - G.hw), height: Math.max(0, tam.H - G.hh) }}>
             {objs.map((o) => {
               const base = retDoObjeto(o, G);
@@ -2984,7 +3284,7 @@ export function Planilha({ arquivo, cx }) {
           if (edit) return null;
           const { l: al, c: ac } = sel.ativa;
           const mA = mesclaEm(mesc, al, ac);
-          const x0 = G.xDe(mA ? mA.c1 : ac), x1 = G.xDe(mA ? mA.c2 + 1 : ac + 1), y0 = G.yDe(mA ? mA.l1 : al), y1 = G.yDe(mA ? mA.l2 + 1 : al + 1);
+          const x0 = G.xDe(mA ? mA.c1 : ac), x1 = (mA ? G.xFim(mA.c2) : G.xFim(ac)), y0 = G.yDe(mA ? mA.l1 : al), y1 = (mA ? G.yFim(mA.l2) : G.yFim(al));
           const visivel = x1 > G.hw + 24 && x0 < tam.W && y1 > G.hh && y0 < tam.H;
           const reg = visivel ? validacaoEm(aba, al, ac) : null;
           const temSeta = visivel && !somenteLeitura && listaDaCelula(aba, al, ac);
@@ -2997,7 +3297,7 @@ export function Planilha({ arquivo, cx }) {
           const cm = alvoBalao && comentarioEm(aba, alvoBalao.l, alvoBalao.c);
           if (cm && !janela) {
             const mB = mesclaEm(mesc, alvoBalao.l, alvoBalao.c);
-            const q = pos(G.xDe(mB ? mB.c2 + 1 : alvoBalao.c + 1) + 6, G.yDe(alvoBalao.l), 270);
+            const q = pos((mB ? G.xFim(mB.c2) : G.xFim(alvoBalao.c)) + 6, G.yDe(alvoBalao.l), 270);
             cb = <Balao x={q.x} y={q.y} tipo="com" titulo={cm.a} texto={cm.t} respostas={cm.r} maxW={270} />;
           }
           const largLista = Math.max(120, x1 - x0);
@@ -3033,11 +3333,11 @@ export function Planilha({ arquivo, cx }) {
         {aba.fil && !edit && (() => {
           const ff = D.faixaDoFiltro(aba.fil);
           if (!ff) return null;
-          const y0 = G.yDe(ff.l1), y1 = G.yDe(ff.l1 + 1);
+          const y0 = G.yDe(ff.l1), y1 = G.yFim(ff.l1);
           if (y1 - y0 < 14 || y1 < G.hh + 8 || y0 > tam.H) return null;
           const setas = [];
           for (let cc = ff.c1; cc <= ff.c2; cc++) {
-            const x0 = G.xDe(cc), x1 = G.xDe(cc + 1);
+            const x0 = G.xDe(cc), x1 = G.xFim(cc);
             if (x1 - x0 < 22 || x1 < G.hw + 22 || x0 > tam.W - 4) continue;
             const filtrada = D.colunaFiltrada(aba.fil, cc);
             setas.push(
@@ -3050,7 +3350,7 @@ export function Planilha({ arquivo, cx }) {
           let menu = null;
           if (menuFiltro && menuFiltro.col >= ff.c1 && menuFiltro.col <= ff.c2) {
             const cc = menuFiltro.col;
-            const x0 = G.xDe(cc), x1 = G.xDe(cc + 1);
+            const x0 = G.xDe(cc), x1 = G.xFim(cc);
             const valores = D.valoresDaColuna(aba.fil, cc, textoDeDados, valorDeDados);
             menu = (
               <MenuFiltro key={cc + ':' + c.abas[abaId].fil.fx} x={Math.max(G.hw, Math.min(x0, tam.W - 250))} y={Math.min(y1 + 2, Math.max(G.hh, tam.H - 330))} w={x1 - x0}
@@ -3064,7 +3364,7 @@ export function Planilha({ arquivo, cx }) {
           return <>{setas}{menu}</>;
         })()}
         {!cel && ajuda && <div className="pl-ajuda-ancora">{ajuda}</div>}
-        {cel && !edit && !somenteLeitura && (<>{alcaCel('a')}{alcaCel('b')}</>)}
+        {cel && !edit && !somenteLeitura && !painelAtivo && (<>{alcaCel('a')}{alcaCel('b')}</>)}
         {!cel || !edit ? <PainelProblemas alvo={cel ? null : cx.alvoRodape} lista={listaProb} aberto={probAberto} aoAlternar={() => { if (probAberto) setTimeout(voltarFocoGrade, 0); setProbAberto(!probAberto); }} somenteLeitura={somenteLeitura}
           aoIr={(p) => { if (cel) setProbAberto(false); /* no celular a lista cobre a grade */ irPara({ abaId: p.abaId, l: p.l, c: p.c }); }} aoAcao={fazerAcao} /> : null}
         {pincel && <div className="qd-modo pl-modo"><Icone n="pincel" />Toque onde vai o formato.<button type="button" className="btn sm" onClick={() => setPincel(null)}>Cancelar</button></div>}
@@ -3174,16 +3474,38 @@ export function Planilha({ arquivo, cx }) {
           aoAplicar={aplicarValidacao} aoLimpar={limparValidacao} aoFechar={() => setJanela(null)} />
       )}
       {janela && janela.tipo === 'imprimir' && (
-        <JanelaImprimir {...(() => { const sg = sugestaoPainel(aba.imp, objs.filter((o) => o.tipo === 'forma')); return sg ? { imp0: sg.imp, nota: sg.nota } : { imp0: aba.imp }; })()} secao={janela.secao} selecaoTexto={textoFaixa(normalFaixa(faixa))} temVariasAbas={c.ordem.filter((x) => !c.abas[x].oculta).length > 1}
+        <JanelaImprimir {...(() => { const sg = sugestaoPainel(aba.imp, objs.some((o) => o.tipo === 'forma') ? objs.filter((o) => o.tipo === 'forma' || o.tipo === 'grafico' || o.tipo === 'imagem').map((o) => ({ x: colunas.pos(o.c) + (o.dx || 0), y: linhas.pos(o.l) + (o.dy || 0), w: o.w, h: o.h })) : []); return sg ? { imp0: sg.imp, nota: sg.nota } : { imp0: aba.imp }; })()} secao={janela.secao} selecaoTexto={textoFaixa(normalFaixa(faixa))} temVariasAbas={c.ordem.filter((x) => !c.abas[x].oculta).length > 1}
           gerar={gerarImpressao} aoSalvar={(imp) => { if (!somenteLeitura) salvarImp(imp); }} aoPdf={baixarPdf} aoImprimir={imprimirPaginas}
           aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
       )}
-      {janela && janela.tipo === 'grafico' && (() => {
+      {janela && janela.tipo === 'grafico' && janela.paraPainel && (() => {
+        const p = janela.pecaId ? pecas.find((q) => q.id === janela.pecaId) : null;
+        if (janela.pecaId && !p) return null;
+        const g0 = p ? p.g : null;
+        const ini = g0 ? (g0.t === 'excel' ? g0 : { ...g0, dados: { ...g0.dados, fx: (g0.dados.aba && c.abas[g0.dados.aba] ? nomeAbaNaFormula(c.abas[g0.dados.aba].nome) + '!' : '') + g0.dados.fx } }) : null;
+        const abaDados = (g0 && g0.dados && g0.dados.aba) || c.ordem.find((x) => !ehPainel(c.abas[x])) || abaId;
+        return (
+          <JanelaGrafico inicial={ini} faixaPadrao={janela.fx || ''} tema={temaGrafico} modelos={modelosGrafico} aoTirarModelo={(idm) => guardarModelos(modelosGrafico.filter((x) => x.id !== idm))} tamanho={p ? { w: 520, h: 300 } : null}
+            lerFaixa={lerFaixaDoLivro(c, motor, abaDados, false)}
+            lerDados={(fx, pl, oc) => lerDadosGrafico(fx, pl, abaDados, oc)}
+            aoAplicar={(g) => aplicarGraficoPainel(g.t === 'excel' ? g : { ...g, dados: { ...g.dados, aba: g.dados.aba || abaDados } }, janela)}
+            aoFechar={() => setJanela(null)} />
+        );
+      })()}
+      {janela && janela.tipo === 'painelGrafico' && (
+        <JanelaGraficoPainel lista={graficosDaPlanilha()} aoFechar={() => setJanela(null)}
+          aoNovo={() => setJanela({ tipo: 'grafico', paraPainel: true })}
+          aoEscolher={(x) => aplicarGraficoPainel(graficoParaPainel(x.g, x.abaId), {})} />
+      )}
+      {janela && janela.tipo === 'peca' && (
+        <JanelaPeca p0={janela.p} conta={contaPainel} previa={numeroDaPeca} aoAplicar={aplicarPeca} aoFechar={() => setJanela(null)} />
+      )}
+      {janela && janela.tipo === 'grafico' && !janela.paraPainel && (() => {
         const o = janela.id ? objs.find((x) => x.id === janela.id) : null;
         if (janela.id && !o) return null;
         const ini = o ? (o.g.t === 'excel' ? o.g : { ...o.g, dados: { ...o.g.dados, fx: (o.g.dados.aba && o.g.dados.aba !== abaId && c.abas[o.g.dados.aba] ? nomeAbaNaFormula(c.abas[o.g.dados.aba].nome) + '!' : '') + o.g.dados.fx } }) : null;
         return (
-          <JanelaGrafico abaInicial={janela.aba} secao={janela.secao} inicial={ini} faixaPadrao={janela.fx} celulaUnica={janela.celula} tema={temaGrafico} tamanho={o ? { w: o.w, h: o.h } : null}
+          <JanelaGrafico abaInicial={janela.aba} secao={janela.secao} inicial={ini} modelos={modelosGrafico} aoTirarModelo={(idm) => guardarModelos(modelosGrafico.filter((x) => x.id !== idm))} faixaPadrao={janela.fx} celulaUnica={janela.celula} tema={temaGrafico} tamanho={o ? { w: o.w, h: o.h } : null}
             lerFaixa={lerFaixaDoLivro(c, motor, abaId, !!(o && o.g.plano && o.g.plano.soVisiveis === false))}
             lerDados={(fx, pl, oc) => lerDadosGrafico(fx, pl, abaId, oc)}
             aoAplicar={(g) => aplicarGrafico(g, janela)}

@@ -5,6 +5,7 @@ import { reescrever, deslocar, ajustarEstrutura, renomearAbaNaArvore, excluirAba
 import { indiceEstilo, estiloDe, abaVazia, mescladas, valorGuardado, paraGuardarValor, eixo as eixoTam, largPadrao, altPadrao } from './modelo.js';
 import { ajustarObjetosEstrutura } from './objetos.js';
 import { refsDoPlano } from './graficoPlano.js';
+import { reescreverContas, moverTabelas } from './painel.js';
 import { continuarSerie } from './entrada.js';
 import { moverRegras, moverFaixa, faixasDe, textoFaixas, ancoraDe, tirarDeFaixas, novoIdRegra } from './regras.js';
 import { ehFormatoData } from './formato.js';
@@ -504,6 +505,25 @@ export function estrutura(c, abaId, eixo, i, n) {
     });
     if (mudou) mud[chaveO] = nova;
   }
+  /** o gráfico g (de um objeto ou de uma peça do painel da aba idDono) com as faixas que caem nesta aba mudadas */
+  const moverG = (g0, idDono) => {
+    if (g0.t === 'excel' && g0.plano) {
+      /* v0.6.1: gráfico que veio do Excel: cada referência das séries acompanha; v0.6.6: também o título ligado e os rótulos das células */
+      let mexeu = false;
+      const plano = JSON.parse(JSON.stringify(g0.plano));
+      for (const r of refsDoPlano(plano)) {
+        if (!r || (r.aba || idDono) !== abaId) continue;
+        const fs = faixasDe(r.fx).map((f) => moverFaixa(f, eixo, i, n)).filter(Boolean);
+        const nfx = fs.length ? textoFaixas(fs) : r.fx;
+        if (nfx !== r.fx) { r.fx = nfx; mexeu = true; }
+      }
+      return mexeu ? { ...g0, plano } : g0;
+    }
+    if (!g0.dados || (g0.dados.aba || idDono) !== abaId) return g0;
+    const fs = faixasDe(g0.dados.fx).map((f) => moverFaixa(f, eixo, i, n)).filter(Boolean);
+    const fx = fs.length ? textoFaixas(fs) : g0.dados.fx;
+    return fx === g0.dados.fx ? g0 : { ...g0, dados: { ...g0.dados, fx } };
+  };
   /* 3b2) v0.6.0: a faixa dos dados dos gráficos (de qualquer aba) acompanha as linhas/colunas desta aba */
   for (const id of c.ordem) {
     const chaveO = `conteudo.abas.${id}.objs`;
@@ -511,29 +531,23 @@ export function estrutura(c, abaId, eixo, i, n) {
     if (!lista || !lista.some((o) => o.tipo === 'grafico')) continue;
     let mudou = false;
     const nova = lista.map((o) => {
-      if (o.tipo === 'grafico' && o.g.t === 'excel' && o.g.plano) {
-        /* v0.6.1: gráfico que veio do Excel: cada referência das séries acompanha */
-        let mexeu = false;
-        const plano = JSON.parse(JSON.stringify(o.g.plano));
-        /* v0.6.6: também o título ligado a célula e os rótulos com o "valor das células" */
-        for (const r of refsDoPlano(plano)) {
-          if (!r || (r.aba || id) !== abaId) continue;
-          const fs = faixasDe(r.fx).map((f) => moverFaixa(f, eixo, i, n)).filter(Boolean);
-          const nfx = fs.length ? textoFaixas(fs) : r.fx;
-          if (nfx !== r.fx) { r.fx = nfx; mexeu = true; }
-        }
-        if (!mexeu) return o;
-        mudou = true;
-        return { ...o, g: { ...o.g, plano } };
-      }
-      if (o.tipo !== 'grafico' || ((o.g.dados.aba || id) !== abaId)) return o;
-      const fs = faixasDe(o.g.dados.fx).map((f) => moverFaixa(f, eixo, i, n)).filter(Boolean);
-      const fx = fs.length ? textoFaixas(fs) : o.g.dados.fx;
-      if (fx === o.g.dados.fx) return o;
+      if (o.tipo !== 'grafico') return o;
+      const g = moverG(o.g, id);
+      if (g === o.g) return o;
       mudou = true;
-      return { ...o, g: { ...o.g, dados: { ...o.g.dados, fx } } };
+      return { ...o, g };
     });
     if (mudou) mud[chaveO] = nova;
+  }
+  /* 3b3) v0.6.7: painéis: as contas dos números, as tabelas e os gráficos acompanham as linhas/colunas desta aba */
+  for (const id of c.ordem) {
+    const A = c.abas[id];
+    if (!A.painel || !Array.isArray(A.painel.pecas)) continue;
+    let pn = reescreverContas(A.painel, (f) => ajustaAbaMin(f, id));
+    pn = moverTabelas(pn, abaId, (f) => moverFaixa(f, eixo, i, n));
+    let mexeu = pn !== A.painel;
+    const pecas = pn.pecas.map((q) => { if (q.t !== 'grafico') return q; const g = moverG(q.g, id); if (g === q.g) return q; mexeu = true; return { ...q, g }; });
+    if (mexeu) mud[`conteudo.abas.${id}.painel`] = { ...pn, pecas };
   }
   /* 3c) v0.5.1: faixas da validação, da formatação condicional e dos comentários acompanham as linhas/colunas; as fórmulas das regras também */
   const mr = moverRegras(aba, eixo, i, n);
@@ -596,6 +610,8 @@ export function renomearAba(c, abaId, novo) {
       if (nf !== x.f) { cel[ch] = { ...x, f: nf }; mudou = true; }
     }
     if (mudou) mud[`conteudo.abas.${id}.cel`] = cel;
+    /* v0.6.7: as contas dos números do painel */
+    if (aba.painel && Array.isArray(aba.painel.pecas)) { const pn = reescreverContas(aba.painel, (f) => reescrever(f, (a) => renomearAbaNaArvore(a, velho, novo))); if (pn !== aba.painel) mud[`conteudo.abas.${id}.painel`] = pn; }
     /* v0.6.1 (Grok): a fonte da lista suspensa e as regras de cor que apontam para a aba renomeada acompanham */
     for (const campo of ['val', 'cf']) {
       const lista = aba[campo];
@@ -639,6 +655,7 @@ export function excluirAba(c, abaId) {
       if (nf !== x.f) { cel[ch] = { ...x, f: nf }; mudou = true; }
     }
     if (mudou) mud[`conteudo.abas.${id}.cel`] = cel;
+    if (aba.painel && Array.isArray(aba.painel.pecas)) { const pn = reescreverContas(aba.painel, (f) => reescrever(f, (a) => excluirAbaNaArvore(a, nome))); if (pn !== aba.painel) mud[`conteudo.abas.${id}.painel`] = pn; }
   }
   return mud;
 }

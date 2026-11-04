@@ -558,3 +558,68 @@ svg.ic-novo .barra { stroke: var(--primary); }
 .fm-texto { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; border: 1px solid var(--border-light); border-radius: var(--r-ctl); background: var(--surface); color: var(--text); padding: 8px 10px; font: inherit; }
 .fm-texto:focus { outline: none; box-shadow: var(--anel); border-color: var(--primary); }
 @media (max-width: 720px) { .fm-corpo { grid-template-columns: 1fr; } .fm-corpo .ge-esq { position: static; } }
+
+/* ---------- v0.6.7: Painel ---------- */
+.pl-com-painel .pl-fx, .pl-com-painel .pl-leitura { display: none; }
+.pl-com-painel .pl-rol { visibility: hidden; }
+.pn-area { position: absolute; inset: 0; overflow: auto; z-index: 6; outline: none; }
+.pn-area:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent); }
+.pn-folha { position: relative; margin: 0 auto; }
+.pn-peca { position: absolute; background: var(--surface); border-radius: var(--r-card); box-shadow: var(--sh-1); overflow: hidden; cursor: grab; user-select: none; touch-action: none; }
+.pn-peca:active { cursor: grabbing; }
+.pn-peca.sel { box-shadow: 0 0 0 2px var(--primary), var(--sh-2); overflow: visible; }
+.pn-peca.sel > :first-child { border-radius: var(--r-card); overflow: hidden; }
+.pn-peca.sobre { box-shadow: 0 0 0 1px #d79a22, var(--sh-1); }
+.pn-alvo { position: absolute; border: 2px dashed #d79a22; border-radius: var(--r-card); background: color-mix(in srgb, #d79a22 10%, transparent); pointer-events: none; z-index: 1; }
+.pn-alca { position: absolute; right: -6px; bottom: -6px; width: 14px; height: 14px; border-radius: 4px; background: var(--primary); box-shadow: 0 0 0 2px var(--surface), var(--sh-1); cursor: nwse-resize; touch-action: none; }
+.pn-barra { position: absolute; top: -40px; right: 0; display: flex; gap: 2px; padding: 3px; border-radius: var(--r-ctl); background: var(--surface); box-shadow: var(--sh-2); z-index: 6; }
+.pn-barra .iconbtn { width: 30px; height: 30px; }
+.pn-gr, .pn-gr svg { width: 100%; height: 100%; display: block; pointer-events: none; }
+.pn-num { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 10px 16px; }
+.pn-num-r { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--text-muted, #5b6b76); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-num-v { color: var(--pn-cor); line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-num-c { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted, #5b6b76); }
+.pn-num-c svg { color: var(--pn-cor); }
+.pn-meta { margin-left: auto; padding: 0 6px; border-radius: var(--r-chip); background: color-mix(in srgb, var(--pn-cor) 12%, transparent); }
+.pn-txt { position: absolute; inset: 0; padding: 6px 10px; white-space: pre-wrap; overflow: hidden; color: var(--text); line-height: 1.25; display: flex; flex-direction: column; justify-content: center; }
+.pn-txt.al-c { text-align: center; } .pn-txt.al-d { text-align: right; }
+.pn-tab { position: absolute; inset: 0; overflow: hidden; padding: 6px; }
+.pn-tab table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pn-tab td { padding: 3px 6px; border-bottom: 1px solid var(--border-light, #e3e8ed); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; }
+.pn-tab tr.cab td { font-weight: 700; background: color-mix(in srgb, var(--primary) 8%, var(--surface)); }
+.pn-tab-mais { position: absolute; right: 8px; bottom: 4px; font-size: 10px; color: var(--text-muted, #5b6b76); }
+.pn-vazio-p { color: var(--text-muted, #5b6b76); font-size: 12px; padding: 10px; }
+.pn-branco { position: sticky; top: 12%; margin: 40px auto 0; max-width: 520px; padding: 28px 24px; border-radius: var(--r-jan); background: var(--surface); box-shadow: var(--sh-2); text-align: center; z-index: 2; }
+.pn-branco h3 { margin: 8px 0 6px; }
+.pn-branco p { margin: 0 0 16px; color: var(--text-muted, #5b6b76); }
+.pn-branco-ic { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+.pn-branco-b { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.pn-pilha { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.pn-pilha .pn-peca { position: relative; }
+.pn-jan { width: min(560px, calc(100vw - 24px)); }
+.pn-jan-c { display: flex; flex-direction: column; gap: 12px; }
+.pn-jan-c textarea { width: 100%; resize: vertical; }
+.pn-jan-previa .pn-peca { cursor: default; }
+.pn-gr-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.pn-gr-item { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: var(--r-card); border: 1px solid var(--border-light, #d5dde3); background: var(--surface); text-align: left; cursor: pointer; }
+.pn-gr-item:hover { border-color: var(--primary); box-shadow: var(--sh-1); }
+.pn-gr-mini { height: 72px; border-radius: var(--r-chip); overflow: hidden; background: #fff; }
+.pn-gr-mini svg { width: 100%; height: 100%; }
+.pn-gr-n { display: flex; flex-direction: column; font-size: 12px; }
+.pn-gr-n em { color: var(--text-muted, #5b6b76); font-style: normal; }
+.pl-aba[data-painel] .pl-aba-pn { width: 12px; height: 12px; margin-right: 4px; color: var(--primary); }
+/* v0.6.7: Meus estilos (gráfico) */
+.ge-modelo { position: relative; display: block; }
+.ge-modelo .ge-est { width: 100%; }
+.ge-modelo-x { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; min-width: 0; padding: 0; border-radius: var(--r-chip); background: var(--surface); box-shadow: var(--sh-1); }
+.ge-modelo-x svg { width: 14px; height: 14px; }
+.ge-dica-meta { margin: 6px 0 0; }
+
+/* v0.6.8 (Grok): a versão também no menu lateral (no celular o rodapé não aparece) */
+.menu-versao { display: block; font-size: 11px; color: var(--text-3, #7a8791); margin-top: 1px; }
+/* v0.6.8 (Grok): o quadro do painel acompanha o tema (no escuro o texto solto sumia); no celular o texto empurra a peça de baixo */
+.pn-area { background: var(--surface-2); }
+.pn-pilha .pn-auto .pn-txt { position: relative; inset: auto; min-height: inherit; }
+.pn-add-cel { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 24px; }
+.pn-add-cel .btn { flex: 1 1 calc(50% - 8px); justify-content: center; }
+.pn-pilha .pn-peca { touch-action: pan-y; cursor: default; } /* v0.6.8: no celular o dedo rola a lista */

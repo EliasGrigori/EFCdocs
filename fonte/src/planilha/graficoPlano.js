@@ -68,7 +68,7 @@ export function construir(g, d, refs = null) {
     grupos: [], ref: [], paleta: cores.slice(0, 12), vazio: 'gap',
   };
   const rot = op.rotulos ? { val: true } : null;
-  const meta = ehNum(op.meta) ? [{ v: op.meta, cor: '#d79a22', rot: 'Meta ' + numeroCurto(op.meta), tr: true }] : [];
+  const meta = ehNum(op.meta) ? [{ v: op.meta, cor: '#d79a22', rot: 'Meta ' + numeroCurto(op.meta), tr: true, arrastar: true }] : [];
   const t = g.t;
   const ser = d.series.map((s, i) => ({ ...serieBase(s, i, d, refs, cores[i % cores.length]), rotulos: rot && { ...rot } }));
   const porTipo = (tipoPadrao, base) => {
@@ -422,4 +422,26 @@ export function materializarCores(P0) {
   });
   delete P.semaforo; delete P.destaque;
   return P;
+}
+
+/** v0.6.7: "Guardar estilo como modelo": a formatação do gráfico (sem os dados e sem os textos) num pacote para aplicar em outros. */
+export function pacoteDoGrafico(g) {
+  if (!g) return {};
+  /* v0.6.8 (Grok): o estilo é só a aparência: barras de erro (conta sobre os dados) não vão no modelo */
+  const semErro = (x) => { if (Array.isArray(x)) return x.map(semErro); if (x && typeof x === 'object') { const o = {}; for (const [k, v] of Object.entries(x)) if (k !== 'erro') o[k] = semErro(v); return o; } return x; };
+  if (g.t !== 'excel') return semErro(clonar(g.fx || {}));
+  const P = g.plano || {};
+  const pac = {};
+  for (const k of ['fundo', 'area', 'fonte']) if (P[k]) pac[k] = clonar(P[k]);
+  if (P.area && P.area.lay) delete pac.area.lay;
+  pac.legenda = P.legenda ? { pos: P.legenda.pos, ...(P.legenda.tam ? { tam: P.legenda.tam } : {}), ...(P.legenda.cor ? { cor: P.legenda.cor } : {}) } : null;
+  if (P.titulo) pac.titulo = { ...(P.titulo.tam ? { tam: P.titulo.tam } : {}), ...(P.titulo.cor ? { cor: P.titulo.cor } : {}), negrito: P.titulo.negrito !== false };
+  const cores = seriesDe(P).map(({ S }) => (S.preench && S.preench.t === 'solido' ? S.preench.cor : S.linha && S.linha.cor) || null).filter(Boolean);
+  if (cores.length) pac.paleta = cores;
+  const eixos = {};
+  for (const k of ['x', 'y']) { const E = P.eixos && P.eixos[k]; if (!E) continue; const o = {}; for (const c of ['grade', 'linha', 'rotulo']) if (E[c] !== undefined) o[c] = clonar(E[c]); if (Object.keys(o).length) eixos[k] = o; }
+  if (Object.keys(eixos).length) pac.eixos = eixos;
+  const s0 = seriesDe(P)[0];
+  if (s0 && s0.S.rotulos) { const { faixa, ...r } = s0.S.rotulos; void faixa; pac.rotulos = r; }
+  return pac;
 }

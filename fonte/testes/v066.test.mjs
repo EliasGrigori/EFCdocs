@@ -122,17 +122,26 @@ test('v0.6.6: inserir linhas acima da célula ligada: a caixa continua mostrando
   assert.match(arq['xl/drawings/drawing1.xml'], /textlink="\$C\$43"/);
 });
 
-test('v0.6.6: grupo que tinha o gráfico e só mais uma forma vira forma simples (não sobra grupo de um só ao salvar)', async () => {
+test('v0.6.6/v0.6.8: grupo com o gráfico e mais uma forma: o gráfico volta para dentro do grupo; mexendo no gráfico, a forma vai sozinha (nunca grupo de um só)', async () => {
   const c = await ler('amostra-formas.xlsx');
   const A = c.abas[idDe(c, 'Painel')];
   const ig = A.objs.findIndex((o) => o.tipo === 'grafico');
   const et = A.objs[ig - 1];
   assert.equal(et.partes.length, 1);
-  assert.equal(et.xo, undefined, 'sem o XML do grupo');
-  const arq = await texto((await gravarXlsx(c)).bytes);
-  const d = arq['xl/drawings/drawing1.xml'];
-  const grupos = [...d.matchAll(/<xdr:grpSp>([\s\S]*?)<\/xdr:grpSp>/g)].map((m) => (m[1].match(/<xdr:(sp|pic|cxnSp|graphicFrame)\b/g) || []).length);
-  assert.ok(grupos.every((n) => n >= 2), 'todo grupo gravado tem 2 ou mais partes: ' + grupos.join(','));
+  assert.ok(et.xo && et.grTok, 'v0.6.8: o grupo guarda o XML e lembra do gráfico');
+  assert.equal(A.objs[ig].noGrupo.tok, et.grTok);
+  const contar = (d) => [...d.matchAll(/<xdr:grpSp>([\s\S]*?)<\/xdr:grpSp>/g)].map((m) => (m[1].match(/<xdr:(sp|pic|cxnSp|graphicFrame)\b/g) || []).length);
+  let arq = await texto((await gravarXlsx(c)).bytes);
+  let d = arq['xl/drawings/drawing1.xml'];
+  assert.ok(/<xdr:grpSp>(?:(?!<\/xdr:grpSp>)[\s\S])*<xdr:graphicFrame\b/.test(d), 'o gráfico foi dentro do grupo');
+  assert.ok(contar(d).every((n) => n >= 2), 'grupos: ' + contar(d).join(','));
+  /* o gráfico mudou de lugar: sai do grupo, e o grupo de uma forma só vira forma simples */
+  A.objs[ig] = { ...A.objs[ig], dy: A.objs[ig].dy + 30 };
+  arq = await texto((await gravarXlsx(c)).bytes);
+  d = arq['xl/drawings/drawing1.xml'];
+  assert.ok(!/<xdr:grpSp>(?:(?!<\/xdr:grpSp>)[\s\S])*<xdr:graphicFrame\b/.test(d), 'o gráfico foi solto');
+  assert.ok(contar(d).every((n) => n >= 2), 'todo grupo gravado tem 2 ou mais partes: ' + contar(d).join(','));
+  assert.equal((d.match(/<c:chart\b/g) || []).length, (arq['xl/drawings/_rels/drawing1.xml.rels'].match(/\/chart"/g) || []).length);
 });
 
 test('v0.6.6: tabela do Excel volta ao salvar (nome, área, títulos e estilo) e acompanha as linhas inseridas', async () => {

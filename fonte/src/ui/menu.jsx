@@ -1,3 +1,4 @@
+import { VERSAO } from '../nucleo/modelo.js';
 /* EFCdocs — menu lateral (igual ao .rail do EFClaudian), gaveta do celular e barra de baixo do celular. */
 import { useEffect, useState } from 'react';
 import { PERFIS } from '../nucleo/perfis.js';
@@ -80,7 +81,7 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
       </div>
       <button type="button" className="rail-user" title="Perfil de teste (muda em Opções)" onClick={() => cx.executar('app.opcoes')}>
         <span className="av">EF</span>
-        <div><b>Neste aparelho</b><span>Perfil de teste: {PERFIS[prefs.perfil].nome}</span></div>
+        <div><b>Neste aparelho</b><span>Perfil de teste: {PERFIS[prefs.perfil].nome}</span><span className="menu-versao" data-versao>EFCdocs {VERSAO}</span></div>
       </button>
     </nav>
   );

@@ -477,7 +477,7 @@ export function App() {
       case 'arquivo.lixeira': if (atual) mandarLixeira(atual.arquivo.ficha); return;
       case 'editar.desfazer': desfazerOuRefazer(false); return;
       case 'editar.refazer': desfazerOuRefazer(true); return;
-      case 'editar.historico': setLinhaTempo(true); return;
+      case 'editar.historico': case 'arquivo.versoes': setLinhaTempo(true); return;
       case 'exibir.faixaTudo': setPref('faixa', 'tudo'); setFaixaTemp(false); return;
       case 'exibir.faixaAbas': setPref('faixa', 'abas'); setFaixaTemp(false); return;
       case 'exibir.faixaOculta':
@@ -521,6 +521,7 @@ export function App() {
       if (ctrl && ev.key === 'F1') { ev.preventDefault(); executar(prefs.faixa === 'tudo' ? 'exibir.faixaAbas' : 'exibir.faixaTudo'); return; }
       if (ev.key === 'Escape') { setFaixaTemp(false); setGaveta(false); return; }
       if (digitando || !abertoRef.current) return;
+      if (ev.defaultPrevented) return; // v0.6.8 (Grok): quem já tratou (o Painel) não desfaz de novo
       if (ctrl && k === 'z' && !ev.shiftKey) { ev.preventDefault(); desfazerOuRefazer(false); }
       if (ctrl && (k === 'y' || (k === 'z' && ev.shiftKey))) { ev.preventDefault(); desfazerOuRefazer(true); }
     };

@@ -9,7 +9,7 @@
 import { lerZip } from './zip.js';
 import { atributos, tags, tag, desescapar, textoRico } from './xml.js';
 import { lerTema, lerEstilos, corDe } from './estilos.js';
-import { tirarPrefixos, trocarTabelas } from './formulas.js';
+import { tirarPrefixos, trocarTabelas, porPrefixos } from './formulas.js';
 import { chave, letraCol, lerChave, numCol, MAX_LIN } from '../ref.js';
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
@@ -20,6 +20,9 @@ import { lerImpressaoAba, lerNomesImpressao } from './impressaoXlsx.js';
 import { idObjeto } from '../objetos.js';
 import { urlSegura } from '../inserir.js';
 import { indiceEstilo, LARG_PADRAO, ALT_PADRAO, NOME_ABA_PADRAO } from '../modelo.js';
+import { painelDoXml } from './painelXlsx.js';
+const MOTIVO_NAO_LE = 'o EFCdocs ainda não entende esta fórmula';
+const RX_SEMPRE_MATRIZ = /(^|[^\w])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|RANDARRAY|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS)\(/i;
 const RX_SO_DINAMICA = /(^|[^\w.])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|RANDARRAY|XLOOKUP|XMATCH|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS|LET|LAMBDA)\(/i;
 
 export const LIMITES = {
@@ -152,7 +155,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       tabelas.set(nome.toLowerCase(), {
         nome, aba: f.nome, l1: p1.l, c1: p1.c, l2: p2.l, c2: p2.c, cols,
         cab: t.a.headerRowCount === '0' ? 0 : 1, tot: +(t.a.totalsRowCount || 0) > 0 || t.a.totalsRowShown === '1' && +(t.a.totalsRowCount || 0) > 0 ? 1 : 0,
-        est: estiloDaTabela(tag(t.dentro, 'tableStyleInfo')),
+        est: estiloDaTabela(tag(t.dentro, 'tableStyleInfo')) || { sem: 1 }, // v0.6.8 (Grok): sem estilo no arquivo, volta sem estilo
       });
     }
   }
@@ -180,6 +183,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   const conta = (rx) => nomes.filter((n) => rx.test(n)).length;
   if (conta(/vbaProject\.bin$/i)) juntarFora('Macros (VBA)', 1, 'os botões que rodam macro não funcionam aqui');
   const graficosLidos = []; // v0.6.0: { aba, o } para ligar os dados à aba certa no fim
+  const paineisLidos = []; // v0.6.7: { aba, resto } das abas que eram Painel
   const formasLidas = []; // v0.6.5: formas (links e textos ligados apontam para o nome da aba até o fim)
   let grFora = 0;
   const nPartesGrafico = conta(/^xl\/charts\/chart\d+\.xml$/i);
@@ -188,7 +192,19 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   let imgLidas = 0;
   const linksLocais = []; // links de uma aba para outra, ligados no fim
   if (conta(/^xl\/(slicers|slicerCaches|timelines|timelineCaches)\//i)) juntarFora('Segmentações de dados e linhas do tempo', conta(/^xl\/(slicers|timelines)\/[^/]+\.xml$/i) || 1);
-  if (conta(/^xl\/ctrlProps\//i)) juntarFora('Botões e caixas de controle', conta(/^xl\/ctrlProps\//i));
+  /* v0.6.8: o nome dos botões de macro (para avisar também ao salvar) */
+  const botoesMacro = [];
+  for (const nv of nomes.filter((n) => /^xl\/drawings\/vmlDrawing\d*\.vml$/i.test(n))) {
+    const x = (await zip.texto(nv)) || '';
+    for (const m of x.matchAll(/<v:shape\b[\s\S]*?<\/v:shape>/g)) {
+      if (!/ObjectType="Button"/i.test(m[0])) continue;
+      const t = desescapar(((/<v:textbox[^>]*>([\s\S]*?)<\/v:textbox>/.exec(m[0]) || [])[1] || '').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+      if (t && botoesMacro.length < 20 && !botoesMacro.includes(t)) botoesMacro.push(t.slice(0, 60));
+    }
+  }
+  if (conta(/^xl\/ctrlProps\//i)) juntarFora('Botões e caixas de controle', conta(/^xl\/ctrlProps\//i), botoesMacro.length ? `(${botoesMacro.map((b) => '"' + b + '"').join(', ')})` : '');
+  if (botoesMacro.length) rel.botoesMacro = botoesMacro;
+  if (conta(/vbaProject\.bin$/i)) rel.temMacros = true;
   if (conta(/^xl\/webextensions\//i)) juntarFora('Suplementos do Office', conta(/^xl\/webextensions\/webextension\d*\.xml$/i) || 1);
   if (conta(/^xl\/externalLinks\//i)) juntarFora('Vínculos com outros arquivos', conta(/^xl\/externalLinks\/externalLink\d*\.xml$/i), 'as fórmulas que usam outro arquivo mostram o último valor');
   if (conta(/^xl\/(connections\.xml|queryTables\/)/i)) juntarFora('Consultas e conexões de dados (Power Query)', 1);
@@ -232,7 +248,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const d = dependencias(arv);
       const desc = d.desconhecidas.filter((n) => !IMPL[n]);
       if (desc.length) r = 'função ' + [...new Set(desc)].join(', ');
-    } catch { r = 'o EFCdocs ainda não entende esta fórmula'; }
+    } catch { r = MOTIVO_NAO_LE; }
     funcaoOk.set(f, r);
     if (funcaoOk.size > 50000) funcaoOk.clear();
     return r;
@@ -265,9 +281,10 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         const cel = {};
         if (x.v !== undefined) cel.v = x.v;
         if (x.f != null) {
-          cel.f = x.f; if (x.da || RX_SO_DINAMICA.test(x.f)) cel.da = 1; else cel.lg = 1; nForm++; // FILTRO, ÚNICO, CLASSIFICAR... só existem no Excel novo: sempre matriz dinâmica, mesmo se o arquivo (LibreOffice, etc.) não marcou
+          cel.f = x.f; if (x.fo && porPrefixos(x.f) !== x.fo) cel.fo = [x.fo, x.f]; if (x.da || (RX_SO_DINAMICA.test(x.f) && !x.excelNovo)) cel.da = 1; else cel.lg = 1; nForm++; // FILTRO, ÚNICO, CLASSIFICAR... só existem no Excel novo: sempre matriz dinâmica, mesmo se o arquivo (LibreOffice, etc.) não marcou
           const motivo = checarFormula(x.f);
           if (motivo) avisoFormula(x.f, motivo);
+          if (motivo === MOTIVO_NAO_LE && !cel.fo) cel.fo = [x.fo || x.f, x.f]; // v0.6.8: o EFCdocs não lê, mas veio do Excel: volta igual
         }
         if (x.s) cel.s = x.s;
         if (cel.v === undefined && cel.f == null && !cel.s) continue;
@@ -275,7 +292,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         nCel++; totalCel++;
         if (cel.v !== undefined || cel.f != null) { if (L.r > lMax) lMax = L.r; if (x.c > cMax) cMax = x.c; }
       }
-      if (L.ht != null && L.ht !== altDaAba()) { (aba.alt || (aba.alt = {}))[L.r] = L.ht; }
+      /* v0.6.8 (Grok): altura escolhida à mão no Excel fica guardada mesmo igual à padrão (o Alt+Enter não pode mudar) */
+      if (L.ht != null && (L.ht !== altDaAba() || L.mao)) { (aba.alt || (aba.alt = {}))[L.r] = L.ht; }
       if (L.oculta) { (aba.ocL || (aba.ocL = {}))[L.r] = 1; }
     };
     const soltarPendentes = () => {
@@ -306,7 +324,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const L = { r, cells: [], oculta: a.hidden === '1' || a.hidden === 'true', ht: null, s: a.customFormat === '1' ? sDe(a.s) : 0 };
       if (!L.oculta) linhasDef.add(r);
       /* v0.6.6: a linha guarda a altura dela quando é diferente da padrão do arquivo (aba.altP), como o Excel mostra */
-      if (a.ht && (a.customHeight === '1' || a.customHeight === 'true')) L.ht = Math.max(0, Math.round(parseFloat(a.ht) * 4 / 3));
+      if (a.ht && (a.customHeight === '1' || a.customHeight === 'true')) { L.ht = Math.max(0, Math.round(parseFloat(a.ht) * 4 / 3)); L.mao = true; }
       else if (a.ht && Number.isFinite(parseFloat(a.ht)) && Math.abs(Math.round(parseFloat(a.ht) * 4 / 3) - altDaAba()) >= 1) L.ht = Math.round(parseFloat(a.ht) * 4 / 3);
       let temValor = false, temVisivel = false;
       if (corpo) {
@@ -339,9 +357,14 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
           if (fm) {
             const fa = atributos(fm[1]);
             const txt = fm[2] != null ? desescapar(fm[2]) : '';
+            /* v0.6.8: a fórmula como veio (se o EFCdocs a escreveria diferente): volta igual ao salvar enquanto ninguém mexer nela */
+            /* XLOOKUP, XMATCH, LET e LAMBDA podem dar um valor só: sem a marca de matriz no arquivo, ficam como fórmula comum */
+            if (fa.t !== 'array' && !RX_SEMPRE_MATRIZ.test(txt)) x.excelNovo = 1;
+            const guardaOriginal = (fc) => { if (fc !== txt && txt.indexOf('[') < 0) x.fo = txt; };
             if (fa.t === 'shared') {
               if (txt) {
                 f = conv(txt, F.nome, r);
+                guardaOriginal(f);
                 if (fa.si != null) masters.set(fa.si, { f, l: r, c });
               } else {
                 const ms = masters.get(fa.si);
@@ -353,6 +376,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
               juntarFora('Tabelas de dados (teste de hipóteses)', 1, 'vêm só os valores');
             } else if (txt) {
               f = conv(txt, F.nome, r);
+              guardaOriginal(f);
               if (fa.t === 'array') {
                 x.da = 1;
                 const [a1, b1] = (fa.ref || '').split(':');
@@ -507,6 +531,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
 
     /* v0.6.0: configurar página (margens, papel, escala, títulos e área de impressão, cabeçalho e rodapé, quebras) */
     { const imp = lerImpressaoAba(cab, resto, defsImp[F.idx] || {}); if (imp) aba.imp = imp; }
+    /* v0.6.7: aba que era um Painel do EFCdocs (o JSON vai no extLst): volta como Painel depois de ler todas as abas */
+    if (resto.indexOf('urn:efcdocs:painel') >= 0) paineisLidos.push({ aba, resto: resto.slice(resto.indexOf('<efc:painel>')) });
     /* v0.6.0: gráficos da aba */
     if (F.rels && [...F.rels.values()].some((r) => /drawing$/.test(r.tipo))) {
       const gr = await lerGraficosAba(zip, F.rels, aba, async (parte) => lerRels(await zip.texto(relsDe(parte)), parte), tema, fontesTema);
@@ -622,6 +648,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         const guardados = {};
         for (const [k, v] of Object.entries(at)) if (k !== 'sheet' && /^[A-Za-z]+$/.test(k) && v !== '') guardados[k] = String(v);
         aba.prot = Object.keys(guardados).length ? { a: guardados } : 1;
+        rel.extras.protegidas = (rel.extras.protegidas || 0) + 1;
+        (rel.extras.nomesProtegidas || (rel.extras.nomesProtegidas = [])).push(F.nome);
       }
     }
 
@@ -710,6 +738,17 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   /* v0.6.5: o tema do arquivo volta igual ao salvar (cores e estilos das formas e dos gráficos do Excel dependem dele) */
   if (xmlTema && xmlTema.length < 120000 && /<(\w+:)?theme\b/.test(xmlTema)) conteudo.temaXml = xmlTema.replace(/^\s*<\?xml[^>]*\?>\s*/, '');
   conteudo.calcExcel = true; // até a primeira mudança, as fórmulas começam com o último valor do Excel (abre rápido)
+  /* v0.6.7: abas que eram Painel do EFCdocs voltam como Painel (as formas, gráficos e células feitos para o Excel saem) */
+  if (paineisLidos.length) {
+    const porNomeP = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));
+    let n = 0;
+    for (const { aba, resto } of paineisLidos) {
+      const pn = painelDoXml(resto, (nome) => porNomeP.get(String(nome).toLowerCase()) || null);
+      if (!pn) continue;
+      aba.painel = pn; aba.cel = {}; delete aba.objs; n++;
+    }
+    if (n) rel.avisos.push(n === 1 ? 'A aba de Painel feita no EFCdocs voltou como Painel.' : `${n} abas de Painel feitas no EFCdocs voltaram como Painel.`);
+  }
   rel.fora = [...fora.values()];
   conteudo.importado = rel;
   aoProgresso({ fase: 'pronto' });
