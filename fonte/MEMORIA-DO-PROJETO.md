@@ -1,6 +1,6 @@
 # MEMÓRIA DO PROJETO — EFCdocs
 
-Atualizado em 04/11/2026 · GitHub e site na **v0.6.9** (commit 114552f) · em preparo: **v0.6.9.1** (correções dos prints de 04/11) · depois **v0.7.0**
+Atualizado em 04/11/2026 · GitHub e site na **v0.6.9.1** (commit 9bb3986) · próxima: **v0.7.0**
 
 > **Este arquivo é a memória do projeto.** O Claude lê ele PRIMEIRO em toda conversa nova e grava de volta ao fechar cada versão.
 > Ele viaja em toda entrega (pasta da versão, ZIP da fonte e repositório), para nada se perder.
@@ -48,8 +48,8 @@ Atualizado em 04/11/2026 · GitHub e site na **v0.6.9** (commit 114552f) · em p
 
 ## 4. Estado atual
 
-- **No ar:** v0.6.9 (114552f). Planilha completa em funções: abrir e salvar Excel, fórmulas, gráficos nativos, formas, Painel, impressão e PDF, congelamento, largura e altura.
-- **Em preparo (v0.6.9.1, ainda NÃO publicada):** correções dos prints de 04/11 — ver seção 5.
+- **No ar:** v0.6.9.1 (9bb3986). Planilha completa em funções: abrir e salvar Excel, fórmulas, gráficos nativos, formas, Painel, impressão e PDF, congelamento, largura e altura.
+- **v0.6.9.1 publicada em 04/11/2026** (ordem do Elias): correções dos prints de 04/11 — ver seção 5.
 - **Próxima grande:** v0.7.0 = Documento (editor, POP, formulários, revisões, Word, PDF) + gráfico no Quadro. Já feitos: `src/docx/modelo.js` (blocos, trechos, cabeçalho do POP, sumário) e `src/docx/medidas.js` (larguras Helvetica/Times/Courier, quebra de linha), 11 testes. Arquitetura decidida: edição em fluxo contínuo na largura da folha; páginas de verdade na prévia, no PDF e na impressão; cabeçalho do POP repete em toda página.
 - Depois: v0.8.0 pastas e lançamentos · v0.9.0 nuvem e login · v0.10.0 ligação com o EFClaudian · v1.0.0 revisão final.
 
@@ -57,7 +57,7 @@ Atualizado em 04/11/2026 · GitHub e site na **v0.6.9** (commit 114552f) · em p
 
 | Id | Relato (data) | Causa | Situação |
 |---|---|---|---|
-| D-01 | Linhas passam por cima das congeladas; riscos somem ao rolar (tela de toque) (04/11) | v0.6.9: congelado desenhado em canvas à parte. v0.6.9.1: (a) a caixa de seleção de célula rolada para baixo do painel congelado era desenhada por cima das colunas congeladas; (b) a linha da ponta do painel usava a posição da coluna seguinte, já rolada, e ficava solta | **Corrigido na v0.6.9.1, reproduzido com a planilha dele e coberto por teste.** Elias confirma no aparelho |
+| D-01 | Linhas passam por cima das congeladas; riscos somem ao rolar (tela de toque) (04/11) | v0.6.9: congelado desenhado em canvas à parte. v0.6.9.1: (a) a caixa de seleção de célula rolada para baixo do painel congelado era desenhada por cima das colunas congeladas; (b) a linha da ponta do painel usava a posição da coluna seguinte, já rolada, e ficava solta | **Corrigido e PUBLICADO na v0.6.9.1, reproduzido com a planilha dele e coberto por teste.** Elias confirma no aparelho |
 | D-02 | Coluna lateral dos números muito grossa (04/11) | 46 px | **Corrigido na v0.6.9.1:** 30 px (cresce só com 4+ dígitos) |
 | D-03 | Ao exportar para Excel a planilha não volta com as tabelas (04/11) | O nome de cada coluna da tabela era gravado "aparado" e com a quebra de linha em outro formato; o Excel exige nome **idêntico** ao texto da célula do título, vê diferença, "repara" e apaga a tabela | **Corrigido na v0.6.9.1** (3 tabelas da planilha dele conferidas: nomes iguais aos do Excel original). **Elias confirma abrindo no Excel** |
 | D-04 | Imagens não redimensionam (04/11) | A alça ficava metade para fora da imagem e a imagem corta o que passa da caixa: só o pedaço de dentro aparecia e recebia o clique | **Corrigido na v0.6.9.1** (alça dentro do canto; vale para imagem, botão e gráfico) |
@@ -70,14 +70,14 @@ Atualizado em 04/11/2026 · GitHub e site na **v0.6.9** (commit 114552f) · em p
 ## 6. Pendências
 
 **Do Elias:**
-1. Atualizar o app e **conferir se mostra v0.6.9** (rodapé do menu "EFCdocs v0.6.9"); a v0.6.9.1 só depois que ele aprovar e mandar postar.
+1. Atualizar o app e **conferir se mostra v0.6.9.1** (rodapé do menu "EFCdocs v0.6.9.1").
 2. Testar na tela de toque se os riscos ficam no lugar ao rolar (D-01) e abrir no Excel de verdade um arquivo salvo pelo EFCdocs (D-03: tabelas, velocímetros, logotipo, sem pedido de reparo).
 3. Mandar o endereço/amostra do D-05 e o print do Dashboard (D-07).
 4. Passar ao Grok os roteiros das v0.6.8 e v0.6.9 (e depois o da v0.6.9.1).
 5. Listar exceções conhecidas; conferir limites do plano grátis do Firebase e a política de TTL das fotos.
 
 **Do Claude:**
-1. Fechar a v0.6.9.1 (testes, página de aprovação, roteiro do Grok, ZIPs) e esperar a ordem de publicar.
+1. (feito) v0.6.9.1 publicada; esperar o próximo comando do Elias (ele pediu: "espere o próximo comando").
 2. Investigar D-05 e D-06 quando houver dado.
 3. v0.7.0 (Opus 5 · alto): editor do Documento, POP com cabeçalho repetido, sumário, revisões, Word, PDF, impressão; gráfico no Quadro.
 4. Lembrete antigo: gráficos usam motor próprio; trocar por ECharts só se o Elias pedir.
@@ -136,7 +136,7 @@ Cada linha completa (itens aprovados, achados do Grok, números dos testes, comm
 
 | Versão | O que entra | Modelo · esforço | Situação |
 |---|---|---|---|
-| v0.6.9.1 | Correções dos prints de 04/11: seleção sob o congelado e risco solto, coluna dos números mais fina (30 px), alça das imagens, tabelas do Excel voltam sem "reparo" (nome das colunas idêntico ao título), aviso de abertura separa as fórmulas com #REF! do Excel; memória do projeto | Sonnet 5.5 · alto | pronta para aprovação (NÃO publicada) |
+| v0.6.9.1 | Correções dos prints de 04/11: seleção sob o congelado e risco solto, coluna dos números mais fina (30 px), alça das imagens, tabelas do Excel voltam sem "reparo" (nome das colunas idêntico ao título), aviso de abertura separa as fórmulas com #REF! do Excel; memória do projeto | Sonnet 5.5 · alto | PUBLICADA em 04/11/2026 (commit 9bb3986). 301 regras + 248 navegador |
 
 ## 10. Decisões aprovadas (guardadas na íntegra)
 
@@ -193,4 +193,5 @@ Cada linha completa (itens aprovados, achados do Grok, números dos testes, comm
 
 - 04/11/2026 · R14: criar e manter esta memória; toda regra dada vira linha aqui e viaja com cada versão.
 - 04/11/2026 · Pedido: documentar tudo o que foi feito, tudo o que falta e as versões, para não perder dado; o Claude lê isto sempre que precisar.
+- 04/11/2026 · Ordem: "posta para mim no GitHub e espere o próximo comando": v0.6.9.1 publicada (commit 9bb3986); o Claude para e espera o próximo comando antes de iniciar a v0.7.0.
 - 04/11/2026 · Defeitos D-01 a D-07 e L-01, L-02 anotados na seção 5.
