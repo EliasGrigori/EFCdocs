@@ -86,7 +86,7 @@ export function montarPdfFolhas({ titulo = '', rodape = '', folhas }) {
     add({ dict: `<< /Length ${cb.length} >>`, stream: cb });
     add({ dict: `<< /Type /XObject /Subtype /Image /Width ${jpeg.w} /Height ${jpeg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.bytes.length} >>`, stream: jpeg.bytes });
   });
-  add(`<< /Title ${textoInfo(titulo)} /Producer (EFCdocs) /Creator (EFCdocs) >>`);
+  add(`<< /Title ${textoInfo(titulo)} /Producer ${textoInfo('Vértice Docs')} /Creator ${textoInfo('Vértice Docs')} >>`);
 
   const partes = [];
   let pos = 0;

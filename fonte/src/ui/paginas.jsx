@@ -181,7 +181,7 @@ export function Inicio({ fichas, cx, demo }) {
       </div>
       <ListaFiltrada chave="inicio" titulo="Recentes" unidade={['arquivo', 'arquivos']} todos={lista} tipos={['planilha', 'docx', 'postits']} cx={cx}
         vazio="Comece criando uma planilha. Tudo fica salvo neste aparelho." />
-      {cx.instalar && <button type="button" className="btn sm instalar" onClick={cx.instalar}><Icone n="instalar" />Instalar o EFCdocs neste aparelho</button>}
+      {cx.instalar && <button type="button" className="btn sm instalar" onClick={cx.instalar}><Icone n="instalar" />Instalar o Vértice Docs neste aparelho</button>}
     </div>
   );
 }

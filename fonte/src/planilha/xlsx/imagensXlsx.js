@@ -66,7 +66,7 @@ export async function lerFiguraDaAncora(zip, relsD, an, aba) {
   if (!rc || !rc.alvo) return { fora: 'figura sem arquivo' };
   const ext = String(rc.alvo).split('.').pop().toLowerCase();
   const tipo = TIPOS[ext];
-  if (!tipo) return { fora: 'formato de figura que o EFCdocs não abre (' + ext + ')' };
+  if (!tipo) return { fora: 'formato de figura que o Vértice Docs não abre (' + ext + ')' };
   const bytes = await zip.bytes(rc.alvo);
   if (!bytes || !bytes.length) return { fora: 'figura vazia' };
   const src = await figuraParaTexto(bytes, tipo);

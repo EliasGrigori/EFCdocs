@@ -85,7 +85,7 @@ export function pdfDasPaginas(paginas, { titulo = 'Planilha', imagens = new Map(
     kids.push(add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f2(pag.W)} ${f2(pag.H)}] /Resources << ${fontes}${xo} >> /Contents ${nC} 0 R >>`));
   }
   objetos[1] = `<< /Type /Pages /Kids [${kids.map((k) => k + ' 0 R').join(' ')}] /Count ${kids.length} >>`;
-  const info = add(`<< /Title ${textoInfo(titulo)} /Producer (EFCdocs) /Creator (EFCdocs) >>`);
+  const info = add(`<< /Title ${textoInfo(titulo)} /Producer ${textoInfo('Vértice Docs')} /Creator ${textoInfo('Vértice Docs')} >>`);
   const partes = [];
   let pos = 0;
   const push = (b) => { partes.push(b); pos += b.length; };

@@ -364,8 +364,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   const quando = agora.toISOString().replace(/\.\d+Z$/, 'Z');
   const core = `${XML_CAB}<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">` +
     (titulo ? `<dc:title>${escapar(titulo)}</dc:title>` : '') +
-    `<dc:creator>EFCdocs</dc:creator><cp:lastModifiedBy>EFCdocs</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">${quando}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${quando}</dcterms:modified></cp:coreProperties>`;
-  const app = `${XML_CAB}<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>EFCdocs</Application></Properties>`;
+    `<dc:creator>Vértice Docs</dc:creator><cp:lastModifiedBy>Vértice Docs</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">${quando}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${quando}</dcterms:modified></cp:coreProperties>`;
+  const app = `${XML_CAB}<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Vértice Docs</Application></Properties>`;
   const tipos = `${XML_CAB}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
     (notas.length ? '<Default Extension="vml" ContentType="application/vnd.openxmlformats-officedocument.vmlDrawing"/>' : '') +

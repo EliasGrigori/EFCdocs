@@ -21,7 +21,7 @@ import { idObjeto } from '../objetos.js';
 import { urlSegura } from '../inserir.js';
 import { indiceEstilo, LARG_PADRAO, ALT_PADRAO, NOME_ABA_PADRAO } from '../modelo.js';
 import { painelDoXml } from './painelXlsx.js';
-const MOTIVO_NAO_LE = 'o EFCdocs ainda não entende esta fórmula';
+const MOTIVO_NAO_LE = 'o Vértice Docs ainda não entende esta fórmula';
 const RX_SEMPRE_MATRIZ = /(^|[^\w])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|RANDARRAY|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS)\(/i;
 const RX_SO_DINAMICA = /(^|[^\w.])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|RANDARRAY|XLOOKUP|XMATCH|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS|LET|LAMBDA)\(/i;
 
@@ -592,7 +592,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       if (cf.fora.barras) juntarFora('Barras de dados (formatação condicional)', cf.fora.barras, 'chegam numa versão próxima');
       if (cf.fora.icones) juntarFora('Conjuntos de ícones (formatação condicional)', cf.fora.icones, 'chegam numa versão próxima');
       if (cf.fora.periodo) juntarFora('Regras de datas (hoje, ontem, esta semana...)', cf.fora.periodo);
-      if (cf.fora.outras) juntarFora('Regras de formatação condicional que o EFCdocs não entende', cf.fora.outras);
+      if (cf.fora.outras) juntarFora('Regras de formatação condicional que o Vértice Docs não entende', cf.fora.outras);
     }
     if (aba.val || aba.cf) rel.extras.abasComRegras.push(F.nome);
     if (F.rels) {
@@ -623,7 +623,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         }
         rel.extras.links = (rel.extras.links || 0) + 1;
       }
-      if (perdidos) juntarFora('Links nas células', perdidos, 'link para arquivo, nome definido ou endereço que o EFCdocs não abre; o texto vem');
+      if (perdidos) juntarFora('Links nas células', perdidos, 'link para arquivo, nome definido ou endereço que o Vértice Docs não abre; o texto vem');
     }
     /* v0.6.3: filtro automático (setas + critérios de lista) e aba protegida */
     const filtros = [...(F.filtros || [])];
@@ -760,7 +760,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       if (!pn) continue;
       aba.painel = pn; aba.cel = {}; delete aba.objs; n++;
     }
-    if (n) rel.avisos.push(n === 1 ? 'A aba de Painel feita no EFCdocs voltou como Painel.' : `${n} abas de Painel feitas no EFCdocs voltaram como Painel.`);
+    if (n) rel.avisos.push(n === 1 ? 'A aba de Painel feita no Vértice Docs voltou como Painel.' : `${n} abas de Painel feitas no Vértice Docs voltaram como Painel.`);
   }
   rel.fora = [...fora.values()];
   conteudo.importado = rel;

@@ -139,7 +139,7 @@ export async function exportarPdf(c, nome, { vista, codigos, demo }) {
   }
   const bytes = montarPdfFolhas({
     titulo: nome,
-    rodape: `EFCdocs · Post-its${demo ? ' · DEMO · EFC' : ''} · gerado em ${carimboData()}`,
+    rodape: `Vértice Docs · Post-its${demo ? ' · DEMO · EFC' : ''} · gerado em ${carimboData()}`,
     folhas: folhasPdf,
   });
   baixar(new Blob([bytes], { type: 'application/pdf' }), `${nome}.pdf`);

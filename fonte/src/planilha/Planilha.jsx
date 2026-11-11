@@ -2444,7 +2444,7 @@ export function Planilha({ arquivo, cx }) {
       })(); return true;
       case 'arquivo.relatorioExcel':
         if (c.importado) setJanela({ tipo: 'relExcel' });
-        else cx.avisar('Esta planilha foi criada aqui no EFCdocs (não veio de um arquivo do Excel).', { ic: 'info' });
+        else cx.avisar('Esta planilha foi criada aqui no Vértice Docs (não veio de um arquivo do Excel).', { ic: 'info' });
         return true;
       default: return false;
     }
@@ -2982,7 +2982,7 @@ export function Planilha({ arquivo, cx }) {
         {fmAtiva && <><dt>Fórmula</dt><dd><code>={paraMostrar(fmAtiva.f)}</code></dd></>}
         <dt>Formato</dt><dd>{codigoPt(estiloAtivo.nf || 'General')}</dd>
         <dt>Usada por</dt><dd>{usadaPor ? <button type="button" className="lnk" onClick={() => setJanela({ tipo: 'origem' })}>{usadaPor} {usadaPor === 1 ? 'fórmula' : 'fórmulas'}</button> : 'nenhuma fórmula'}</dd>
-        {fmAtiva && fmAtiva.desc.length > 0 && <><dt>Aviso</dt><dd>O EFCdocs ainda não calcula {fmAtiva.desc.join(', ')}. Mostra o último valor do Excel.</dd></>}
+        {fmAtiva && fmAtiva.desc.length > 0 && <><dt>Aviso</dt><dd>O Vértice Docs ainda não calcula {fmAtiva.desc.join(', ')}. Mostra o último valor do Excel.</dd></>}
         {ehErro(valorAtivo) && <><dt>Erro</dt><dd>{valorAtivo.toString()}: {ERRO_EXPLICA[valorAtivo.cod]}</dd></>}
         {fmAtiva && <><dt>Entender</dt><dd><button type="button" className="lnk" onClick={() => setJanela({ tipo: 'explicar' })}>{ehErro(valorAtivo) ? 'Por que deu erro?' : 'Explicar esta conta'}</button></dd></>}
         {motor.circulares().some((x) => x.abaId === abaId && x.l === sel.ativa.l && x.c === sel.ativa.c) && <><dt>Aviso</dt><dd>{(causaCircular(motor, c, abaId, sel.ativa.l, sel.ativa.c) || {}).msg}</dd></>}

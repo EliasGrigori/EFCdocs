@@ -1,15 +1,15 @@
 {
-  "name": "EFCdocs · Planilha, Documento e Post-its",
-  "short_name": "EFCdocs",
-  "description": "EFCdocs: planilhas, documentos (POP e formulários) e quadros de post-its para a Qualidade.",
+  "name": "Vértice Docs · Planilha, Documento e Quadro",
+  "short_name": "Vértice Docs",
+  "description": "Vértice Docs: planilhas, documentos (POP e formulários) e quadros de post-its para a Qualidade.",
   "lang": "pt-BR",
   "id": "./",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#143c47",
-  "theme_color": "#143c47",
+  "background_color": "#10222e",
+  "theme_color": "#10222e",
   "icons": [
     {
       "src": "icon-192.png",

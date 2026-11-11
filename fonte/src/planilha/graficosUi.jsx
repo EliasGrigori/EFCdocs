@@ -505,7 +505,7 @@ function AbaEstilo({ g, gv, P, setG, series }) {
         )}
       </section>
       {g.t !== 'excel' && g.fx && (
-        <button type="button" className="btn sm ge-limpar" data-ge-limpar onClick={() => setG((x) => { const y = { ...x }; delete y.fx; delete y.estilo; return y; })}><Icone n="restaurar" />Tirar a formatação (voltar ao padrão do EFCdocs)</button>
+        <button type="button" className="btn sm ge-limpar" data-ge-limpar onClick={() => setG((x) => { const y = { ...x }; delete y.fx; delete y.estilo; return y; })}><Icone n="restaurar" />Tirar a formatação (voltar ao padrão do Vértice Docs)</button>
       )}
     </>
   );

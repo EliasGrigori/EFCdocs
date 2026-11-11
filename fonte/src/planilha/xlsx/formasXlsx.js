@@ -227,7 +227,7 @@ export async function lerFormaDaAncora(el, ctx) {
       const ext = rc && rc.alvo ? String(rc.alvo).split('.').pop().toLowerCase() : '';
       const bytes = rc && rc.alvo && TIPOS_IMG[ext] ? await ctx.zip.bytes(rc.alvo) : null;
       const src = bytes && bytes.length ? await figuraParaTexto(bytes, TIPOS_IMG[ext]) : '';
-      if (!src) { fora.push({ item: 'Imagens', motivo: 'figura dentro de grupo que o EFCdocs não abre' }); xoOk = false; return; }
+      if (!src) { fora.push({ item: 'Imagens', motivo: 'figura dentro de grupo que o Vértice Docs não abre' }); xoOk = false; return; }
       p.g = 'img'; p.src = src;
       { const pg0 = sp && filho(sp, 'prstGeom'); if (pg0 && pg0.a.prst && pg0.a.prst !== 'rect' && CONHECIDOS.has(pg0.a.prst)) p.corte = pg0.a.prst; }
       xoRels[blip.a.embed] = { k, t: 'img' };
@@ -332,7 +332,7 @@ export async function lerFormaDaAncora(el, ctx) {
         const xf = filho(no, 'xfrm'); const oe = offExt(xf);
         const ch = JSON.stringify(no).match(/"n":"chart","a":\{[^}]*"id":"([^"]+)"/);
         if (ch) graficos.push({ rid: ch[1], x: oe.ox * T.ax + T.bx, y: oe.oy * T.ay + T.by, w: oe.cx * T.ax, h: oe.cy * T.ay });
-        else if (!/slicer/i.test(JSON.stringify(no))) fora.push({ item: 'Objetos dentro de grupo', motivo: 'tipo que o EFCdocs não abre' });
+        else if (!/slicer/i.test(JSON.stringify(no))) fora.push({ item: 'Objetos dentro de grupo', motivo: 'tipo que o Vértice Docs não abre' });
       }
     };
     procurar(r2, T0);

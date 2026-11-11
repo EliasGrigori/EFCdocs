@@ -313,7 +313,7 @@ export function listaDaCelula(aba, l, c) {
 
 const MENSAGEM_PADRAO = 'Este valor não está de acordo com a regra de validação desta célula.';
 export function mensagemDeErro(r) {
-  return { titulo: r.met || 'EFCdocs', texto: r.mem || MENSAGEM_PADRAO, nivel: r.ee || 'stop' };
+  return { titulo: r.met || 'Vértice Docs', texto: r.mem || MENSAGEM_PADRAO, nivel: r.ee || 'stop' };
 }
 
 /**

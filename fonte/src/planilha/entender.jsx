@@ -90,7 +90,7 @@ export function JanelaExplicar({ nomeCel, dados, causa, titulo, aoAcao, aoAplica
               </>
             )}
             <p className="pl-frase">{dados.frase}</p>
-            {dados.faltam.length > 0 && <p className="qd-dica">{dados.faltam.join(', ')}: o EFCdocs ainda não calcula. A fórmula fica guardada e funciona no Excel.</p>}
+            {dados.faltam.length > 0 && <p className="qd-dica">{dados.faltam.join(', ')}: o Vértice Docs ainda não calcula. A fórmula fica guardada e funciona no Excel.</p>}
             {!somenteLeitura && (
               <div className="chips">
                 {!editando

@@ -100,7 +100,7 @@ export function JanelaTravar({ travada, liberadas, selecao, selecaoLivre, temSel
   const destravar = async () => {
     if (comSenha) {
       const ok = await conferirSenha(senha);
-      if (ok === null) { setErro('Esta senha foi guardada de um jeito que o EFCdocs não consegue conferir. Destrave a aba no Excel.'); return; }
+      if (ok === null) { setErro('Esta senha foi guardada de um jeito que o Vértice Docs não consegue conferir. Destrave a aba no Excel.'); return; }
       if (!ok) { setErro('Senha incorreta.'); return; }
     }
     aoDestravar();

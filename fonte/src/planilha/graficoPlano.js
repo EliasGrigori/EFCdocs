@@ -263,7 +263,7 @@ export function refsDoPlano(P) {
 
 /* ============================================================ estilos rápidos, layouts e cores ============================================================ */
 export const PALETAS = [
-  ['efc', 'EFCdocs', PALETA_GRAFICO.slice(0, 6)],
+  ['efc', 'Vértice', PALETA_GRAFICO.slice(0, 6)],
   ['petroleo', 'Petróleo', ['#0f4c5c', '#3f8a99', '#8fc1cb', '#d79a22', '#5b6770', '#c9d6dc']],
   ['agua', 'Água', ['#1f6f8b', '#4aa3c0', '#9ad0e0', '#0d3b4f', '#6bc4b8', '#cfe9f2']],
   ['terra', 'Terra', ['#8a5a2b', '#c08a4a', '#e2bf86', '#6b7b3a', '#a3542b', '#d9c6a5']],

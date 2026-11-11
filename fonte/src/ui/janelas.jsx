@@ -142,9 +142,9 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
           </div>
           <p>Só para testar o que cada tipo de pessoa pode fazer. O perfil de verdade vem do login (v0.9.0).</p>
         </Secao>
-        <Secao id="sobre" titulo="Sobre" abertas={abertas} alternar={alternar} resumo={`EFCdocs ${versao}`}>
+        <Secao id="sobre" titulo="Sobre" abertas={abertas} alternar={alternar} resumo={`Vértice Docs ${versao}`}>
           <p>{demo ? 'Modo demonstração (até 3 arquivos, banco separado).' : 'Tudo fica neste aparelho.'}{espaco ? ` Espaço usado: ${espaco}.` : ''}</p>
-          {cx.instalar && <button type="button" className="btn sm" onClick={cx.instalar}><Icone n="instalar" />Instalar o EFCdocs</button>}
+          {cx.instalar && <button type="button" className="btn sm" onClick={cx.instalar}><Icone n="instalar" />Instalar o Vértice Docs</button>}
         </Secao>
       </div>
     </Janela>

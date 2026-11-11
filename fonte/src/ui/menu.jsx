@@ -46,7 +46,7 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
         )}
         <Marca className="brand-mark" />
         <div className="brand-txt">
-          <div className="brand-name">EFCdocs</div>
+          <div className="brand-name">Vértice Docs</div>
           <div className="brand-sub">Planilha · Documento · Quadro</div>
         </div>
         {gaveta && <button type="button" className="iconbtn" aria-label="Fechar menu" onClick={fechar}><Icone n="x" /></button>}
@@ -81,7 +81,7 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
       </div>
       <button type="button" className="rail-user" title="Perfil de teste (muda em Opções)" onClick={() => cx.executar('app.opcoes')}>
         <span className="av">EF</span>
-        <div><b>Neste aparelho</b><span>Perfil de teste: {PERFIS[prefs.perfil].nome}</span><span className="menu-versao" data-versao>EFCdocs {VERSAO}</span></div>
+        <div><b>Neste aparelho</b><span>Perfil de teste: {PERFIS[prefs.perfil].nome}</span><span className="menu-versao" data-versao>Vértice Docs {VERSAO}</span></div>
       </button>
     </nav>
   );

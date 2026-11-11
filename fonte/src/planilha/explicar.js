@@ -286,7 +286,7 @@ function frases(ctx) {
       case 'TRIM': return `tira os espaços sobrando ${com('de', d(a[0]))}`;
       default: {
         const meta = !n.desc && POR_EN[n.n];
-        if (!meta) return `usa ${n.n}, que o EFCdocs ainda não calcula (no Excel funciona)`;
+        if (!meta) return `usa ${n.n}, que o Vértice Docs ainda não calcula (no Excel funciona)`;
         /* a explicação da função vai em outra oração: sem parêntese dentro de parêntese */
         const desc = meta.desc.replace(/\.$/, '');
         return `usa ${meta.pt} com ${a.length ? lista(a) : 'nada'}. ${meta.pt}: ${desc.charAt(0).toLowerCase() + desc.slice(1)}`;
@@ -401,7 +401,7 @@ export function causaDoErro(motor, c, abaId, l, col, titulo) {
   } else if (o.cod === '#NAME?') {
     const faltam = fm.desc.map((n) => (POR_EN[n] ? POR_EN[n].pt : n));
     const nomes = dependencias(fm.arv).nomes.filter((n) => !motor.nomesArv.has(n));
-    if (faltam.length) motivo = `${faltam.join(', ')} ${faltam.length === 1 ? 'é uma função' : 'são funções'} que o EFCdocs ainda não calcula${faltam.some((n) => funcaoDoExcelQueFalta(n)) ? ' (no Excel funciona)' : ''}. A fórmula está guardada e não se perde.`;
+    if (faltam.length) motivo = `${faltam.join(', ')} ${faltam.length === 1 ? 'é uma função' : 'são funções'} que o Vértice Docs ainda não calcula${faltam.some((n) => funcaoDoExcelQueFalta(n)) ? ' (no Excel funciona)' : ''}. A fórmula está guardada e não se perde.`;
     else if (nomes.length) motivo = `"${nomes[0]}" não é uma célula, uma função nem um nome definido. Se for texto, ponha entre aspas; se for um nome, crie em Fórmulas › Dar nome.`;
     else motivo = ERRO_EXPLICA[o.cod];
   } else if (o.cod === '#DIV/0!') {
@@ -722,7 +722,7 @@ export function problemasDaPlanilha(motor, c, titulo, { max = 200 } = {}) {
     const p = lista[0];
     add({
       id: 'falta:' + nome, nivel: 'aviso', abaId: p.abaId, l: p.l, c: p.c,
-      texto: `${nome}${lista.length > 1 ? ` (em ${lista.length} células)` : ''} é uma função que o EFCdocs ainda não calcula. A fórmula fica guardada e funciona quando abrir no Excel; aqui mostra o último valor do Excel ou #NOME?.`,
+      texto: `${nome}${lista.length > 1 ? ` (em ${lista.length} células)` : ''} é uma função que o Vértice Docs ainda não calcula. A fórmula fica guardada e funciona quando abrir no Excel; aqui mostra o último valor do Excel ou #NOME?.`,
       acoes: [],
     });
   }

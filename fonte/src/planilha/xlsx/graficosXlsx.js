@@ -325,7 +325,7 @@ export function planoDoXml(xml, tema = TEMA_OFFICE) {
   const ch = filho(raiz, 'chart');
   const pa = ch && filho(ch, 'plotArea');
   if (!pa) return { fora: 'gráfico sem dados' };
-  if (filho(pa, 'surfaceChart') || filho(pa, 'surface3DChart')) return { fora: 'gráfico de superfície (o EFCdocs ainda não desenha)' };
+  if (filho(pa, 'surfaceChart') || filho(pa, 'surface3DChart')) return { fora: 'gráfico de superfície (o Vértice Docs ainda não desenha)' };
   const temaH = (tema || TEMA_OFFICE).map((h) => String(h).replace('#', ''));
   const pal = [4, 5, 6, 7, 8, 9].map((i) => '#' + temaH[i].toLowerCase());
   /* depois das 6 cores do tema, o Excel repete mais escuras e mais claras */
@@ -408,7 +408,7 @@ export function planoDoXml(xml, tema = TEMA_OFFICE) {
     }
     P.grupos.push(G);
   }
-  if (!P.grupos.length) return { fora: 'tipo que o EFCdocs ainda não tem' };
+  if (!P.grupos.length) return { fora: 'tipo que o Vértice Docs ainda não tem' };
   if (!seriesDe(P).length) return { fora: 'gráfico sem séries' };
   /* v0.6.6: rótulos com "valor das células" (extensão do Excel 2013: fica no extLst, que a árvore não lê) */
   {
@@ -580,7 +580,7 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema, fontes 
         const ch = /<(?:\w+:)?Choice\b[^>]*>([\s\S]*?)<\/(?:\w+:)?Choice>/.exec(el);
         el = ((ch && /^\s*<(?:\w+:)?(sp|grpSp|cxnSp|pic|graphicFrame)\b/.test(ch[1]) && !/contentPart/.test(ch[1]) ? ch[1] : fb ? fb[1] : '') || '').trim();
         tipo = tipoDoElemento(el);
-        if (!el) { fora.push({ item: 'Objetos do desenho', motivo: 'tipo que o EFCdocs não abre' }); continue; }
+        if (!el) { fora.push({ item: 'Objetos do desenho', motivo: 'tipo que o Vértice Docs não abre' }); continue; }
       }
       const geo = geoDaAncora(an, aba);
       /* v0.6.3: figuras (imagens) presas a células */
@@ -592,7 +592,7 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema, fontes 
       }
       if (tipo === 'graphicFrame') {
         const gf = /<(?:\w+:)?chart\b[^>]*\b(?:r:)?id="([^"]+)"/.exec(el);
-        if (!gf) { if (/<cx:chart\b|chartex/i.test(el)) fora.push({ motivo: 'tipo novo do Excel (cascata, funil, mapa...)' }); else fora.push({ item: 'Objetos do desenho', motivo: 'tipo que o EFCdocs não abre' }); continue; }
+        if (!gf) { if (/<cx:chart\b|chartex/i.test(el)) fora.push({ motivo: 'tipo novo do Excel (cascata, funil, mapa...)' }); else fora.push({ item: 'Objetos do desenho', motivo: 'tipo que o Vértice Docs não abre' }); continue; }
         const g = await graficoDoRid(zip, relsD, gf[1], tema, geo, lerRelsDe, fontes, aba);
         if (!g) continue;
         if (g.fora) { fora.push({ motivo: g.fora }); continue; }
@@ -602,7 +602,7 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema, fontes 
       if (tipo === 'sp' || tipo === 'cxnSp' || tipo === 'grpSp') {
         const fm = await lerFormaDaAncora(el, { zip, relsD, tema, fontes, aba, geo, ed: an.ed, ns });
         for (const x of fm.fora) fora.push({ forma: true, ...x });
-        if (fm.aprox) fora.push({ forma: true, item: 'Formas com desenho que o EFCdocs ainda não tem', qtd: fm.aprox, motivo: 'vieram como retângulo' });
+        if (fm.aprox) fora.push({ forma: true, item: 'Formas com desenho que o Vértice Docs ainda não tem', qtd: fm.aprox, motivo: 'vieram como retângulo' });
         if (fm.obj) objs.push({ ...fm.obj, ordem });
         /* gráficos que estavam dentro do grupo: saem soltos, no mesmo lugar */
         for (const [k, gq] of fm.graficos.entries()) {
@@ -1028,7 +1028,7 @@ export function comFormasDoGrafico(xml, o, c = null) {
 /** v0.6.5: a parte de dentro da âncora de um gráfico (graphicFrame) com o r:id dado. */
 export function frameDoGrafico(o, id, rid) {
   const g = normalizarG(o.g);
-  return `<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${id}" name="Gráfico ${id}" descr="${escapar(g.titulo || NOME_TIPO[g.t] || 'Gráfico do EFCdocs', true)}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>` +
+  return `<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${id}" name="Gráfico ${id}" descr="${escapar(g.titulo || NOME_TIPO[g.t] || 'Gráfico do Vértice Docs', true)}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>` +
     `<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="${NS_C}"><c:chart xmlns:c="${NS_C}" r:id="${rid}"/></a:graphicData></a:graphic></xdr:graphicFrame>`;
 }
 export { NS_C, NS_A, NS_R, NS_XDR };
@@ -1052,7 +1052,7 @@ export function gravarGraficosAba(c, motor, aba, abaId, n0, extra = null) {
     while (lin < 1048575 && (altLin(aba, lin) <= 0 ? y > 0 : y >= altLin(aba, lin))) { y -= Math.max(0, altLin(aba, lin)); lin++; }
     ancoras.push(`<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>${o.c}</xdr:col><xdr:colOff>${Math.round(o.dx * EMU)}</xdr:colOff><xdr:row>${o.l}</xdr:row><xdr:rowOff>${Math.round(o.dy * EMU)}</xdr:rowOff></xdr:from>` +
       `<xdr:to><xdr:col>${col}</xdr:col><xdr:colOff>${Math.round(x * EMU)}</xdr:colOff><xdr:row>${lin}</xdr:row><xdr:rowOff>${Math.round(y * EMU)}</xdr:rowOff></xdr:to>` +
-      `<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${k + 2}" name="Gráfico ${k + 1}" descr="${escapar(g.titulo || NOME_TIPO[g.t] || 'Gráfico do EFCdocs', true)}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>` +
+      `<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${k + 2}" name="Gráfico ${k + 1}" descr="${escapar(g.titulo || NOME_TIPO[g.t] || 'Gráfico do Vértice Docs', true)}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>` +
       `<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="${NS_C}"><c:chart xmlns:c="${NS_C}" r:id="rIdG${charts.length}"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>`);
   });
   if (!charts.length && !imagens) return null;

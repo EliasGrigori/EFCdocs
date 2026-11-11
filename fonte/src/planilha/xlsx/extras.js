@@ -247,10 +247,10 @@ export function gravarComentarios(com, indiceAba) {
   const ks = Object.keys(com || {}).map((k) => ({ k, p: lerChave(k) })).filter((q) => q.p).sort((a, b) => a.p.l - b.p.l || a.p.c - b.p.c);
   if (!ks.length) return null;
   const autores = [];
-  const idAutor = (a) => { const n = a || 'EFCdocs'; let i = autores.indexOf(n); if (i < 0) { autores.push(n); i = autores.length - 1; } return i; };
+  const idAutor = (a) => { const n = a || 'Vértice Docs'; let i = autores.indexOf(n); if (i < 0) { autores.push(n); i = autores.length - 1; } return i; };
   const lista = ks.map(({ k, p }, i) => {
     const x = com[k];
-    const aut = x.a || 'EFCdocs';
+    const aut = x.a || 'Vértice Docs';
     let corpo = x.t || '';
     for (const r of x.r || []) corpo += `\n\n${r.a ? r.a + ' respondeu: ' : 'Resposta: '}${r.t}`;
     const id = idAutor(x.a);

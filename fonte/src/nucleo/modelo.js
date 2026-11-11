@@ -4,7 +4,9 @@
 import { conteudoQuadroVazio } from '../quadro/modelo.js';
 import { planilhaVazia } from '../planilha/modelo.js';
 
-export const VERSAO = 'v0.6.10';
+export const VERSAO = 'v0.6.10.1';
+/** v0.6.10.1: nome do app (antes EFCdocs). O repositório, o endereço e as chaves de dados continuam com efcdocs, para nada se perder. */
+export const NOME_APP = 'Vértice Docs';
 
 export const TIPOS = {
   planilha: { nome: 'Planilha', novo: 'Nova planilha', padrao: 'Planilha sem título', chega: null },

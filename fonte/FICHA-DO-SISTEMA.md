@@ -1,10 +1,10 @@
-# Ficha do sistema · EFCdocs
+# Ficha do sistema · Vértice Docs (EFCdocs)
 
 Preenchida em 11/11/2026 (Método Sabiá 2.0, `docs/METODO-SABIA-2.md`). É esta ficha que adapta o método a este sistema.
 
 | Campo | Resposta |
 |---|---|
-| Nome e para quem é | EFCdocs: app instalável (PWA) de Planilha (compatível com Excel), Documento e Quadro (Post-its), para o trabalho de Controle e Gestão da Qualidade do dono e da equipe |
+| Nome e para quem é | Vértice Docs (até a v0.6.10, EFCdocs; endereço e repositório continuam EFCdocs): app instalável (PWA) de Planilha (compatível com Excel), Documento e Quadro (Post-its), para o trabalho de Controle e Gestão da Qualidade do dono e da equipe |
 | O que faz, em duas frases | Abre, edita e salva planilhas do Excel com fórmulas, gráficos, formas, tabelas e validação; monta quadros de atividades. O Documento ainda está no começo |
 | Dono (quem aprova) | Elias |
 | Palavra de ordem para publicar | "Poste do Github" |

@@ -606,7 +606,7 @@ export function App() {
           </div>
         )}
         <DicasComandos mod={mod} />
-        <Topo titulo={TITULOS[rota] || 'EFCdocs'} ficha={ficha} salvo={salvo} prefs={prefs} cx={cx} cel={cel}
+        <Topo titulo={TITULOS[rota] || 'Vértice Docs'} ficha={ficha} salvo={salvo} prefs={prefs} cx={cx} cel={cel}
           aba={aba} setAba={setAba} faixaTemp={faixaTemp} setFaixaTemp={setFaixaTemp} abrirGaveta={() => (!cel && prefs.menu === 'oculto' ? cx.executar('exibir.menuCompleto') : setGaveta(true))} />
         <div className="work">
           <main className="wk-main" id="conteudo">{conteudo}</main>
@@ -641,7 +641,7 @@ export function App() {
               </>
             ) : (
               <>
-                <span><b>EFCdocs</b> {VERSAO}</span>
+                <span><b>Vértice Docs</b> {VERSAO}</span>
                 <span className="sts">
                   <span>{ativos(fichas).length} {ativos(fichas).length === 1 ? 'arquivo' : 'arquivos'} neste aparelho</span>
                 </span>

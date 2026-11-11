@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.10', async () => {
+await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.10.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.10'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.10.1'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.10'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.10.1'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -4390,7 +4390,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('v0.6.10'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.10.1'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

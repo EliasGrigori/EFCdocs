@@ -35,7 +35,7 @@ export function RelatorioExcel({ rel }) {
   ];
   if (ex.validacoes > 0) veio.push(<><b>Listas suspensas e validação de dados</b>: <Dest tom="verde">{n(ex.validacoes)} {plural(ex.validacoes, 'regra', 'regras')}</Dest>{ex.listas > 0 ? <> ({n(ex.listas)} {plural(ex.listas, 'lista suspensa', 'listas suspensas')})</> : null}.</>);
   if (ex.condicionais > 0) veio.push(<><b>Cores por regra (formatação condicional)</b>: <Dest tom="verde">{n(ex.condicionais)} {plural(ex.condicionais, 'regra', 'regras')}</Dest>.</>);
-  if (ex.graficos > 0) veio.push(<><b>Gráficos</b>: <Dest tom="verde">{n(ex.graficos)} {plural(ex.graficos, 'gráfico', 'gráficos')}</Dest> (desenhados pelo EFCdocs; ao salvar, voltam como gráficos do Excel).</>);
+  if (ex.graficos > 0) veio.push(<><b>Gráficos</b>: <Dest tom="verde">{n(ex.graficos)} {plural(ex.graficos, 'gráfico', 'gráficos')}</Dest> (desenhados pelo Vértice Docs; ao salvar, voltam como gráficos do Excel).</>);
   if (ex.formas > 0) veio.push(<><b>Formas</b>: <Dest tom="verde">{n(ex.formas)} {plural(ex.formas, 'forma ou grupo', 'formas e grupos')}</Dest> (painéis, setas, caixas de texto e botões com link; ao salvar, voltam para o Excel).</>);
   /* v0.6.8 (Grok): o total junta anotações e conversas ("12 comentários (9 eram conversas do Excel 365...)") */
   const totCom = (ex.notas || 0) + (ex.conversas || 0);
@@ -71,7 +71,7 @@ export function RelatorioExcel({ rel }) {
             )}
             {rel.semCalculo > 0 && (
               <li>
-                <Dest>{n(rel.semCalculo)} {rel.semCalculo === 1 ? 'fórmula mostra' : 'fórmulas mostram'} o último valor do Excel</Dest>: o EFCdocs ainda não calcula
+                <Dest>{n(rel.semCalculo)} {rel.semCalculo === 1 ? 'fórmula mostra' : 'fórmulas mostram'} o último valor do Excel</Dest>: o Vértice Docs ainda não calcula
                 {rel.exemplosSemCalculo && rel.exemplosSemCalculo.length ? <> (por exemplo, <code>={rel.exemplosSemCalculo[0].f.replace(/\s+/g, ' ').slice(0, 70)}</code>: {rel.exemplosSemCalculo[0].motivo})</> : null}.
               </li>
             )}
@@ -135,7 +135,7 @@ export function JanelaAbrirExcel({ aoFechar, aoAbrir }) {
             onDrop={(ev) => { ev.preventDefault(); setArrastando(false); ler(ev.dataTransfer.files && ev.dataTransfer.files[0]); }}>
             <Icone n="excel" />
             <p><b>Escolha um arquivo .xlsx ou .xlsm</b> (ou arraste para cá).</p>
-            <p className="sub">Vem uma cópia para o EFCdocs; o arquivo original não muda. Macros, gráficos e tabelas dinâmicas não vêm, e o relatório mostra tudo antes de abrir.</p>
+            <p className="sub">Vem uma cópia para o Vértice Docs; o arquivo original não muda. Macros, gráficos e tabelas dinâmicas não vêm, e o relatório mostra tudo antes de abrir.</p>
             <button type="button" className="btn primary" data-excel-escolher onClick={() => campo.current && campo.current.click()}>Escolher arquivo</button>
           </div>
         )}

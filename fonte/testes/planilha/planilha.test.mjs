@@ -631,7 +631,7 @@ test('v0.4.3: PL13 lista de problemas da planilha (erros, texto, vizinhas, núme
   const fixo = l.find((p) => p.id.startsWith('fixo'));
   assert.match(fixo.texto, /=F2\*1,15 \(e em mais 1 fórmula de G2:G3\)/);
   assert.deepEqual(fixo.acoes[0].celulas.map((x) => x.l), [1, 2]);
-  assert.match(l.find((p) => p.id === 'falta:INCLINAÇÃO').texto, /INCLINAÇÃO é uma função que o EFCdocs ainda não calcula/);
+  assert.match(l.find((p) => p.id === 'falta:INCLINAÇÃO').texto, /INCLINAÇÃO é uma função que o Vértice Docs ainda não calcula/);
   assert.equal(X.trocarNumeroPorNome('F2*1.15', 1.15, 'Fator'), 'F2*Fator');
   assert.equal(X.formulaDeCima('E3/D3'), 'E4/D4');
   assert.equal(X.formaRelativa(lerGuardada('E2/D2'), 1, 5), X.formaRelativa(lerGuardada('E3/D3'), 2, 5));

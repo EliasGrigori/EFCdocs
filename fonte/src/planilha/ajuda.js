@@ -93,7 +93,7 @@ export function diagnosticar(texto, { nomes = new Set(), abas = new Set() } = {}
       out.push(p
         ? { nivel: 'erro', msg: `Não conheço a função ${t.v}. Será que você quis dizer ${p.pt}? Toque em "Usar ${p.pt}" para trocar.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: p.pt }, rotulo: 'Usar ' + p.pt }
         : funcaoDoExcelQueFalta(t.v)
-          ? { nivel: 'aviso', msg: `${t.v} é uma função do Excel que o EFCdocs ainda não sabe calcular. A fórmula fica guardada como você digitou (e o Excel calcula ao abrir), mas aqui a célula mostra #NOME? até a função chegar.`, i: t.i, f: t.f }
+          ? { nivel: 'aviso', msg: `${t.v} é uma função do Excel que o Vértice Docs ainda não sabe calcular. A fórmula fica guardada como você digitou (e o Excel calcula ao abrir), mas aqui a célula mostra #NOME? até a função chegar.`, i: t.i, f: t.f }
           : { nivel: 'aviso', msg: `Não conheço a função ${t.v}. Se for erro de digitação, confira o nome. Se gravar assim, a fórmula fica guardada e a célula mostra #NOME?.`, i: t.i, f: t.f });
     } else if (a.como === 'en' && a.f.pt !== a.f.en) {
       out.push({ nivel: 'dica', msg: `${a.f.en} é o nome em inglês. Em português é ${a.f.pt}, e as duas formas funcionam.`, i: t.i, f: t.f, troca: { i: t.i, f: t.f, novo: a.f.pt }, rotulo: 'Trocar' });

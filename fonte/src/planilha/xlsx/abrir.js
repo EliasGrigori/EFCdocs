@@ -13,7 +13,7 @@ export const ehExcel = (nome) => /\.(xlsx|xlsm|xltx|xltm)$/i.test(String(nome ||
 export async function lerArquivoExcel(arquivo, aoProgresso = () => {}) {
   if (!ehExcel(arquivo.name)) {
     if (/\.xls$/i.test(arquivo.name)) throw new Error('Este é o formato antigo do Excel (.xls). No Excel, use "Salvar como" → "Pasta de Trabalho do Excel (.xlsx)" e abra o novo arquivo.');
-    if (/\.(csv|ods|docx?)$/i.test(arquivo.name)) throw new Error('Por enquanto o EFCdocs abre só arquivos do Excel (.xlsx ou .xlsm).');
+    if (/\.(csv|ods|docx?)$/i.test(arquivo.name)) throw new Error('Por enquanto o Vértice Docs abre só arquivos do Excel (.xlsx ou .xlsm).');
     throw new Error('Escolha um arquivo do Excel (.xlsx ou .xlsm).');
   }
   if (arquivo.size > MAX_BYTES) throw new Error(`O arquivo tem ${(arquivo.size / 1048576).toFixed(0)} MB; o limite aqui é ${MAX_BYTES / 1048576} MB.`);

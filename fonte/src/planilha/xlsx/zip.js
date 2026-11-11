@@ -68,7 +68,7 @@ export function lerZip(bytes) {
       if (!pt) return null;
       const s = new Blob([dados(pt)]).stream();
       if (pt.metodo === 0) return s;
-      if (pt.metodo !== 8) throw new ErroZip('Compactação que o EFCdocs não conhece em ' + nome);
+      if (pt.metodo !== 8) throw new ErroZip('Compactação que o Vértice Docs não conhece em ' + nome);
       return s.pipeThrough(new DecompressionStream('deflate-raw'));
     },
     async bytes(nome) {

@@ -1,0 +1,107 @@
+{
+ "metas": {
+  "comum": 100,
+  "pesada": 1000,
+  "lento": 3
+ },
+ "base": "docs/auditorias/base-v0.6.9.2",
+ "piorou": 0,
+ "medidas": [
+  {
+   "acao": "Digitar um número e Enter",
+   "freio": 1,
+   "ms": 1270,
+   "vezes": [
+    1327,
+    1014,
+    1347,
+    915,
+    1270
+   ],
+   "meta": 100,
+   "fora": true,
+   "antes": 1105,
+   "base": "igual (1105 ms antes)"
+  },
+  {
+   "acao": "Mover a seleção",
+   "freio": 1,
+   "ms": 37,
+   "vezes": [
+    141,
+    37,
+    35,
+    36,
+    41
+   ],
+   "meta": 100,
+   "fora": false,
+   "antes": 36,
+   "base": "igual (36 ms antes)"
+  },
+  {
+   "acao": "Desfazer",
+   "freio": 1,
+   "ms": 1058,
+   "vezes": [
+    1152,
+    1241,
+    967,
+    944,
+    1058
+   ],
+   "meta": 100,
+   "fora": true,
+   "antes": 856,
+   "base": "igual (856 ms antes)"
+  },
+  {
+   "acao": "Digitar um número e Enter",
+   "freio": 4,
+   "ms": 6290,
+   "vezes": [
+    6979,
+    6933,
+    6290,
+    5919,
+    6221
+   ],
+   "meta": 300,
+   "fora": true,
+   "antes": 5091,
+   "base": "igual (5091 ms antes)"
+  },
+  {
+   "acao": "Mover a seleção",
+   "freio": 4,
+   "ms": 97,
+   "vezes": [
+    97,
+    146,
+    96,
+    97,
+    116
+   ],
+   "meta": 300,
+   "fora": false,
+   "antes": 77,
+   "base": "igual (77 ms antes)"
+  },
+  {
+   "acao": "Desfazer",
+   "freio": 4,
+   "ms": 5751,
+   "vezes": [
+    6527,
+    6076,
+    5751,
+    5299,
+    5052
+   ],
+   "meta": 300,
+   "fora": true,
+   "antes": 4983,
+   "base": "igual (4983 ms antes)"
+  }
+ ]
+}

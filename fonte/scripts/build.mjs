@@ -55,9 +55,9 @@ const index = readFileSync(join(raiz, 'scripts/index.modelo.html'), 'utf8')
 writeFileSync(join(dist, 'index.html'), index);
 
 writeFileSync(join(dist, 'manifest.webmanifest'), JSON.stringify({
-  name: 'EFCdocs · Planilha, Documento e Post-its',
-  short_name: 'EFCdocs',
-  description: 'EFCdocs: planilhas, documentos (POP e formulários) e quadros de post-its para a Qualidade.',
+  name: 'Vértice Docs · Planilha, Documento e Quadro',
+  short_name: 'Vértice Docs',
+  description: 'Vértice Docs: planilhas, documentos (POP e formulários) e quadros de post-its para a Qualidade.',
   lang: 'pt-BR',
   id: './',
   start_url: './index.html',
@@ -65,8 +65,8 @@ writeFileSync(join(dist, 'manifest.webmanifest'), JSON.stringify({
   display: 'standalone',
   orientation: 'any',
   /* mesma cor do meio da tela de abertura: o app instalado não pisca outro tom ao abrir (achado 5 do Grok) */
-  background_color: '#143c47',
-  theme_color: '#143c47',
+  background_color: '#10222e',
+  theme_color: '#10222e',
   icons: [
     { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
     { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
@@ -74,7 +74,7 @@ writeFileSync(join(dist, 'manifest.webmanifest'), JSON.stringify({
   ],
 }, null, 2) + '\n');
 
-const arquivos = ['./', ...['apple-touch-icon.png', 'assets/' + css, 'assets/' + js, 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'index.html', 'manifest.webmanifest'].map((f) => './' + f)];
+const arquivos = ['./', ...['apple-touch-icon.png', 'logo-abertura.png', 'assets/' + css, 'assets/' + js, 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'index.html', 'manifest.webmanifest'].map((f) => './' + f)];
 const sw = readFileSync(join(raiz, 'scripts/sw.modelo.js'), 'utf8')
   .replace('{{VERSAO}}', 'efcdocs-' + versao)
   .replace('{{ARQUIVOS}}', JSON.stringify(arquivos, null, 2));
@@ -82,7 +82,7 @@ writeFileSync(join(dist, 'sw.js'), sw);
 copyFileSync(join(raiz, 'scripts/COMO-PUBLICAR.md'), join(dist, 'COMO-PUBLICAR.md'));
 
 const kb = (f) => (statSync(join(dist, f)).size / 1024).toFixed(1) + ' KB';
-console.log(`EFCdocs ${versao} montado em dist/`);
+console.log(`Vértice Docs (EFCdocs) ${versao} montado em dist/`);
 console.log(`  assets/${js}  ${kb('assets/' + js)}`);
 console.log(`  assets/${css} ${kb('assets/' + css)}`);
 console.log(`  (leitor de Excel no trabalhador: ${(codigoTrab.length / 1024).toFixed(1)} KB dentro do app)`);
