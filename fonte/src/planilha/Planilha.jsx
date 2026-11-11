@@ -697,9 +697,7 @@ export function Planilha({ arquivo, cx }) {
     } else {
       if (objs.length >= MAX_OBJETOS) { cx.avisar(`No máximo ${MAX_OBJETOS} assinaturas por aba.`, { ic: 'aviso' }); return; }
       /* entra na célula ativa; se ela não está à vista, na primeira célula que aparece */
-      const aVista = sel.ativa.l >= Math.max(G.cl, G.l0) && sel.ativa.l < G.l1 && sel.ativa.c >= Math.max(G.cc, G.c0) && sel.ativa.c < G.c1;
-      const ancora = aVista ? { l: sel.ativa.l, c: sel.ativa.c } : { l: Math.max(G.cl, G.l0) + 1, c: Math.max(G.cc, G.c0) };
-      const o = novaAssinatura(v, ancora);
+      const o = novaAssinatura(v, ancoraNova());
       if (gravarObjs([...objs, o], 'Nova assinatura') !== false) { setObjSel(o.id); cx.avisar('Assinatura inserida. Arraste para mover; dois cliques para mudar o nome ou a rubrica.', { ic: 'assinatura' }); }
     }
     setTimeout(voltarFocoGrade, 0);
@@ -714,9 +712,15 @@ export function Planilha({ arquivo, cx }) {
     else if (o.tipo === 'forma') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'forma', id: o.id }); }
     else abrirAssinatura(o);
   };
+  /* v0.6.9.2 (Grok, D-10): a célula "à vista" conta também na parte congelada, e, se a parte que rola não aparece
+     (congelado ocupa a tela, como no celular), o objeto entra na primeira célula da parte congelada. */
   const ancoraNova = () => {
-    const aVista = sel.ativa.l >= Math.max(G.cl, G.l0) && sel.ativa.l < G.l1 && sel.ativa.c >= Math.max(G.cc, G.c0) && sel.ativa.c < G.c1;
-    return aVista ? { l: sel.ativa.l, c: sel.ativa.c } : { l: Math.max(G.cl, G.l0) + 1, c: Math.max(G.cc, G.c0) };
+    const x = G.xDe(sel.ativa.c), y = G.yDe(sel.ativa.l);
+    const aVista = y >= G.hh && y + 4 < G.H && x >= G.hw && x + 4 < G.W
+      && (sel.ativa.l < G.cl || y >= G.hh + G.fy) && (sel.ativa.c < G.cc || x >= G.hw + G.fx);
+    if (aVista) return { l: sel.ativa.l, c: sel.ativa.c };
+    const vivoL = G.H - G.hh - G.fy >= 40, vivoC = G.W - G.hw - G.fx >= 60;
+    return { l: vivoL || G.cl === 0 ? Math.max(G.cl, G.l0) + 1 : 0, c: vivoC || G.cc === 0 ? Math.max(G.cc, G.c0) : 0 };
   };
   const campoImagem = useRef(null);
   const imagemAlvo = useRef(null); // id da imagem que vai ser trocada (null = imagem nova)

@@ -1,0 +1,177 @@
+{
+ "base": "http://localhost:8741/",
+ "aparelhos": [
+  "pc",
+  "celular"
+ ],
+ "telas": [
+  {
+   "nome": "Início",
+   "passos": [
+    {
+     "ir": "#/"
+    },
+    {
+     "sumir": "#abertura"
+    },
+    {
+     "esperar": 300
+    }
+   ]
+  },
+  {
+   "nome": "Lista de planilhas",
+   "passos": [
+    {
+     "ir": "#/planilha"
+    },
+    {
+     "sumir": "#abertura"
+    },
+    {
+     "esperar": 300
+    }
+   ]
+  },
+  {
+   "nome": "Abrir Excel (relatório)",
+   "passos": [
+    {
+     "ir": "#/"
+    },
+    {
+     "esperar": 500
+    },
+    {
+     "clicar": "[data-abrir-excel]"
+    },
+    {
+     "arquivo": [
+      "[data-excel-arquivo]",
+      "testes/amostras/amostra-v0692.xlsx"
+     ]
+    },
+    {
+     "esperar": "[data-excel-abrir]"
+    }
+   ]
+  },
+  {
+   "nome": "Planilha · Página Inicial",
+   "passos": [
+    {
+     "clicar": "[data-excel-abrir]"
+    },
+    {
+     "esperar": ".pl-cv"
+    },
+    {
+     "esperar": 900
+    }
+   ]
+  },
+  {
+   "nome": "Planilha · Inserir",
+   "passos": [
+    {
+     "clicar": ".tabs .tab:has-text(\"Inserir\")"
+    }
+   ],
+   "so": [
+    "pc"
+   ]
+  },
+  {
+   "nome": "Planilha · Dados",
+   "passos": [
+    {
+     "clicar": ".tabs .tab:has-text(\"Dados\")"
+    }
+   ],
+   "so": [
+    "pc"
+   ]
+  }
+ ],
+ "metasRapidez": {
+  "comum": 100,
+  "pesada": 1000,
+  "lento": 3
+ },
+ "preparar": [
+  {
+   "ir": "#/"
+  },
+  {
+   "sumir": "#abertura"
+  },
+  {
+   "esperar": 600
+  },
+  {
+   "clicar": "[data-abrir-excel]"
+  },
+  {
+   "arquivo": [
+    "[data-excel-arquivo]",
+    ".auditoria/amostra-grande.xlsx"
+   ]
+  },
+  {
+   "esperar": "[data-excel-abrir]"
+  },
+  {
+   "clicar": "[data-excel-abrir]"
+  },
+  {
+   "esperar": ".pl-cv"
+  },
+  {
+   "esperar": 3000
+  },
+  {
+   "clicar": ".pl-nome"
+  },
+  {
+   "preencher": [
+    ".pl-nome",
+    "B2"
+   ]
+  },
+  {
+   "tecla": "Enter"
+  },
+  {
+   "esperar": 400
+  }
+ ],
+ "acoes": [
+  {
+   "nome": "Digitar um número e Enter",
+   "passos": [
+    {
+     "digitar": "123"
+    },
+    {
+     "tecla": "Enter"
+    }
+   ]
+  },
+  {
+   "nome": "Mover a seleção",
+   "passos": [
+    {
+     "tecla": "ArrowDown"
+    }
+   ]
+  },
+  {
+   "nome": "Desfazer",
+   "passos": [
+    {
+     "tecla": "Control+z"
+    }
+   ]
+  }
+ ]
+}

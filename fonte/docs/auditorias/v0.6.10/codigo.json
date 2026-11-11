@@ -1,0 +1,13 @@
+{
+ "limite": 800,
+ "total": 35106,
+ "grandes": {
+  "estilo-base.css": 3111,
+  "planilha/desenhoGrafico.js": 848,
+  "planilha/funcoes.js": 1058,
+  "planilha/explicar.js": 812,
+  "planilha/Planilha.jsx": 3707,
+  "planilha/xlsx/graficosXlsx.js": 1116,
+  "quadro/Quadro.jsx": 1126
+ }
+}

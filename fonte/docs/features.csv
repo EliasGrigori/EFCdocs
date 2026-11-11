@@ -1,0 +1,321 @@
+﻿id;modulo;grupo;funcao;situacao;defeito_ou_falta;acao_no_plano;origem
+F001;Planilha;app;Ir para o início;funciona;;manter;catálogo de comandos
+F002;Documento;app;Ir para o início;funciona;;manter;catálogo de comandos
+F003;Quadro;app;Ir para o início;funciona;;manter;catálogo de comandos
+F004;Planilha;app;O que você quer fazer? (Ctrl+K);funciona;;manter;catálogo de comandos
+F005;Documento;app;O que você quer fazer? (Ctrl+K);funciona;;manter;catálogo de comandos
+F006;Quadro;app;O que você quer fazer? (Ctrl+K);funciona;;manter;catálogo de comandos
+F007;Planilha;app;Opções;funciona;;manter;catálogo de comandos
+F008;Documento;app;Opções;funciona;;manter;catálogo de comandos
+F009;Quadro;app;Opções;funciona;;manter;catálogo de comandos
+F010;Planilha;arquivo;Novo;funciona;;manter;catálogo de comandos
+F011;Documento;arquivo;Novo;funciona;;manter;catálogo de comandos
+F012;Quadro;arquivo;Novo;funciona;;manter;catálogo de comandos
+F013;Planilha;arquivo;Nova planilha;funciona;;manter;catálogo de comandos
+F014;Documento;arquivo;Nova planilha;funciona;;manter;catálogo de comandos
+F015;Quadro;arquivo;Nova planilha;funciona;;manter;catálogo de comandos
+F016;Planilha;arquivo;Novo documento;funciona;;manter;catálogo de comandos
+F017;Documento;arquivo;Novo documento;funciona;;manter;catálogo de comandos
+F018;Quadro;arquivo;Novo documento;funciona;;manter;catálogo de comandos
+F019;Planilha;arquivo;Novo quadro de post-its;funciona;;manter;catálogo de comandos
+F020;Documento;arquivo;Novo quadro de post-its;funciona;;manter;catálogo de comandos
+F021;Quadro;arquivo;Novo quadro de post-its;funciona;;manter;catálogo de comandos
+F022;Planilha;arquivo;Renomear;funciona;;manter;catálogo de comandos
+F023;Documento;arquivo;Renomear;funciona;;manter;catálogo de comandos
+F024;Quadro;arquivo;Renomear;funciona;;manter;catálogo de comandos
+F025;Planilha;arquivo;Mandar para a lixeira;funciona;;manter;catálogo de comandos
+F026;Documento;arquivo;Mandar para a lixeira;funciona;;manter;catálogo de comandos
+F027;Quadro;arquivo;Mandar para a lixeira;funciona;;manter;catálogo de comandos
+F028;Planilha;arquivo;Abrir arquivo do Excel;funciona;;manter;catálogo de comandos
+F029;Documento;arquivo;Abrir arquivo do Excel;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F030;Quadro;arquivo;Abrir arquivo do Excel;funciona;;manter;catálogo de comandos
+F031;Planilha;arquivo;Salvar como Excel;funciona;;manter;catálogo de comandos
+F032;Planilha;arquivo;Baixar o original;funciona;;manter;catálogo de comandos
+F033;Planilha;arquivo;O que veio do Excel;funciona;;manter;catálogo de comandos
+F034;Documento;arquivo;Exportar Word;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F035;Planilha;arquivo;Exportar PDF;funciona;;manter;catálogo de comandos
+F036;Documento;arquivo;Exportar PDF;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F037;Quadro;arquivo;Exportar PDF;funciona;;manter;catálogo de comandos
+F038;Quadro;arquivo;Exportar imagem (PNG);funciona;;manter;catálogo de comandos
+F039;Planilha;arquivo;Imprimir;funciona;;manter;catálogo de comandos
+F040;Documento;arquivo;Imprimir;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F041;Quadro;arquivo;Imprimir;funciona;;manter;catálogo de comandos
+F042;Planilha;arquivo;Versões e revisões;funciona;;manter;catálogo de comandos
+F043;Documento;arquivo;Versões e revisões;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F044;Planilha;arquivo;Lançar na pasta;ainda não feito;previsto: v0.8.0;;catálogo de comandos
+F045;Documento;arquivo;Lançar na pasta;ainda não feito;previsto: v0.8.0;;catálogo de comandos
+F046;Quadro;arquivo;Lançar na pasta;ainda não feito;previsto: v0.8.0;;catálogo de comandos
+F047;Planilha;arquivo;Cancelar com motivo;ainda não feito;previsto: v0.8.0;;catálogo de comandos
+F048;Documento;arquivo;Cancelar com motivo;ainda não feito;previsto: v0.8.0;;catálogo de comandos
+F049;Quadro;arquivo;Cancelar com motivo;ainda não feito;previsto: v0.8.0;;catálogo de comandos
+F050;Planilha;editar;Desfazer (Ctrl+Z);funciona;;manter;catálogo de comandos
+F051;Documento;editar;Desfazer (Ctrl+Z);funciona;;manter;catálogo de comandos
+F052;Quadro;editar;Desfazer (Ctrl+Z);funciona;;manter;catálogo de comandos
+F053;Planilha;editar;Refazer (Ctrl+Y);funciona;;manter;catálogo de comandos
+F054;Documento;editar;Refazer (Ctrl+Y);funciona;;manter;catálogo de comandos
+F055;Quadro;editar;Refazer (Ctrl+Y);funciona;;manter;catálogo de comandos
+F056;Planilha;editar;Colar (Ctrl+V);funciona;;manter;catálogo de comandos
+F057;Documento;editar;Colar (Ctrl+V);ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F058;Quadro;editar;Colar (Ctrl+V);funciona;;manter;catálogo de comandos
+F059;Planilha;editar;Recortar (Ctrl+X);funciona;;manter;catálogo de comandos
+F060;Documento;editar;Recortar (Ctrl+X);ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F061;Quadro;editar;Recortar (Ctrl+X);funciona;;manter;catálogo de comandos
+F062;Planilha;editar;Copiar (Ctrl+C);funciona;;manter;catálogo de comandos
+F063;Documento;editar;Copiar (Ctrl+C);ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F064;Quadro;editar;Copiar (Ctrl+C);funciona;;manter;catálogo de comandos
+F065;Planilha;editar;Pincel de formatação;funciona;;manter;catálogo de comandos
+F066;Documento;editar;Pincel de formatação;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F067;Quadro;editar;Pincel de formatação;funciona;;manter;catálogo de comandos
+F068;Planilha;editar;Localizar e substituir;funciona;;manter;catálogo de comandos
+F069;Documento;editar;Localizar e substituir;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F070;Quadro;editar;Localizar e substituir;funciona;;manter;catálogo de comandos
+F071;Planilha;editar;Comentário;funciona;;manter;catálogo de comandos
+F072;Documento;editar;Comentário;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F073;Quadro;editar;Comentário;funciona;;manter;catálogo de comandos
+F074;Planilha;revisao;Comentários da aba;funciona;;manter;catálogo de comandos
+F075;Quadro;editar;Duplicar (Ctrl+D);funciona;;manter;catálogo de comandos
+F076;Quadro;editar;Excluir a seleção (Delete);funciona;;manter;catálogo de comandos
+F077;Planilha;editar;Selecionar tudo (Ctrl+A);funciona;;manter;catálogo de comandos
+F078;Quadro;editar;Selecionar tudo (Ctrl+A);funciona;;manter;catálogo de comandos
+F079;Planilha;editar;Linha do tempo do desfazer;funciona;;manter;catálogo de comandos
+F080;Documento;editar;Linha do tempo do desfazer;funciona;;manter;catálogo de comandos
+F081;Quadro;editar;Linha do tempo do desfazer;funciona;;manter;catálogo de comandos
+F082;Planilha;editar;Colar só os valores;funciona;;manter;catálogo de comandos
+F083;Planilha;editar;Preencher para baixo (Ctrl+D);funciona;;manter;catálogo de comandos
+F084;Planilha;editar;Preencher para a direita (Ctrl+R);funciona;;manter;catálogo de comandos
+F085;Planilha;planilha;Limpar conteúdo (Delete);funciona;;manter;catálogo de comandos
+F086;Planilha;planilha;Inserir linha acima;funciona;;manter;catálogo de comandos
+F087;Planilha;planilha;Inserir coluna à esquerda;funciona;;manter;catálogo de comandos
+F088;Planilha;planilha;Excluir linha;funciona;;manter;catálogo de comandos
+F089;Planilha;planilha;Excluir coluna;funciona;;manter;catálogo de comandos
+F090;Planilha;planilha;Ocultar linhas;funciona;;manter;catálogo de comandos
+F091;Planilha;planilha;Ocultar colunas;funciona;;manter;catálogo de comandos
+F092;Planilha;planilha;Reexibir linhas;funciona;;manter;catálogo de comandos
+F093;Planilha;planilha;Reexibir colunas;funciona;;manter;catálogo de comandos
+F094;Planilha;planilha;Nova aba;funciona;;manter;catálogo de comandos
+F095;Planilha;planilha;Esta linha é o cabeçalho;funciona;;manter;catálogo de comandos
+F096;Planilha;formatar;Negrito;funciona;;manter;catálogo de comandos
+F097;Documento;formatar;Negrito;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F098;Quadro;formatar;Negrito;funciona;;manter;catálogo de comandos
+F099;Planilha;formatar;Itálico;funciona;;manter;catálogo de comandos
+F100;Documento;formatar;Itálico;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F101;Quadro;formatar;Itálico;funciona;;manter;catálogo de comandos
+F102;Planilha;formatar;Sublinhado;funciona;;manter;catálogo de comandos
+F103;Documento;formatar;Sublinhado;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F104;Quadro;formatar;Sublinhado;funciona;;manter;catálogo de comandos
+F105;Planilha;formatar;Cor da fonte;funciona;;manter;catálogo de comandos
+F106;Documento;formatar;Cor da fonte;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F107;Quadro;formatar;Cor da fonte;funciona;;manter;catálogo de comandos
+F108;Planilha;formatar;Cor de preenchimento;funciona;;manter;catálogo de comandos
+F109;Quadro;formatar;Cor de preenchimento;funciona;;manter;catálogo de comandos
+F110;Planilha;formatar;Bordas;funciona;;manter;catálogo de comandos
+F111;Planilha;formatar;Alinhar à esquerda;funciona;;manter;catálogo de comandos
+F112;Documento;formatar;Alinhar à esquerda;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F113;Quadro;formatar;Alinhar à esquerda;funciona;;manter;catálogo de comandos
+F114;Planilha;formatar;Centralizar;funciona;;manter;catálogo de comandos
+F115;Documento;formatar;Centralizar;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F116;Quadro;formatar;Centralizar;funciona;;manter;catálogo de comandos
+F117;Planilha;formatar;Alinhar à direita;funciona;;manter;catálogo de comandos
+F118;Documento;formatar;Alinhar à direita;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F119;Quadro;formatar;Alinhar à direita;funciona;;manter;catálogo de comandos
+F120;Planilha;formatar;Quebrar texto;funciona;;manter;catálogo de comandos
+F121;Planilha;formatar;Mesclar células;com defeito;"D-11: borda no meio da mesclada e caixinha no canto; falta Mesclar através e aviso de perda de valores";B1;catálogo de comandos
+F122;Planilha;formatar;Formato moeda (R$);funciona;;manter;catálogo de comandos
+F123;Planilha;formatar;Formato porcentagem (%);funciona;;manter;catálogo de comandos
+F124;Planilha;formatar;Separador de milhares;funciona;;manter;catálogo de comandos
+F125;Planilha;formatar;Mais casas decimais;funciona;;manter;catálogo de comandos
+F126;Planilha;formatar;Menos casas decimais;funciona;;manter;catálogo de comandos
+F127;Planilha;formatar;Formato de número (Ctrl+1);funciona;;manter;catálogo de comandos
+F128;Planilha;formatar;Fonte e tamanho;funciona;;manter;catálogo de comandos
+F129;Planilha;formatar;Limpar formatos;funciona;;manter;catálogo de comandos
+F130;Planilha;formatar;Formatação condicional;funciona;;manter;catálogo de comandos
+F131;Documento;formatar;Lista com marcadores;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F132;Documento;formatar;Lista numerada;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F133;Documento;formatar;Estilo título;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F134;Planilha;inserir;Tabela;com defeito;"D-12/D-13/D-14 e P-01: tabela é só pintura; não cresce, Tab não abre linha, sem alça, sem Design; estilo de tabela do Excel não é desenhado";B3;catálogo de comandos
+F135;Documento;inserir;Tabela;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F136;Planilha;inserir;Imagem;parcial;"P-01: janela só com largura e texto alternativo; sem cortar, girar, moldura";B4;catálogo de comandos
+F137;Documento;inserir;Imagem;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F138;Quadro;inserir;Imagem;funciona;;manter;catálogo de comandos
+F139;Planilha;grafico;Editar gráfico;funciona;;manter;catálogo de comandos
+F140;Planilha;grafico;Estilo rápido;funciona;;manter;catálogo de comandos
+F141;Planilha;grafico;Cores do gráfico;funciona;;manter;catálogo de comandos
+F142;Planilha;grafico;Semáforo;funciona;;manter;catálogo de comandos
+F143;Planilha;grafico;Excluir gráfico;funciona;;manter;catálogo de comandos
+F144;Planilha;grafico;Baixar imagem do gráfico;funciona;;manter;catálogo de comandos
+F145;Planilha;grafico;Duplicar gráfico;funciona;;manter;catálogo de comandos
+F146;Planilha;grafico;Guardar estilo como modelo;funciona;;manter;catálogo de comandos
+F147;Planilha;grafico;Barras de erro;funciona;;manter;catálogo de comandos
+F148;Planilha;inserir;Painel;funciona;;manter;catálogo de comandos
+F149;Planilha;painel;Gráfico no painel;funciona;;manter;catálogo de comandos
+F150;Planilha;painel;Número grande;funciona;;manter;catálogo de comandos
+F151;Planilha;painel;Texto no painel;funciona;;manter;catálogo de comandos
+F152;Planilha;painel;Tabela no painel;funciona;;manter;catálogo de comandos
+F153;Planilha;painel;Arrumar o painel;funciona;;manter;catálogo de comandos
+F154;Planilha;painel;Mudar a peça;funciona;;manter;catálogo de comandos
+F155;Planilha;painel;Excluir a peça;funciona;;manter;catálogo de comandos
+F156;Planilha;painel;PDF do painel;funciona;;manter;catálogo de comandos
+F157;Planilha;inserir;Gráfico;funciona;;manter;catálogo de comandos
+F158;Documento;inserir;Gráfico;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F159;Quadro;inserir;Gráfico;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F160;Planilha;inserir;Link;funciona;;manter;catálogo de comandos
+F161;Documento;inserir;Link;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F162;Quadro;inserir;Link;funciona;;manter;catálogo de comandos
+F163;Planilha;inserir;Tirar o link;funciona;;manter;catálogo de comandos
+F164;Planilha;inserir;Forma;funciona;;manter;catálogo de comandos
+F165;Planilha;inserir;Botão que leva a outra aba;funciona;;manter;catálogo de comandos
+F166;Planilha;inserir;Foto na célula;ainda não feito;previsto: v0.8.0;;catálogo de comandos
+F167;Planilha;inserir;Coluna de status;funciona;;manter;catálogo de comandos
+F168;Documento;inserir;Campo do formulário;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F169;Documento;inserir;Checklist;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F170;Planilha;inserir;Assinatura;funciona;;manter;catálogo de comandos
+F171;Documento;inserir;Assinatura;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F172;Quadro;inserir;Assinatura;funciona;;manter;catálogo de comandos
+F173;Quadro;inserir;Post-it;funciona;;manter;catálogo de comandos
+F174;Quadro;inserir;Formas;funciona;;manter;catálogo de comandos
+F175;Quadro;inserir;Forma: atividade (etapa);funciona;;manter;catálogo de comandos
+F176;Quadro;inserir;Forma: decisão (sim/não);funciona;;manter;catálogo de comandos
+F177;Quadro;inserir;Forma: início ou fim;funciona;;manter;catálogo de comandos
+F178;Quadro;inserir;Forma: entrada/saída;funciona;;manter;catálogo de comandos
+F179;Quadro;inserir;Seta;funciona;;manter;catálogo de comandos
+F180;Quadro;inserir;Próximo passo (já ligado);funciona;;manter;catálogo de comandos
+F181;Quadro;inserir;Página do quadro;funciona;;manter;catálogo de comandos
+F182;Quadro;inserir;Legenda do fluxograma;funciona;;manter;catálogo de comandos
+F183;Quadro;inserir;Modelo de quadro da qualidade;funciona;;manter;catálogo de comandos
+F184;Quadro;inserir;Texto solto;funciona;;manter;catálogo de comandos
+F185;Planilha;formula;Inserir função;funciona;;manter;catálogo de comandos
+F186;Planilha;formula;AutoSoma;funciona;;manter;catálogo de comandos
+F187;Planilha;formula;Explicar esta conta;funciona;;manter;catálogo de comandos
+F188;Planilha;formula;Desenhar a conta (fluxograma);funciona;;manter;catálogo de comandos
+F189;Planilha;formula;Verificação da planilha;funciona;;manter;catálogo de comandos
+F190;Planilha;formula;Montar a conta por pergunta;funciona;;manter;catálogo de comandos
+F191;Planilha;formula;De onde vem / quem usa esta célula;funciona;;manter;catálogo de comandos
+F192;Planilha;formula;Dar nome à seleção;funciona;;manter;catálogo de comandos
+F193;Planilha;formula;Nomes da planilha;funciona;;manter;catálogo de comandos
+F194;Planilha;dados;Classificar;funciona;;manter;catálogo de comandos
+F195;Planilha;dados;Filtrar;funciona;;manter;catálogo de comandos
+F196;Planilha;dados;Reaplicar filtro;funciona;;manter;catálogo de comandos
+F197;Planilha;dados;Validação de dados;parcial;"P-01: sem prévia em frase, sem marcar inválidos, caixa nativa do navegador";B5;catálogo de comandos
+F198;Planilha;dados;Remover duplicados;funciona;;manter;catálogo de comandos
+F199;Planilha;dados;Tabela dinâmica;ainda não feito;previsto: depois da v1.0.0;;catálogo de comandos
+F200;Planilha;revisao;Ortografia;funciona;;manter;catálogo de comandos
+F201;Documento;revisao;Ortografia;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F202;Quadro;revisao;Ortografia;funciona;;manter;catálogo de comandos
+F203;Documento;revisao;Controlar alterações;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F204;Documento;revisao;Concluir revisão;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F205;Documento;revisao;Comparar revisões;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F206;Planilha;revisao;Travar modelo;funciona;;manter;catálogo de comandos
+F207;Quadro;organizar;Kanban;funciona;;manter;catálogo de comandos
+F208;Quadro;organizar;Quadro livre;funciona;;manter;catálogo de comandos
+F209;Quadro;organizar;Raias por setor;funciona;;manter;catálogo de comandos
+F210;Quadro;organizar;Trazer para a frente;funciona;;manter;catálogo de comandos
+F211;Quadro;organizar;Mandar para trás;funciona;;manter;catálogo de comandos
+F212;Quadro;organizar;Ordenar pelo GUT;funciona;;manter;catálogo de comandos
+F213;Quadro;organizar;Temporizador de reunião;funciona;;manter;catálogo de comandos
+F214;Planilha;impressao;Configurar página;funciona;;manter;catálogo de comandos
+F215;Planilha;impressao;Margens;funciona;;manter;catálogo de comandos
+F216;Planilha;impressao;Orientação;funciona;;manter;catálogo de comandos
+F217;Planilha;impressao;Definir área de impressão;funciona;;manter;catálogo de comandos
+F218;Planilha;impressao;Limpar área de impressão;funciona;;manter;catálogo de comandos
+F219;Planilha;impressao;Inserir quebra de página;funciona;;manter;catálogo de comandos
+F220;Planilha;impressao;Remover quebras de página;funciona;;manter;catálogo de comandos
+F221;Planilha;impressao;Imprimir títulos;funciona;;manter;catálogo de comandos
+F222;Planilha;impressao;Ajustar à página;funciona;;manter;catálogo de comandos
+F223;Planilha;impressao;Cabeçalho e rodapé;funciona;;manter;catálogo de comandos
+F224;Documento;pagina;Orientação da página;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F225;Documento;pagina;Margens;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F226;Documento;pagina;Quebra de página;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F227;Documento;pagina;Cabeçalho do POP;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F228;Documento;pagina;Sumário;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F229;Planilha;exibir;Faixa: mostrar tudo;funciona;;manter;catálogo de comandos
+F230;Documento;exibir;Faixa: mostrar tudo;funciona;;manter;catálogo de comandos
+F231;Quadro;exibir;Faixa: mostrar tudo;funciona;;manter;catálogo de comandos
+F232;Planilha;exibir;Faixa: só as abas (Ctrl+F1);funciona;;manter;catálogo de comandos
+F233;Documento;exibir;Faixa: só as abas (Ctrl+F1);funciona;;manter;catálogo de comandos
+F234;Quadro;exibir;Faixa: só as abas (Ctrl+F1);funciona;;manter;catálogo de comandos
+F235;Planilha;exibir;Faixa: esconder (tela cheia);funciona;;manter;catálogo de comandos
+F236;Documento;exibir;Faixa: esconder (tela cheia);funciona;;manter;catálogo de comandos
+F237;Quadro;exibir;Faixa: esconder (tela cheia);funciona;;manter;catálogo de comandos
+F238;Planilha;exibir;Menu lateral: completo;funciona;;manter;catálogo de comandos
+F239;Documento;exibir;Menu lateral: completo;funciona;;manter;catálogo de comandos
+F240;Quadro;exibir;Menu lateral: completo;funciona;;manter;catálogo de comandos
+F241;Planilha;exibir;Menu lateral: só ícones;funciona;;manter;catálogo de comandos
+F242;Documento;exibir;Menu lateral: só ícones;funciona;;manter;catálogo de comandos
+F243;Quadro;exibir;Menu lateral: só ícones;funciona;;manter;catálogo de comandos
+F244;Planilha;exibir;Menu lateral: esconder;funciona;;manter;catálogo de comandos
+F245;Documento;exibir;Menu lateral: esconder;funciona;;manter;catálogo de comandos
+F246;Quadro;exibir;Menu lateral: esconder;funciona;;manter;catálogo de comandos
+F247;Planilha;exibir;Barra de cima: completa (título e busca);funciona;;manter;catálogo de comandos
+F248;Documento;exibir;Barra de cima: completa (título e busca);funciona;;manter;catálogo de comandos
+F249;Quadro;exibir;Barra de cima: completa (título e busca);funciona;;manter;catálogo de comandos
+F250;Planilha;exibir;Barra de cima: compacta (só as abas);funciona;;manter;catálogo de comandos
+F251;Documento;exibir;Barra de cima: compacta (só as abas);funciona;;manter;catálogo de comandos
+F252;Quadro;exibir;Barra de cima: compacta (só as abas);funciona;;manter;catálogo de comandos
+F253;Planilha;exibir;Barra de fórmula: expandir ou recolher;funciona;;manter;catálogo de comandos
+F254;Planilha;exibir;Mostrar ou fechar o painel lateral;funciona;;manter;catálogo de comandos
+F255;Documento;exibir;Mostrar ou fechar o painel lateral;funciona;;manter;catálogo de comandos
+F256;Quadro;exibir;Mostrar ou fechar o painel lateral;funciona;;manter;catálogo de comandos
+F257;Planilha;exibir;Layout: faixa tipo Excel;funciona;;manter;catálogo de comandos
+F258;Documento;exibir;Layout: faixa tipo Excel;funciona;;manter;catálogo de comandos
+F259;Quadro;exibir;Layout: faixa tipo Excel;funciona;;manter;catálogo de comandos
+F260;Planilha;exibir;Layout: barra curta e painel;funciona;;manter;catálogo de comandos
+F261;Documento;exibir;Layout: barra curta e painel;funciona;;manter;catálogo de comandos
+F262;Quadro;exibir;Layout: barra curta e painel;funciona;;manter;catálogo de comandos
+F263;Planilha;exibir;Tema;funciona;;manter;catálogo de comandos
+F264;Documento;exibir;Tema;funciona;;manter;catálogo de comandos
+F265;Quadro;exibir;Tema;funciona;;manter;catálogo de comandos
+F266;Planilha;exibir;Papel sobre a mesa (sombras e contorno);funciona;;manter;catálogo de comandos
+F267;Documento;exibir;Papel sobre a mesa (sombras e contorno);funciona;;manter;catálogo de comandos
+F268;Quadro;exibir;Papel sobre a mesa (sombras e contorno);funciona;;manter;catálogo de comandos
+F269;Planilha;exibir;Relevo nas barras;funciona;;manter;catálogo de comandos
+F270;Documento;exibir;Relevo nas barras;funciona;;manter;catálogo de comandos
+F271;Quadro;exibir;Relevo nas barras;funciona;;manter;catálogo de comandos
+F272;Planilha;exibir;Tela cheia;funciona;;manter;catálogo de comandos
+F273;Documento;exibir;Tela cheia;funciona;;manter;catálogo de comandos
+F274;Quadro;exibir;Tela cheia;funciona;;manter;catálogo de comandos
+F275;Planilha;exibir;Zoom;funciona;;manter;catálogo de comandos
+F276;Documento;exibir;Zoom;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F277;Quadro;exibir;Zoom;funciona;;manter;catálogo de comandos
+F278;Quadro;exibir;Ajustar à tela;funciona;;manter;catálogo de comandos
+F279;Quadro;exibir;Mostrar códigos (Q-001);funciona;;manter;catálogo de comandos
+F280;Planilha;exibir;Congelar painéis;com defeito;"D-15: linha cortada abaixo do congelado na tela de toque; decisão aberta do celular";B1;catálogo de comandos
+F281;Planilha;exibir;Aba Gráfico;funciona;;manter;catálogo de comandos
+F282;Planilha;exibir;Folha clara;funciona;;manter;catálogo de comandos
+F283;Planilha;exibir;Linhas de grade;funciona;;manter;catálogo de comandos
+F284;Quadro;exibir;Barra de ferramentas do quadro;funciona;;manter;catálogo de comandos
+F285;Quadro;exibir;Assistente do quadro;funciona;;manter;catálogo de comandos
+F286;Quadro;exibir;Minimapa;funciona;;manter;catálogo de comandos
+F287;Documento;exibir;Modo leitura;ainda não feito;previsto: v0.7.0;;catálogo de comandos
+F288;Planilha;motor;"136 funções de cálculo (nomes em inglês no motor, português na tela)";funciona;;manter;varredura da Fase 0
+F289;Planilha;motor;Recalcular só o que depende da célula mudada;com defeito;"a cada digitação a planilha inteira é varrida (1,2 s em 360 mil células)";B2;varredura da Fase 0
+F290;Planilha;motor;Fórmulas com tabela estruturada (Tabela1[Coluna]);parcial;"L-02: viram endereços; a conta é a mesma";depois;varredura da Fase 0
+F291;Planilha;motor;Funções que o motor ainda não calcula mostram o último valor do Excel;funciona;;manter;varredura da Fase 0
+F292;Planilha;grade;Rolar com painel congelado (mouse e toque);funciona;fluido: 60 quadros por segundo em 360 mil células;manter;varredura da Fase 0
+F293;Planilha;grade;Bordas de células mescladas;com defeito;D-11 (reproduzido com amostra inventada);B1;varredura da Fase 0
+F294;Planilha;grade;Rolagem que encaixa em linha inteira no toque;com defeito;D-15 (hipótese: a rolagem por toque para no meio da linha);B1;varredura da Fase 0
+F295;Planilha;grade;Texto que invade a célula vizinha vazia;funciona;D-05 em aberto (não reproduzido);B1;varredura da Fase 0
+F296;Planilha;grade;"Estilo de tabela do Excel (listras, cabeçalho)";falta;"o nome do estilo é lido e devolvido, mas não é desenhado";B3;varredura da Fase 0
+F297;Planilha;grade;"Seleção, cópia, preenchimento, alças no toque";funciona;;manter;varredura da Fase 0
+F298;Planilha;excel;Abrir .xlsx/.xlsm com relatório de compatibilidade;funciona;;manter;varredura da Fase 0
+F299;Planilha;excel;"Salvar como Excel (tabelas, gráficos nativos, formas, imagens, validação, condicional, comentários)";funciona;"rede de fidelidade v0.6.10: 15 amostras e a planilha anonimizada sem diferença nova; achou D-20, D-22, D-23, D-24 (linhas F312 a F315); falta confirmar no Excel de verdade (pendência do Elias)";manter;varredura da Fase 0
+F300;Planilha;excel;"Macros, tabela dinâmica e segmentação guardadas e devolvidas";funciona;sem tela de edição;depois;varredura da Fase 0
+F301;Planilha;excel;Conferência automática do arquivo salvo por leitor independente;falta;hoje só o próprio leitor do EFCdocs confere;B0;varredura da Fase 0
+F302;Planilha;excel;"Abrir .xls, .ods e .csv";falta;pedido de 05/11 (EFCdocs reduzido): planilhas comuns com máxima compatibilidade;B6;varredura da Fase 0
+F303;Planilha;desempenho;Digitar numa planilha grande;com defeito;"1,2 s por digitação (5,4 s em PC fraco) com 360 mil células";B2;varredura da Fase 0
+F304;Planilha;desempenho;Inserir linha e formatar muitas células;com defeito;"1,8 s e 1,2 s (8,9 s e 9,4 s em PC fraco)";B2;varredura da Fase 0
+F305;Planilha;desempenho;Tamanho do app;parcial;"1,49 MB de código (512 KB compactado) num arquivo só; Planilha.jsx com 3.707 linhas";B2;varredura da Fase 0
+F306;App;visual;"Visual do Cwork (Claro e Escuro dourado, Fraunces e Source Sans 3)";falta;"hoje: 16 temas, estilo Camadas, 9 a 11 tamanhos de letra por tela";B7;varredura da Fase 0
+F307;App;visual;Botões de 34 px no PC e 44 px no celular;com defeito;"34 alvos abaixo de 28 px na Página Inicial; no celular 39 de 40 abaixo de 44 px";B7;varredura da Fase 0
+F308;App;visual;Sem maiúsculas espaçadas;com defeito;"2 por tela no PC (títulos do menu), 8 no relatório de abertura";B7;varredura da Fase 0
+F309;App;visual;"Sem emoji, sem rolagem de lado, console sem erros";funciona;;manter;varredura da Fase 0
+F310;App;visual;Nada da empresa fixo no código;funciona;conferido: nenhum nome da empresa no código-fonte;manter;varredura da Fase 0
+F311;Documento;editor;"Editor de documento, POP, formulários, Word e PDF";ainda não feito;só o modelo e as medidas existem (11 testes);depois da Planilha;varredura da Fase 0
+F312;Planilha;excel;Tabela do Excel com título numérico (ex.: 2024);com defeito;"D-20: com o título gravado como número, a tabela some ao salvar (vira faixa normal); com o título em texto, volta certa";v0.6.11;rede de fidelidade v0.6.10
+F313;Planilha;excel;Nome de aba com espaço no começo ou no fim;com defeito;"D-22: o espaço some ao abrir; fórmula de outro arquivo que aponte para a aba pode quebrar";v0.6.11;rede de fidelidade v0.6.10 (planilha anonimizada)
+F314;Planilha;excel;Colunas ocultas até o fim da aba;com defeito;"D-23: só as 50 colunas depois do último dado voltam ocultas; no Excel as outras reaparecem";v0.6.11;rede de fidelidade v0.6.10 (planilha anonimizada)
+F315;Planilha;excel;Filtro com critério de data (mês);com defeito;"D-24: o critério não é lido nem gravado (provado pelo openpyxl); as linhas continuam ocultas; o SUBTOTAL pode mudar depois de salvar (visto no LibreOffice; no Excel falta provar)";v0.6.11;rede de fidelidade v0.6.10 (planilha anonimizada)
+F316;Planilha;excel;Fórmulas copiadas muito além do último dado;parcial;"L-04: ficam 1.000 linhas de folga depois do último dado; as outras não voltam ao salvar";decisão do Elias;rede de fidelidade v0.6.10
+F317;App;ferramentas;Anonimizador de planilha (anonimizar-planilha.html);funciona;"D-21 corrigido na v0.6.10: título com quebra de linha do Windows agora vira o mesmo texto do nome da coluna";manter;v0.6.10
+F318;App;ferramentas;"Rede de fidelidade: ida e volta, openpyxl e LibreOffice (npm run test:fidelidade)";funciona;;manter;v0.6.10
+F319;App;ferramentas;"Cinco auditorias contra a linha de base (npm run auditoria)";funciona;;manter;v0.6.10
+F320;App;montar;Montar sem avisos;com defeito;"D-18: 4 avisos de chave repetida (graficoPlano.js 2, iconesFaixa.js, icones.js)";v0.6.11;auditoria de código v0.6.10

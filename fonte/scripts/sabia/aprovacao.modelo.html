@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-BR" data-tema="claro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITULO}} · página de aprovação</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<style>
+:root{--f:'Source Sans 3',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--fh:'Fraunces',Georgia,'Times New Roman',serif;--bg0:#f7f5ef;--bg1:#fffefb;--bg2:#f2eee4;--bd:#e6dfcf;--bd2:#d8cdb2;--tx:#1e1b14;--tx2:#5b5443;--tx3:#8d846c;--a:#9a7128;--aS:rgba(154,113,40,.12);--aTx:#7d5a1c;--ok:#2f7d4f;--okS:rgba(47,125,79,.12);--wa:#9a6a0c;--waS:rgba(154,106,12,.13);--cr:#b33a32;--crS:rgba(179,58,50,.11);--sh:0 1px 2px rgba(40,30,10,.06),0 4px 14px rgba(40,30,10,.05);--ouro:linear-gradient(135deg,#f7df9e 0%,#d9b46a 42%,#b4862f 100%);--r:10px;--rs:7px;--btn:36px;color-scheme:light}
+:root[data-tema="escuro"]{--bg0:#0b0d16;--bg1:#121524;--bg2:#181c2e;--bd:#2a2b3b;--bd2:#3d3b4b;--tx:#f3eee3;--tx2:#bcb3a1;--tx3:#80796a;--a:#d9b46a;--aS:rgba(217,180,106,.15);--aTx:#f0d48f;--ok:#7fbf98;--okS:rgba(127,191,152,.14);--wa:#e2b55f;--waS:rgba(226,181,95,.14);--cr:#e38b7d;--crS:rgba(227,139,125,.14);--sh:0 16px 40px rgba(0,0,0,.45);color-scheme:dark}
+@media (pointer:coarse){:root{--btn:44px}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg0);color:var(--tx);font-family:var(--f);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;padding-bottom:84px}
+main,header .in{max-width:1120px;margin:0 auto;padding:0 20px}
+header{padding:26px 0 6px}header .in{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+h1{font-family:var(--fh);font-weight:600;font-size:28px;letter-spacing:-.01em;margin:0 0 4px}
+h1::after{content:"";display:block;width:44px;height:3px;border-radius:2px;background:var(--ouro);margin-top:8px}
+.sub{color:var(--tx2);margin:8px 0 0}
+h2.grupo{font-family:var(--fh);font-weight:600;font-size:20px;margin:28px 0 10px}
+h3{font-family:var(--fh);font-weight:600;font-size:20px;margin:0}
+p{margin:0 0 10px}ul{margin:0 0 10px;padding-left:20px}li{margin-bottom:5px}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:var(--bg2);border-radius:4px;padding:1px 5px}
+.cartao,.item{background:var(--bg1);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh);padding:18px 20px;margin-bottom:14px}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.cx{border:1px solid var(--bd);border-radius:var(--rs);padding:10px 8px;text-align:center;background:var(--bg0);display:flex;flex-direction:column;gap:2px}
+.cx b{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}.cx span{font-size:13px;color:var(--tx2)}
+.item.aprovado{border-color:var(--ok)}.item.reprovado{border-color:var(--cr)}
+.cab{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.cod{font-size:13px;font-weight:700;color:var(--aTx);background:var(--aS);border-radius:4px;padding:2px 7px;font-variant-numeric:tabular-nums}
+.txt{color:var(--tx)}.txt .obs{background:var(--waS);border-radius:var(--rs);padding:9px 12px;font-size:14px}
+.q{font-weight:600;margin:12px 0 0}
+.rolo{overflow-x:auto;margin:0 0 12px;border:1px solid var(--bd);border-radius:var(--rs)}
+table.tb{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.tb th{background:var(--bg2);text-align:left;font-weight:600;color:var(--tx2);padding:8px 10px;white-space:nowrap}
+.tb td{padding:8px 10px;border-top:1px solid var(--bd);vertical-align:top}
+.tb.notas td:nth-child(2){text-align:center;width:64px}.tb.notas td:first-child{font-weight:600;white-space:nowrap}
+.nt{display:inline-grid;place-items:center;min-width:30px;height:26px;border-radius:4px;font-weight:700}.nt.n0{background:var(--crS);color:var(--cr)}.nt.n1{background:var(--waS);color:var(--wa)}.nt.n2{background:var(--okS);color:var(--ok)}
+.fotos{display:grid;gap:12px;margin:14px 0 4px}.fotos.par{grid-template-columns:1fr 1fr}.fotos.tres{grid-template-columns:repeat(3,1fr)}.fotos.um{grid-template-columns:1fr}
+figure{margin:0}figcaption{font-size:13px;font-weight:600;color:var(--tx2);margin-bottom:5px}
+figure img{display:block;max-width:100%;border:1px solid var(--bd2);border-radius:var(--rs);cursor:zoom-in}
+.fotos.tres img{max-height:560px}
+.resp{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--bd)}
+.op{height:var(--btn);padding:0 14px;border-radius:var(--rs);border:1px solid var(--bd2);background:var(--bg1);display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;cursor:pointer}
+.op input{width:16px;height:16px;margin:0;accent-color:var(--a)}
+.op.sim:has(input:checked){background:var(--okS);border-color:var(--ok);color:var(--ok)}.op.nao:has(input:checked){background:var(--crS);border-color:var(--cr);color:var(--cr)}
+textarea{flex:1;min-width:240px;min-height:var(--btn);border:1px solid var(--bd2);border-radius:var(--rs);background:var(--bg0);padding:8px 12px;font:inherit;color:var(--tx);resize:vertical}
+:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.bt{height:var(--btn);padding:0 14px;border-radius:var(--rs);border:1px solid var(--bd2);background:var(--bg1);display:inline-flex;align-items:center;justify-content:center;gap:7px;font:inherit;font-weight:600;font-size:14px;color:var(--tx);cursor:pointer;white-space:nowrap}
+.bt.pr{background:var(--ouro);border-color:#c99d48;color:#1c1406;box-shadow:0 4px 14px rgba(217,180,106,.25),inset 0 1px 0 rgba(255,255,255,.35)}
+.bt.so{width:var(--btn);padding:0;color:var(--tx2)}
+.ic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.barra{position:fixed;left:0;right:0;bottom:0;background:var(--bg1);border-top:1px solid var(--bd);box-shadow:0 -4px 14px rgba(40,30,10,.06);padding:12px 20px;display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}
+.cont{font-weight:600;color:var(--tx2);font-variant-numeric:tabular-nums}.feito{color:var(--ok);font-weight:600}
+dialog{border:0;padding:0;max-width:96vw;max-height:94vh;background:transparent}dialog::backdrop{background:rgba(12,10,6,.72)}dialog img{max-width:96vw;max-height:94vh;display:block;border-radius:var(--rs)}
+[hidden]{display:none!important}
+@media(max-width:760px){.fotos.par,.fotos.tres{grid-template-columns:1fr}h1{font-size:24px}.cab{flex-direction:column;gap:6px;align-items:flex-start}}
+</style>
+</head>
+<body>
+<header><div class="in">
+  <div><h1>{{TITULO}} · página de aprovação</h1><p class="sub">{{SUBTITULO}} · {{DATA}}. Nada vai ao GitHub antes da sua aprovação. Toque numa imagem para ampliar. No fim, use "Copiar respostas" e cole na conversa.</p></div>
+  <button class="bt so" id="tema" type="button" title="Trocar entre claro e escuro" aria-label="Trocar entre claro e escuro"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+</div></header>
+<main>
+  <section class="cartao">{{RESUMO}}</section>
+  {{ITENS}}
+</main>
+<div class="barra">
+  <span class="cont" id="cont">0 de {{N}} respondidos</span>
+  <button type="button" class="bt pr" id="copiar">Copiar respostas</button>
+  <span class="feito" id="copiado" hidden>Copiado. Cole na conversa.</span>
+</div>
+<dialog id="zoom"><img alt="Imagem ampliada"></dialog>
+<script>
+(function(){
+  var CHAVE='{{CHAVE}}', salvo={};
+  try{salvo=JSON.parse(localStorage.getItem(CHAVE)||'{}')}catch(e){salvo={}}
+  var itens=[].slice.call(document.querySelectorAll('.item'));
+  function guardar(){try{localStorage.setItem(CHAVE,JSON.stringify(salvo))}catch(e){}}
+  function atualizar(){var n=0;itens.forEach(function(it){var c=it.dataset.cod,r=salvo[c]&&salvo[c].r;it.classList.toggle('aprovado',r==='APROVADO');it.classList.toggle('reprovado',r==='REPROVADO');if(r)n++});document.getElementById('cont').textContent=n+' de '+itens.length+' respondidos'}
+  itens.forEach(function(it){var c=it.dataset.cod;salvo[c]=salvo[c]||{};
+    it.querySelectorAll('input[type=radio]').forEach(function(rb){if(salvo[c].r===rb.value)rb.checked=true;rb.addEventListener('change',function(){salvo[c].r=rb.value;guardar();atualizar()})});
+    var ta=it.querySelector('textarea');ta.value=salvo[c].t||'';ta.addEventListener('input',function(){salvo[c].t=ta.value;guardar()})});
+  atualizar();
+  function reserva(t){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove()}
+  document.getElementById('copiar').addEventListener('click',function(){
+    var linhas=['{{TITULO}} · respostas da aprovação ('+new Date().toLocaleDateString('pt-BR')+')',''];
+    itens.forEach(function(it){var c=it.dataset.cod,s=salvo[c]||{};linhas.push(c+' '+it.dataset.titulo+': '+(s.r||'SEM RESPOSTA'));if(s.t&&s.t.trim())linhas.push('  Comentário: '+s.t.trim())});
+    var texto=linhas.join('\n');function feito(){var e=document.getElementById('copiado');e.hidden=false;setTimeout(function(){e.hidden=true},4000)}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(texto).then(feito,function(){reserva(texto);feito()})}else{reserva(texto);feito()}});
+  var dz=document.getElementById('zoom');
+  document.querySelectorAll('figure img').forEach(function(im){im.addEventListener('click',function(){dz.querySelector('img').src=im.src;dz.showModal()})});
+  dz.addEventListener('click',function(){dz.close()});
+  document.getElementById('tema').addEventListener('click',function(){var d=document.documentElement;d.dataset.tema=d.dataset.tema==='escuro'?'claro':'escuro'});
+  if(matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.dataset.tema='escuro';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anonimizar planilha · EFCdocs</title>
+<style>
+:root{--f:'Source Sans 3',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--fh:'Fraunces',Georgia,'Times New Roman',serif;--bg0:#f7f5ef;--bg1:#fffefb;--bg2:#f2eee4;--bd:#e6dfcf;--bd2:#d8cdb2;--tx:#1e1b14;--tx2:#5b5443;--tx3:#8d846c;--a:#9a7128;--aTx:#7d5a1c;--ok:#2f7d4f;--okS:rgba(47,125,79,.12);--wa:#9a6a0c;--waS:rgba(154,106,12,.13);--cr:#b33a32;--crS:rgba(179,58,50,.11);--sh:0 1px 2px rgba(40,30,10,.06),0 4px 14px rgba(40,30,10,.05);--ouro:linear-gradient(135deg,#f7df9e 0%,#d9b46a 42%,#b4862f 100%);--r:10px;--rs:7px;--btn:36px;color-scheme:light}
+:root[data-tema="escuro"]{--bg0:#0b0d16;--bg1:#121524;--bg2:#181c2e;--bd:#2a2b3b;--bd2:#3d3b4b;--tx:#f3eee3;--tx2:#bcb3a1;--tx3:#80796a;--a:#d9b46a;--aTx:#f0d48f;--ok:#7fbf98;--okS:rgba(127,191,152,.14);--wa:#e2b55f;--waS:rgba(226,181,95,.14);--cr:#e38b7d;--crS:rgba(227,139,125,.14);--sh:0 16px 40px rgba(0,0,0,.45);color-scheme:dark}
+@media (pointer:coarse){:root{--btn:44px}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg0);color:var(--tx);font-family:var(--f);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+main{max-width:860px;margin:0 auto;padding:28px 20px 48px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}
+h1{font-family:var(--fh);font-weight:600;font-size:28px;letter-spacing:-.01em;margin:0 0 4px}
+h1::after{content:"";display:block;width:44px;height:3px;border-radius:2px;background:var(--ouro);margin-top:8px}
+h2{font-family:var(--fh);font-weight:600;font-size:18px;margin:0 0 10px}
+p{margin:0 0 10px}.sub{color:var(--tx2);margin:0}
+.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bt{height:var(--btn);padding:0 14px;border-radius:var(--rs);border:1px solid var(--bd2);background:var(--bg1);display:inline-flex;align-items:center;justify-content:center;gap:7px;font:inherit;font-weight:600;font-size:14px;white-space:nowrap;cursor:pointer;color:var(--tx)}
+.bt:hover{background:var(--bg2)}
+.bt.pr{background:var(--ouro);border-color:#c99d48;color:#1c1406;box-shadow:0 4px 14px rgba(217,180,106,.25),inset 0 1px 0 rgba(255,255,255,.35)}
+.bt.pr:hover{filter:brightness(1.04)}
+.bt.so{width:var(--btn);padding:0;color:var(--tx2)}
+:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.cartao{background:var(--bg1);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh);padding:20px;margin-bottom:16px}
+.solta{border:1.5px dashed var(--bd2);border-radius:var(--r);padding:30px 20px;text-align:center;background:var(--bg0);display:flex;flex-direction:column;align-items:center;gap:12px}
+.solta.sobre{border-color:var(--a);background:var(--bg2)}
+.solta .ic{width:30px;height:30px;color:var(--a)}
+.marca{display:flex;align-items:center;gap:9px;margin-top:14px;color:var(--tx2);font-size:14px;cursor:pointer}
+.marca input{width:18px;height:18px;accent-color:var(--a);margin:0}
+.grade{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.cx{border:1px solid var(--bd);border-radius:var(--rs);padding:12px 10px;text-align:center;background:var(--bg0);display:flex;flex-direction:column;gap:2px}
+.cx b{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}.cx span{font-size:13px;color:var(--tx2)}
+.faixa{border-radius:var(--rs);padding:12px 14px;margin-bottom:14px;font-size:14px}
+.faixa.ok{background:var(--okS);color:var(--tx)}.faixa.ok b{color:var(--ok)}
+.faixa.cr{background:var(--crS)}.faixa.cr b{color:var(--cr)}
+.faixa.wa{background:var(--waS)}.faixa.wa p{margin:0 0 6px}.faixa.wa p:last-child{margin:0}
+ul{margin:0 0 14px;padding-left:20px;color:var(--tx2);font-size:14px}li{margin-bottom:5px}li b{color:var(--tx);font-weight:600}
+.acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.peq{font-size:13px;color:var(--tx3);margin:12px 0 0}
+ol{margin:0;padding-left:20px;color:var(--tx2);font-size:14px}ol li{margin-bottom:6px}
+#aviso{color:var(--cr);font-weight:600;margin-top:10px}
+[hidden]{display:none!important}
+@media(max-width:560px){.grade{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div><h1>Anonimizar planilha</h1><p class="sub">Faz uma cópia da sua planilha com todos os dados trocados por dados inventados. O desenho da planilha fica igual.</p></div>
+    <button class="bt so" id="tema" type="button" title="Trocar entre claro e escuro" aria-label="Trocar entre claro e escuro"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+  </header>
+
+  <section class="cartao" id="passo1">
+    <div class="solta" id="solta">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>
+      <div><b>Arraste a planilha para cá</b> ou escolha o arquivo.</div>
+      <label class="bt pr" for="arquivo">Escolher o arquivo do Excel</label>
+      <input id="arquivo" type="file" accept=".xlsx,.xlsm,.xltx,.xltm" hidden>
+    </div>
+    <label class="marca"><input type="checkbox" id="numeros" checked> Trocar também os números, as datas e as horas (recomendado)</label>
+    <p id="aviso" hidden></p>
+    <p class="peq">Esta página funciona sem internet. O arquivo é lido e trocado dentro deste computador; nada é enviado para lugar nenhum.</p>
+  </section>
+
+  <section class="cartao" id="andando" hidden><b>Trocando os dados…</b> <span class="sub">Planilhas grandes levam alguns segundos.</span></section>
+
+  <section class="cartao" id="resultado" hidden>
+    <h2>Cópia pronta</h2>
+    <div class="grade" id="numerosRel"></div>
+    <div class="faixa ok" id="conferencia"></div>
+    <div class="faixa wa" id="alertas" hidden></div>
+    <h2>O que não muda (confira se algum nome é sensível)</h2>
+    <ul id="ficam"></ul>
+    <div class="acoes"><button class="bt pr" id="baixar" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Baixar a cópia</button><button class="bt" id="outra" type="button">Escolher outra planilha</button></div>
+    <p class="peq" id="rodape"></p>
+  </section>
+
+  <section class="cartao">
+    <h2>Antes de enviar a cópia</h2>
+    <ol>
+      <li>Abra a cópia no Excel e olhe as abas: os textos devem estar embaralhados e os valores diferentes dos reais.</li>
+      <li>Se o Excel pedir para reparar o arquivo, não envie: avise o Claude.</li>
+      <li>Confira os nomes das abas e das tabelas. Se algum for sensível, troque o nome no Excel antes de enviar.</li>
+      <li>Guarde o original só com você. A cópia não tem como voltar a ser o original.</li>
+    </ol>
+  </section>
+</main>
+<script>/*__JS__*/</script>
+</body>
+</html>

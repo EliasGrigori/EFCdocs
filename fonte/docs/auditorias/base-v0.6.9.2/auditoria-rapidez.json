@@ -1,0 +1,95 @@
+{
+ "metas": {
+  "comum": 100,
+  "pesada": 1000,
+  "lento": 3
+ },
+ "base": null,
+ "piorou": 0,
+ "medidas": [
+  {
+   "acao": "Digitar um número e Enter",
+   "freio": 1,
+   "ms": 1105,
+   "vezes": [
+    1117,
+    982,
+    1142,
+    1105,
+    934
+   ],
+   "meta": 100,
+   "fora": true
+  },
+  {
+   "acao": "Mover a seleção",
+   "freio": 1,
+   "ms": 36,
+   "vezes": [
+    97,
+    36,
+    35,
+    35,
+    36
+   ],
+   "meta": 100,
+   "fora": false
+  },
+  {
+   "acao": "Desfazer",
+   "freio": 1,
+   "ms": 856,
+   "vezes": [
+    850,
+    856,
+    862,
+    828,
+    913
+   ],
+   "meta": 100,
+   "fora": true
+  },
+  {
+   "acao": "Digitar um número e Enter",
+   "freio": 4,
+   "ms": 5091,
+   "vezes": [
+    4604,
+    5091,
+    5271,
+    5523,
+    5019
+   ],
+   "meta": 300,
+   "fora": true
+  },
+  {
+   "acao": "Mover a seleção",
+   "freio": 4,
+   "ms": 77,
+   "vezes": [
+    79,
+    126,
+    68,
+    68,
+    77
+   ],
+   "meta": 300,
+   "fora": false
+  },
+  {
+   "acao": "Desfazer",
+   "freio": 4,
+   "ms": 4983,
+   "vezes": [
+    4986,
+    4983,
+    3631,
+    4398,
+    5510
+   ],
+   "meta": 300,
+   "fora": true
+  }
+ ]
+}

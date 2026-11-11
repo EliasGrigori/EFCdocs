@@ -1,0 +1,21 @@
+import { chromium } from 'playwright';
+const RAIZ = process.argv[2], ARQ = process.argv[3]; const FREIO = +(process.env.FREIO || 1);
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome' });
+const p = await (await b.newContext({ viewport: { width: 1366, height: 700 } })).newPage();
+if (FREIO > 1) { const cdp = await p.context().newCDPSession(p); await cdp.send('Emulation.setCPUThrottlingRate', { rate: FREIO }); }
+await p.goto(RAIZ + '#/'); await p.click('[data-abrir-excel]'); await p.setInputFiles('[data-excel-arquivo]', ARQ); await p.waitForSelector('[data-excel-abrir]', { timeout: 120000 }); await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv', { timeout: 180000 }); await p.waitForTimeout(3000);
+const quieto = () => p.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(ok, 0)))));
+const medir = async (nome, f) => { const t = Date.now(); await f(); await quieto(); const d = Date.now() - t; console.log(nome.padEnd(46), d + ' ms'); return d; };
+const ir = async (r) => { await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill(r); await p.locator('.pl-nome').press('Enter'); await quieto(); };
+await ir('B2');
+await medir('digitar um número e Enter', async () => { await p.keyboard.type('123'); await p.keyboard.press('Enter'); });
+await medir('seta para baixo (mover a seleção)', async () => { await p.keyboard.press('ArrowDown'); });
+await medir('Ctrl+Z (desfazer a digitação)', async () => { await p.keyboard.press('Control+z'); });
+await ir('A5');
+await medir('inserir uma linha no topo (botão Inserir linha)', async () => { await p.click('.tabs .tab:has-text("Inserir")'); await p.locator('[data-cmd="planilha.inserirLinha"]').first().click(); });
+await medir('Ctrl+Z (desfazer a linha)', async () => { await p.locator('.pl-cv').first().click({ position: { x: 300, y: 200 } }); await p.keyboard.press('Control+z'); });
+await ir('B2:F4000');
+await medir('negrito em 20.000 células', async () => { await p.keyboard.press('Control+b'); });
+await medir('Ctrl+End (ir para o fim)', async () => { await p.keyboard.press('Control+End'); });
+await medir('Salvar como Excel (gerar o arquivo)', async () => { const [d] = await Promise.all([p.waitForEvent('download', { timeout: 120000 }), p.keyboard.press('Control+Shift+s').then(async () => { await p.waitForTimeout(300); const bt = p.locator('[data-salvar-excel], [data-cmd="arquivo.salvarExcel"]').first(); if (await bt.count()) await bt.click(); })]).catch((e) => [null]); });
+await b.close();

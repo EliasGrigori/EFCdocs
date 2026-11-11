@@ -26,6 +26,7 @@ const RX_SEMPRE_MATRIZ = /(^|[^\w])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|RANDARRAY
 const RX_SO_DINAMICA = /(^|[^\w.])(FILTER|UNIQUE|SORT|SORTBY|SEQUENCE|RANDARRAY|XLOOKUP|XMATCH|TEXTSPLIT|VSTACK|HSTACK|TOCOL|TOROW|CHOOSECOLS|CHOOSEROWS|TAKE|DROP|EXPAND|WRAPCOLS|WRAPROWS|LET|LAMBDA)\(/i;
 
 export const LIMITES = {
+  tetoFormatadas: 20000, // v0.6.9.2: células vazias só com borda/cor de fundo, longe do último dado, que ainda ficam por aba
   folga: 1000, // linhas vazias (ou de fórmula que dá vazio) que ficam depois do último dado
   ocultas: 20000, // linhas ocultas com valores no fim: acima disso, cortadas
   guardaPendentes: 30000, // linhas "sem nada à vista" guardadas esperando para ver se vem dado depois
@@ -284,7 +285,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
           cel.f = x.f; if (x.fo && porPrefixos(x.f) !== x.fo) cel.fo = [x.fo, x.f]; if (x.da || (RX_SO_DINAMICA.test(x.f) && !x.excelNovo)) cel.da = 1; else cel.lg = 1; nForm++; // FILTRO, ÚNICO, CLASSIFICAR... só existem no Excel novo: sempre matriz dinâmica, mesmo se o arquivo (LibreOffice, etc.) não marcou
           const motivo = checarFormula(x.f);
           /* v0.6.9.1 (Elias): fórmula que já veio quebrada do Excel (#REF!: a referência foi apagada lá) não é "falta de cálculo" nossa */
-          if (motivo && motivo === MOTIVO_NAO_LE && x.f.includes('#REF!')) { rel.comRef++; if (!rel.exemploRef) rel.exemploRef = x.f.slice(0, 120); }
+          /* v0.6.9.2 (Grok, L-03): conta toda fórmula com #REF!, também as que o EFCdocs consegue ler (=SOMA(#REF!), =#REF!+1) */
+          if (x.f.includes('#REF!')) { rel.comRef++; if (!rel.exemploRef) rel.exemploRef = x.f.slice(0, 120); }
           else if (motivo) avisoFormula(x.f, motivo);
           if (motivo === MOTIVO_NAO_LE && !cel.fo) cel.fo = [x.fo || x.f, x.f]; // v0.6.8: o EFCdocs não lê, mas veio do Excel: volta igual
         }
@@ -510,12 +512,19 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       void n;
     }
 
-    /* células só com formatação muito à direita do último dado saem */
-    for (const k of Object.keys(aba.cel)) {
-      const x = aba.cel[k];
-      if (x.v !== undefined || x.f != null) continue;
-      const p = lerChave(k);
-      if (p && (p.c > cMax + 2 || p.l > lMax + limites.folga)) { delete aba.cel[k]; nCel--; totalCel--; }
+    /* células só com formatação muito à direita do último dado saem.
+       v0.6.9.2 (Grok, D-08): a que tem borda ou cor de fundo VISÍVEL fica (até um teto por aba), senão a linha/cor some ao salvar. */
+    { let vis = 0;
+      for (const k of Object.keys(aba.cel)) {
+        const x = aba.cel[k];
+        if (x.v !== undefined || x.f != null) continue;
+        const p = lerChave(k);
+        if (!p || !(p.c > cMax + 2 || p.l > lMax + limites.folga)) continue;
+        const e = x.s ? estilos[x.s] : null;
+        const visivel = e && (e.fundo || (e.bd && Object.keys(e.bd).length));
+        if (visivel && p.l <= lMax + limites.folga && vis < limites.tetoFormatadas) { vis++; continue; }
+        delete aba.cel[k]; nCel--; totalCel--;
+      }
     }
 
     /* colunas: largura, ocultas */
@@ -526,8 +535,10 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const w = cd.a.width != null ? parseFloat(cd.a.width) : null;
       const px = w != null ? Math.max(0, Math.trunc(((256 * w + Math.trunc(128 / 7)) / 256) * 7)) : null;
       for (let c = c1; c <= c2; c++) {
-        if (cd.a.hidden === '1' || cd.a.hidden === 'true') (aba.ocC || (aba.ocC = {}))[c] = 1;
-        else if (px != null && px !== aba.largP) (aba.larg || (aba.larg = {}))[c] = px;
+        const oculta = cd.a.hidden === '1' || cd.a.hidden === 'true';
+        if (oculta) (aba.ocC || (aba.ocC = {}))[c] = 1;
+        /* v0.6.9.2 (Grok, D-09): a coluna oculta também guarda a largura (volta igual ao exportar e ao reexibir) */
+        if (px != null && px > 0 && px !== aba.largP) (aba.larg || (aba.larg = {}))[c] = px;
       }
     }
 

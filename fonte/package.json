@@ -1,13 +1,22 @@
 {
   "name": "efcdocs",
-  "version": "0.6.9.1",
+  "version": "0.6.10",
   "private": true,
   "description": "EFCdocs: Planilha, Documento e Post-its (PWA). Código-fonte; o app publicado fica na raiz do repositório.",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test testes/*.test.mjs",
-    "test:navegador": "node scripts/testar-navegador.mjs"
+    "test": "node --test testes/*/*.test.mjs",
+    "test:regras": "node --test testes/*/*.test.mjs",
+    "test:nucleo": "node --test testes/nucleo/*.test.mjs",
+    "test:planilha": "node --test testes/planilha/*.test.mjs",
+    "test:excel": "node --test testes/excel/*.test.mjs",
+    "test:quadro": "node --test testes/quadro/*.test.mjs",
+    "test:documento": "node --test testes/documento/*.test.mjs",
+    "test:ferramentas": "node --test testes/ferramentas/*.test.mjs",
+    "test:fidelidade": "node --test testes/fidelidade/fidelidade-comparar.test.mjs testes/fidelidade/rede-completa.mjs",
+    "test:navegador": "node scripts/testar-navegador.mjs",
+    "auditoria": "node scripts/auditoria/rodar-todas.mjs"
   },
   "dependencies": {
     "react": "19.2.8",

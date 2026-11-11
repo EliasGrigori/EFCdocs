@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra v0.6.9.1', async () => {
+await caso('abre sem erro, rodapé mostra v0.6.10', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('v0.6.9.1'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('v0.6.10'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.9.1'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('v0.6.10'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -4390,7 +4390,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('v0.6.9.1'));
+  certo((await p.locator('[data-versao]').innerText()).includes('v0.6.10'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4585,6 +4585,29 @@ await caso('v0.6.9.1: imagem escolhida: a alça de tamanho recebe o clique e a i
   const dep = await img.boundingBox();
   certo(dep.width > bb.width + 20, `largura ${Math.round(bb.width)} → ${Math.round(dep.width)}`);
   certo(Math.abs(dep.width / dep.height - 2) < 0.05, 'proporção mantida');
+});
+
+/* ---------- v0.6.9.2: imagem com o congelado ocupando a tela (celular), planilha inventada amostra-v0692.xlsx ---------- */
+const AMOSTRA_V0692 = fileURLToPath(new URL('../testes/amostras/amostra-v0692.xlsx', import.meta.url));
+await caso('v0.6.9.2: imagem inserida com o painel congelado ocupando a tela (celular) aparece na tela', async () => {
+  const { ctx, p: q } = await novaPagina({ viewport: { width: 390, height: 640 }, hasTouch: true, isMobile: true });
+  await abrirAmostra(q, AMOSTRA_V0692); await q.click('[data-excel-abrir]'); await q.waitForSelector('.pl-cv'); await q.waitForTimeout(600);
+  await q.locator('.pl-aba:has-text("CONGELADA")').click(); await q.waitForTimeout(500);
+  const png = await q.evaluate(() => { const c = document.createElement('canvas'); c.width = 120; c.height = 60; const x = c.getContext('2d'); x.fillStyle = '#e07b39'; x.fillRect(0, 0, 120, 60); return c.toDataURL('image/png').split(',')[1]; });
+  const arq = join(mkdtempSync(join(tmpdir(), 'efc-img-')), 'logo-exemplo.png');
+  writeFileSync(arq, Buffer.from(png, 'base64'));
+  /* a célula ativa fica na parte rolada, fora da tela (o congelado enche a tela) */
+  await q.locator('.pl-nome').click(); await q.locator('.pl-nome').fill('D60'); await q.locator('.pl-nome').press('Enter'); await q.waitForTimeout(400);
+  await q.click('.tabs .tab:has-text("Inserir")');
+  await q.locator('[data-arq-imagem]').setInputFiles(arq);
+  await q.waitForSelector('[data-obj-tipo=imagem]');
+  const cv = await q.locator('.pl-cv').boundingBox();
+  const bb = await q.locator('[data-obj-tipo=imagem]').boundingBox();
+  certo(bb && bb.width > 20 && bb.height > 20, 'a imagem existe');
+  certo(bb.y >= cv.y - 1 && bb.y < cv.y + cv.height - 20, `a imagem começa dentro da tela da planilha (y ${Math.round(bb.y)}, planilha ${Math.round(cv.y)}–${Math.round(cv.y + cv.height)})`);
+  certo(bb.x >= cv.x - 1 && bb.x < cv.x + cv.width - 20, `e dentro na horizontal (x ${Math.round(bb.x)})`);
+  await print(q, 'v0692-imagem-congelado-celular');
+  await ctx.close();
 });
 
 await navegador.close();
