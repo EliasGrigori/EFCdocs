@@ -5,7 +5,7 @@
    Uso: node scripts/fidelidade/conferir.mjs <arquivo.xlsx | pasta>... [--sem-libreoffice] [--fora]
    --fora: aplica as diferenças conhecidas das planilhas de fora do repositório (CONHECIDAS_FORA).
    Mostra só endereços, nomes de grupo e contagens; nunca o texto das células. Sai com 1 se houver diferença nova. */
-import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, readdirSync, statSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, mkdtempSync, readdirSync, statSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, basename, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -21,7 +21,8 @@ const AQUI = dirname(fileURLToPath(import.meta.url));
 export function conferentesDisponiveis() {
   const py = spawnSync('python3', ['-c', 'import openpyxl'], { stdio: 'ignore' }).status === 0;
   const lo = ['soffice', 'libreoffice'].some((n) => spawnSync('sh', ['-c', `command -v ${n}`], { stdio: 'ignore' }).status === 0);
-  return { openpyxl: py, libreoffice: py && lo };
+  const python = spawnSync('python3', ['-c', '1'], { stdio: 'ignore' }).status === 0;
+  return { openpyxl: py, libreoffice: py && lo, python };
 }
 
 function rodarPython(script, args) {
@@ -33,8 +34,10 @@ function rodarPython(script, args) {
 export async function conferirArquivo(arq, { libreoffice = true, openpyxl = true, pasta } = {}) {
   const tmp = pasta || mkdtempSync(join(tmpdir(), 'efc-fid-'));
   mkdirSync(tmp, { recursive: true });
-  const a = (await lerXlsx(new Uint8Array(readFileSync(arq)))).conteudo;
-  const salvo = (await gravarXlsx(a)).bytes;
+  const orig = new Uint8Array(readFileSync(arq));
+  const a = (await lerXlsx(orig)).conteudo;
+  /* v0.6.13 (D-29): grava como o app grava, com o original guardado (devolve tabela dinâmica, segmentações, controles, macros) */
+  const salvo = (await gravarXlsx(a, null, { original: orig })).bytes;
   const b = (await lerXlsx(salvo)).conteudo;
   const c = (await lerXlsx((await gravarXlsx(b)).bytes)).conteudo;
   const d1 = compararConteudos(a, b, { limite: 1e7 }), d2 = compararConteudos(b, c, { limite: 1e7 });
@@ -46,9 +49,15 @@ export async function conferirArquivo(arq, { libreoffice = true, openpyxl = true
   };
   const disp = conferentesDisponiveis();
   const arqSalvo = join(tmp, 'salvo-pelo-efcdocs.xlsx'); writeFileSync(arqSalvo, salvo);
+  /* v0.6.13: conferência estrutural (o que faria o Excel pedir reparo): relações, tipos de conteúdo, XML, ordem dos elementos */
+  if (disp.openpyxl || disp.python) {
+    const r = rodarPython('conferir-estrutura.py', [arqSalvo]);
+    const erros = (r.stdout || '').split('\n').filter((l) => /^ {2}\S/.test(l)).map((l) => l.trim());
+    out.estrutura = r.status === 0 ? [] : erros.length ? Object.values(erros.reduce((g, e) => { const k = e.split(':')[0].replace(/ \S+$/, ''); (g[k] || (g[k] = { grupo: k, quantas: 0, exemplo: e.slice(0, 120) })).quantas++; return g; }, {})) : [{ grupo: 'erro do conferente: ' + ((r.stderr || '').split('\n').filter(Boolean).slice(-1)[0] || `saiu com ${r.status}`), quantas: 1 }];
+  }
   if (openpyxl && disp.openpyxl) {
     const j = join(tmp, 'openpyxl.json'); const r = rodarPython('conferir-openpyxl.py', [arq, arqSalvo, '--json', j]);
-    if (r.status === 0 || r.status === 1) {
+    if ((r.status === 0 || r.status === 1) && existsSync(j)) {
       const x = JSON.parse(readFileSync(j, 'utf8'));
       out.openpyxl = Object.entries(x.grupos).map(([grupo, g]) => ({ grupo, quantas: g.quantas, exemplo: (g.exemplos[0] || '').split(' (')[0] }));
     } else out.openpyxl = { erro: (r.stderr || '').split('\n').filter(Boolean).slice(-1)[0] || `saiu com ${r.status}` };
@@ -70,6 +79,7 @@ export function classificar(r, { fora = false } = {}) {
   const novas = [], sabidas = [];
   const ver = (fonte, lista) => { for (const g of lista || []) { const k = conhecida(r.arquivo, fonte, g.grupo, fora); (k ? sabidas : novas).push({ fonte, ...g, ...(k ? { id: k.id, motivo: k.motivo } : {}) }); } };
   ver('idaVolta', r.idaVolta);
+  if (r.estrutura) ver('estrutura', r.estrutura);
   if (Array.isArray(r.openpyxl)) ver('openpyxl', r.openpyxl); else if (r.openpyxl?.erro) novas.push({ fonte: 'openpyxl', grupo: 'erro do conferente: ' + r.openpyxl.erro, quantas: 1 });
   if (r.libreoffice?.grupos) ver('libreoffice', r.libreoffice.grupos); else if (r.libreoffice?.erro) novas.push({ fonte: 'libreoffice', grupo: 'erro do conferente: ' + r.libreoffice.erro, quantas: 1 });
   if (r.segundaVolta) novas.push({ fonte: 'idaVolta', grupo: '2ª volta não deu zero', quantas: r.segundaVolta });

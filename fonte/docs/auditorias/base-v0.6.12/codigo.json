@@ -12,8 +12,8 @@
  },
  "avisosMontar": 4,
  "tamanhoApp": {
-  "bytes": 1736493,
-  "compactado": 557444,
-  "conta": "js, css e html de dist/; compactado com o gzip do Node (zlib nível 9), o mesmo da auditoria"
+  "bytes": 1746130,
+  "compactado": 561155,
+  "conta": "js, css e html da v0.6.12 publicada (commit 49e7d59); compactado com o gzip do Node (zlib nível 9), o mesmo da auditoria. Acertado na v0.6.13: tinha ficado o da v0.6.9.2 (557444)"
  }
 }

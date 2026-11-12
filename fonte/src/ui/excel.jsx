@@ -24,7 +24,8 @@ export function RelatorioExcel({ rel }) {
   const abas = rel.abas || [];
   const ex = rel.extras || {};
   const cortes = abas.filter((a) => a.cortes && a.cortes.length);
-  const fora = rel.fora || [];
+  /* v0.6.13 (D-29): o que não aparece aqui mas volta ao salvar como Excel fica numa caixa própria */
+  const fora = (rel.fora || []).filter((f) => !f.volta), volta = (rel.fora || []).filter((f) => f.volta);
   const avisos = rel.avisos || [];
   const bom = cortes.reduce((t, a) => t + a.cortes.length, 0) + avisos.length + (rel.semCalculo > 0 ? 1 : 0) + (rel.comRef > 0 ? 1 : 0);
   const veio = [
@@ -52,6 +53,14 @@ export function RelatorioExcel({ rel }) {
       <Caixa tom="verde" icone="check" titulo="Veio" qtd={veio.length} dados={{ 'data-rel': 'veio' }}>
         <ul className="rel-lista">{veio.map((t, i) => <li key={i}>{t}</li>)}</ul>
       </Caixa>
+      {volta.length > 0 && (
+        <Caixa tom="azul" icone="info" titulo="Guardado para voltar ao Excel" qtd={volta.length} dados={{ 'data-rel': 'volta' }}>
+          <ul className="rel-lista">
+            {volta.map((f) => <li key={f.item}><Dest tom="azul">{f.item}{f.qtd > 1 ? ` (${n(f.qtd)})` : ''}</Dest>{f.detalhe ? <> {f.detalhe}</> : null}</li>)}
+            <li>Vale enquanto o arquivo original estiver neste aparelho (ele fica guardado ao abrir). Não apague a aba nem a tabela de que elas dependem.</li>
+          </ul>
+        </Caixa>
+      )}
       {fora.length > 0 && (
         <Caixa tom="vermelho" icone="aviso" titulo="Ficou de fora" qtd={fora.length} dados={{ 'data-rel': 'fora' }}>
           <ul className="rel-lista">

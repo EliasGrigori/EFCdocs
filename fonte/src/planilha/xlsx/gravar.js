@@ -7,6 +7,7 @@ import { comPaineisParaExcel, extDoPainel } from './painelXlsx.js';
 import { TEMA_XML } from './temaPadrao.js';
 import { gravarImpressaoAba } from './impressaoXlsx.js';
 import { criarZip } from './zip.js';
+import { devolver } from './devolver.js';
 import { escapar, XML_CAB } from './xml.js';
 import { gravarEstilos } from './estilos.js';
 import { porPrefixos } from './formulas.js';
@@ -120,7 +121,7 @@ const hexArgb = (h) => 'FF' + String(h).replace('#', '').toUpperCase().padStart(
  * conteudo da planilha → { bytes: Uint8Array, avisos: [] }.
  * motor: o motor de cálculo já carregado (para os valores das fórmulas); se faltar, calcula aqui.
  */
-export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo = '' } = {}) {
+export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo = '', original = null } = {}) {
   const m = motor || new Motor(conteudo);
   /* v0.6.7: abas Painel viram abas comuns com gráficos, formas e células (e o painel vai junto no extLst) */
   const c = comPaineisParaExcel(conteudo, m);
@@ -418,7 +419,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     { nome: 'xl/workbook.xml', dados: wb },
     { nome: 'xl/_rels/workbook.xml.rels', dados: relsWb },
     { nome: 'xl/styles.xml', dados: gravarEstilos(c.estilos || [{}], c.fonteBase || 'Calibri', dxfs) },
-    { nome: 'xl/theme/theme1.xml', dados: XML_CAB + (typeof c.temaXml === 'string' && c.temaXml ? c.temaXml : TEMA_XML) }, // v0.6.5
+    { nome: 'xl/theme/theme1.xml', dados: XML_CAB + temaSemFigura(typeof c.temaXml === 'string' && c.temaXml ? c.temaXml : TEMA_XML) }, // v0.6.5
     { nome: 'xl/sharedStrings.xml', dados: sst },
     ...(usaMatriz ? [{ nome: 'xl/metadata.xml', dados: metadata }] : []),
     ...partes,
@@ -451,9 +452,26 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
         tb.map((x) => `<Relationship Id="rIdT${x.n}" Type="${REL}table" Target="../tables/table${x.n}.xml"/>`).join('') + '</Relationships>' };
     }).filter(Boolean),
   ];
-  /* v0.6.8 (Grok): o arquivo veio com macros: dizer ao salvar que elas e os botões de macro não vão */
+  /* v0.6.13 (D-29): o que o app não edita volta do arquivo original guardado no aparelho */
   const imp = c.importado || {};
-  if (imp.temMacros || (imp.botoesMacro && imp.botoesMacro.length)) {
+  let dv = null;
+  if (original && abas.some((a) => a.org)) {
+    try { dv = await devolver(arquivos, abas.map((aba, ia) => ({ id: c.ordem[ia], aba })), original); } catch (e) { dv = null; avisos.push('Não deu para devolver as partes do Excel original (' + (e.message || e) + '): o arquivo sai sem elas.'); }
+  }
+  if (dv) {
+    const l = [];
+    if (dv.macros) l.push('as macros');
+    if (dv.dinamicas) l.push(dv.dinamicas === 1 ? '1 tabela dinâmica' : `${dv.dinamicas} tabelas dinâmicas`);
+    if (dv.segmentacoes) l.push(dv.segmentacoes === 1 ? '1 segmentação de dados' : `${dv.segmentacoes} segmentações de dados`);
+    if (dv.linhasTempo) l.push(dv.linhasTempo === 1 ? '1 linha do tempo' : `${dv.linhasTempo} linhas do tempo`);
+    if (dv.controles) l.push(dv.controles === 1 ? '1 botão ou caixa de controle' : `${dv.controles} botões e caixas de controle`);
+    if (dv.suplementos) l.push(dv.suplementos === 1 ? '1 suplemento' : `${dv.suplementos} suplementos`);
+    if (l.length) avisos.push(`Voltaram do arquivo original, como vieram: ${l.length > 1 ? l.slice(0, -1).join(', ') + ' e ' + l[l.length - 1] : l[0]}.${dv.dinamicas > (dv.semFonte || 0) ? (dv.dinamicas === 1 ? ' A tabela dinâmica se atualiza ao abrir no Excel.' : ' As tabelas dinâmicas se atualizam ao abrir no Excel.') : ''}${dv.soltas ? ` ${dv.soltas === 1 ? 'Uma segmentação que estava agrupada com formas volta solta' : `${dv.soltas} segmentações que estavam agrupadas com formas voltam soltas`}, no mesmo lugar.` : ''}`);
+    if (dv.perdidos.length) { const n = dv.perdidos.length, tempo = dv.perdidos.every((x) => x.tipo === 'linha do tempo'), seg = dv.perdidos.every((x) => x.tipo === 'segmentação'); avisos.push(`${n === 1 ? (tempo ? 'Uma linha do tempo ficou' : 'Uma segmentação ficou') : `${n} ${tempo ? 'linhas do tempo' : seg ? 'segmentações' : 'segmentações e linhas do tempo'} ficaram`} de fora porque a aba, a tabela ou a tabela dinâmica de que ${n === 1 ? 'dependia' : 'dependiam'} foi apagada aqui.`); }
+    if (dv.semFonte) avisos.push(`${dv.semFonte === 1 ? 'Uma tabela dinâmica perdeu' : `${dv.semFonte} tabelas dinâmicas perderam`} a aba de onde vinham os dados: no Excel ${dv.semFonte === 1 ? 'ela mostra os dados guardados e não se atualiza' : 'elas mostram os dados guardados e não se atualizam'}.`);
+  }
+  /* botão de formulário que voltou com os controles não é aviso; macro que não voltou, é */
+  if (imp.temMacros ? !(dv && dv.macros) : (imp.botoesMacro && imp.botoesMacro.length && !(dv && dv.controles))) {
     const bs = imp.botoesMacro || [];
     avisos.push(`As macros (VBA)${bs.length ? ` e ${bs.length === 1 ? `o botão ${'"' + bs[0] + '"'}` : `os botões ${bs.map((b) => '"' + b + '"').join(', ')}`}` : ''} do arquivo original não vão no Excel salvo (ele sai como .xlsx, sem macro).`);
   }
@@ -471,5 +489,10 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   }
   const bytes = await criarZip(arquivos, agora);
   void chave;
-  return { bytes, avisos };
+  return { bytes, avisos, macros: !!(dv && dv.macros) };
 }
+
+/* v0.6.13 (D-33): tema com figura de fundo (preenchimento com imagem, r:embed) ia sem a relação da imagem: parte com r:id
+   sem relação é motivo de reparo no Excel. Sem o original, a figura vira cor lisa do tema; com o original, devolver.js põe
+   o tema e a figura de volta como vieram. */
+export const temaSemFigura = (x) => (/\br:(?:embed|id|link)="/.test(x) ? x.replace(/<a:blipFill\b[\s\S]*?<\/a:blipFill>/g, '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>').replace(/\sr:(?:embed|id|link)="[^"]*"/g, '') : x);

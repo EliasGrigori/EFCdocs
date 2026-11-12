@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.12', async () => {
+await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.13', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.12'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.13'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.12'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.13'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -4390,7 +4390,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.12'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.13'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4742,6 +4742,30 @@ await caso('v0.6.12: planilha grande: digitar em sequência, fórmula que depend
   certo(d1 !== d2, 'a grade foi redesenhada com o valor novo');
   certo(s2.includes('Soma: 120'), 'desfeito: ' + s2);
   certo(s3.includes('Soma: 130'), 'refeito: ' + s3);
+});
+
+/* v0.6.13 (D-29): o que o app não edita (tabela dinâmica, segmentações, controles) fica guardado e volta ao salvar como Excel */
+await caso('v0.6.13: relatório mostra o que fica guardado para voltar; Salvar como Excel devolve tabela dinâmica, segmentações e controles', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-v0613.xlsx', import.meta.url)));
+  const volta = await p.locator('.rel-caixa.azul[data-rel=volta]').innerText();
+  const fora = await p.locator('.rel-caixa.vermelho[data-rel=fora]').count();
+  await print(p, 'v0613-relatorio');
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(800);
+  await p.locator('.pl-cv').click({ position: { x: 300, y: 200 } });
+  await p.keyboard.type('77'); await p.keyboard.press('Enter'); await p.waitForTimeout(400);
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const nome = dl.suggestedFilename(); const bytes = new Uint8Array(readFileSync(await dl.path()));
+  await p.waitForSelector('.toast:has-text("Excel pronto")'); const toast = await p.locator('.toast').last().innerText();
+  await print(p, 'v0613-salvou');
+  await ctx.close();
+  const nomes = (await import('../src/planilha/xlsx/zip.js')).lerZip(bytes).nomes;
+  certo(/Tabelas dinâmicas[\s\S]*voltam e se atualizam/.test(volta) && /Segmentações de dados[\s\S]*voltam iguais/.test(volta) && /Botões e caixas de controle[\s\S]*voltam iguais/.test(volta), 'caixa azul: ' + volta.slice(0, 300));
+  igual(fora, 0, 'nada na caixa "Ficou de fora":');
+  igual(nome, 'amostra-v0613.xlsx', 'sem macro, sai .xlsx:');
+  certo(nomes.includes('xl/pivotTables/pivotTable1.xml') && nomes.includes('xl/slicers/slicer1.xml') && nomes.filter((n) => /ctrlProps\//.test(n)).length === 2, 'partes de volta: ' + nomes.filter((n) => /pivot|slicer|ctrl/.test(n)).join(' '));
+  certo(/Voltaram do arquivo original/.test(toast), 'aviso ao salvar: ' + toast.slice(0, 200));
 });
 
 await navegador.close();

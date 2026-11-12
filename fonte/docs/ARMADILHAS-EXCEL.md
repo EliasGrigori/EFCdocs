@@ -1,6 +1,6 @@
 # Armadilhas do Excel (.xlsx) · EFCdocs
 
-O que o arquivo do Excel faz de diferente do que parece, aprendido em defeito de verdade. Ler antes de mexer em `src/planilha/xlsx/` (ler.js, gravar.js, estilos.js) e no anonimizador. Cada item diz o defeito ou limite da `MEMORIA-DO-PROJETO.md` onde apareceu. Atualizado na v0.6.11.1 (11/11/2026).
+O que o arquivo do Excel faz de diferente do que parece, aprendido em defeito de verdade. Ler antes de mexer em `src/planilha/xlsx/` (ler.js, gravar.js, estilos.js) e no anonimizador. Cada item diz o defeito ou limite da `MEMORIA-DO-PROJETO.md` onde apareceu. Atualizado na v0.6.13 (12/11/2026).
 
 ## Tabelas
 
@@ -47,11 +47,17 @@ O que o arquivo do Excel faz de diferente do que parece, aprendido em defeito de
 23. Validação de lista que aponta para **outra aba** vai em `<extLst>` como `x14:dataValidation` (o openpyxl não lê; o conferente lê direto do XML).
 24. Mesclada: o Excel grava as bordas em **cada** célula da faixa; quem desenha tem de mostrar só o contorno de fora (D-11 e D-17, corrigidos na v0.6.11).
 25. Posição da rolagem ao abrir é o `topLeftCell` do `<pane>`; o congelamento é `xSplit`/`ySplit`. Mudar o primeiro não muda o congelamento (L-06).
-26. **Partes que o app não entende (macros, tabela dinâmica, segmentação de dados, caixas de seleção, suplementos, conversas de comentários) NÃO voltam ao salvar como Excel** (D-29, aberto). O app avisa ao abrir e ao salvar. Este item dizia o contrário até a v0.6.11: estava errado. Para devolver, é preciso guardar a parte inteira e as ligações dela (`_rels`, `[Content_Types].xml`, `<extLst>` da aba e do `workbook.xml`).
+26. **Partes que o app não edita voltam do original (v0.6.13, D-29, `src/planilha/xlsx/devolver.js`)**: macros, tabela dinâmica, segmentação, linha do tempo, botões e caixas de controle, suplementos. Cada aba lida guarda `aba.org` (a parte do original de onde veio); ao salvar, o app tira essas partes do original guardado no aparelho e refaz as ligações. O que tem de casar, senão o Excel pede reparo:
+   - **tabela dinâmica**: aba → `pivotTableN.xml` → `pivotCacheDefinitionN.xml` → registros; e `<pivotCaches>` no livro com o mesmo `cacheId`. A fonte aponta pelo **nome** da aba (`worksheetSource sheet=`) ou da tabela (`name=`): aba renomeada muda junto; aba ou tabela apagada deixa a dinâmica sem fonte (aí não pedir `refreshOnLoad`);
+   - **segmentação e linha do tempo**: a memória (`slicerCacheN.xml`) aponta para a tabela dinâmica por `tabId` (= posição da aba, que muda) e `name`, ou para a tabela por `tableId` e número da coluna (que mudam); cada memória precisa de um **nome definido** com o mesmo nome (`#N/A`); a aba lista as segmentações no `extLst` e o desenho tem a moldura (`sle:slicer`, dentro de `mc:AlternateContent`). Memória sem moldura não volta;
+   - **controles**: o bloco `<controls>` da aba (dentro de `mc:AlternateContent`), o `ctrlPropN.xml`, a forma no desenho antigo (VML, `_x0000_sNNNN` = `shapeId`) e a forma-gêmea no desenho novo (`a14:compatExt spid=`). Anotações feitas no app dividem o mesmo VML: os números das formas não podem repetir e o `o:idmap` declara todos os blocos de 1.024;
+   - **macros**: `vbaProject.bin` igual byte a byte, livro com o tipo `macroEnabled` (o arquivo sai .xlsm) e o `codeName` do livro e de cada aba (é por ele que o módulo da aba se liga).
+   - **segmentação dentro de grupo**: o grupo vira forma do app; a segmentação volta solta (`absoluteAnchor`), no mesmo lugar, pela conta do grupo.
+   - Ordem dos elementos da aba: `drawing`, `legacyDrawing`, `controls`, `tableParts`, `extLst`.
 27. **Título de tabela que é só um espaço (" ") é válido** para o Excel; título vazio não é. Não aparar antes de decidir (D-28, v0.6.11.1).
 28. **Os valores marcados num filtro são textos das células**: `<filter val="...">` e `<customFilter val>` têm de continuar iguais ao texto da célula, senão o filtro deixa de casar. `<dateGroupItem>` guarda a data de verdade. Quem troca os textos (anonimizador) troca os dois juntos (D-27, v0.6.11.1).
 29. **Segmentação de dados**: o `sourceName` do `slicerCacheN.xml` é o nome da coluna da tabela (ou do campo da dinâmica) e tem de casar com ele; `caption` é a legenda que aparece. O `name` e o `cache` são identificadores e ficam (D-27).
-30. Outros lugares onde sobra texto de quem fez a planilha: tinta (`xl/ink/`), suplementos (`xl/webextensions/`, propriedades), pessoas dos comentários (`xl/persons/`), `docProps/custom.xml`.
+30. Outros lugares onde sobra texto de quem fez a planilha: tinta (`xl/ink/`), suplementos (`xl/webextensions/`, propriedades), pessoas dos comentários (`xl/persons/`), `docProps/custom.xml`, aviso da validação (`prompt`, `error`), texto das conversas (`<text xml:space="preserve">`), gráfico novo (`xl/charts/chartEx`, prefixo `cx:`, com título e rótulos guardados) (D-32).
 31. **Seta do filtro com painel congelado**: a coluna que rola para trás das congeladas não pode desenhar a seta (ela cai por cima do título congelado). Vale igual para linha (D-15, v0.6.11.1).
 32. Texto feito só de espaços (alguém segurou a barra) é texto: passa por cima da vizinha vazia e esconde a linha da grade, igual no Excel (D-05, explicado).
 
@@ -61,3 +67,5 @@ O que o arquivo do Excel faz de diferente do que parece, aprendido em defeito de
 - **O juiz do cálculo é o valor que o próprio Excel guardou no arquivo** (`<v>`), não o LibreOffice, quando a planilha usa FILTRO, ÚNICO e funções novas em cadeia (L-11). Cópia anonimizada não serve para isso: os valores guardados são dos dados antigos (L-12).
 - `node scripts/fidelidade/conferir.mjs <arquivo.xlsx>`: o mesmo para um arquivo só (mostra endereços e contagens, nunca o texto das células).
 - Item novo aqui: junto com o teste que prova o defeito.
+33. **Tema com figura de fundo** (`<a:blipFill r:embed>` no `theme1.xml`) precisa da relação da figura (`xl/theme/_rels/theme1.xml.rels`). Parte que usa `r:id` sem relação é motivo de reparo (D-33, v0.6.13).
+34. **Pedido de reparo se confere antes de mandar**: `python3 scripts/fidelidade/conferir-estrutura.py arquivo.xlsx` (relações, tipos de conteúdo, XML bem formado, `r:id` sem relação, nomes das segmentações, ordem dos elementos da aba). Roda sozinho na rede de fidelidade (v0.6.13).

@@ -116,14 +116,14 @@ test('v0.6.5: forma mexida é escrita de novo (texto, cor, link para aba renomea
   assert.ok(btn && btn.partes[0].link && c2.abas[btn.partes[0].link.aba].nome === 'Dados 2026', 'botão voltou como forma com link');
 });
 
-test('v0.6.5: segmentação de dados (slicer) dentro do grupo fica fora e o resto do grupo vem', async () => {
+test('v0.6.5: segmentação de dados (slicer) dentro do grupo fica fora e o resto do grupo vem (v0.6.13: sem aviso aqui; ela volta ao salvar com o original)', async () => {
   const el = '<xdr:grpSp><xdr:nvGrpSpPr><xdr:cNvPr id="5" name="G"/><xdr:cNvGrpSpPr/></xdr:nvGrpSpPr><xdr:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="952500" cy="476250"/><a:chOff x="0" y="0"/><a:chExt cx="952500" cy="476250"/></a:xfrm></xdr:grpSpPr>' +
     '<mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"><mc:Choice Requires="a14"><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="6" name="Mês"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="476250" cy="476250"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.microsoft.com/office/drawing/2010/slicer"><sle:slicer xmlns:sle="http://schemas.microsoft.com/office/drawing/2010/slicer" name="Mês"/></a:graphicData></a:graphic></xdr:graphicFrame></mc:Choice>' +
     '<mc:Fallback><xdr:sp macro="" textlink=""><xdr:nvSpPr><xdr:cNvPr id="0" name=""/><xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="476250" cy="476250"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr><xdr:txBody><a:bodyPr/><a:p><a:r><a:t>Esta forma representa uma segmentação</a:t></a:r></a:p></xdr:txBody></xdr:sp></mc:Fallback></mc:AlternateContent>' +
     '<xdr:sp macro="" textlink=""><xdr:nvSpPr><xdr:cNvPr id="7" name="Moldura"/><xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr><a:xfrm><a:off x="476250" y="0"/><a:ext cx="476250" cy="476250"/></a:xfrm><a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill></xdr:spPr></xdr:sp></xdr:grpSp>';
   const aba = { cel: {} };
   const r = await lerFormaDaAncora(el, { zip: null, relsD: new Map(), tema: null, fontes: {}, aba, geo: { l: 0, c: 0, dx: 0, dy: 0, w: 100, h: 50 }, ns: {} });
-  assert.ok(r.fora.some((x) => /Segmenta/.test(x.item)));
+  assert.ok(!r.fora.some((x) => /Segmenta/.test(x.item)), 'o relatório conta as segmentações pelas partes do arquivo, na caixa do que volta');
   assert.equal(r.obj.partes.length, 1);
   assert.equal(r.obj.partes[0].g, 'ellipse');
   assert.equal(Math.round(r.obj.partes[0].x), 50); assert.equal(Math.round(r.obj.partes[0].w), 50);

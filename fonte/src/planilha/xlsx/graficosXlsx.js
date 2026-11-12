@@ -574,7 +574,7 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema, fontes 
       let tipo = tipoDoElemento(el);
       /* v0.6.5: bloco "AlternateContent" no topo: segmentação de dados fica fora; o resto usa a versão compatível */
       if (tipo === 'AlternateContent') {
-        if (/slicer|timeslicer/i.test(el)) { fora.push({ motivo: 'chegam numa versão futura', item: 'Segmentações de dados (slicers)' }); continue; }
+        if (/slicer|timeslicer/i.test(el)) continue; /* v0.6.13 (D-29): a segmentação não aparece aqui, mas volta ao salvar (o relatório conta pelas partes do arquivo) */
         if (/<cx:chart\b|chartex/i.test(el)) { fora.push({ motivo: 'tipo novo do Excel (cascata, funil, mapa...)' }); continue; }
         const fb = /<(?:\w+:)?Fallback\b[^>]*>([\s\S]*?)<\/(?:\w+:)?Fallback>/.exec(el);
         const ch = /<(?:\w+:)?Choice\b[^>]*>([\s\S]*?)<\/(?:\w+:)?Choice>/.exec(el);

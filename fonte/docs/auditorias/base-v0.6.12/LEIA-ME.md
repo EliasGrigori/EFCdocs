@@ -10,4 +10,4 @@ Quem troca a linha de base: só o dono, quando aprovar uma versão que melhorou 
 
 ## Linha de base v0.6.12 (12/11/2026)
 
-Aprovada pelo Elias no item E01 da v0.6.12: **a rapidez passa a ser comparada com os números da v0.6.12** (digitar 83 ms, mover 34 ms, desfazer 34 ms; com o processador 4× mais lento 263, 82 e 117 ms; app 1.705 KB). As outras lentes (visual e código) continuam com os números da v0.6.9.2. A pasta `base-v0.6.9.2` fica guardada como história.
+Aprovada pelo Elias no item E01 da v0.6.12: **a rapidez passa a ser comparada com os números da v0.6.12** (digitar 83 ms, mover 34 ms, desfazer 34 ms; com o processador 4× mais lento 263, 82 e 117 ms; e o tamanho do app medido na v0.6.12, em `codigo.json › tamanhoApp`, acertado na v0.6.13: tinha ficado o da v0.6.9.2). As outras lentes (visual e código) continuam com os números da v0.6.9.2. A pasta `base-v0.6.9.2` fica guardada como história.

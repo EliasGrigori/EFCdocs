@@ -2090,8 +2090,11 @@ export function Planilha({ arquivo, cx }) {
   const salvarExcel = async () => {
     try {
       cx.avisar('Montando o arquivo do Excel…', { ic: 'excel' });
-      const r = await baixarXlsx(c, motor, ficha.nome);
-      cx.avisar(`Excel pronto: ${ficha.nome}.xlsx${r.avisos.length ? '. ' + r.avisos.join(' ') : ''}`, { ic: 'excel', longo: true });
+      /* v0.6.13 (D-29): o original guardado no aparelho devolve o que o app não edita (macros, tabelas dinâmicas, segmentações...) */
+      const o = c.importado ? await lerOriginal(ficha.id) : null;
+      const orig = o && o.blob ? new Uint8Array(await o.blob.arrayBuffer()) : null;
+      const r = await baixarXlsx(c, motor, ficha.nome, orig);
+      cx.avisar(`Excel pronto: ${ficha.nome}.${r.macros ? 'xlsm' : 'xlsx'}${r.avisos.length ? '. ' + r.avisos.join(' ') : ''}`, { ic: 'excel', longo: true });
     } catch (e) {
       cx.avisar('Não deu para montar o Excel: ' + (e.message || e), { ic: 'aviso', longo: true });
     }

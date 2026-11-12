@@ -86,7 +86,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     extras: { validacoes: 0, listas: 0, condicionais: 0, notas: 0, conversas: 0, respostas: 0, abasComRegras: [], graficos: 0 },
   };
   const fora = new Map();
-  const juntarFora = (item, qtd = 1, detalhe = '') => { const x = fora.get(item) || { item, qtd: 0, detalhe }; x.qtd += qtd; if (detalhe && !x.detalhe) x.detalhe = detalhe; fora.set(item, x); };
+  const juntarFora = (item, qtd = 1, detalhe = '', volta = false) => { const x = fora.get(item) || { item, qtd: 0, detalhe }; x.qtd += qtd; if (detalhe && !x.detalhe) x.detalhe = detalhe; if (volta) x.volta = true; fora.set(item, x); };
 
   /* ---------- livro ---------- */
   const relsRaiz = lerRels(await zip.texto('_rels/.rels'), '');
@@ -186,17 +186,21 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   /* partes que o EFCdocs não traz */
   const nomes = zip.nomes;
   const conta = (rx) => nomes.filter((n) => rx.test(n)).length;
-  if (conta(/vbaProject\.bin$/i)) juntarFora('Macros (VBA)', 1, 'os botões que rodam macro não funcionam aqui');
+  if (conta(/vbaProject\.bin$/i)) juntarFora('Macros (VBA)', 1, 'não rodam aqui; voltam iguais ao salvar como Excel (o arquivo sai como .xlsm)', true);
   const graficosLidos = []; // v0.6.0: { aba, o } para ligar os dados à aba certa no fim
   const paineisLidos = []; // v0.6.7: { aba, resto } das abas que eram Painel
   const formasLidas = []; // v0.6.5: formas (links e textos ligados apontam para o nome da aba até o fim)
   let grFora = 0;
   const nPartesGrafico = conta(/^xl\/charts\/chart\d+\.xml$/i);
-  if (conta(/^xl\/pivotTables\//i)) juntarFora('Tabelas dinâmicas', conta(/^xl\/pivotTables\/pivotTable\d+\.xml$/i), 'vêm só os valores, que não atualizam');
+  if (conta(/^xl\/pivotTables\//i)) juntarFora('Tabelas dinâmicas', conta(/^xl\/pivotTables\/pivotTable\d+\.xml$/i), 'aqui vêm só os valores; ao salvar como Excel elas voltam e se atualizam ao abrir', true);
   const nMidias = conta(/^xl\/media\//i);
   let imgLidas = 0;
   const linksLocais = []; // links de uma aba para outra, ligados no fim
-  if (conta(/^xl\/(slicers|slicerCaches|timelines|timelineCaches)\//i)) juntarFora('Segmentações de dados e linhas do tempo', conta(/^xl\/(slicers|timelines)\/[^/]+\.xml$/i) || 1);
+  if (conta(/^xl\/(slicers|slicerCaches|timelines|timelineCaches)\//i)) {
+    /* v0.6.13: conta cada segmentação e linha do tempo (uma parte pode ter várias) */
+    let nSeg = 0; for (const n of nomes.filter((x) => /^xl\/(slicers|timelines)\/[^/]+\.xml$/i.test(x))) nSeg += (((await zip.texto(n)) || '').match(/<(?:\w+:)?(?:slicer|timeline)\s/g) || []).length;
+    juntarFora('Segmentações de dados e linhas do tempo', nSeg || 1, 'não aparecem aqui; voltam iguais ao salvar como Excel', true);
+  }
   /* v0.6.8: o nome dos botões de macro (para avisar também ao salvar) */
   const botoesMacro = [];
   for (const nv of nomes.filter((n) => /^xl\/drawings\/vmlDrawing\d*\.vml$/i.test(n))) {
@@ -207,10 +211,10 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       if (t && botoesMacro.length < 20 && !botoesMacro.includes(t)) botoesMacro.push(t.slice(0, 60));
     }
   }
-  if (conta(/^xl\/ctrlProps\//i)) juntarFora('Botões e caixas de controle', conta(/^xl\/ctrlProps\//i), botoesMacro.length ? `(${botoesMacro.map((b) => '"' + b + '"').join(', ')})` : '');
+  if (conta(/^xl\/ctrlProps\//i)) juntarFora('Botões e caixas de controle', conta(/^xl\/ctrlProps\//i), `${botoesMacro.length ? `(${botoesMacro.map((b) => '"' + b + '"').join(', ')}) ` : ''}não aparecem aqui; voltam iguais ao salvar como Excel`, true);
   if (botoesMacro.length) rel.botoesMacro = botoesMacro;
   if (conta(/vbaProject\.bin$/i)) rel.temMacros = true;
-  if (conta(/^xl\/webextensions\//i)) juntarFora('Suplementos do Office', conta(/^xl\/webextensions\/webextension\d*\.xml$/i) || 1);
+  if (conta(/^xl\/webextensions\//i)) juntarFora('Suplementos do Office', conta(/^xl\/webextensions\/webextension\d*\.xml$/i) || 1, 'voltam iguais ao salvar como Excel', true);
   if (conta(/^xl\/externalLinks\//i)) juntarFora('Vínculos com outros arquivos', conta(/^xl\/externalLinks\/externalLink\d*\.xml$/i), 'as fórmulas que usam outro arquivo mostram o último valor');
   if (conta(/^xl\/(connections\.xml|queryTables\/)/i)) juntarFora('Consultas e conexões de dados (Power Query)', 1);
 
@@ -264,6 +268,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     const id = 'a' + (fi + 1);
     aoProgresso({ fase: 'aba', aba: F.nome, i: fi + 1, n: folhas.length, linha: 0 });
     const aba = { id, nome: F.nome, cel: {} };
+    aba.org = F.parte; /* v0.6.13 (D-29): de que parte do original veio (para devolver ao salvar o que o app não edita) */
     if (F.oculta) aba.oculta = true;
     const ra = { nome: F.nome, celulas: 0, formulas: 0, linhas: 0, cortes: [] };
     let cab = '', resto = '', estado = 0, buf = '';

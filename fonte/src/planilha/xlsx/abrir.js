@@ -41,15 +41,16 @@ export async function lerArquivoExcel(arquivo, aoProgresso = () => {}) {
 }
 
 /** Monta o .xlsx e baixa com o nome do arquivo. Devolve os avisos. */
-export async function baixarXlsx(conteudo, motor, nome) {
-  const { bytes, avisos } = await gravarXlsx(conteudo, motor, { titulo: nome });
-  const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+export async function baixarXlsx(conteudo, motor, nome, original = null) {
+  /* v0.6.13 (D-29): com o arquivo original guardado, as partes que o app não edita voltam; com macros, sai .xlsm */
+  const { bytes, avisos, macros } = await gravarXlsx(conteudo, motor, { titulo: nome, original });
+  const blob = new Blob([bytes], { type: macros ? 'application/vnd.ms-excel.sheet.macroEnabled.12' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = String(nome || 'planilha').replace(/[\\/:*?"<>|]/g, '_') + '.xlsx';
+  a.download = String(nome || 'planilha').replace(/[\\/:*?"<>|]/g, '_') + (macros ? '.xlsm' : '.xlsx');
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-  return { avisos, bytes: bytes.length };
+  return { avisos, bytes: bytes.length, macros };
 }

@@ -176,7 +176,7 @@ export async function lerFormaDaAncora(el, ctx) {
   if (tipo === 'grpSp') {
     const lg = limparGrupoBruto(el);
     bruto = lg.s;
-    if (lg.segmentacoes) fora.push({ item: 'Segmentações de dados (slicers)', qtd: lg.segmentacoes, motivo: 'chegam numa versão futura; o resto do grupo veio' });
+    /* v0.6.13 (D-29): segmentação dentro de grupo: o resto do grupo vem; ela volta ao salvar, solta, no mesmo lugar */
     gruposGraficos = lg.graficos;
   }
   const raiz = arvore(bruto);

@@ -627,3 +627,7 @@ svg.ic-novo .barra { stroke: var(--primary); }
 .pn-add-cel { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 24px; }
 .pn-add-cel .btn { flex: 1 1 calc(50% - 8px); justify-content: center; }
 .pn-pilha .pn-peca { touch-action: pan-y; cursor: default; } /* v0.6.8: no celular o dedo rola a lista */
+
+/* v0.6.13 (D-29): relatório de abertura, caixa do que fica guardado para voltar ao Excel */
+.rel-caixa.azul { --tom: var(--info); --tom-fundo: var(--info-soft); }
+.rel-dest.azul { background: var(--info-soft); box-shadow: inset 0 -2px 0 var(--info); }

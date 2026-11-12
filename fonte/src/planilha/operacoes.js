@@ -675,6 +675,7 @@ export function duplicarAba(c, abaId) {
   ordem.splice(ordem.indexOf(abaId) + 1, 0, id);
   const copia = JSON.parse(JSON.stringify(orig));
   copia.id = id; copia.nome = `${base} (${n})`;
+  delete copia.org; /* v0.6.13 (D-29): a cópia não leva as partes do original (a tabela dinâmica e as segmentações ficam com a aba de origem) */
   return { id, mud: { [`conteudo.abas.${id}`]: copia, 'conteudo.ordem': ordem, 'conteudo.seq': c.seq + 1 } };
 }
 

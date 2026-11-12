@@ -282,7 +282,8 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
         return `<c${at}>${d}</c>`;
       });
       /* validação de dados: lista escrita na regra ("A,B,C") troca item por item, para continuar batendo com as células */
-      x = x.replace(/<dataValidation\b([^>]*)(\/>|>([\s\S]*?)<\/dataValidation>)/g, (m, at, fim, dentro) => {
+      /* v0.6.13 (D-32): `[^>]*?` (o mínimo): com o máximo, uma validação fechada em si mesma engolia as seguintes e os avisos delas (prompt, error) ficavam */
+      x = x.replace(/<dataValidation\b([^>]*?)(\/>|>([\s\S]*?)<\/dataValidation>)/g, (m, at, fim, dentro) => {
         const at2 = trocarAtributos(at, ['promptTitle', 'prompt', 'errorTitle', 'error']);
         if (dentro == null) return `<dataValidation${at2}/>`;
         const ehLista = /type="list"/.test(at);
@@ -308,12 +309,17 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
     } else if (/^xl\/drawings\/[^/]+\.xml$/.test(baixo) || /^xl\/diagrams\//.test(baixo) || raiz === 'wsDr') {
       x = trocarAtributos(trocarT(x), ['descr', 'title']);
     } else if (/^xl\/charts\//.test(baixo) || /^xl\/chartex\//.test(baixo) || raiz === 'chartSpace') {
+      /* v0.6.13 (D-32): gráficos novos (cascata, mapa de árvore, funil: prefixo cx): título, rótulos e números guardados */
+      x = x.replace(/<cx:strDim\b[\s\S]*?<\/cx:strDim>/g, (m) => m.replace(/<cx:pt\b([^>]*)>([^<]*)<\/cx:pt>/g, (mm, at, v) => `<cx:pt${at}>${gravarTextoCelula(A.texto(lerXmlTexto(v)))}</cx:pt>`))
+        .replace(/<cx:numDim\b[\s\S]*?<\/cx:numDim>/g, (m) => (numeros ? m.replace(/<cx:pt\b([^>]*)>([^<]*)<\/cx:pt>/g, (mm, at, v) => `<cx:pt${at}>${A.numero(v, false)}</cx:pt>`) : m))
+        .replace(/<cx:v>([^<]*)<\/cx:v>/g, (m, v) => `<cx:v>${gravarTextoCelula(A.texto(lerXmlTexto(v)))}</cx:v>`)
+        .replace(/<cx:f\b([^>]*)>([^<]*)<\/cx:f>/g, (m, at, f) => `<cx:f${at}>${escXml(A.formula(lerXmlTexto(f)))}</cx:f>`);
       x = trocarT(x).replace(/<c:strCache>[\s\S]*?<\/c:strCache>/g, (m) => m.replace(/<c:v>([^<]*)<\/c:v>/g, (mm, v) => `<c:v>${gravarTextoCelula(A.texto(lerXmlTexto(v)))}</c:v>`))
         .replace(/<c:(numCache|numLit)>[\s\S]*?<\/c:\1>/g, (m) => (numeros ? m.replace(/<c:v>([^<]*)<\/c:v>/g, (mm, v) => `<c:v>${A.numero(v, false)}</c:v>`) : m))
         .replace(/<c:strLit>[\s\S]*?<\/c:strLit>/g, (m) => m.replace(/<c:v>([^<]*)<\/c:v>/g, (mm, v) => `<c:v>${gravarTextoCelula(A.texto(lerXmlTexto(v)))}</c:v>`))
         .replace(/<c:f>([^<]*)<\/c:f>/g, (m, f) => `<c:f>${escXml(A.formula(lerXmlTexto(f)))}</c:f>`).replace(/<c:externalData\b[^>]*>[\s\S]*?<\/c:externalData>|<c:externalData\b[^>]*\/>/g, '');
     } else if (raiz === 'comments' || raiz === 'ThreadedComments' || /comment/.test(baixo) && !/\.vml$/.test(baixo)) {
-      x = trocarT(x).replace(/<author>[^<]*<\/author>/g, '<author>Autor</author>').replace(/<text>([^<]*)<\/text>/g, (m, v) => `<text>${gravarTextoCelula(A.texto(lerXmlTexto(v)))}</text>`);
+      x = trocarT(x).replace(/<author>[^<]*<\/author>/g, '<author>Autor</author>').replace(/<text\b([^>]*)>([^<]*)<\/text>/g, (m, at, v) => `<text${at}>${gravarTextoCelula(A.texto(lerEscapesX(lerXmlTexto(v))))}</text>`); /* v0.6.13 (D-32): <text xml:space="preserve"> também */
     } else if (/^xl\/persons\//.test(baixo) || raiz === 'personList') {
       let i = 0; x = x.replace(/\bdisplayName="[^"]*"/g, () => `displayName="Pessoa ${++i}"`).replace(/\b(userId|providerId)="[^"]*"/g, '$1=""');
     } else if (/\.vml$/.test(baixo)) {
@@ -377,6 +383,7 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
   if (todos.size) {
     const ficam = new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos, ...rel.outrosNomes, ...rel.abasDeFora]);
     for (const a of arquivos) { if (typeof a.dados !== 'string') continue; for (const m of a.dados.matchAll(/<(?:\w+:)?(?:slicer|timeline|slicerCacheDefinition|timelineCacheDefinition|pivotTableDefinition|pivotTable|cNvPr|definedName|table)\b[^>]*?\b(?:name|displayName|cache)="([^"]*)"/g)) ficam.add(lerXmlTexto(m[1])); }
+    for (const v of [...ficam]) ficam.add(String(v).trim()); /* v0.6.13 (D-32): nome que fica com espaço no fim ("RESPONSAVEL ") é comparado sem o espaço */
     for (const a of arquivos) {
       if (typeof a.dados !== 'string' || /^xl\/(styles\.xml|theme\/|sharedStrings\.xml|calcChain\.xml)/i.test(a.nome) || /\.rels$/.test(a.nome) || a.nome === '[Content_Types].xml') continue;
       const corpo = /^xl\/(worksheets|chartsheets|macrosheets|dialogsheets)\//i.test(a.nome) ? a.dados.replace(/<sheetData\b[\s\S]*?<\/sheetData>/, '') : a.dados;

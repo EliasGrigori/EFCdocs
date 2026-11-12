@@ -206,3 +206,29 @@ test('anonimizador v0.6.12 (D-31): célula com o mesmo texto de um nome de aba n
   /* 4. vínculo de fora: o nome da aba da OUTRA pasta fica, mas aparece na lista para o dono conferir */
   assert.deepEqual(relatorio.abasDeFora, ['ABA DE OUTRA PASTA']);
 });
+
+test('anonimizador v0.6.13 (D-32): aviso da validação depois de uma validação fechada, conversa de comentário com xml:space, gráfico novo (cx) e nome que fica com espaço no fim', async () => {
+  const { criarZip } = await import('../../src/planilha/xlsx/zip.js');
+  const z = lerZip(amostra('amostra-anonimizar.xlsx')); const arqs = [];
+  const enc = (t) => new TextEncoder().encode(t); const dec = (d) => new TextDecoder().decode(d);
+  for (const nome of z.nomes) {
+    let d = await z.bytes(nome);
+    /* duas validações: a primeira fechada em si mesma, a segunda com um aviso que repete um texto de célula */
+    if (nome === 'xl/worksheets/sheet1.xml') { const t = dec(d).replace(/<dataValidations\b[\s\S]*?<\/dataValidations>/, ''); d = enc(t.replace('</sheetData>', '</sheetData><dataValidations count="3"><dataValidation allowBlank="1" sqref="H2:H9"/><dataValidation allowBlank="1" showInputMessage="1" prompt="Maria Exemplo" error="Venda grande" sqref="H10"/><dataValidation type="list" sqref="H11"><formula1>"Aprovado,Reprovado"</formula1></dataValidation></dataValidations>')); }
+    arqs.push({ nome, dados: d });
+  }
+  arqs.push({ nome: 'xl/threadedComments/threadedComment1.xml', dados: enc('<ThreadedComments xmlns="http://schemas.microsoft.com/office/spreadsheetml/2018/threadedcomments"><threadedComment ref="A1" dT="2026-01-01T10:00:00.00" personId="{1}" id="{2}"><text xml:space="preserve">Maria Exemplo </text></threadedComment><threadedComment ref="A2" personId="{1}" id="{3}"><text>Venda grande</text></threadedComment></ThreadedComments>') });
+  arqs.push({ nome: 'xl/charts/chartEx1.xml', dados: enc('<cx:chartSpace xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><cx:chartData><cx:data id="0"><cx:strDim type="cat"><cx:f>VENDAS!$A$2:$A$3</cx:f><cx:lvl ptCount="2"><cx:pt idx="0">Maria Exemplo</cx:pt><cx:pt idx="1">Venda grande</cx:pt></cx:lvl></cx:strDim><cx:numDim type="val"><cx:f>VENDAS!$D$2:$D$3</cx:f><cx:lvl ptCount="2" formatCode="Geral"><cx:pt idx="0">1234.5</cx:pt><cx:pt idx="1">777</cx:pt></cx:lvl></cx:numDim></cx:data></cx:chartData><cx:chart><cx:title><cx:tx><cx:txData><cx:v>Venda grande</cx:v></cx:txData></cx:tx></cx:title></cx:chart></cx:chartSpace>') });
+  arqs.push({ nome: 'xl/slicers/slicer1.xml', dados: enc('<slicers xmlns="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><slicer name="Situação " cache="Slicer_Situacao" caption="Situação" rowHeight="241300"/></slicers>') });
+  const { bytes, relatorio } = await anonimizar(await criarZip(arqs), { sal: 5 });
+  const p = await partes(bytes);
+  for (const [parte, textos] of [['xl/worksheets/sheet1.xml', ['prompt="Maria Exemplo"', 'error="Venda grande"']], ['xl/threadedComments/threadedComment1.xml', ['Maria Exemplo', 'Venda grande']], ['xl/charts/chartEx1.xml', ['Maria Exemplo', 'Venda grande', '1234.5', '>777<']]]) for (const t of textos) assert.ok(!p[parte].includes(t), `sobrou em ${parte}: ${t}`);
+  assert.match(p['xl/worksheets/sheet1.xml'], /<dataValidation allowBlank="1" sqref="H2:H9"\/><dataValidation allowBlank="1" showInputMessage="1" prompt="[^"]+" error="[^"]+" sqref="H10"\/><dataValidation type="list" sqref="H11"><formula1>"[^"<]+,[^"<]+"<\/formula1><\/dataValidation>/, 'as três validações continuam inteiras e na ordem');
+  assert.ok(p['xl/threadedComments/threadedComment1.xml'].includes('<text xml:space="preserve">'), 'o atributo do texto continua');
+  assert.ok(p['xl/charts/chartEx1.xml'].includes('<cx:f>VENDAS!$A$2:$A$3</cx:f>'), 'a fórmula do gráfico continua apontando para as mesmas células');
+  /* o rótulo guardado no gráfico novo é o mesmo texto inventado da célula */
+  const rot = /<cx:pt idx="0">([^<]*)<\/cx:pt>/.exec(p['xl/charts/chartEx1.xml'])[1]; assert.ok(Object.keys(p).some((k) => /sharedStrings|worksheets\/sheet/.test(k) && p[k].includes(rot)), 'rótulo do gráfico casa com a célula');
+  /* "Situação " (com espaço) é nome de segmentação e fica; a célula "Situação" não vira aviso por causa dele */
+  assert.ok(relatorio.outrosNomes.includes('Situação '));
+  assert.equal(relatorio.sobrou.length, 0, JSON.stringify(relatorio.sobrou));
+});
