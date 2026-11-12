@@ -169,3 +169,40 @@ test('anonimizador v0.6.11.1 (D-27): valores de filtro, datas do filtro, segment
   assert.equal(relatorio.sobrou.length, 0, JSON.stringify(relatorio.sobrou)); assert.ok(relatorio.conferidosTodos > 10);
   assert.ok(!relatorio.naoConhecidas.some((n) => /slicer|ink|webextension/.test(n)), 'essas partes agora são tratadas: ' + relatorio.naoConhecidas);
 });
+
+test('anonimizador v0.6.12 (D-31): célula com o mesmo texto de um nome de aba não dá aviso falso; filtro e campo da tabela dinâmica, linha do tempo e vínculo de fora são tratados', async () => {
+  const { criarZip } = await import('../../src/planilha/xlsx/zip.js');
+  const z = lerZip(amostra('amostra-anonimizar.xlsx')); const arqs = [];
+  const enc = (t) => new TextEncoder().encode(t); const dec = (d) => new TextDecoder().decode(d);
+  for (const nome of z.nomes) {
+    let d = await z.bytes(nome);
+    /* a aba RESUMO passa a se chamar "Reprovado", que também é texto de célula; o Excel repete o nome em docProps/app.xml */
+    if (nome === 'xl/workbook.xml') d = enc(dec(d).replace('name="RESUMO"', 'name="Reprovado"'));
+    if (nome === 'docProps/app.xml') d = enc(dec(d).replace('</Properties>', '<TitlesOfParts><vt:vector xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes" size="2" baseType="lpstr"><vt:lpstr>VENDAS</vt:lpstr><vt:lpstr>Reprovado</vt:lpstr></vt:vector></TitlesOfParts></Properties>'));
+    if (nome === 'xl/worksheets/sheet1.xml') d = enc(dec(d).replace(/<f>([^<]*)RESUMO!/g, '<f>$1Reprovado!'));
+    arqs.push({ nome, dados: d });
+  }
+  arqs.push({ nome: 'xl/pivotTables/pivotTable1.xml', dados: enc('<pivotTableDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" name="Tabela dinâmica1" cacheId="1" dataCaption="Valores"><pivotFields count="1"><pivotField name="Situação" axis="axisRow" showAll="0"><items count="1"><item n="Venda grande" x="0"/></items></pivotField></pivotFields><filters count="1"><filter fld="0" type="dateBetween" evalOrder="-1" id="1" name="Situação" stringValue1="Maria Exemplo"><autoFilter ref="A1"><filterColumn colId="0"><customFilters and="1"><customFilter operator="greaterThanOrEqual" val="46000"/><customFilter operator="lessThanOrEqual" val="46030"/></customFilters></filterColumn></autoFilter></filter></filters></pivotTableDefinition>') });
+  arqs.push({ nome: 'xl/timelines/timeline1.xml', dados: enc('<timelines xmlns="http://schemas.microsoft.com/office/spreadsheetml/2010/11/main"><timeline name="Linha da Situação" cache="NativeTimeline_Situação" caption="Situação" level="2" selectionLevel="2" scrollPosition="2025-01-01T00:00:00"/></timelines>') });
+  arqs.push({ nome: 'xl/timelineCaches/timelineCache1.xml', dados: enc('<timelineCacheDefinition xmlns="http://schemas.microsoft.com/office/spreadsheetml/2010/11/main" name="NativeTimeline_Situação" sourceName="Situação"><state filterType="dateBetween"><selection startDate="2026-06-01T00:00:00" endDate="2026-06-30T00:00:00"/><bounds startDate="2025-01-01T00:00:00" endDate="2027-01-01T00:00:00"/></state></timelineCacheDefinition>') });
+  arqs.push({ nome: 'xl/externalLinks/externalLink1.xml', dados: enc('<externalLink xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><externalBook><sheetNames><sheetName val="VENDAS"/><sheetName val="ABA DE OUTRA PASTA"/></sheetNames><sheetDataSet><sheetData sheetId="0"/></sheetDataSet></externalBook></externalLink>') });
+  const { bytes, relatorio } = await anonimizar(await criarZip(arqs), { sal: 9 });
+  const p = await partes(bytes);
+  /* 1. o aviso falso: "Reprovado" é nome de aba (fica, e o dono confere na lista) e também era texto de célula */
+  assert.ok(relatorio.abas.includes('Reprovado') && p['docProps/app.xml'].includes('Reprovado'));
+  assert.equal(relatorio.sobrou.length, 0, JSON.stringify(relatorio.sobrou));
+  /* 2. tabela dinâmica: nome do filtro e do campo iguais ao título de coluna já trocado; rótulo e item trocados; datas do filtro andam os mesmos dias */
+  const col6 = /<tableColumn id="6" name="([^"]*)"/.exec(p['xl/tables/table1.xml'])[1]; const pv = p['xl/pivotTables/pivotTable1.xml'];
+  for (const s of ['Situação', 'Maria Exemplo', 'Venda grande']) assert.ok(!pv.includes(s), 'sobrou na tabela dinâmica: ' + s);
+  assert.ok(pv.includes(`<pivotField name="${col6}"`) && new RegExp(`<filter fld="0"[^>]* name="${col6}"`).test(pv));
+  assert.ok(pv.includes(`val="${46000 - relatorio.deslocDias}"`) && pv.includes(`val="${46030 - relatorio.deslocDias}"`) && !pv.includes('data-efc'), pv);
+  /* 3. linha do tempo: legenda e campo trocados, datas andam, parte conhecida; o nome fica e vai para a lista do dono */
+  const tl = p['xl/timelines/timeline1.xml'], tc = p['xl/timelineCaches/timelineCache1.xml'];
+  assert.ok(tl.includes(`caption="${col6}"`) && tc.includes(`sourceName="${col6}"`));
+  for (const d of ['2026-06-01T', '2026-06-30T', '2025-01-01T', '2027-01-01T']) assert.ok(!tc.includes(d) && !tl.includes(d), 'data da linha do tempo ficou: ' + d);
+  assert.match(tc, /<selection startDate="\d{4}-\d\d-\d\dT00:00:00" endDate="\d{4}-\d\d-\d\dT00:00:00"\/>/);
+  assert.ok(!relatorio.naoConhecidas.some((n) => /timeline/.test(n)), String(relatorio.naoConhecidas));
+  assert.deepEqual(relatorio.outrosNomes.sort(), ['Linha da Situação', 'Tabela dinâmica1']);
+  /* 4. vínculo de fora: o nome da aba da OUTRA pasta fica, mas aparece na lista para o dono conferir */
+  assert.deepEqual(relatorio.abasDeFora, ['ABA DE OUTRA PASTA']);
+});

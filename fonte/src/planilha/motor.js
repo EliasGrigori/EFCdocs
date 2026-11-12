@@ -11,6 +11,8 @@ import { POR_EN } from './nomesFuncoes.js';
 import { MAX_COL, MAX_LIN, chave, lerChave, lerEndereco } from './ref.js';
 import { valorGuardado } from './modelo.js';
 import { trocarTabelas } from './xlsx/formulas.js';
+import { vigiar, desde } from '../nucleo/diario.js';
+import { limitesDe } from './indice.js';
 
 const K = (l, c) => l * MAX_COL + c;
 const LC = (k) => [Math.floor(k / MAX_COL), k % MAX_COL];
@@ -61,6 +63,7 @@ export class Motor {
     for (const id of c.ordem) this.idPorNome.set(c.abas[id].nome.toLowerCase(), id);
     this.form = {}; this.vals = {}; this.spill = {}; this.spillDe = {};
     this.dep1 = {}; this.depCol = {}; this.depLargo = {}; this.usados = {};
+    this.visto = {}; /* v0.6.12 (D-16): revisão do diário das células de cada aba que este motor já levou em conta */
     this.usoNomes = new Map(); this.volateis = new Set(); this.usaSpill = new Set(); this.subtotais = new Set();
     this.circ = new Set(); this.pilha = new Set();
     this.nomesArv = new Map();
@@ -80,6 +83,7 @@ export class Motor {
         }
       }
       this.usados[id] = null;
+      this.visto[id] = { cel, rev: vigiar(cel).rev };
     }
     if (c.calcExcel) this.semearDoExcel(); else this.recalcularTudo();
   }
@@ -433,14 +437,8 @@ export class Motor {
       const aba = this.c.abas[abaId];
       let lMax = -1, cMax = -1;
       if (aba) {
-        for (const k of Object.keys(aba.cel)) {
-          const x = aba.cel[k];
-          if (x.v === undefined && x.f == null) continue;
-          const p = lerChave(k);
-          if (!p) continue;
-          if (p.l > lMax) lMax = p.l;
-          if (p.c > cMax) cMax = p.c;
-        }
+        /* v0.6.12 (D-16): vem do índice vivo da aba (antes varria todas as células a cada mudança) */
+        ({ lMax, cMax } = limitesDe(aba.cel));
         for (const s of this.spillDe[abaId].values()) { if (s.l2 > lMax) lMax = s.l2; if (s.c2 > cMax) cMax = s.c2; }
       }
       this.usados[abaId] = { lMax, cMax };
@@ -668,20 +666,36 @@ export class Motor {
       const a = novo.abas[id], b = velho.abas[id];
       if (a === b) continue;
       if (a.ocL !== b.ocL || a.ocF !== b.ocF) ocultasMudaram = true;
-      if (a.cel === b.cel) continue;
-      for (const k of Object.keys(a.cel)) if (a.cel[k] !== b.cel[k]) mudou.push([id, k]);
-      for (const k of Object.keys(b.cel)) if (!(k in a.cel)) mudou.push([id, k]);
+      if (a.cel === b.cel) {
+        /* v0.6.12 (D-16): o mesmo objeto de células mudou no lugar: o diário diz quais chaves (e como estavam antes) */
+        const v = this.visto[id], rev = vigiar(a.cel).rev;
+        if (v && v.cel === a.cel && v.rev === rev) continue;
+        const diario = v && v.cel === a.cel ? desde(a.cel, v.rev) : null;
+        if (!diario) { this.carregar(novo); return -1; }
+        for (const [k, m] of diario) if (m.a !== m.d) mudou.push([id, k, m]);
+        if (mudou.length > 4000) { this.carregar(novo); return -1; }
+        continue;
+      }
+      /* o objeto das células foi trocado por outro. O antigo pode ter mudado no lugar depois da última vez que este motor olhou
+         (vários passos de uma vez, na linha do tempo): o diário dele diz como essas células estavam de verdade. */
+      const v = this.visto[id];
+      const atras = v && v.cel === b.cel ? desde(b.cel, v.rev) : null;
+      if (v && v.cel === b.cel && !atras) { this.carregar(novo); return -1; }
+      for (const k of Object.keys(a.cel)) if (a.cel[k] !== b.cel[k]) mudou.push([id, k, atras && atras.get(k)]);
+      for (const k of Object.keys(b.cel)) if (!(k in a.cel)) mudou.push([id, k, atras && atras.get(k)]);
+      if (atras) for (const [k, m] of atras) if (a.cel[k] === b.cel[k] && m.a !== m.d) mudou.push([id, k, m]);
       if (mudou.length > 4000) { this.carregar(novo); return -1; }
     }
     this.c = novo;
+    for (const id of novo.ordem) { const cel = novo.abas[id].cel; this.visto[id] = { cel, rev: vigiar(cel).rev }; }
     for (const id of novo.ordem) if (novo.abas[id] !== velho.abas[id]) this.usados[id] = null;
     this.spillPendente = [];
     const sujos = new Set();
-    for (const [id, ch] of mudou) {
+    for (const [id, ch, m] of mudou) {
       const p = lerChave(ch);
       if (!p) continue;
       const k = K(p.l, p.c);
-      const antes = velho.abas[id].cel[ch], depois = novo.abas[id].cel[ch];
+      const antes = m ? m.a : velho.abas[id].cel[ch], depois = novo.abas[id].cel[ch];
       const fAntes = antes && antes.f, fDepois = depois && depois.f;
       const lgMudou = !!(antes && antes.lg) !== !!(depois && depois.lg);
       if (fAntes != null && (fAntes !== fDepois || lgMudou)) this.desregistrar(id, k);

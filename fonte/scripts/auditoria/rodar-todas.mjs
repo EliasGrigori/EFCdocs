@@ -4,7 +4,7 @@
    4 Segurança (varredura de dado sensível; as palavras do dono vêm de EFC_PALAVRAS, arquivo FORA do projeto),
    5 Código (arquivos acima de 800 linhas).
    Saída em .auditoria/<versão>/ (fora do repositório) com RESUMO.md e os JSON. Sai com 1 se alguma lente PIOROU.
-   Variáveis: EFC_BASE (pasta da linha de base; padrão docs/auditorias/base-v0.6.9.2), EFC_AMOSTRAS_FORA, EFC_PALAVRAS,
+   Variáveis: EFC_BASE (pasta da linha de base; padrão docs/auditorias/base-v0.6.12), EFC_AMOSTRAS_FORA, EFC_PALAVRAS,
    EFC_PULAR (ex.: "visual,rapidez"), CHROME (navegador para o Playwright). */
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { VERSAO } from '../../src/nucleo/modelo.js';
 
 const RAIZ = new URL('../../', import.meta.url).pathname;
-const BASE = process.env.EFC_BASE || join(RAIZ, 'docs/auditorias/base-v0.6.9.2');
+const BASE = process.env.EFC_BASE || join(RAIZ, 'docs/auditorias/base-v0.6.12');
 const OUT = join(RAIZ, '.auditoria', VERSAO); mkdirSync(OUT, { recursive: true });
 const PULAR = new Set((process.env.EFC_PULAR || '').split(',').filter(Boolean));
 const PORTA = 8741;

@@ -2,6 +2,8 @@
    Um diff guarda só o que mudou: [{ c: caminho, a: antes, d: depois }].
    O mesmo formato serve para revisões (guardar só o que mudou) e para o desfazer. */
 
+import { vigiado, trocarNoLugar } from './diario.js';
+
 const partes = (caminho) => (Array.isArray(caminho) ? caminho : String(caminho).split('.'));
 
 export function pegar(obj, caminho) {
@@ -13,9 +15,12 @@ export function pegar(obj, caminho) {
   return atual;
 }
 
-/** Devolve uma cópia com o valor trocado (undefined apaga a chave). Não mexe no original. */
+/** Devolve uma cópia com o valor trocado (undefined apaga a chave). Não mexe no original.
+    v0.6.12 (D-16): a exceção é o objeto vigiado (nucleo/diario.js), como as células de uma aba: a chave muda no próprio
+    objeto e a mudança vai para o diário; os objetos de cima continuam sendo copiados. */
 export function por(obj, caminho, valor) {
   const [primeira, ...resto] = partes(caminho);
+  if (!resto.length && vigiado(obj)) return trocarNoLugar(obj, primeira, valor);
   const copia = Array.isArray(obj) ? [...obj] : { ...(obj || {}) };
   if (resto.length) {
     copia[primeira] = por(obj ? obj[primeira] : undefined, resto, valor);
@@ -26,7 +31,8 @@ export function por(obj, caminho, valor) {
   return copia;
 }
 
-const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/* v0.6.12 (D-16): objeto vigiado (as células de uma aba) trocado por outro conta como mudança, sem escrever os dois inteiros para comparar */
+const igual = (a, b) => a === b || (!(vigiado(a) || vigiado(b)) && JSON.stringify(a) === JSON.stringify(b));
 
 /** mudancas: { "conteudo.itens.p1": novoValor, ... } */
 export function criarDiff(estado, mudancas, rotulo = '') {

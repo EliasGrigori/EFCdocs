@@ -1,0 +1,47 @@
+conferentes: openpyxl sim · LibreOffice sim
+
+amostra-anonimizar.xlsx: nenhuma diferença nova, 3 conhecida(s), LibreOffice recalculou 5 fórmulas · 2.4 s
+   L-08  [idaVolta] VENDAS · v (número virou o mesmo texto): 1
+   L-08  [openpyxl] número virou o mesmo texto: 1
+   L-02  [openpyxl] fórmula: referência de tabela virou endereço: 2
+
+amostra-auditoria.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 52 fórmulas · 2.0 s
+
+amostra-congelada.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 0 fórmulas · 1.9 s
+
+amostra-formas.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 1 fórmulas · 1.9 s
+
+amostra-impressao.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 0 fórmulas · 1.8 s
+
+amostra-painel-excel.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 0 fórmulas · 1.9 s
+
+amostra-painel.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 0 fórmulas · 2.0 s
+
+amostra-qualidade.xlsx: nenhuma diferença nova, 2 conhecida(s), LibreOffice recalculou 1087 fórmulas · 2.6 s
+   L-04  [openpyxl] fórmula de folga cortada: 4959
+   L-02  [openpyxl] fórmula: referência de tabela virou endereço: 2
+
+amostra-real-anonimizada.xlsx: nenhuma diferença nova, 4 conhecida(s), LibreOffice recalculou 26880 fórmulas · 10.1 s
+   L-05  [openpyxl] texto: quebra de linha do Windows (\r\n) virou \n: 10
+   L-02  [openpyxl] fórmula: referência de tabela virou endereço: 1492
+   L-06  [openpyxl] posição da rolagem ao abrir (congelamento igual): 1
+   L-09  [libreoffice] IF,SUBTOTAL: 1
+
+amostra-v0610.xlsx: nenhuma diferença nova, 2 conhecida(s), LibreOffice recalculou 2 fórmulas · 1.4 s
+   L-08  [idaVolta] TITULO · v (número virou o mesmo texto): 2
+   L-08  [openpyxl] número virou o mesmo texto: 2
+
+amostra-v0611.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 0 fórmulas · 1.4 s
+
+amostra-v064.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 0 fórmulas · 1.5 s
+
+amostra-v066.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 0 fórmulas · 1.4 s
+
+amostra-v068.xlsx: nenhuma diferença nova, 1 conhecida(s), LibreOffice recalculou 16 fórmulas (4 com função que ele não conhece) · 3.2 s
+   A-01  [idaVolta] AUX VEL · v: 1
+
+amostra-v069.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 412 fórmulas · 2.5 s
+
+amostra-v0691.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 10 fórmulas · 1.6 s
+
+amostra-v0692.xlsx: nenhuma diferença nova, 0 conhecida(s), LibreOffice recalculou 4 fórmulas · 1.9 s

@@ -34,6 +34,8 @@ function mostrar(r, ms) {
   if (r.abas.length) ficam.push(`<li><b>Nomes das abas</b> (ficam como estão): ${r.abas.map(esc).join(' · ')}</li>`);
   if (r.tabelas.length) ficam.push(`<li><b>Nomes das tabelas</b>: ${r.tabelas.map(esc).join(' · ')}</li>`);
   if (r.nomesDefinidos.length) ficam.push(`<li><b>Nomes definidos</b>: ${r.nomesDefinidos.map(esc).join(' · ')}</li>`);
+  if ((r.outrosNomes || []).length) ficam.push(`<li><b>Nomes das segmentações, linhas do tempo e tabelas dinâmicas</b>: ${r.outrosNomes.map(esc).join(' · ')}</li>`);
+  if ((r.abasDeFora || []).length) ficam.push(`<li><b>Nomes de abas da outra pasta vinculada</b>: ${r.abasDeFora.map(esc).join(' · ')}</li>`);
   ficam.push('<li><b>Fórmulas</b>: a conta e os endereços das células ficam; só os textos entre aspas e os nomes das colunas de tabela mudam.</li>');
   ficam.push('<li><b>Cores, bordas, larguras, mesclas, congelamento e validações</b>: iguais ao original. Os números 0 e 1 também ficam.</li>');
   $('#ficam').innerHTML = ficam.join('');

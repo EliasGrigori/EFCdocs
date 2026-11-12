@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ehDemo, ler, gravar } from './nucleo/armazem.js';
 import { pwa, atualizarAgora, pedirInstalacao } from './nucleo/pwa.js';
 import { TIPOS, VERSAO, criarArquivo, validarNome, carimbar, ativos } from './nucleo/modelo.js';
+import { esperaDeGravar } from './nucleo/ritmo.js';
+import { novoDiarioSeguro, anotar as anotarPendencia, gravou as pendenciaGravada, lerPendencia, apagarPendencia, recuperar } from './nucleo/pendencias.js';
 import { criarDiff, novoHistorico, fazer, desfazer, refazer, podeDesfazer, podeRefazer, rotuloDesfazer, juntarUltimas } from './nucleo/diff.js';
 import { tamanhoLegivel } from './nucleo/compacta.js';
 import { criarBanco } from './nucleo/banco.js';
@@ -163,7 +165,7 @@ export function App() {
   const abaApp = useMemo(() => Date.now().toString(36) + Math.random().toString(36).slice(2, 7), []);
   const canal = useMemo(() => (typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('efcdocs-abas' + (demo ? '-demo' : '')) : null), [demo]);
   const marcas = useRef(new Map());
-  const fila = useRef({ pendente: null, rodando: false });
+  const fila = useRef({ pendente: null, rodando: false, custo: 0, custoDe: null, desde: 0, relogio: null, seq: 0, gravado: new Map(), seguro: novoDiarioSeguro() });
   const [travado, setTravadoEstado] = useState(null);
   const travadoRef = useRef(null);
   const setTravado = useCallback((v) => { travadoRef.current = v; setTravadoEstado(v); }, []);
@@ -255,7 +257,13 @@ export function App() {
         return;
       }
       marcas.current.set(r.ficha.id, r.marca);
-      setAberto({ arquivo: { ficha: r.ficha, conteudo: abrirConteudo(r.ficha, r.conteudo) }, h: novoHistorico(), tamanho: r.tamanho, sujo: false, salvoEm: r.ficha.alteradoEm });
+      fila.current.gravado.set(r.ficha.id, r.ficha.alteradoEm);
+      const lido = { arquivo: { ficha: r.ficha, conteudo: abrirConteudo(r.ficha, r.conteudo) }, h: novoHistorico(), tamanho: r.tamanho, sujo: false, salvoEm: r.ficha.alteradoEm };
+      /* v0.6.12: mudanças que a página fechou sem gravar (arquivo grande grava com atraso) são refeitas a partir do diário de segurança */
+      const pend = lerPendencia(r.ficha.id);
+      const refeitas = pend ? recuperar(lido.arquivo, pend) : 0;
+      if (pend && !refeitas) apagarPendencia(r.ficha.id);
+      if (refeitas) recuperarRef.current({ ...lido, arquivo: carimbar(lido.arquivo, AUTOR) }, refeitas); else setAberto(lido);
       setAba(r.ficha.tipo === 'postits' ? 'inserir' : 'inicio');
       setFaixaTemp(false);
       postar({ t: 'abri', arq: r.ficha.id });
@@ -263,17 +271,23 @@ export function App() {
     return () => { vivo = false; };
   }, [idRota, banco, avisar, setAberto, postar, setTravado]);
 
+  const recuperarRef = useRef(() => {});
   /* gravação: só depois da tela já mostrar a mudança; uma de cada vez, sempre a mais nova */
   const rodarFila = useCallback(async () => {
     const f = fila.current;
     if (f.rodando) return;
     f.rodando = true;
-    while (f.pendente) {
-      const { arquivo, acao, forcar } = f.pendente;
+    /* v0.6.12: enquanto o relógio da espera está armado, a gravação seguinte fica para ele (senão gravaria no meio da digitação) */
+    while (f.pendente && !f.relogio) {
+      const { arquivo, acao, forcar, seq } = f.pendente;
       f.pendente = null;
       try {
         const id = arquivo.ficha.id;
-        const t = await banco.salvar(arquivo, acao, forcar ? undefined : (marcas.current.has(id) ? marcas.current.get(id) : undefined));
+        /* v0.6.12 (D-16): mede quanto a gravação prende a tela (montar o texto do arquivo inteiro), para saber se dá para gravar a cada tecla */
+        const t0 = performance.now();
+        const gravando = banco.salvar(arquivo, acao, forcar ? undefined : (marcas.current.has(id) ? marcas.current.get(id) : undefined));
+        f.custo = performance.now() - t0; f.custoDe = id; f.desde = 0;
+        const t = await gravando;
         if (t.conflito) {
           f.pendente = null;
           setTravado({ motivo: 'conflito' });
@@ -281,6 +295,7 @@ export function App() {
           break;
         }
         marcas.current.set(id, t.marca);
+        f.gravado.set(id, arquivo.ficha.alteradoEm); pendenciaGravada(f.seguro, id, seq, arquivo.ficha.alteradoEm);
         setAberto((atual) => (atual && atual.arquivo === arquivo ? { ...atual, tamanho: t, sujo: false, salvoEm: new Date().toISOString() } : atual));
         postar({ t: 'salvou', arq: id });
         recarregar();
@@ -291,11 +306,36 @@ export function App() {
     f.rodando = false;
   }, [banco, recarregar, avisar, setAberto, postar, setTravado]);
 
-  const salvar = useCallback((novo, acao, forcar = false) => {
+  const salvar = useCallback((novo, acao, forcar = false, ops = null) => {
     setAberto({ ...novo, sujo: true });
-    fila.current.pendente = { arquivo: novo.arquivo, acao, forcar };
-    rodarFila();
+    const f = fila.current;
+    f.pendente = { arquivo: novo.arquivo, acao, forcar, seq: ++f.seq };
+    /* v0.6.12 (D-16): arquivo pequeno grava na hora, como sempre. Arquivo grande (gravar prende a tela) espera a pessoa parar
+       de digitar; no máximo 20 s sem gravar. Sair da página, trocar de aba do navegador ou fechar o arquivo grava na hora. */
+    clearTimeout(f.relogio); f.relogio = null;
+    /* arquivo que ainda não foi gravado nesta sessão: o custo é estimado pelo tamanho dele (uns 40 MB de texto por segundo) */
+    const idArq = novo.arquivo.ficha.id;
+    if (f.custoDe !== idArq) { f.custoDe = idArq; f.custo = novo.tamanho && novo.tamanho.bytesOriginal ? novo.tamanho.bytesOriginal / 40000 : 0; }
+    if (!f.desde) f.desde = Date.now();
+    let espera = forcar || Date.now() - f.desde > 20000 ? 0 : esperaDeGravar(f.custo);
+    /* diário de segurança (nucleo/pendencias.js): a mudança que vai esperar fica anotada na hora; se não der para anotar, grava já */
+    if ((espera || f.seguro.lotes.length || f.seguro.furo) && !anotarPendencia(f.seguro, idArq, f.gravado.get(idArq) || null, f.seq, novo.arquivo.ficha.alteradoEm, ops)) espera = 0;
+    if (!espera) rodarFila(); else f.relogio = setTimeout(() => { f.relogio = null; rodarFila(); }, espera);
   }, [setAberto, rodarFila]);
+
+  recuperarRef.current = (novo, n) => {
+    salvar(novo, 'alterou', false, null);
+    avisar(n === 1 ? 'Recuperei 1 mudança que ainda não tinha sido gravada neste aparelho.' : `Recuperei ${n} mudanças que ainda não tinham sido gravadas neste aparelho.`, { ic: 'check' });
+  };
+
+  /** Grava agora o que estiver esperando (sair da página, esconder a aba do navegador, fechar o arquivo). */
+  const gravarJa = useCallback(() => { const f = fila.current; if (f.relogio) { clearTimeout(f.relogio); f.relogio = null; } if (f.pendente) rodarFila(); }, [rodarFila]);
+  useEffect(() => {
+    const oculto = () => { if (document.visibilityState === 'hidden') gravarJa(); };
+    addEventListener('pagehide', gravarJa); document.addEventListener('visibilitychange', oculto);
+    return () => { removeEventListener('pagehide', gravarJa); document.removeEventListener('visibilitychange', oculto); };
+  }, [gravarJa]);
+  useEffect(() => gravarJa, [idRota, gravarJa]);
 
   const MSG_TRAVADO = 'Este arquivo está aberto em outra aba. Toque em "Editar aqui" para editar nesta.';
   const MSG_CONFLITO = 'Antes de continuar, escolha no aviso do topo: ver a versão gravada ou gravar a sua por cima.';
@@ -308,7 +348,7 @@ export function App() {
     if (travadoRef.current) { avisar(msgTravado(), { ic: 'aviso' }); return false; }
     const r = fazer(atual.h, atual.arquivo, diff);
     if (r.estado === atual.arquivo) return false;
-    salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, AUTOR) }, acao);
+    salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, AUTOR) }, acao, false, diff.ops);
     return true;
   }, [salvar]);
 
@@ -339,7 +379,7 @@ export function App() {
     if (travadoRef.current) { avisar(msgTravado(), { ic: 'aviso' }); return; }
     const r = re ? refazer(atual.h, atual.arquivo) : desfazer(atual.h, atual.arquivo);
     if (!r.diff) return;
-    salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, AUTOR) }, re ? 'refez' : 'desfez');
+    salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, AUTOR) }, re ? 'refez' : 'desfez', false, re ? r.diff.ops : [...r.diff.ops].reverse().map((o) => ({ c: o.c, d: o.a })));
     avisar((re ? 'Refeito: ' : 'Desfeito: ') + (r.diff.rotulo || 'última ação'), { ic: re ? 'refazer' : 'desfazer' });
   }, [salvar, avisar]);
 

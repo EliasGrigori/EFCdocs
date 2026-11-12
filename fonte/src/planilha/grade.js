@@ -665,3 +665,24 @@ export function ondeCaiu(G, x, y) {
   }
   return { tipo: 'cel', l: G.linEm(y), c: G.colEm(x) };
 }
+
+/* v0.6.12 (D-16): desenha a grade e, por cima, a parte congelada.
+   v0.6.9 (Elias): o mesmo desenho, só a parte parada, num canvas por cima e fora do rolador. Com o dedo o navegador rola
+   sozinho e o canvas de baixo desliza um quadro antes do redesenho: assim o cabeçalho congelado nunca é coberto nem aparece cortado no meio. */
+export function pintarGrade(cv, cg, comum, tam) {
+  const dpr = comum.dpr || 1;
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  desenhar({ ...comum, ctx });
+  if (!cg) return;
+  if (cg.width !== cv.width || cg.height !== cv.height) {
+    cg.width = cv.width; cg.height = cv.height;
+    cg.style.width = tam.W + 'px'; cg.style.height = tam.H + 'px';
+  }
+  const ctxC = cg.getContext('2d');
+  ctxC.setTransform(dpr, 0, 0, dpr, 0, 0);
+  desenhar({ ...comum, ctx: ctxC, parte: 'congelado' });
+}
+
+/** Cores iguais devolvem o objeto antigo (para a grade não ser redesenhada sem motivo). */
+export const mesmasCores = (a, n) => (a && Object.keys(n).length === Object.keys(a).length && Object.keys(n).every((k) => n[k] === a[k]) ? a : n);

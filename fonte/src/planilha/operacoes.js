@@ -11,6 +11,7 @@ import { moverRegras, moverFaixa, faixasDe, textoFaixas, ancoraDe, tirarDeFaixas
 import { ehFormatoData } from './formato.js';
 import { moverFiltro } from './dados.js';
 
+export const LOTE_INTEIRO = 4000;
 /** Junta mudanças de células de uma aba; com muitas, troca o objeto inteiro (mais rápido e leve). */
 export class Lote {
   constructor(c) { this.c = c; this.cels = {}; this.outras = {}; this.estilos = c.estilos; }
@@ -29,7 +30,8 @@ export class Lote {
     const out = { ...this.outras };
     for (const [abaId, m] of Object.entries(this.cels)) {
       const ks = Object.keys(m);
-      if (ks.length > 30) {
+      /* v0.6.12 (D-16): até 4.000 células vão uma a uma (a troca é no lugar e o motor só olha essas); acima disso troca o objeto inteiro */
+      if (ks.length > LOTE_INTEIRO) {
         const cel = { ...this.c.abas[abaId].cel };
         for (const k of ks) { if (m[k] === undefined) delete cel[k]; else cel[k] = m[k]; }
         out[`conteudo.abas.${abaId}.cel`] = cel;

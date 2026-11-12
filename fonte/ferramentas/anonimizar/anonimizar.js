@@ -179,7 +179,7 @@ const JPEG_CINZA = Uint8Array.from(atob('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgs
 export async function anonimizar(entrada, { numeros = true, sal } = {}) {
   const zip = lerZip(entrada);
   const A = criarAnonimizador(sal);
-  const rel = { partes: zip.nomes.length, imagens: 0, imagensNaoTrocadas: [], removidas: [], naoConhecidas: [], abas: [], tabelas: [], nomesDefinidos: [], macros: false, tabelaDinamica: false, avisos: [] };
+  const rel = { partes: zip.nomes.length, imagens: 0, imagensNaoTrocadas: [], removidas: [], naoConhecidas: [], abas: [], tabelas: [], nomesDefinidos: [], outrosNomes: [], abasDeFora: [], macros: false, tabelaDinamica: false, avisos: [] };
   const ler = (n) => zip.texto(n);
   const saida = new Map(); // nome -> string | Uint8Array | null (removida)
 
@@ -223,8 +223,10 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
     const novo = { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), minute: d.getUTCMinutes(), second: d.getUTCSeconds() };
     return at.replace(/\b(year|month|day|hour|minute|second)="\d+"/g, (m, k) => `${k}="${novo[k]}"`);
   };
+  /* v0.6.12 (D-31): data por extenso (2026-06-01T00:00:00) anda os mesmos dias das outras datas */
+  const dataIso = (v) => { const m = numeros && String(v).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/); if (!m) return v; const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) - A.deslocDias * 86400000); return d.toISOString().slice(0, 19); };
   const trocarFiltros = (xml) => (xml.indexOf('utoFilter') < 0 ? xml : xml.replace(/<((?:\w+:)?autoFilter)\b[^>]*>[\s\S]*?<\/\1>/g, (bloco) => bloco
-    .replace(/<((?:\w+:)?(?:filter|customFilter))\b([^>]*?)\bval="([^"]*)"/g, (m, tag, at, v) => { A.cont.filtros = (A.cont.filtros || 0) + 1; return `<${tag}${at}val="${valorFiltro(v)}"`; })
+    .replace(/<((?:\w+:)?(?:filter|customFilter))\b([^>]*?)\bval="([^"]*)"( data-efc-ok="1")?/g, (m, tag, at, v, ok) => { A.cont.filtros = (A.cont.filtros || 0) + 1; return `<${tag}${at}val="${ok ? v : valorFiltro(v)}"`; })
     .replace(/<((?:\w+:)?dateGroupItem)\b([^>]*?)(\/?)>/g, (m, tag, at, barra) => { A.cont.filtros = (A.cont.filtros || 0) + 1; return `<${tag}${dataDoGrupo(at)}${barra}>`; })
     .replace(/<((?:\w+:)?top10)\b([^>]*?)\bfilterVal="([^"]*)"/g, (m, tag, at, v) => `<${tag}${at}filterVal="${numeros ? A.numero(v, false) : v}"`)
     .replace(/<((?:\w+:)?dynamicFilter)\b([^>]*?)(\/?)>/g, (m, tag, at, barra) => `<${tag}${at.replace(/\s(?:val|maxVal|valIso|maxValIso)="[^"]*"/g, '')}${barra}>`)));
@@ -317,22 +319,32 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
     } else if (/\.vml$/.test(baixo)) {
       x = x.replace(/<div\b([^>]*)>[\s\S]*?<\/div>/g, '<div$1></div>').replace(/<x:(FmlaMacro|FmlaLink)>[^<]*<\/x:\1>/g, '');
     } else if (/^xl\/externallinks\/[^/]+\.xml$/.test(baixo) || raiz === 'externalLink') {
-      x = x.replace(/<v\b[^>]*>([^<]*)<\/v>/g, (m, v) => `<v>${/^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(v) ? (numeros ? A.numero(v, false) : v) : gravarTextoCelula(A.texto(lerXmlTexto(v)))}</v>`); rel.avisos.push('O arquivo tem vínculo com outra pasta de trabalho: o endereço do vínculo foi trocado por um de exemplo.');
+      x = x.replace(/<v\b[^>]*>([^<]*)<\/v>/g, (m, v) => `<v>${/^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(v) ? (numeros ? A.numero(v, false) : v) : gravarTextoCelula(A.texto(lerXmlTexto(v)))}</v>`); const AV = 'O arquivo tem vínculo com outra pasta de trabalho: o endereço do vínculo foi trocado por um de exemplo.'; if (!rel.avisos.includes(AV)) rel.avisos.push(AV);
+      /* v0.6.12 (D-31): os nomes das abas da OUTRA pasta ficam (as fórmulas usam); vão para a lista que o dono confere */
+      for (const m of x.matchAll(/<(?:\w+:)?(?:sheetName\b[^>]*?\bval|definedName\b[^>]*?\bname)="([^"]*)"/g)) { const v = lerXmlTexto(m[1]); if (v && !rel.abas.includes(v) && !rel.abasDeFora.includes(v)) rel.abasDeFora.push(v); }
     } else if (/^xl\/pivotcache\//.test(baixo) || raiz === 'pivotCacheDefinition' || raiz === 'pivotCacheRecords') {
       rel.tabelaDinamica = true;
       x = x.replace(/<(s|e)\b([^>]*?)\bv="([^"]*)"/g, (m, tag, at, v) => `<${tag}${at}v="${escXml(A.texto(lerXmlTexto(v)), true)}"`).replace(/<n\b([^>]*?)\bv="([^"]*)"/g, (m, at, v) => `<n${at}v="${numeros ? A.numero(v, false) : v}"`)
         .replace(/<cacheField\b([^>]*?)\bname="([^"]*)"/g, (m, at, v) => `<cacheField${at}name="${escXml(A.nomeColuna(lerEscapesX(lerXmlTexto(v))), true)}"`).replace(/\brefreshedBy="[^"]*"/g, 'refreshedBy="Anonimo"');
     } else if (/^xl\/pivottables\//.test(baixo) || raiz === 'pivotTableDefinition') {
-      rel.tabelaDinamica = true; x = x.replace(/<dataField\b([^>]*?)\bname="([^"]*)"/g, (m, at, v) => `<dataField${at}name="${escXml(A.texto(lerXmlTexto(v)), true)}"`).replace(/\b(rowHeaderCaption|colHeaderCaption|dataCaption|grandTotalCaption|errorCaption|missingCaption)="([^"]*)"/g, (m, k, v) => `${k}="${escXml(A.texto(lerXmlTexto(v)), true)}"`);
+      rel.tabelaDinamica = true; for (const m of x.matchAll(/<(?:\w+:)?pivotTableDefinition\b[^>]*?\bname="([^"]*)"/g)) { const v = lerXmlTexto(m[1]); if (v && !rel.outrosNomes.includes(v)) rel.outrosNomes.push(v); }
+      x = x.replace(/<dataField\b([^>]*?)\bname="([^"]*)"/g, (m, at, v) => `<dataField${at}name="${escXml(A.texto(lerXmlTexto(v)), true)}"`).replace(/\b(rowHeaderCaption|colHeaderCaption|dataCaption|grandTotalCaption|errorCaption|missingCaption)="([^"]*)"/g, (m, k, v) => `${k}="${escXml(A.texto(lerXmlTexto(v)), true)}"`)
+        /* v0.6.12 (D-31): o filtro da tabela dinâmica leva o nome do campo (título de coluna) e textos de rótulo; campo e item com legenda própria */
+        .replace(/<((?:\w+:)?filter)\b([^>]*?\bfld="[^"]*"[^>]*)>/g, (m, tag, at) => `<${tag}${at.replace(/\bname="([^"]*)"/, (q, v) => `name="${escXml(A.nomeColuna(lerEscapesX(lerXmlTexto(v))), true)}"`).replace(/\b(description|stringValue1|stringValue2)="([^"]*)"/g, (q, k, v) => `${k}="${escXml(A.texto(lerXmlTexto(v)), true)}"`)}>`)
+        .replace(/<((?:\w+:)?(?:pivotField|pivotHierarchy))\b([^>]*?)\b(name|caption|subtotalCaption)="([^"]*)"/g, (m, tag, at, k, v) => `<${tag}${at}${k}="${escXml(A.nomeColuna(lerEscapesX(lerXmlTexto(v))), true)}"`)
+        .replace(/<item\b([^>]*?)\bn="([^"]*)"/g, (m, at, v) => `<item${at}n="${escXml(A.texto(lerXmlTexto(v)), true)}"`);
+      if (numeros) x = x.replace(/<((?:\w+:)?filter)\b[^>]*?\btype="date[^"]*"[^>]*>[\s\S]*?<\/\1>/g, (bloco) => bloco.replace(/(<(?:\w+:)?customFilter\b[^>]*?\bval=")(\d+(?:\.\d+)?)"/g, (m, a, v) => `${a}${Math.round((+v - A.deslocDias) * 1e6) / 1e6}" data-efc-ok="1"`));
     } else if (n === 'xl/connections.xml' || raiz === 'connections') {
       x = x.replace(/\b(connection|command|sourceFile|odcFile|url|post|description)="[^"]*"/g, '$1=""'); rel.avisos.push('O arquivo tem conexões de dados: os endereços foram apagados.');
     } else if (/^xl\/(slicers|timelines)\//.test(baixo) || raiz === 'slicers' || raiz === 'timelines') {
       /* v0.6.11.1 (D-27): segmentação de dados: a legenda é um título de coluna (troca como o título); o nome fica (é o que liga o desenho) */
-      x = x.replace(/\bcaption="([^"]*)"/g, (m, v) => `caption="${escXml(A.nomeColuna(lerEscapesX(lerXmlTexto(v))), true)}"`);
+      x = x.replace(/\bcaption="([^"]*)"/g, (m, v) => `caption="${escXml(A.nomeColuna(lerEscapesX(lerXmlTexto(v))), true)}"`).replace(/\bscrollPosition="([^"]*)"/g, (m, v) => `scrollPosition="${dataIso(v)}"`);
+      for (const m of x.matchAll(/<(?:\w+:)?(?:slicer|timeline)\b[^>]*?\bname="([^"]*)"/g)) { const v = lerXmlTexto(m[1]); if (v && !rel.outrosNomes.includes(v)) rel.outrosNomes.push(v); }
     } else if (/^xl\/(slicercaches|timelinecaches)\//.test(baixo) || raiz === 'slicerCacheDefinition' || raiz === 'timelineCacheDefinition') {
       /* o campo de origem tem de ser igual ao nome da coluna (ou do campo da tabela dinâmica) já trocado, senão o Excel pede reparo */
       x = x.replace(/\bsourceName="([^"]*)"/g, (m, v) => `sourceName="${escXml(A.nomeColuna(lerEscapesX(lerXmlTexto(v))), true)}"`);
-      if (/timelinecaches/.test(baixo) || raiz === 'timelineCacheDefinition') rel.naoConhecidas.push(n);
+      /* v0.6.12 (D-31): linha do tempo: as datas escolhidas e os limites andam junto com as outras datas */
+      x = x.replace(/\b(startDate|endDate)="([^"]*)"/g, (m, k, v) => `${k}="${dataIso(v)}"`);
     } else if (/^xl\/ink\//.test(baixo) || raiz === 'ink') {
       x = x.replace(/(<(?:\w+:)?trace\b[^>]*>)[^<]*(<\/(?:\w+:)?trace>)/g, '$10 0$2'); if (!rel.avisos.includes(AVISO_TINTA)) rel.avisos.push(AVISO_TINTA);
     } else if (/^xl\/webextensions\//.test(baixo) || raiz === 'webextension' || raiz === 'taskpanes') {
@@ -340,7 +352,7 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
     } else if (/^xl\/(styles|theme\/|calcchain|metadata|richdata\/|worksheets\/|chartsheets\/|featurepropertybag\/|ctrlprops\/|activex\/|querytables\/|model\/)/.test(baixo) || /^_rels\//.test(baixo)) {
       if (/^xl\/(querytables|model|activex)/.test(baixo)) rel.naoConhecidas.push(n);
     } else rel.naoConhecidas.push(n);
-    x = trocarFiltros(x);
+    x = trocarFiltros(x).replace(/ data-efc-ok="1"/g, '');
     saida.set(n, x);
   }
 
@@ -352,7 +364,10 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
   const procurar = [...A.originais].filter((s) => s.length >= 6 && /\p{L}{3}/u.test(s)).sort((a, b) => b.length - a.length).slice(0, 400);
   const sobrou = [];
   /* nomes que ficam de propósito (segmentação, tabela dinâmica, objeto do desenho, nome definido) não contam como sobra */
-  const semNomes = (a) => (/^xl\/(slicers|slicerCaches|timelines|timelineCaches|drawings|pivotTables)\//i.test(a.nome) || a.nome === 'xl/workbook.xml' ? a.dados.replace(/\s(?:name|cache|displayName)="[^"]*"/g, '') : a.dados);
+  /* v0.6.12 (D-31): nome de aba, de tabela e nome definido aparecem em fórmulas, em docProps/app.xml e nos vínculos; uma célula com
+     o mesmo texto (ex.: "ENTRADAS", que também é nome de aba) dava aviso falso. Os nomes que ficam saem do texto antes da procura. */
+  const nomesQueFicam = [...new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos, ...rel.outrosNomes, ...rel.abasDeFora])].filter((s) => s.length >= 3).sort((a, b) => b.length - a.length);
+  const semNomes = (a) => { let t = (/^xl\/(slicers|slicerCaches|timelines|timelineCaches|drawings|pivotTables)\//i.test(a.nome) || a.nome === 'xl/workbook.xml' ? a.dados.replace(/\s(?:name|cache|displayName)="[^"]*"/g, '') : a.dados); for (const nm of nomesQueFicam) { if (t.includes(nm)) t = t.split(nm).join('\u0001'); const e = escXml(nm, true); if (e !== nm && t.includes(e)) t = t.split(e).join('\u0001'); } return t; };
   if (procurar.length) for (const a of arquivos) { if (typeof a.dados !== 'string') continue; const onde = semNomes(a); for (const s of procurar) { if (onde.includes(s) || onde.includes(escXml(s, true))) { sobrou.push({ parte: a.nome, tamanho: s.length }); if (sobrou.length > 50) break; } } if (sobrou.length > 50) break; }
   /* v0.6.11.1 (D-27): segunda conferência, com TODOS os textos originais: procura valor idêntico em atributos e textos de todas as
      partes (menos as células, que a troca cobre, e os estilos). Nomes que ficam de propósito (abas, tabelas, nomes definidos,
@@ -360,7 +375,7 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
   const todos = new Set([...A.originais].filter((s) => s.length >= 4 && /\p{L}{3}/u.test(s)));
   let conferidosExatos = 0;
   if (todos.size) {
-    const ficam = new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos]);
+    const ficam = new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos, ...rel.outrosNomes, ...rel.abasDeFora]);
     for (const a of arquivos) { if (typeof a.dados !== 'string') continue; for (const m of a.dados.matchAll(/<(?:\w+:)?(?:slicer|timeline|slicerCacheDefinition|timelineCacheDefinition|pivotTableDefinition|pivotTable|cNvPr|definedName|table)\b[^>]*?\b(?:name|displayName|cache)="([^"]*)"/g)) ficam.add(lerXmlTexto(m[1])); }
     for (const a of arquivos) {
       if (typeof a.dados !== 'string' || /^xl\/(styles\.xml|theme\/|sharedStrings\.xml|calcChain\.xml)/i.test(a.nome) || /\.rels$/.test(a.nome) || a.nome === '[Content_Types].xml') continue;

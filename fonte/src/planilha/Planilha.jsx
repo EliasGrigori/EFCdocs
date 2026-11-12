@@ -12,8 +12,10 @@ import { lerOriginal } from '../nucleo/originais.js';
 import { PortalPainel } from '../quadro/partes.jsx';
 import { Motor } from './motor.js';
 import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, textoFaixaCaixa, normalFaixa, lerEndereco, lerEnderecoCaixa, nomeAbaNaFormula } from './ref.js';
+import { indiceDe } from './indice.js';
+import { esperaDeConferir } from '../nucleo/ritmo.js';
 import { eixo, ALT_PADRAO, LARG_PADRAO, largPadrao, altPadrao, estiloDe, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
-import { geometria, desenhar, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, corDaGrade, estiloVisto } from './grade.js';
+import { geometria, pintarGrade, mesmasCores, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, corDaGrade, estiloVisto } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
 import { paraMostrar, refTexto, tokenizar, ler as lerFormula, paraGuardar, escrever } from './formula.js';
@@ -83,23 +85,9 @@ function lerCores(el) {
   };
 }
 
-/** Índice das células com conteúdo por linha e por coluna (para Ctrl+setas e "próxima vazia"). */
-function indiceCheias(aba) {
-  const porCol = new Map(), porLin = new Map();
-  for (const k of Object.keys(aba.cel)) {
-    const x = aba.cel[k];
-    if (x.v === undefined && x.f == null) continue;
-    const p = lerChave(k);
-    if (!p) continue;
-    if (!porCol.has(p.c)) porCol.set(p.c, []);
-    porCol.get(p.c).push(p.l);
-    if (!porLin.has(p.l)) porLin.set(p.l, []);
-    porLin.get(p.l).push(p.c);
-  }
-  for (const a of porCol.values()) a.sort((x, y) => x - y);
-  for (const a of porLin.values()) a.sort((x, y) => x - y);
-  return { porCol, porLin };
-}
+/* v0.6.12 (D-16): o índice das células com conteúdo é vivo (planilha/indice.js): não é mais refeito a cada tecla */
+const indiceCheias = (aba) => indiceDe(aba.cel);
+const SEM_REFS = [];
 
 /** Ctrl+seta: o próximo limite dos dados (regra do Excel). */
 function pularBorda(lista, atual, passo, max) {
@@ -235,7 +223,8 @@ export function Planilha({ arquivo, cx }) {
 
   /* cores do tema (a grade acompanha o tema; "Folha clara" deixa branca) */
   useEffect(() => {
-    const ler1 = () => { if (raiz.current) setCores(prefs.folhaClara ? CORES_FOLHA_CLARA : lerCores(raiz.current)); };
+    /* v0.6.12: cores iguais devolvem o mesmo objeto (senão a grade era redesenhada a cada começo e fim de edição) */
+    const ler1 = () => { if (raiz.current) setCores((a) => mesmasCores(a, prefs.folhaClara ? CORES_FOLHA_CLARA : lerCores(raiz.current))); };
     ler1();
     const ob = new MutationObserver(ler1);
     ob.observe(document.body, { attributes: true, attributeFilter: ['data-theme', 'class'] });
@@ -258,7 +247,7 @@ export function Planilha({ arquivo, cx }) {
   const colunas = useMemo(() => eixo(aba.larg, aba.ocC, largPadrao(aba), MAX_COL), [aba.larg, aba.ocC, aba.largP]);
   const cong = aba.cong || null;
   const mesc = useMemo(() => mescladas(aba), [aba.mesc]); // eslint-disable-line react-hooks/exhaustive-deps
-  const cheias = useMemo(() => indiceCheias(aba), [aba.cel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cheias = indiceCheias(aba);
   const usado = motor.usado(abaId);
 
   /* extensão da rolagem: área usada + folga, e cresce ao chegar perto do fim */
@@ -1326,7 +1315,7 @@ export function Planilha({ arquivo, cx }) {
     if (achados.size !== 1) return '';
     const v = [...achados.values()][0];
     return edit.texto + v.slice(edit.texto.length);
-  }, [edit && edit.texto, edit && edit.semAuto, edit && edit.cursor, ehFormula, cheias]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [edit && edit.texto, edit && edit.semAuto, edit && edit.cursor, ehFormula, cheias, aba]); // eslint-disable-line react-hooks/exhaustive-deps
   autoTextoRef.current = autoTexto;
   const sugest = ehFormula && !semSug && ctxCursor && ctxCursor.prefixo ? sugestoes(ctxCursor.prefixo, { nomes: listaNomes, colunas: listaColunas }) : [];
   const problemas = ehFormula && edit.texto.length > 1 ? diagnosticar(edit.texto.slice(1), { nomes: nomesDefinidos, abas: nomesAbas })
@@ -1345,7 +1334,7 @@ export function Planilha({ arquivo, cx }) {
     return (t === '' ? '(vazio)' : t) + (r.matriz ? `  · derrama em ${r.matriz.linhas} × ${r.matriz.colunas} células` : '') + (ehErro(r.valor) ? ' — ' + (ERRO_EXPLICA[r.valor.cod] || '') : '');
   }, [ehFormula, edit && edit.texto, motor]); // eslint-disable-line react-hooks/exhaustive-deps
   const refsDaFormula = useMemo(() => {
-    if (!ehFormula) return [];
+    if (!ehFormula) return SEM_REFS;
     const { refs } = pedacosColoridos(edit.texto.slice(1));
     return refs.filter((r) => (r.aba == null ? edit.abaId === abaId : c.abas[abaId].nome.toLowerCase() === String(r.aba).toLowerCase()))
       .map((r) => ({ ...(r.t === 'ref' ? { l1: r.l, c1: r.c, l2: r.l, c2: r.c } : normalFaixa(r)), cor: r.cor }))
@@ -1873,8 +1862,9 @@ export function Planilha({ arquivo, cx }) {
 
   /* ---------- entender a conta (v0.4.3): consertos de um toque e fórmula montada ---------- */
   /* lista de problemas: refeita um instante depois de cada mudança (não atrapalha quem digita) */
+  const custoProb = useRef(0); /* v0.6.12 (D-16): em planilha grande a conferência espera a pessoa parar de digitar */
   useEffect(() => {
-    const t = setTimeout(() => { try { setListaProb(problemasDaPlanilha(motor, c, tituloDe)); } catch { setListaProb([]); } }, 250);
+    const t = setTimeout(() => { const t0 = performance.now(); try { setListaProb(problemasDaPlanilha(motor, c, tituloDe)); } catch { setListaProb([]); } custoProb.current = performance.now() - t0; }, esperaDeConferir(custoProb.current));
     return () => clearTimeout(t);
   }, [c]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -2606,7 +2596,7 @@ export function Planilha({ arquivo, cx }) {
   }, [calc, prefs.status, faixa, z, edit && !!edit, ehFormula, estiloAtivo.nf, c]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* v0.6.4: zoom do navegador muda a densidade da tela: redesenha na hora para as letras não ficarem borradas */
-  const [, setDensidade] = useState(0);
+  const [densidade, setDensidade] = useState(0);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return undefined;
     const mq = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
@@ -2617,45 +2607,47 @@ export function Planilha({ arquivo, cx }) {
     const conferir = () => { const d = window.devicePixelRatio || 1; if (d !== ultima) { ultima = d; aoMudar(); } };
     const t = setInterval(conferir, 1000);
     window.addEventListener('resize', conferir);
+    /* v0.6.12: a grade só é redesenhada quando algo dela muda; letra que termina de carregar e a volta para a aba pedem um desenho novo */
+    const fontes = document.fonts && document.fonts.addEventListener ? document.fonts : null;
+    if (fontes) fontes.addEventListener('loadingdone', aoMudar);
+    document.addEventListener('visibilitychange', aoMudar);
     return () => {
       clearInterval(t); window.removeEventListener('resize', conferir);
+      if (fontes) fontes.removeEventListener('loadingdone', aoMudar); document.removeEventListener('visibilitychange', aoMudar);
       if (mq.removeEventListener) mq.removeEventListener('change', aoMudar); else if (mq.removeListener) mq.removeListener(aoMudar);
     };
   }, [typeof window !== 'undefined' ? window.devicePixelRatio : 1]); // eslint-disable-line react-hooks/exhaustive-deps
   /* ---------- desenho ---------- */
   const familia = useMemo(() => familiaDa(c), [c.fonteBase]); // eslint-disable-line react-hooks/exhaustive-deps
+  const desenhado = useRef(null), pintar = useRef(() => {}), quadro = useRef(0);
   useLayoutEffect(() => {
     const cv = cvRef.current;
     if (!cv) return;
     const dpr = window.devicePixelRatio || 1;
-    if (cv.width !== Math.round(tam.W * dpr) || cv.height !== Math.round(tam.H * dpr)) {
+    const mudouTamanho = cv.width !== Math.round(tam.W * dpr) || cv.height !== Math.round(tam.H * dpr);
+    if (mudouTamanho) {
       cv.width = Math.round(tam.W * dpr); cv.height = Math.round(tam.H * dpr);
       cv.style.width = tam.W + 'px'; cv.style.height = tam.H + 'px';
     }
-    const ctx = cv.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const spill = motor.areaDerramada(abaId, sel.ativa.l, sel.ativa.c);
     const comum = {
       dpr, c, motor, abaId, G, cores, familia, grade: !aba.semGrade, mesclas: mesc,
       sel: edit && edit.abaId === abaId && ehFormula ? null : sel, refsFormula: refsDaFormula,
-      copia: copia && !edit ? copia : null, spill, celular: cel, editando: !!edit, somenteLeitura,
+      copia: copia && !edit ? copia : null, spill, celular: cel, editando: !!edit && (cel || !!aba.fil), somenteLeitura, /* a grade só muda ao editar no celular ou com filtro (as setas somem) */
       destino: arrasto && arrasto.tipo === 'alca' ? arrasto.destino : null,
     };
-    desenhar({ ...comum, ctx });
-    /* v0.6.9 (Elias): o mesmo desenho, só a parte parada, num canvas por cima e fora do rolador.
-       Com o dedo o navegador rola sozinho e o canvas de baixo desliza um quadro antes do redesenho:
-       assim o cabeçalho congelado nunca é coberto nem aparece cortado no meio. */
-    const cg = cvCongRef.current;
-    if (cg) {
-      if (cg.width !== cv.width || cg.height !== cv.height) {
-        cg.width = cv.width; cg.height = cv.height;
-        cg.style.width = tam.W + 'px'; cg.style.height = tam.H + 'px';
-      }
-      const ctxC = cg.getContext('2d');
-      ctxC.setTransform(dpr, 0, 0, dpr, 0, 0);
-      desenhar({ ...comum, ctx: ctxC, parte: 'congelado' });
-    }
+    /* v0.6.12 (D-16): cada letra digitada redesenhava a grade inteira duas vezes, e um Enter, três. Agora só redesenha quando
+       muda algo que a grade mostra, e uma vez só por quadro da tela (várias mudanças seguidas viram um desenho). */
+    const marca = [cv, cvCongRef.current, cv.width, cv.height, densidade, motor.rev, spill && `${spill.l1},${spill.c1},${spill.l2},${spill.c2}`,
+      dpr, c, abaId, G, cores, familia, comum.grade, mesc, comum.sel, refsDaFormula, comum.copia, cel, comum.editando, somenteLeitura, comum.destino];
+    const antes = desenhado.current;
+    if (antes && antes.every((v, i) => v === marca[i])) return;
+    desenhado.current = marca;
+    pintar.current = () => pintarGrade(cv, cvCongRef.current, comum, tam);
+    /* tela que acabou de mudar de tamanho ficou em branco: desenha já. No resto, espera o quadro (ainda antes de a tela ser pintada). */
+    if (mudouTamanho || typeof requestAnimationFrame !== 'function') { cancelAnimationFrame(quadro.current); quadro.current = 0; pintar.current(); } else if (!quadro.current) quadro.current = requestAnimationFrame(() => { quadro.current = 0; pintar.current(); });
   });
+  useEffect(() => () => { cancelAnimationFrame(quadro.current); quadro.current = 0; }, []);
 
   /* ---------- toque e mouse na grade ---------- */
   const ponto = (ev) => { const r = cvRef.current.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; };
@@ -2959,7 +2951,7 @@ export function Planilha({ arquivo, cx }) {
     if (data >= ls.length * 0.6) return 'data';
     if (num >= ls.length * 0.6) return 'numero';
     return 'texto';
-  }, [edit && edit.c, edit && edit.l, cheias]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [edit && edit.c, edit && edit.l, cheias, aba]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const proximaVazia = () => {
     if (!confirmar(null)) return;

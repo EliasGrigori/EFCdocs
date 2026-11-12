@@ -12,13 +12,13 @@ Preenchida em 11/11/2026 (Método Sabiá 2.0, `docs/METODO-SABIA-2.md`). É esta
 | Peças | React 19 + esbuild; motor de cálculo e leitor/gravador de Excel próprios em JavaScript; grade em canvas; roda no navegador, sem servidor |
 | Comando para instalar | `cd fonte && npm install` |
 | Comando para montar | `npm run build` (gera `fonte/dist`) |
-| Comandos para testar | `npm test` (todas as regras, 330 testes, ~8 s) e um módulo só: `npm run test:nucleo`, `test:planilha`, `test:excel`, `test:quadro`, `test:documento`, `test:ferramentas` · `npm run test:fidelidade` (ida e volta, openpyxl e LibreOffice em 17 amostras, com a planilha real anonimizada; `EFC_AMOSTRAS_FORA=<pasta>` junta outras de fora) · `npm run test:navegador -- <endereço> <pasta>` (253 casos encadeados, ~15 min) · `npm run auditoria` (cinco lentes contra a linha de base `docs/auditorias/base-v0.6.9.2`; `EFC_PALAVRAS=<arquivo fora do projeto>`; `CHROME=<navegador>`) |
+| Comandos para testar | `npm test` (todas as regras, 341 testes, ~8 s) e um módulo só: `npm run test:nucleo`, `test:planilha`, `test:excel`, `test:quadro`, `test:documento`, `test:ferramentas` · `npm run test:fidelidade` (ida e volta, openpyxl e LibreOffice em 17 amostras, com a planilha real anonimizada; `EFC_AMOSTRAS_FORA=<pasta>` junta outras de fora) · `npm run test:navegador -- <endereço> <pasta>` (255 casos encadeados, ~15 min) · `npm run auditoria` (cinco lentes contra a linha de base `docs/auditorias/base-v0.6.12`; `EFC_PALAVRAS=<arquivo fora do projeto>`; `CHROME=<navegador>`) |
 | Comando para servir na máquina | `python3 scripts/sabia/servir.py 8741 dist` |
 | Onde publica | GitHub Pages do repositório público `EliasGrigori/EFCdocs`; **copiar `fonte/dist/*` para a raiz do repositório no mesmo envio** (apagar os `assets/` antigos) |
 | Dados sensíveis | As planilhas de trabalho do dono (dados da empresa). Nunca no repositório, nem em prints. Para testar: cópia feita com `ferramentas/anonimizar/anonimizar-planilha.html`, revisada pelo dono, guardada **fora** do repositório (o anonimizador mantém nomes de abas e tabelas) |
 | Palavras do dono | Lista para a varredura de dado sensível guardada fora do projeto (nome da empresa, unidades, pessoas) |
 | Aparelhos do uso real | PC com tela de toque 1366×700 (o dono testa nele); celular 384×790 |
-| Padrão visual | Até a v0.6.13: estilo Camadas (`src/camadas.css`). Depois: visual do Cwork (Claro marfim e ouro, Escuro dourado; Fraunces e Source Sans 3), faixa familiar ao Excel (R21) |
+| Padrão visual | Até a versão do visual (v0.6.14): estilo Camadas (`src/camadas.css`). Depois: visual do Cwork (Claro marfim e ouro, Escuro dourado; Fraunces e Source Sans 3), faixa familiar ao Excel (R21) |
 | Conferentes de fora | openpyxl (estrutura e estilo do .xlsx salvo, `scripts/fidelidade/conferir-openpyxl.py`) e LibreOffice em pt-BR (recalcula as fórmulas, `conferir-libreoffice.py`); ida e volta célula a célula (`testes/fidelidade/comparar.mjs`). Diferenças já conhecidas: `testes/fidelidade/conhecidas.mjs` |
 | O que não pode quebrar | Abrir e salvar Excel sem pedido de reparo; fórmulas e seus valores; tabelas do Excel; códigos com zero à esquerda (001) como texto; todas as funções do `docs/features.csv` marcadas "funciona" |
 
@@ -31,7 +31,7 @@ Preenchida em 11/11/2026 (Método Sabiá 2.0, `docs/METODO-SABIA-2.md`). É esta
 | Visual | Botão e campo | 34 a 36 px no PC (nenhum abaixo de 28), 44 px no toque | 34 abaixo de 28 px na Página Inicial |
 | Visual | Maiúsculas espaçadas, emoji, rolagem de lado, erros no console | 0 | 2 a 8 maiúsculas por tela; o resto 0 |
 | Visual | Contraste de texto | 4,5 | 5 a 8 textos abaixo por tela |
-| Rapidez | Ação comum (digitar, mover, desfazer) numa planilha de 360 mil células (mediana de 5) | menos de 0,1 s | 1,1 s digitar; 0,04 s mover; 0,86 s desfazer (4× mais lento: 5,1 s; 0,08 s; 5,0 s) |
+| Rapidez | Ação comum (digitar, mover, desfazer) numa planilha de 360 mil células (mediana de 5) | menos de 0,1 s | 1,1 s digitar; 0,04 s mover; 0,86 s desfazer (4× mais lento: 5,1 s; 0,08 s; 5,0 s). **v0.6.12: 0,08 s; 0,03 s; 0,03 s (4×: 0,26 s; 0,08 s; 0,12 s), dentro da meta** (`docs/RAPIDEZ.md`) |
 | Rapidez | Abrir o arquivo grande | menos de 1 s ou com aviso | 1,1 s |
 | Rapidez | Tamanho do app (js, css e html) | não crescer sem motivo (mais de 2%) | 1.696 KB (544 KB compactado) |
 | Fidelidade | Ida e volta, conferentes de fora | 0 diferenças fora das conhecidas | v0.6.10: 15 amostras e a planilha anonimizada sem diferença nova; conhecidas D-20, D-22, D-23, D-24, L-02, L-04 a L-07 |

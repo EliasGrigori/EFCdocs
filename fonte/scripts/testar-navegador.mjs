@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.11.1', async () => {
+await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.12', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.11.1'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.12'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.11.1'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.12'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -4390,7 +4390,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.11.1'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.12'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4686,6 +4686,62 @@ await caso('v0.6.11.1: setas do filtro de colunas roladas para trás das congela
   const porCima = setas.filter((q) => q[0] > 9 && q[1] <= xJ);
   igual(porCima.length, 0, 'setas de colunas roladas por cima das congeladas: ' + JSON.stringify(porCima));
   certo(setas.some((q) => q[0] > 9), 'as setas das colunas que continuam à vista aparecem');
+});
+
+/* v0.6.12 (D-16): planilha grande não grava mais a cada tecla (gravar o arquivo inteiro prendia a tela). A mudança que espera
+   fica no diário de segurança; se a página fechar antes da gravação, ela é refeita ao abrir. */
+await caso('v0.6.12: planilha grande: digitar e recarregar na hora não perde a mudança (diário de segurança avisa que recuperou)', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-real-anonimizada.xlsx', import.meta.url)));
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(2500);
+  const ir = async (r) => { await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill(r); await p.locator('.pl-nome').press('Enter'); await p.waitForTimeout(250); };
+  const pend = () => p.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('efcdocs:pend:')).map((k) => JSON.parse(localStorage.getItem(k)).lotes.length));
+  await ir('CX3');
+  await p.keyboard.type('seguro 612'); await p.keyboard.press('Enter');
+  const antes = await pend();
+  await p.reload(); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(600);
+  const aviso = await p.locator('.aviso, [data-aviso], .toast').allInnerTexts().catch(() => []);
+  const corpo = await p.locator('body').innerText();
+  await ir('CX3'); const fx = await fxTexto(p);
+  await print(p, 'v0612-recuperou');
+  await p.waitForTimeout(5000); const depois = await pend();
+  /* segunda volta: já gravado, abre sem recuperar nada */
+  await p.reload(); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(900);
+  const corpo2 = await p.locator('body').innerText(); await ir('CX3'); const fx2 = await fxTexto(p);
+  await ctx.close();
+  igual(JSON.stringify(antes), '[1]', 'a mudança que espera a gravação fica anotada na hora:');
+  certo(/Recuperei 1 mudança/.test(corpo + aviso.join(' ')), 'aviso de recuperação ao abrir');
+  igual(fx.trim(), 'seguro 612', 'a célula digitada antes de recarregar:');
+  igual(JSON.stringify(depois), '[]', 'gravado: o diário de segurança fica vazio:');
+  certo(!/Recuperei/.test(corpo2), 'na segunda vez não há o que recuperar'); igual(fx2.trim(), 'seguro 612', 'continua gravado:');
+});
+
+/* v0.6.12 (D-16): várias digitações seguidas numa planilha grande: valores, fórmula que depende delas, desfazer e refazer
+   continuam certos com as células mudando no lugar; a grade (que só redesenha quando muda) mostra o valor novo */
+await caso('v0.6.12: planilha grande: digitar em sequência, fórmula que depende, desfazer e refazer dão o resultado certo na tela', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-real-anonimizada.xlsx', import.meta.url)));
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(2500);
+  const ir = async (r) => { await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill(r); await p.locator('.pl-nome').press('Enter'); await p.waitForTimeout(250); };
+  const desenho = () => p.evaluate(() => { const cv = document.querySelector('.pl-cv'); const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 0; i < d.length; i += 16) n = (n * 31 + d[i] + d[i + 1] * 3 + d[i + 2] * 7) >>> 0; return n; });
+  const soma = async () => { await ir('CX2:CX5'); return p.locator('.foot').innerText(); };
+  await ir('CX2');
+  for (const v of ['10', '20', '30']) { await p.keyboard.type(v); await p.keyboard.press('Enter'); }
+  await p.keyboard.type('=SOMA(CX2:CX4)'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
+  await ir('CX5'); const f1 = await fxTexto(p);
+  const s0 = await soma(); const d1 = await desenho();
+  await ir('CX3'); await p.keyboard.type('25'); await p.keyboard.press('Enter'); await p.waitForTimeout(250);
+  const s1 = await soma(); const d2 = await desenho();
+  await print(p, 'v0612-digitar-grande');
+  await p.locator('.pl-cv').click({ position: { x: 700, y: 400 } }); await p.keyboard.press('Control+z'); await p.waitForTimeout(300); const s2 = await soma();
+  await p.locator('.pl-cv').click({ position: { x: 700, y: 400 } }); await p.keyboard.press('Control+y'); await p.waitForTimeout(300); const s3 = await soma();
+  await ctx.close();
+  igual(f1.replace(/\s/g, ''), '=SOMA(CX2:CX4)', 'a fórmula digitada:');
+  certo(s0.includes('Soma: 120'), '10+20+30 e a soma deles: ' + s0);
+  certo(s1.includes('Soma: 130'), 'com o 20 trocado por 25, a fórmula recalcula (65+65): ' + s1);
+  certo(d1 !== d2, 'a grade foi redesenhada com o valor novo');
+  certo(s2.includes('Soma: 120'), 'desfeito: ' + s2);
+  certo(s3.includes('Soma: 130'), 'refeito: ' + s3);
 });
 
 await navegador.close();
