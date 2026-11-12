@@ -183,6 +183,7 @@ def comparar(orig, salvo):
                     add('texto: quebra de linha do Windows (\\r\\n) virou \\n', ref, 'mesmo texto na tela')
                 elif va and va[0] == 'fórmula' and not vb and r > maxLdados: add('fórmula de folga cortada', ref, 'fórmula depois do último dado não voltou')
                 elif va and vb and va[0] == 'número' and vb[0] == 'número' and abs(va[1] - vb[1]) <= 1e-9 * max(1, abs(va[1])): pass
+                elif va and vb and va[0] == 'número' and vb[0] == 'texto' and vb[1] in (str(int(va[1])) if float(va[1]).is_integer() else str(va[1]),): add('número virou o mesmo texto', ref, 'número → texto igual')
                 else: add('valor', ref, f'{va[0] if va else "vazia"} → {vb[0] if vb else "vazia"}')
             ler_tema(A); ea = estilo(c); ler_tema(B); eb = estilo(d) if d is not None else {}
             if not perto(ea, eb):

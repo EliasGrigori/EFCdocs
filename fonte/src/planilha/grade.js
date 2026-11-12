@@ -3,6 +3,7 @@
 import { letraCol, MAX_LIN, MAX_COL, chave, lerChave } from './ref.js';
 import { formatar } from './formato.js';
 import { estiloDe, mescladas, mesclaEm } from './modelo.js';
+import { faixaDoFiltro } from './dados.js';
 import { ehErro } from './valores.js';
 import { estiloCondicional, estiloComRegras } from './regras.js';
 
@@ -213,6 +214,8 @@ function retMescla(G, m, reg) {
 }
 
 function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
+  const ffil = p.c.abas[p.abaId] && p.c.abas[p.abaId].fil && !p.editando ? faixaDoFiltro(p.c.abas[p.abaId].fil) : null;
+  const reservaFiltro = ffil ? { l: ffil.l1, c1: ffil.c1, c2: ffil.c2, px: p.celular ? 28 : 22 } : null;
   const { ctx, c, motor, abaId, G, cores, familia } = p;
   const aba = c.abas[abaId];
   const { z } = G;
@@ -298,6 +301,9 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       if (tx.t === '') continue;
       let x = G.xDe(cc), yy = G.yDe(cl), w = w0, hh = h;
       if (m) { const R = retMescla(G, m, reg); if (!R) continue; x = R.x; yy = R.y; w = R.w; hh = R.h; }
+      /* v0.6.11 (D-15): na linha dos títulos do filtro, o texto não entra no lugar da seta (18 px; 24 no toque) */
+      const rf = reservaFiltro;
+      if (rf && !m && cl === rf.l && cc >= rf.c1 && cc <= rf.c2 && w > rf.px + 12) w -= rf.px;
       desenharTexto(p, tx, x, yy, w, hh, l, col, aba, mesc);
     }
   }
@@ -322,10 +328,13 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
         if (horiz) { ctx.moveTo(px(a1) - (n - 1) / dpr / 2, q); ctx.lineTo(px(a2), q); } else { ctx.moveTo(q, px(a1) - (n - 1) / dpr / 2); ctx.lineTo(q, px(a2)); }
         ctx.stroke();
       };
-      lado('t', true, y, x, x + w);
-      lado('b', true, y + h, x, x + w);
-      lado('l', false, x, y, y + h);
-      lado('r', false, x + w, y, y + h);
+      /* v0.6.11 (D-11, D-17): dentro da mesclada não há borda. Só vale o lado que fica no contorno de fora
+         (como o Excel: o lado de cima vem das células da primeira linha, o da direita das da última coluna...). */
+      const m = mesc.length ? mesclaEm(mesc, l, col) : null;
+      if (!m || l === m.l1) lado('t', true, y, x, x + w);
+      if (!m || l === m.l2) lado('b', true, y + h, x, x + w);
+      if (!m || col === m.c1) lado('l', false, x, y, y + h);
+      if (!m || col === m.c2) lado('r', false, x + w, y, y + h);
     }
   }
   /* comentários: triângulo vermelho no canto de cima, à direita (como o Excel) */

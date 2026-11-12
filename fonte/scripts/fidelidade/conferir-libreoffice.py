@@ -73,24 +73,35 @@ def iguais(a, b):
 def comparar(salvo, pasta):
     lo = recalcular(salvo, pasta)
     if lo is None: return None
-    F = openpyxl.load_workbook(salvo)                  # fórmulas
-    E = openpyxl.load_workbook(salvo, data_only=True)  # valores que o EFCdocs gravou
-    L = openpyxl.load_workbook(lo, data_only=True)     # valores que o LibreOffice calculou
+    # v0.6.11.1: leitura em fluxo (read_only), aba por aba: a planilha de coletas do Elias (50 mil fórmulas) não cabia na memória
+    def celulas(arq, data_only, so=None):
+        wb = openpyxl.load_workbook(arq, read_only=True, data_only=data_only)
+        for nome in wb.sheetnames:
+            ws = wb[nome]; ws.reset_dimensions(); d = {}
+            for row in ws.iter_rows():
+                for c in row:
+                    v = getattr(c, 'value', None)
+                    if v is None: continue
+                    k = (c.row, c.column)
+                    if so is None:
+                        txt = v.text if type(v).__name__ == 'ArrayFormula' else v
+                        if isinstance(txt, str) and txt.startswith('='): d[k] = txt
+                    elif k in so.get(nome, ()): d[k] = v
+            yield nome, d
+        wb.close()
+    formulas = dict(celulas(salvo, False))
+    efc = dict(celulas(salvo, True, formulas)); lib = dict(celulas(lo, True, formulas))
     dif = []; total = 0; naoSabe = []
-    for nome in F.sheetnames:
-        if nome not in L.sheetnames: dif.append({'onde': nome, 'funcoes': [], 'efcdocs': 'aba', 'libreoffice': 'sumiu'}); continue
-        f, e, l = F[nome], E[nome], L[nome]
-        for row in f.iter_rows():
-            for c in row:
-                v = c.value
-                txt = v.text if type(v).__name__ == 'ArrayFormula' else v
-                if not (isinstance(txt, str) and txt.startswith('=')): continue
-                total += 1
-                a = normal(e.cell(c.row, c.column).value); b = normal(l.cell(c.row, c.column).value)
-                if not iguais(a, b):
-                    if b == ('erro', '#NAME') and set(funcoes(txt)) & SO_EXCEL_NOVO: naoSabe.append(f'{nome}!{get_column_letter(c.column)}{c.row}'); continue
-                    dif.append({'onde': f'{nome}!{get_column_letter(c.column)}{c.row}', 'funcoes': funcoes(txt),
-                                'efcdocs': a[0] if a[0] == 'texto' else a, 'libreoffice': b[0] if b[0] == 'texto' else b})
+    for nome, fs in formulas.items():
+        if nome not in lib: dif.append({'onde': nome, 'funcoes': [], 'efcdocs': 'aba', 'libreoffice': 'sumiu'}); continue
+        e, l = efc.get(nome, {}), lib[nome]
+        for (r, col), txt in fs.items():
+            total += 1
+            a = normal(e.get((r, col))); b = normal(l.get((r, col)))
+            if not iguais(a, b):
+                if b == ('erro', '#NAME') and set(funcoes(txt)) & SO_EXCEL_NOVO: naoSabe.append(f'{nome}!{get_column_letter(col)}{r}'); continue
+                dif.append({'onde': f'{nome}!{get_column_letter(col)}{r}', 'funcoes': funcoes(txt),
+                            'efcdocs': a[0] if a[0] == 'texto' else a, 'libreoffice': b[0] if b[0] == 'texto' else b})
     return {'formulas': total, 'diferencas': dif, 'libreoffice_nao_conhece': naoSabe}
 
 def main():

@@ -99,7 +99,6 @@ export const NOVOS = {
   titulos: '<rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path class="t" d="M4.5 5.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2V8h-15z"/><path d="M7.5 12h9M7.5 15.5h9"/>',
   cabRod: '<rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path class="t" d="M4.5 5.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2V8h-15zM4.5 16h15v2.5a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2z"/><path d="M8 12h8"/>',
   limparArea: '<path d="M4 8.5V4h4.5M15.5 4H20v4.5M4 15.5V20h4.5"/><path d="M14.5 14.5l5 5M19.5 14.5l-5 5"/>',
-  ajustar: '<rect class="t" x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M7.5 7.5l3.2 3.2M7.5 10.7V7.5h3.2M16.5 16.5l-3.2-3.2M16.5 13.3v3.2h-3.2"/>',
   /* Fórmulas */
   funcao: '<path d="M12 4.5c-1.8 0-2.5 1-2.8 2.8L7.6 17c-.3 1.8-1 2.5-2.6 2.5M6.3 10H12"/><path d="M14.5 10.5l5.5 7M20 10.5l-5.5 7"/>',
   nome: '<path class="t" d="M4 5.5A1.5 1.5 0 0 1 5.5 4h6.4a1.5 1.5 0 0 1 1.06.44l6.6 6.6a1.5 1.5 0 0 1 0 2.12l-5.9 5.9a1.5 1.5 0 0 1-2.12 0l-6.6-6.6A1.5 1.5 0 0 1 4 10.4z"/><circle cx="8.3" cy="8.3" r="1.3"/>',

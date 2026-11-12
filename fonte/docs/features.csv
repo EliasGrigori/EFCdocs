@@ -278,7 +278,7 @@ F276;Documento;exibir;Zoom;ainda não feito;previsto: v0.7.0;;catálogo de coman
 F277;Quadro;exibir;Zoom;funciona;;manter;catálogo de comandos
 F278;Quadro;exibir;Ajustar à tela;funciona;;manter;catálogo de comandos
 F279;Quadro;exibir;Mostrar códigos (Q-001);funciona;;manter;catálogo de comandos
-F280;Planilha;exibir;Congelar painéis;com defeito;"D-15: linha cortada abaixo do congelado na tela de toque; decisão aberta do celular";B1;catálogo de comandos
+F280;Planilha;exibir;Congelar painéis;funciona;"D-15 corrigido na v0.6.11.1 (as setas do filtro das colunas roladas para trás das congeladas apareciam por cima dos títulos); D-06: a linha do congelamento fica mais fina na v0.6.13, se o dono aprovar";manter;catálogo de comandos
 F281;Planilha;exibir;Aba Gráfico;funciona;;manter;catálogo de comandos
 F282;Planilha;exibir;Folha clara;funciona;;manter;catálogo de comandos
 F283;Planilha;exibir;Linhas de grade;funciona;;manter;catálogo de comandos
@@ -292,13 +292,13 @@ F290;Planilha;motor;Fórmulas com tabela estruturada (Tabela1[Coluna]);parcial;"
 F291;Planilha;motor;Funções que o motor ainda não calcula mostram o último valor do Excel;funciona;;manter;varredura da Fase 0
 F292;Planilha;grade;Rolar com painel congelado (mouse e toque);funciona;fluido: 60 quadros por segundo em 360 mil células;manter;varredura da Fase 0
 F293;Planilha;grade;Bordas de células mescladas;com defeito;D-11 (reproduzido com amostra inventada);B1;varredura da Fase 0
-F294;Planilha;grade;Rolagem que encaixa em linha inteira no toque;com defeito;D-15 (hipótese: a rolagem por toque para no meio da linha);B1;varredura da Fase 0
+F294;Planilha;grade;Rolagem que encaixa em linha inteira no toque;funciona;"a hipótese do D-15 não se confirmou: a causa eram as setas do filtro (F325)";manter;varredura da Fase 0
 F295;Planilha;grade;Texto que invade a célula vizinha vazia;funciona;D-05 em aberto (não reproduzido);B1;varredura da Fase 0
 F296;Planilha;grade;"Estilo de tabela do Excel (listras, cabeçalho)";falta;"o nome do estilo é lido e devolvido, mas não é desenhado";B3;varredura da Fase 0
 F297;Planilha;grade;"Seleção, cópia, preenchimento, alças no toque";funciona;;manter;varredura da Fase 0
 F298;Planilha;excel;Abrir .xlsx/.xlsm com relatório de compatibilidade;funciona;;manter;varredura da Fase 0
 F299;Planilha;excel;"Salvar como Excel (tabelas, gráficos nativos, formas, imagens, validação, condicional, comentários)";funciona;"rede de fidelidade v0.6.10: 15 amostras e a planilha anonimizada sem diferença nova; achou D-20, D-22, D-23, D-24 (linhas F312 a F315); falta confirmar no Excel de verdade (pendência do Elias)";manter;varredura da Fase 0
-F300;Planilha;excel;"Macros, tabela dinâmica e segmentação guardadas e devolvidas";funciona;sem tela de edição;depois;varredura da Fase 0
+F300;Planilha;excel;"Macros, tabela dinâmica, segmentação, caixas de seleção e suplementos guardados e devolvidos ao salvar";com defeito;"D-29 (11/11): NÃO voltam ao salvar como Excel (o app avisa ao abrir e ao salvar); a linha dizia funciona por engano da varredura";guardar e devolver (versão própria, a decidir);varredura da Fase 0
 F301;Planilha;excel;Conferência automática do arquivo salvo por leitor independente;falta;hoje só o próprio leitor do EFCdocs confere;B0;varredura da Fase 0
 F302;Planilha;excel;"Abrir .xls, .ods e .csv";falta;pedido de 05/11 (EFCdocs reduzido): planilhas comuns com máxima compatibilidade;B6;varredura da Fase 0
 F303;Planilha;desempenho;Digitar numa planilha grande;com defeito;"1,2 s por digitação (5,4 s em PC fraco) com 360 mil células";B2;varredura da Fase 0
@@ -310,12 +310,19 @@ F308;App;visual;Sem maiúsculas espaçadas;com defeito;"2 por tela no PC (títul
 F309;App;visual;"Sem emoji, sem rolagem de lado, console sem erros";funciona;;manter;varredura da Fase 0
 F310;App;visual;Nada da empresa fixo no código;funciona;conferido: nenhum nome da empresa no código-fonte;manter;varredura da Fase 0
 F311;Documento;editor;"Editor de documento, POP, formulários, Word e PDF";ainda não feito;só o modelo e as medidas existem (11 testes);depois da Planilha;varredura da Fase 0
-F312;Planilha;excel;Tabela do Excel com título numérico (ex.: 2024);com defeito;"D-20: com o título gravado como número, a tabela some ao salvar (vira faixa normal); com o título em texto, volta certa";v0.6.11;rede de fidelidade v0.6.10
-F313;Planilha;excel;Nome de aba com espaço no começo ou no fim;com defeito;"D-22: o espaço some ao abrir; fórmula de outro arquivo que aponte para a aba pode quebrar";v0.6.11;rede de fidelidade v0.6.10 (planilha anonimizada)
-F314;Planilha;excel;Colunas ocultas até o fim da aba;com defeito;"D-23: só as 50 colunas depois do último dado voltam ocultas; no Excel as outras reaparecem";v0.6.11;rede de fidelidade v0.6.10 (planilha anonimizada)
-F315;Planilha;excel;Filtro com critério de data (mês);com defeito;"D-24: o critério não é lido nem gravado (provado pelo openpyxl); as linhas continuam ocultas; o SUBTOTAL pode mudar depois de salvar (visto no LibreOffice; no Excel falta provar)";v0.6.11;rede de fidelidade v0.6.10 (planilha anonimizada)
+F312;Planilha;excel;Tabela do Excel com título numérico (ex.: 2024);funciona;D-20 corrigido na v0.6.11: o título vai como texto, como o Excel grava;manter;rede de fidelidade v0.6.10
+F313;Planilha;excel;Nome de aba com espaço no começo ou no fim;funciona;D-22 corrigido na v0.6.11;manter;rede de fidelidade v0.6.10 (planilha anonimizada)
+F314;Planilha;excel;Colunas ocultas até o fim da aba;funciona;D-23 corrigido na v0.6.11 (no app, as colunas além de 50 da última com dado ainda aparecem: L-10);manter;rede de fidelidade v0.6.10 (planilha anonimizada)
+F315;Planilha;excel;Filtro com critério de data (mês);funciona;D-24 corrigido na v0.6.11: o critério volta ao salvar;manter;rede de fidelidade v0.6.10 (planilha anonimizada)
 F316;Planilha;excel;Fórmulas copiadas muito além do último dado;parcial;"L-04: ficam 1.000 linhas de folga depois do último dado; as outras não voltam ao salvar";decisão do Elias;rede de fidelidade v0.6.10
-F317;App;ferramentas;Anonimizador de planilha (anonimizar-planilha.html);funciona;"D-21 corrigido na v0.6.10: título com quebra de linha do Windows agora vira o mesmo texto do nome da coluna";manter;v0.6.10
+F317;App;ferramentas;Anonimizador de planilha (anonimizar-planilha.html);funciona;"D-21 corrigido na v0.6.10; D-25 (botão de tema no celular e título) na v0.6.11; D-27 (valores dos filtros, segmentações, tinta, suplementos; conferência de todos os textos) na v0.6.11.1";manter;v0.6.10
 F318;App;ferramentas;"Rede de fidelidade: ida e volta, openpyxl e LibreOffice (npm run test:fidelidade)";funciona;;manter;v0.6.10
 F319;App;ferramentas;"Cinco auditorias contra a linha de base (npm run auditoria)";funciona;;manter;v0.6.10
-F320;App;montar;Montar sem avisos;com defeito;"D-18: 4 avisos de chave repetida (graficoPlano.js 2, iconesFaixa.js, icones.js)";v0.6.11;auditoria de código v0.6.10
+F320;App;montar;Montar sem avisos;funciona;D-18 corrigido na v0.6.11: 0 avisos;manter;auditoria de código v0.6.10
+F321;App;marca;"Nome e capa: Vértice Docs (nome, abertura, ícones)";funciona;v0.6.10.1;manter;v0.6.10.1
+F322;Planilha;filtro;Título da coluna com filtro não fica por baixo da seta;funciona;D-15 (parte dos títulos) corrigido na v0.6.11;manter;v0.6.11
+F323;Planilha;grade;Bordas de células mescladas (só o contorno de fora);funciona;D-11 e D-17 (caixinha) corrigidos na v0.6.11;manter;v0.6.11
+F324;Planilha;filtro;Aviso quando o filtro de data ou cor que veio do Excel sai;funciona;D-26 (Grok) na v0.6.11;manter;v0.6.11
+F325;Planilha;filtro;Setas do filtro não aparecem por cima dos títulos congelados ao rolar;funciona;D-15 corrigido na v0.6.11.1;manter;v0.6.11.1 (print do dono de 04/11)
+F326;Planilha;excel;"Tabela do Excel com título que é só espaço";funciona;D-28 corrigido na v0.6.11.1;manter;v0.6.11.1 (planilha atual anonimizada)
+F327;Planilha;excel;"Formas: tipo e cor do texto iguais na ida e volta";com defeito;"D-30: 1 forma vira imagem, 2 perdem a cor do texto, segunda volta diferente numa aba";v0.6.14;v0.6.11.1 (planilha atual anonimizada)

@@ -203,7 +203,12 @@ export const semCriterios = (fil) => ({ ...fil, cr: {} });
  * Esconde ou mostra as linhas segundo o filtro. Mantém escondidas à mão (as que não eram do filtro).
  * Devolve as mudanças { 'conteudo.abas.ID.ocL': ..., ...ocF } já prontas para cx.aplicar.
  */
+/** v0.6.11 (Grok B05): aviso quando o critério que veio do Excel (data, cor) sai porque a pessoa mexeu no filtro aqui. */
+export const AVISO_CX = ' O filtro de data ou de cor que veio do Excel saiu: agora valem só os filtros feitos aqui.';
 export function mudancasDoFiltro(aba, abaId, fil, textoDe) {
+  /* v0.6.11 (D-24): mexeu no filtro aqui, o critério que veio do Excel e que o app não entende (data, cor) sai junto,
+     para a tela e o arquivo ficarem iguais (as linhas que ele escondia passam a seguir só os critérios daqui) */
+  if (fil && fil.cx) { const { cx, ...resto } = fil; fil = resto; }
   const antigoF = aba.ocF || {};
   const ocL = {};
   for (const k of Object.keys(aba.ocL || {})) if (!antigoF[k]) ocL[k] = aba.ocL[k];
@@ -241,7 +246,9 @@ export function moverFiltro(fil, eixo, move) {
   if (a == null || b == null) return undefined;
   const cr = {};
   for (const k of Object.keys(fil.cr || {})) { const n = move(+k); if (n != null) cr[n] = fil.cr[k]; }
-  return { ...fil, fx: textoFaixa({ ...f, c1: a, c2: b }), cr };
+  const out = { ...fil, fx: textoFaixa({ ...f, c1: a, c2: b }), cr };
+  if (fil.cx) { const cx = {}; for (const k of Object.keys(fil.cx)) { const n = move(+k); if (n != null) cx[n] = fil.cx[k]; } out.cx = cx; }
+  return out;
 }
 
 /* ---------- Travar modelo ---------- */

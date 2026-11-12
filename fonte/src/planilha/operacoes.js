@@ -434,6 +434,8 @@ export function estrutura(c, abaId, eixo, i, n) {
   } else {
     if (aba.larg) mud[`conteudo.abas.${abaId}.larg`] = mapaIdx(aba.larg);
     if (aba.ocC) mud[`conteudo.abas.${abaId}.ocC`] = mapaIdx(aba.ocC);
+    /* v0.6.11 (D-23): "ocultas até o fim da aba" anda junto com as colunas */
+    if (Number.isInteger(aba.ocCFim)) { const v = move(aba.ocCFim); mud[`conteudo.abas.${abaId}.ocCFim`] = v == null ? undefined : v; }
     if (aba.zeros) mud[`conteudo.abas.${abaId}.zeros`] = mapaIdx(aba.zeros);
   }
   if (aba.fil) mud[`conteudo.abas.${abaId}.fil`] = moverFiltro(aba.fil, eixo, move);

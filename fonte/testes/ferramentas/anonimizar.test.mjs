@@ -136,3 +136,36 @@ test('anonimizador v0.6.10 (D-21): título com quebra de linha do Windows (\\r\\
   const cel = /<c r="B4"[^>]*><is><t[^>]*>([^<]*)<\/t>/.exec(p['xl/worksheets/sheet1.xml'])[1].replace(/_x000D_/g, '');
   assert.equal(cel.replace(/&#(\d+);/g, (m, h) => String.fromCharCode(+h)), col.replace(/&#(\d+);/g, (m, h) => String.fromCharCode(+h)));
 });
+
+test('anonimizador v0.6.11.1 (D-27): valores de filtro, datas do filtro, segmentação, tinta e suplemento não levam nada do original; a conferência pega valor idêntico', async () => {
+  const { criarZip } = await import('../../src/planilha/xlsx/zip.js');
+  const z = lerZip(amostra('amostra-anonimizar.xlsx')); const arqs = [];
+  const enc = (t) => new TextEncoder().encode(t);
+  for (const nome of z.nomes) {
+    let d = await z.bytes(nome);
+    /* filtro da tabela com dois valores de célula (um com quebra de linha) e uma data; como o Excel grava */
+    if (nome === 'xl/tables/table1.xml') d = enc(new TextDecoder().decode(d).replace('<autoFilter ref="A4:F8"/>',
+      '<autoFilter ref="A4:F8"><filterColumn colId="5"><filters><filter val="Aprovado"/><filter val="Reprovado"/></filters></filterColumn>'
+      + '<filterColumn colId="2"><filters><dateGroupItem year="2026" month="3" day="5" dateTimeGrouping="day"/></filters></filterColumn>'
+      + '<filterColumn colId="0"><customFilters><customFilter operator="equal" val="Maria Exemplo de Souza"/></customFilters></filterColumn></autoFilter>'));
+    arqs.push({ nome, dados: d });
+  }
+  arqs.push({ nome: 'xl/slicers/slicer1.xml', dados: enc('<slicers xmlns="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><slicer name="Situação 1" cache="SegmentaçãodeDados_Situação" caption="Situação" rowHeight="225425"/></slicers>') });
+  arqs.push({ nome: 'xl/slicerCaches/slicerCache1.xml', dados: enc('<slicerCacheDefinition xmlns="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main" name="SegmentaçãodeDados_Situação" sourceName="Situação"><extLst><x15:tableSlicerCache xmlns:x15="x" tableId="1" column="6"/></extLst></slicerCacheDefinition>') });
+  arqs.push({ nome: 'xl/ink/ink1.xml', dados: enc('<inkml:ink xmlns:inkml="http://www.w3.org/2003/InkML"><inkml:trace contextRef="#ctx0" brushRef="#br0">1898 2240 0,-32 0 16,32 33 0</inkml:trace></inkml:ink>') });
+  arqs.push({ nome: 'xl/webextensions/webextension1.xml', dados: enc('<we:webextension xmlns:we="x" id="{1}"><we:reference id="wa1" version="1.0" store="pt-BR" storeType="OMEX"/><we:properties><we:property name="docId" value="&quot;SEGREDO-DO-SUPLEMENTO&quot;"/></we:properties></we:webextension>') });
+  const { bytes, relatorio } = await anonimizar(await criarZip(arqs));
+  const p = await partes(bytes); const tab = p['xl/tables/table1.xml'];
+  for (const s of ['Aprovado', 'Reprovado', 'Maria Exemplo']) assert.ok(!tab.includes(s), 'sobrou no filtro: ' + s);
+  /* o valor do filtro é o MESMO texto inventado da célula (o filtro continua casando) */
+  const celF5 = /<c r="F5"[^>]*><is><t[^>]*>([^<]*)<\/t>/.exec(p['xl/worksheets/sheet1.xml'])[1];
+  assert.ok(tab.includes(`<filter val="${celF5}"/>`), 'filtro casa com a célula F5');
+  assert.ok(!/year="2026" month="3" day="5"/.test(tab), 'a data do filtro andou junto com as datas');
+  assert.match(tab, /<dateGroupItem year="\d{4}" month="\d+" day="\d+" dateTimeGrouping="day"\/>/);
+  /* segmentação: legenda e campo de origem iguais ao nome da coluna já trocado */
+  const col6 = /<tableColumn id="6" name="([^"]*)"/.exec(tab)[1];
+  assert.ok(p['xl/slicers/slicer1.xml'].includes(`caption="${col6}"`)); assert.ok(p['xl/slicerCaches/slicerCache1.xml'].includes(`sourceName="${col6}"`));
+  assert.ok(!/1898 2240/.test(p['xl/ink/ink1.xml']), 'tinta apagada'); assert.ok(!/SEGREDO/.test(p['xl/webextensions/webextension1.xml']), 'configuração do suplemento apagada');
+  assert.equal(relatorio.sobrou.length, 0, JSON.stringify(relatorio.sobrou)); assert.ok(relatorio.conferidosTodos > 10);
+  assert.ok(!relatorio.naoConhecidas.some((n) => /slicer|ink|webextension/.test(n)), 'essas partes agora são tratadas: ' + relatorio.naoConhecidas);
+});

@@ -1,31 +1,31 @@
 # Armadilhas do Excel (.xlsx) · EFCdocs
 
-O que o arquivo do Excel faz de diferente do que parece, aprendido em defeito de verdade. Ler antes de mexer em `src/planilha/xlsx/` (ler.js, gravar.js, estilos.js) e no anonimizador. Cada item diz o defeito ou limite da `MEMORIA-DO-PROJETO.md` onde apareceu. Atualizado na v0.6.10 (11/11/2026).
+O que o arquivo do Excel faz de diferente do que parece, aprendido em defeito de verdade. Ler antes de mexer em `src/planilha/xlsx/` (ler.js, gravar.js, estilos.js) e no anonimizador. Cada item diz o defeito ou limite da `MEMORIA-DO-PROJETO.md` onde apareceu. Atualizado na v0.6.11.1 (11/11/2026).
 
 ## Tabelas
 
 1. **O nome de cada coluna da tabela tem de ser idêntico ao texto da célula do título.** Se não for, o Excel pede para reparar e apaga a tabela (D-03). Sem aparar espaço do fim, sem trocar a quebra de linha.
 2. **Quebra de linha no nome da coluna** vai como `_x000a_` no atributo `name`. Na célula, o Excel às vezes guarda `\r\n` (`_x000D_` + quebra); no nome da coluna vai só `\n`. Quem troca texto (anonimizador) tem de tratar os dois como o mesmo texto (D-21).
-3. **Título numérico**: o Excel guarda o título da tabela sempre como texto ("2024"). Se a célula do título estiver com o número 2024, o EFCdocs hoje solta a tabela ao gravar (D-20, aberto): o título tem de ir como texto.
+3. **Título numérico**: o Excel guarda o título da tabela sempre como texto ("2024"). Se a célula do título estiver com o número 2024, o título tem de ir como texto na célula e no nome da coluna (D-20, corrigido na v0.6.11).
 4. As fórmulas `Tabela1[Coluna]` e `[@Coluna]` viram endereços no EFCdocs; a conta é a mesma, o texto da fórmula não (L-02).
 5. Filtro que coincide com a tabela vai **dentro** da tabela (`<autoFilter>` do `tableN.xml`); um filtro da aba que cruza a tabela não pode existir junto. A faixa do filtro também vai no nome escondido `_xlnm._FilterDatabase` (v0.6.8).
 
 ## Abas
 
-6. O nome da aba pode ter **espaço no começo ou no fim** (ex.: "Resumo "). Fórmulas e links de outros arquivos usam o nome exato (D-22, aberto). Até 31 letras; proibidos `[ ] : * ? / \`.
+6. O nome da aba pode ter **espaço no começo ou no fim** (ex.: "Resumo "). Fórmulas e links de outros arquivos usam o nome exato: nunca aparar (D-22, corrigido na v0.6.11). Até 31 letras; proibidos `[ ] : * ? / \`.
 7. Fórmula que cita outra aba usa aspas simples quando o nome tem espaço ou acento: `'Resumo '!A1`, e aspas dentro do nome dobram (`''`).
 
 ## Linhas e colunas
 
-8. `<col min="51" max="16384" hidden="1">` esconde **até o fim da aba**. Cortar em "último dado + 50" faz as outras reaparecerem no Excel (D-23, aberto).
+8. `<col min="51" max="16384" hidden="1">` esconde **até o fim da aba**. Cortar em "último dado + 50" faz as outras reaparecerem no Excel (D-23): guardar a marca "até o fim" e gravar a faixa até 16384 (v0.6.11).
 9. Largura em caracteres → pixels: `px = trunc(((256·w + trunc(128/7)) / 256) · 7)`. Coluna oculta guarda a largura também, para voltar igual ao reexibir (D-09).
 10. Altura igual à padrão da aba é o mesmo que não ter altura; comparar sem ela.
 11. Planilha real tem fórmulas copiadas até muito além do último dado. O EFCdocs deixa 1.000 linhas de folga e corta o resto, com aviso (L-04); acima de 300 mil células por aba (800 mil na pasta) a leitura para e avisa (L-07).
 
 ## Filtro e SUBTOTAL
 
-12. **SUBTOTAL(9; …) ignora linhas escondidas PELO FILTRO, mas soma as escondidas à mão.** Quem diz que a linha está oculta "pelo filtro" é o filtro com critério. Se o critério se perde, o programa pode passar a somar a linha (D-24, aberto). O LibreOffice não é conferente seguro aqui: numa planilha respeitou o filtro do original e noutra não. No Excel falta provar.
-13. Critério de data do filtro vem como `<dateGroupItem year month dateTimeGrouping>`; critério de cor, "maiores que" e os 10 primeiros são outros elementos. Hoje o EFCdocs só entende a lista de valores.
+12. **SUBTOTAL(9; …) ignora linhas escondidas PELO FILTRO, mas soma as escondidas à mão.** Quem diz que a linha está oculta "pelo filtro" é o filtro com critério. Se o critério se perde, o programa pode passar a somar a linha (D-24, corrigido na v0.6.11: critério que o app não entende é guardado como veio e devolvido). O LibreOffice não é conferente seguro aqui: numa planilha respeitou o filtro do original e noutra não. No Excel falta provar.
+13. Critério de data do filtro vem como `<dateGroupItem year month dateTimeGrouping>`; critério de cor, "maiores que" e os 10 primeiros são outros elementos. O app só entende a lista de valores; os outros vão e voltam como vieram (v0.6.11).
 14. `<sortState>` (ordenação guardada, inclusive por cor) vem junto do filtro.
 
 ## Números, datas e textos
@@ -45,12 +45,19 @@ O que o arquivo do Excel faz de diferente do que parece, aprendido em defeito de
 ## Validação, mescladas e outros
 
 23. Validação de lista que aponta para **outra aba** vai em `<extLst>` como `x14:dataValidation` (o openpyxl não lê; o conferente lê direto do XML).
-24. Mesclada: o Excel grava as bordas em **cada** célula da faixa; quem desenha tem de mostrar só o contorno de fora (D-11, D-17, abertos).
+24. Mesclada: o Excel grava as bordas em **cada** célula da faixa; quem desenha tem de mostrar só o contorno de fora (D-11 e D-17, corrigidos na v0.6.11).
 25. Posição da rolagem ao abrir é o `topLeftCell` do `<pane>`; o congelamento é `xSplit`/`ySplit`. Mudar o primeiro não muda o congelamento (L-06).
-26. Partes que o EFCdocs não entende (macros, tabela dinâmica, segmentação) são guardadas e devolvidas como vieram.
+26. **Partes que o app não entende (macros, tabela dinâmica, segmentação de dados, caixas de seleção, suplementos, conversas de comentários) NÃO voltam ao salvar como Excel** (D-29, aberto). O app avisa ao abrir e ao salvar. Este item dizia o contrário até a v0.6.11: estava errado. Para devolver, é preciso guardar a parte inteira e as ligações dela (`_rels`, `[Content_Types].xml`, `<extLst>` da aba e do `workbook.xml`).
+27. **Título de tabela que é só um espaço (" ") é válido** para o Excel; título vazio não é. Não aparar antes de decidir (D-28, v0.6.11.1).
+28. **Os valores marcados num filtro são textos das células**: `<filter val="...">` e `<customFilter val>` têm de continuar iguais ao texto da célula, senão o filtro deixa de casar. `<dateGroupItem>` guarda a data de verdade. Quem troca os textos (anonimizador) troca os dois juntos (D-27, v0.6.11.1).
+29. **Segmentação de dados**: o `sourceName` do `slicerCacheN.xml` é o nome da coluna da tabela (ou do campo da dinâmica) e tem de casar com ele; `caption` é a legenda que aparece. O `name` e o `cache` são identificadores e ficam (D-27).
+30. Outros lugares onde sobra texto de quem fez a planilha: tinta (`xl/ink/`), suplementos (`xl/webextensions/`, propriedades), pessoas dos comentários (`xl/persons/`), `docProps/custom.xml`.
+31. **Seta do filtro com painel congelado**: a coluna que rola para trás das congeladas não pode desenhar a seta (ela cai por cima do título congelado). Vale igual para linha (D-15, v0.6.11.1).
+32. Texto feito só de espaços (alguém segurou a barra) é texto: passa por cima da vizinha vazia e esconde a linha da grade, igual no Excel (D-05, explicado).
 
 ## Como provar
 
 - `npm run test:fidelidade`: ida e volta em todas as amostras, openpyxl e LibreOffice. Diferença nova faz o teste falhar.
+- **O juiz do cálculo é o valor que o próprio Excel guardou no arquivo** (`<v>`), não o LibreOffice, quando a planilha usa FILTRO, ÚNICO e funções novas em cadeia (L-11). Cópia anonimizada não serve para isso: os valores guardados são dos dados antigos (L-12).
 - `node scripts/fidelidade/conferir.mjs <arquivo.xlsx>`: o mesmo para um arquivo só (mostra endereços e contagens, nunca o texto das células).
 - Item novo aqui: junto com o teste que prova o defeito.

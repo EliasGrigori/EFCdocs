@@ -11,7 +11,7 @@ import { escapar, XML_CAB } from './xml.js';
 import { gravarEstilos } from './estilos.js';
 import { porPrefixos } from './formulas.js';
 import { lerGuardada } from '../formula.js';
-import { chave, letraCol, lerChave } from '../ref.js';
+import { chave, letraCol, lerChave, MAX_COL } from '../ref.js';
 import { valorGuardado, LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao } from '../modelo.js';
 import { ehErro } from '../valores.js';
 import { Motor } from '../motor.js';
@@ -23,13 +23,18 @@ const NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationship
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
 const CT = 'application/vnd.openxmlformats-officedocument.spreadsheetml.';
 
+/** v0.6.11 (D-24): <filterColumn> guardado como veio do Excel, com o número da coluna da faixa. */
+const colunaCrua = (bruto, colId) => String(bruto).replace(/^<((?:\w+:)?filterColumn)\b/, `<$1 colId="${colId}"`);
 /** v0.6.3: <autoFilter> com os critérios de lista (textos que ficam; '' = células vazias). */
 function gravarFiltro(fil) {
   if (!fil || !/^[A-Z]+\d+:[A-Z]+\d+$/.test(fil.fx || '')) return '';
   const a1 = lerChave(fil.fx.split(':')[0]);
   const cols = Object.keys(fil.cr || {}).map(Number).filter((c) => a1 && c >= a1.c).sort((x, y) => x - y);
-  if (!cols.length) return `<autoFilter ref="${fil.fx}"/>`;
-  const dentro = cols.map((col) => {
+  /* v0.6.11 (D-24): critérios guardados como vieram (data, cor...) nas colunas sem critério do app */
+  const crus = Object.keys(fil.cx || {}).map(Number).filter((c) => a1 && c >= a1.c && !cols.includes(c));
+  if (!cols.length && !crus.length) return `<autoFilter ref="${fil.fx}"/>`;
+  const dentro = [...cols, ...crus].sort((x, y) => x - y).map((col) => {
+    if (!fil.cr || !fil.cr[col]) return colunaCrua(fil.cx[col], col - a1.c);
     const v = fil.cr[col].v || [];
     const vazio = v.includes('');
     const itens = v.filter((t) => t !== '').map((t) => `<filter val="${escapar(t, true)}"/>`).join('');
@@ -44,6 +49,8 @@ function gravarFiltro(fil) {
  * Devolve [{ t, ref, cols, xmlAuto }] da aba, ou o motivo de ter ficado de fora (em fora).
  */
 const NOME_TAB_OK = /^[A-Za-z_\u00C0-\u024F][A-Za-z0-9_.\u00C0-\u024F]{0,250}$/;
+/** v0.6.11 (D-20): texto do título numérico de tabela (o mesmo na célula e no nome da coluna). */
+const textoDeTitulo = (v) => (typeof v === 'boolean' ? (v ? 'VERDADEIRO' : 'FALSO') : String(v));
 function tabelasDaAba(c, abaId, aba, fora) {
   const out = [];
   for (const t of Object.values(c.tabelas || {})) {
@@ -59,10 +66,11 @@ function tabelasDaAba(c, abaId, aba, fora) {
         const v = x && x.f == null ? valorGuardado(x) : null;
         /* v0.6.9.1: o nome da coluna da tabela tem de ser IGUAL ao texto da célula do título (espaço no fim e quebra de linha
            contam). Antes o texto era aparado e o Excel, ao ver nomes diferentes, "reparava" o arquivo e apagava a tabela. */
-        cols.push(typeof v === 'string' ? v : '');
+        cols.push(typeof v === 'string' ? v : (typeof v === 'number' || typeof v === 'boolean') ? textoDeTitulo(v) : '');
       }
       const vistos = new Set();
-      if (cols.some((x) => { const k = x.toLowerCase(); if (!x.trim() || vistos.has(k) || x.length > 255) return true; vistos.add(k); return false; })) { fora.push(t.nome); continue; }
+      /* v0.6.11.1 (D-28): título só com espaço (" ") vale no Excel; só o título vazio de verdade impede a tabela */
+      if (cols.some((x) => { const k = x.toLowerCase(); if (x === '' || vistos.has(k) || x.length > 255) return true; vistos.add(k); return false; })) { fora.push(t.nome); continue; }
     } else {
       cols = Array.from({ length: n }, (_, i) => (Array.isArray(t.cols) && typeof t.cols[i] === 'string' && t.cols[i] ? t.cols[i] : 'Coluna' + (i + 1)));
     }
@@ -148,6 +156,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     /* junta as células por linha */
     const linhas = new Map();
     const por = (l, cc, x) => { let L = linhas.get(l); if (!L) { L = new Map(); linhas.set(l, L); } L.set(cc, x); };
+    /* v0.6.11 (D-20): título de tabela com número (2024) vai como TEXTO, como o Excel grava; o nome da coluna é o mesmo texto */
+    const titulosTexto = new Set();
+    for (const t of Object.values(c.tabelas || {})) if (t && t.aba === id && t.cab && Number.isInteger(t.l1)) for (let cc = t.c1; cc <= t.c2; cc++) titulosTexto.add(letraCol(cc) + (t.l1 + 1));
     for (const [k, cel] of Object.entries(aba.cel || {})) {
       const p = lerChave(k);
       if (!p || !cel) continue;
@@ -247,6 +258,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
         }
         const v = valorGuardado(cel);
         if (v == null) { if (cel.s) cels.push(`<c r="${r}"${s}/>`); continue; }
+        if (cel.f == null && (typeof v === 'number' || typeof v === 'boolean') && titulosTexto.has(r)) { cels.push(`<c r="${r}"${s} t="s"><v>${ss(textoDeTitulo(v))}</v></c>`); continue; }
         const x = valorXml(v);
         if (x) cels.push(`<c r="${r}"${s}${x.t}>${x.v}</c>`);
         else cels.push(`<c r="${r}"${s} t="s"><v>${ss(String(v))}</v></c>`);
@@ -258,11 +270,21 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     const colunas = new Map();
     for (const [k, w] of Object.entries(aba.larg || {})) colunas.set(+k, { w });
     for (const [k, o] of Object.entries(aba.ocC || {})) if (o) colunas.set(+k, { ...(colunas.get(+k) || {}), oculta: true });
-    const cols = [...colunas.keys()].sort((a, b) => a - b).map((cc) => {
+    /* v0.6.11 (D-23): colunas ocultas até o fim da aba voltam como uma faixa só até XFD. Se a pessoa reexibiu alguma no meio,
+       a faixa começa depois da última reexibida. */
+    let fimOculto = null;
+    if (Number.isInteger(aba.ocCFim) && aba.ocCFim >= 0) {
+      let ini = aba.ocCFim, maior = ini;
+      for (const k of Object.keys(aba.ocC || {})) if (+k > maior) maior = +k;
+      for (let cc = aba.ocCFim; cc <= maior; cc++) if (!(aba.ocC && aba.ocC[cc])) ini = cc + 1;
+      if (ini < MAX_COL) fimOculto = ini;
+    }
+    const cols = [...colunas.keys()].sort((a, b) => a - b).filter((cc) => fimOculto == null || cc < fimOculto).map((cc) => {
       const x = colunas.get(cc);
       const w = x.w != null ? x.w : largPadrao(aba);
       return `<col min="${cc + 1}" max="${cc + 1}" width="${larguraExcel(w)}" customWidth="1"${x.oculta ? ' hidden="1"' : ''}/>`;
     });
+    if (fimOculto != null) { const w = (aba.larg && aba.larg[fimOculto]) ?? largPadrao(aba); cols.push(`<col min="${fimOculto + 1}" max="${MAX_COL}" width="${larguraExcel(w)}" customWidth="1" hidden="1"/>`); }
 
     let cab = '';
     const ip = gravarImpressaoAba(aba.imp, aba.nome);
@@ -326,7 +348,10 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     if (tabsAba.length) {
       const ids = tabsAba.map((tb) => {
         const n = tabelasG.length + 1;
-        const auto = tb === filNaTabela ? gravarFiltro(aba.fil).replace(/ref="[^"]+"/, `ref="${tb.refAuto}"`) : `<autoFilter ref="${tb.refAuto}"/>`;
+        /* v0.6.11 (D-24): o filtro da própria tabela volta com os critérios que vieram do Excel */
+        const fcx = Object.entries(tb.t.fcx || {}).filter(([k]) => +k >= 0 && +k < tb.cols.length).sort((x, y) => x[0] - y[0]);
+        const auto = tb === filNaTabela ? gravarFiltro(aba.fil).replace(/ref="[^"]+"/, `ref="${tb.refAuto}"`)
+          : fcx.length ? `<autoFilter ref="${tb.refAuto}">${fcx.map(([k, b]) => colunaCrua(b, +k)).join('')}</autoFilter>` : `<autoFilter ref="${tb.refAuto}"/>`;
         tabelasG.push({ ia, n, xml: xmlDaTabela(tb, n, auto) });
         return n;
       });

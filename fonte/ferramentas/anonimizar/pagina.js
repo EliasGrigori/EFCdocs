@@ -28,7 +28,7 @@ function mostrar(r, ms) {
   const ok = r.sobrou.length === 0;
   $('#conferencia').className = 'faixa ' + (ok ? 'ok' : 'cr');
   $('#conferencia').innerHTML = ok
-    ? `<b>Conferência automática: nada do original foi encontrado.</b> Procurei os ${num(r.conferidos)} textos mais compridos do seu arquivo dentro da cópia e nenhum apareceu.`
+    ? `<b>Conferência automática: nada do original foi encontrado.</b> Procurei os ${num(r.conferidos)} textos mais compridos do seu arquivo dentro da cópia e, um por um, os ${num(r.conferidosTodos || 0)} textos originais nos filtros, nas segmentações e nas outras partes: nenhum apareceu.`
     : `<b>Atenção: ${num(r.sobrou.length)} texto(s) do original ainda aparecem na cópia.</b> Não use este arquivo. Avise o Claude e diga em que parte foi: ${esc([...new Set(r.sobrou.map((s) => s.parte))].join(', '))}.`;
   const ficam = [];
   if (r.abas.length) ficam.push(`<li><b>Nomes das abas</b> (ficam como estão): ${r.abas.map(esc).join(' · ')}</li>`);

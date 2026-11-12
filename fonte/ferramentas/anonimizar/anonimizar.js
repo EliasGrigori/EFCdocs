@@ -16,6 +16,8 @@ const ehLetra = (ch) => /\p{L}/u.test(ch);
 /* ---------- XML: entidades e escapes _xHHHH_ ---------- */
 const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
 export const lerXmlTexto = (s) => s.replace(/&(#x[0-9a-fA-F]+|#\d+|amp|lt|gt|quot|apos);/g, (m, e) => (e[0] === '#' ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)) : ENT[e]));
+const AVISO_TINTA = 'O arquivo tinha desenho feito à mão (tinta): os traços foram apagados.';
+const AVISO_SUPLEMENTO = 'O arquivo usa suplementos do Office: as configurações guardadas por eles foram apagadas.';
 const lerEscapesX = (s) => s.replace(/_x([0-9a-fA-F]{4})_/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
 const escXml = (s, atributo) => { let r = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); if (atributo) r = r.replace(/"/g, '&quot;').replace(/\n/g, '&#10;').replace(/\r/g, '&#13;').replace(/\t/g, '&#9;'); return r; };
 /* texto de célula: \r e controles viram _xHHHH_; um "_xHHHH_" de verdade ganha o escape do sublinhado */
@@ -210,6 +212,23 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
     for (const c of linha[1].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) { const r = (c[1].match(/\br="([A-Z]+\d+)"/) || [])[1]; const tipo = (c[1].match(/\bt="([^"]*)"/) || [])[1] || 'n'; const colC = r ? numCol(r.replace(/\d+/g, '')) : 0; if (r && colC >= tb.c1 && colC <= tb.c2 && (tipo === 'n' || tipo === 'b' || tipo === 'e') && c[2] && /<v\b/.test(c[2])) { conj.add(r); const v = (c[2].match(/<v\b[^>]*>([^<]*)<\/v>/) || [])[1]; if (v != null) A.colunasQueFicam.add(lerXmlTexto(v)); } }
   }
 
+  /* v0.6.11.1 (D-27): os valores escolhidos num filtro (<filter val>, <customFilter val>) são textos das células e as datas do
+     filtro (<dateGroupItem>) são datas de verdade: trocam pelo MESMO sorteio das células, para o filtro continuar casando. */
+  const valorFiltro = (v) => { const cru = lerEscapesX(lerXmlTexto(v)); if (cru.trim() === '') return v; if (/^-?\d+(\.\d+)?$/.test(cru.trim())) return numeros ? A.numero(cru.trim(), false) : v; return gravarNomeColuna(A.texto(cru)); };
+  const dataDoGrupo = (at) => {
+    if (!numeros) return at;
+    const pega = (k) => { const m = at.match(new RegExp(`\\b${k}="(\\d+)"`)); return m ? +m[1] : null; };
+    const ano = pega('year'); if (ano == null) return at;
+    const d = new Date(Date.UTC(ano, (pega('month') || 1) - 1, pega('day') || 1, pega('hour') || 0, pega('minute') || 0, pega('second') || 0) - A.deslocDias * 86400000);
+    const novo = { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: d.getUTCHours(), minute: d.getUTCMinutes(), second: d.getUTCSeconds() };
+    return at.replace(/\b(year|month|day|hour|minute|second)="\d+"/g, (m, k) => `${k}="${novo[k]}"`);
+  };
+  const trocarFiltros = (xml) => (xml.indexOf('utoFilter') < 0 ? xml : xml.replace(/<((?:\w+:)?autoFilter)\b[^>]*>[\s\S]*?<\/\1>/g, (bloco) => bloco
+    .replace(/<((?:\w+:)?(?:filter|customFilter))\b([^>]*?)\bval="([^"]*)"/g, (m, tag, at, v) => { A.cont.filtros = (A.cont.filtros || 0) + 1; return `<${tag}${at}val="${valorFiltro(v)}"`; })
+    .replace(/<((?:\w+:)?dateGroupItem)\b([^>]*?)(\/?)>/g, (m, tag, at, barra) => { A.cont.filtros = (A.cont.filtros || 0) + 1; return `<${tag}${dataDoGrupo(at)}${barra}>`; })
+    .replace(/<((?:\w+:)?top10)\b([^>]*?)\bfilterVal="([^"]*)"/g, (m, tag, at, v) => `<${tag}${at}filterVal="${numeros ? A.numero(v, false) : v}"`)
+    .replace(/<((?:\w+:)?dynamicFilter)\b([^>]*?)(\/?)>/g, (m, tag, at, barra) => `<${tag}${at.replace(/\s(?:val|maxVal|valIso|maxValIso)="[^"]*"/g, '')}${barra}>`)));
+
   /* 3. cada parte */
   const trocarT = (xml) => xml.replace(/<(a:)?t\b([^>]*)>([^<]*)<\/\1?t>/g, (m, p, at, tx) => `<${p || ''}t${at}>${gravarTextoCelula(A.texto(lerEscapesX(lerXmlTexto(tx))))}</${p || ''}t>`);
   /* texto com vários trechos de formatação (texto rico): sorteia a frase inteira e reparte pelos trechos, para o título de tabela continuar igual ao da célula */
@@ -307,9 +326,21 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
       rel.tabelaDinamica = true; x = x.replace(/<dataField\b([^>]*?)\bname="([^"]*)"/g, (m, at, v) => `<dataField${at}name="${escXml(A.texto(lerXmlTexto(v)), true)}"`).replace(/\b(rowHeaderCaption|colHeaderCaption|dataCaption|grandTotalCaption|errorCaption|missingCaption)="([^"]*)"/g, (m, k, v) => `${k}="${escXml(A.texto(lerXmlTexto(v)), true)}"`);
     } else if (n === 'xl/connections.xml' || raiz === 'connections') {
       x = x.replace(/\b(connection|command|sourceFile|odcFile|url|post|description)="[^"]*"/g, '$1=""'); rel.avisos.push('O arquivo tem conexões de dados: os endereços foram apagados.');
-    } else if (/^xl\/(styles|theme\/|calcchain|metadata|richdata\/|worksheets\/|chartsheets\/|slicer|timeline|webextensions|ctrlprops\/|activex\/|querytables\/|model\/)/.test(baixo) || /^_rels\//.test(baixo)) {
-      if (/^xl\/(slicer|querytables|model|webextensions|activex)/.test(baixo)) rel.naoConhecidas.push(n);
+    } else if (/^xl\/(slicers|timelines)\//.test(baixo) || raiz === 'slicers' || raiz === 'timelines') {
+      /* v0.6.11.1 (D-27): segmentação de dados: a legenda é um título de coluna (troca como o título); o nome fica (é o que liga o desenho) */
+      x = x.replace(/\bcaption="([^"]*)"/g, (m, v) => `caption="${escXml(A.nomeColuna(lerEscapesX(lerXmlTexto(v))), true)}"`);
+    } else if (/^xl\/(slicercaches|timelinecaches)\//.test(baixo) || raiz === 'slicerCacheDefinition' || raiz === 'timelineCacheDefinition') {
+      /* o campo de origem tem de ser igual ao nome da coluna (ou do campo da tabela dinâmica) já trocado, senão o Excel pede reparo */
+      x = x.replace(/\bsourceName="([^"]*)"/g, (m, v) => `sourceName="${escXml(A.nomeColuna(lerEscapesX(lerXmlTexto(v))), true)}"`);
+      if (/timelinecaches/.test(baixo) || raiz === 'timelineCacheDefinition') rel.naoConhecidas.push(n);
+    } else if (/^xl\/ink\//.test(baixo) || raiz === 'ink') {
+      x = x.replace(/(<(?:\w+:)?trace\b[^>]*>)[^<]*(<\/(?:\w+:)?trace>)/g, '$10 0$2'); if (!rel.avisos.includes(AVISO_TINTA)) rel.avisos.push(AVISO_TINTA);
+    } else if (/^xl\/webextensions\//.test(baixo) || raiz === 'webextension' || raiz === 'taskpanes') {
+      if (/<(?:\w+:)?property\b/.test(x)) { x = x.replace(/(<(?:\w+:)?property\b[^>]*?\bvalue=")[^"]*"/g, '$1&quot;&quot;"'); if (!rel.avisos.includes(AVISO_SUPLEMENTO)) rel.avisos.push(AVISO_SUPLEMENTO); }
+    } else if (/^xl\/(styles|theme\/|calcchain|metadata|richdata\/|worksheets\/|chartsheets\/|featurepropertybag\/|ctrlprops\/|activex\/|querytables\/|model\/)/.test(baixo) || /^_rels\//.test(baixo)) {
+      if (/^xl\/(querytables|model|activex)/.test(baixo)) rel.naoConhecidas.push(n);
     } else rel.naoConhecidas.push(n);
+    x = trocarFiltros(x);
     saida.set(n, x);
   }
 
@@ -320,7 +351,28 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
   /* 5. conferência: procura no arquivo novo os textos originais mais compridos */
   const procurar = [...A.originais].filter((s) => s.length >= 6 && /\p{L}{3}/u.test(s)).sort((a, b) => b.length - a.length).slice(0, 400);
   const sobrou = [];
-  if (procurar.length) for (const a of arquivos) { if (typeof a.dados !== 'string') continue; for (const s of procurar) { if (a.dados.includes(s) || a.dados.includes(escXml(s, true))) { sobrou.push({ parte: a.nome, tamanho: s.length }); if (sobrou.length > 50) break; } } if (sobrou.length > 50) break; }
-  Object.assign(rel, { ...A.cont, deslocDias: A.deslocDias, conferidos: procurar.length, sobrou, tamanhoAntes: entrada.length || entrada.byteLength, tamanhoDepois: bytes.length });
+  /* nomes que ficam de propósito (segmentação, tabela dinâmica, objeto do desenho, nome definido) não contam como sobra */
+  const semNomes = (a) => (/^xl\/(slicers|slicerCaches|timelines|timelineCaches|drawings|pivotTables)\//i.test(a.nome) || a.nome === 'xl/workbook.xml' ? a.dados.replace(/\s(?:name|cache|displayName)="[^"]*"/g, '') : a.dados);
+  if (procurar.length) for (const a of arquivos) { if (typeof a.dados !== 'string') continue; const onde = semNomes(a); for (const s of procurar) { if (onde.includes(s) || onde.includes(escXml(s, true))) { sobrou.push({ parte: a.nome, tamanho: s.length }); if (sobrou.length > 50) break; } } if (sobrou.length > 50) break; }
+  /* v0.6.11.1 (D-27): segunda conferência, com TODOS os textos originais: procura valor idêntico em atributos e textos de todas as
+     partes (menos as células, que a troca cobre, e os estilos). Nomes que ficam de propósito (abas, tabelas, nomes definidos,
+     segmentações) não contam. Foi assim que os valores de filtro passaram sem aparecer na primeira conferência. */
+  const todos = new Set([...A.originais].filter((s) => s.length >= 4 && /\p{L}{3}/u.test(s)));
+  let conferidosExatos = 0;
+  if (todos.size) {
+    const ficam = new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos]);
+    for (const a of arquivos) { if (typeof a.dados !== 'string') continue; for (const m of a.dados.matchAll(/<(?:\w+:)?(?:slicer|timeline|slicerCacheDefinition|timelineCacheDefinition|pivotTableDefinition|pivotTable|cNvPr|definedName|table)\b[^>]*?\b(?:name|displayName|cache)="([^"]*)"/g)) ficam.add(lerXmlTexto(m[1])); }
+    for (const a of arquivos) {
+      if (typeof a.dados !== 'string' || /^xl\/(styles\.xml|theme\/|sharedStrings\.xml|calcChain\.xml)/i.test(a.nome) || /\.rels$/.test(a.nome) || a.nome === '[Content_Types].xml') continue;
+      const corpo = /^xl\/(worksheets|chartsheets|macrosheets|dialogsheets)\//i.test(a.nome) ? a.dados.replace(/<sheetData\b[\s\S]*?<\/sheetData>/, '') : a.dados;
+      for (const m of corpo.matchAll(/="([^"]{4,})"|>([^<]{4,})</g)) {
+        conferidosExatos++;
+        const v = lerEscapesX(lerXmlTexto(m[1] != null ? m[1] : m[2])).trim();
+        if (todos.has(v) && !ficam.has(v)) { sobrou.push({ parte: a.nome, tamanho: v.length }); if (sobrou.length > 200) break; }
+      }
+      if (sobrou.length > 200) break;
+    }
+  }
+  Object.assign(rel, { ...A.cont, deslocDias: A.deslocDias, conferidos: procurar.length, conferidosTodos: todos.size, sobrou, tamanhoAntes: entrada.length || entrada.byteLength, tamanhoDepois: bytes.length });
   return { bytes, relatorio: rel };
 }

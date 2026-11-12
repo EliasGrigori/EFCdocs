@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.10.1', async () => {
+await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.11.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.10.1'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.11.1'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.10.1'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.11.1'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -4390,7 +4390,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.10.1'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.11.1'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4608,6 +4608,84 @@ await caso('v0.6.9.2: imagem inserida com o painel congelado ocupando a tela (ce
   certo(bb.x >= cv.x - 1 && bb.x < cv.x + cv.width - 20, `e dentro na horizontal (x ${Math.round(bb.x)})`);
   await print(q, 'v0692-imagem-congelado-celular');
   await ctx.close();
+});
+
+/* v0.6.11 (D-11, D-17): dentro da mesclada não aparece borda (nem a "caixinha" da célula do canto) */
+const AMOSTRA_V0611 = fileURLToPath(new URL('../testes/amostras/amostra-v0611.xlsx', import.meta.url));
+const riscosNaFaixa = (pg, x1, x2, y) => pg.evaluate(({ x1, x2, y }) => {
+  const cv = document.querySelector('.pl-cv'); const r = cv.getBoundingClientRect(); const d = window.devicePixelRatio || 1;
+  const im = cv.getContext('2d').getImageData(Math.round((x1 - r.x) * d), Math.round((y - r.y) * d), Math.round((x2 - x1) * d), 1).data;
+  let n = 0, dentro = false;
+  for (let i = 0; i < im.length; i += 4) { const esc = im[i] + im[i + 1] + im[i + 2] < 300; if (esc && !dentro) n++; dentro = esc; }
+  return n;
+}, { x1, x2, y });
+await caso('v0.6.11: mesclada com borda em todas as células e mesclada com borda só no canto não mostram risco por dentro', async () => {
+  /* página nova (tema claro): os casos de antes deixam o tema escuro ligado */
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 800 } });
+  await abrirAmostra(p, AMOSTRA_V0611); await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(700);
+  const cv = await p.locator('.pl-cv').boundingBox();
+  /* geometria do arquivo: cabeçalhos 30 × 24 px; A = 64 px; B a H = 98 px; linha 1 = 20 px; linhas 2 a 4 = 32 px */
+  const xB = cv.x + 30 + 64, larg = 98, yL2 = cv.y + 24 + 20, alt = 32;
+  const dentroB = await riscosNaFaixa(p, xB + 6, xB + 3 * larg - 6, yL2 + 8);
+  const xF = xB + 3 * larg + 64; const dentroF = await riscosNaFaixa(p, xF + 6, xF + 3 * larg - 6, yL2 + 8);
+  await print(p, 'v0611-mescladas');
+  igual(dentroB, 0, 'riscos dentro de B2:D4 (linha 2)'); igual(dentroF, 0, 'riscos dentro de F2:H3 (linha 2)');
+  const fora = await riscosNaFaixa(p, xB - 10, xB + 10, yL2 + 2 * alt + 26); certo(fora >= 1, 'o contorno de fora continua (lado esquerdo de B)');
+  await ctx.close();
+});
+
+/* v0.6.11 (D-15): com filtro, o título da coluna não fica escondido debaixo da seta (planilha real anonimizada) */
+await caso('v0.6.11: com filtro ligado, o texto do título não passa por baixo da seta do filtro', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-real-anonimizada.xlsx', import.meta.url)));
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(1200);
+  await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('A7:W380'); await p.locator('.pl-nome').press('Enter'); await p.waitForTimeout(300);
+  await p.locator('button:has-text("Filtrar")').first().click(); await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(500);
+  let escuros = 0;
+  for (const col of [0, 3, 4]) {
+    const b = await p.locator(`[data-seta-filtro="${col}"]`).boundingBox();
+    escuros += await p.evaluate(({ x, y, w, h }) => {
+      const cv = document.querySelector('.pl-cv-cong') || document.querySelector('.pl-cv'); const r = cv.getBoundingClientRect(); const d = window.devicePixelRatio || 1;
+      const im = cv.getContext('2d').getImageData(Math.round((x - r.x) * d), Math.round((y - r.y) * d), Math.round(w * d), Math.round(h * d)).data;
+      let n = 0; for (let i = 0; i < im.length; i += 4) if (im[i] + im[i + 1] + im[i + 2] < 250) n++; return n;
+    }, { x: b.x + 2, y: b.y + 2, w: b.width - 4, h: b.height - 4 });
+  }
+  await print(p, 'v0611-titulos-com-filtro');
+  await ctx.close();
+  igual(escuros, 0, 'pixels de texto debaixo das setas de A7, D7 e E7');
+});
+
+/* v0.6.11 (Grok B05): mexer no filtro aqui avisa que o filtro de data que veio do Excel saiu */
+await caso('v0.6.11: filtro de data que veio do Excel: mexer no filtro aqui mostra o aviso de que ele saiu', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 800 } });
+  await abrirAmostra(p, AMOSTRA_V0611); await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(600);
+  await p.locator('.pl-aba:has-text("FILTRO DATA")').click(); await p.waitForTimeout(500);
+  await p.waitForSelector('[data-seta-filtro="1"]');
+  await p.locator('[data-seta-filtro="1"]').dispatchEvent('pointerdown'); await p.waitForSelector('[data-filtro-menu]');
+  await p.locator('[data-filtro-tudo]').uncheck(); await p.locator('[data-filtro-v="L-08"]').check(); await p.locator('[data-filtro-ok]').click();
+  await p.waitForTimeout(300);
+  const aviso = await p.locator('.toast, [role=status]').allInnerTexts();
+  await print(p, 'v0611-aviso-filtro-de-fora');
+  await ctx.close();
+  certo(aviso.some((t) => /veio do Excel saiu/.test(t)), 'aviso: ' + aviso.join(' | '));
+});
+
+/* v0.6.11.1 (D-15, print do Elias de 04/11): com colunas congeladas e a planilha rolada para o lado, as setas do filtro das
+   colunas que foram para trás das congeladas não aparecem por cima dos títulos congelados (apareciam em dobro) */
+await caso('v0.6.11.1: setas do filtro de colunas roladas para trás das congeladas não aparecem por cima dos títulos', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-real-anonimizada.xlsx', import.meta.url)));
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(1200);
+  await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('A7:W380'); await p.locator('.pl-nome').press('Enter'); await p.waitForTimeout(300);
+  await p.locator('button:has-text("Filtrar")').first().click(); await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(400);
+  await p.mouse.move(1100, 500); await p.mouse.wheel(500, 0); await p.waitForTimeout(800);
+  const setas = await p.locator('[data-seta-filtro]').evaluateAll((els) => els.map((e) => [+e.getAttribute('data-seta-filtro'), Math.round(e.getBoundingClientRect().x)]));
+  await print(p, 'v06111-setas-com-congelado');
+  await ctx.close();
+  const xJ = (setas.find((q) => q[0] === 9) || [])[1]; certo(xJ > 0, 'a seta da última coluna congelada (J) aparece');
+  const porCima = setas.filter((q) => q[0] > 9 && q[1] <= xJ);
+  igual(porCima.length, 0, 'setas de colunas roladas por cima das congeladas: ' + JSON.stringify(porCima));
+  certo(setas.some((q) => q[0] > 9), 'as setas das colunas que continuam à vista aparecem');
 });
 
 await navegador.close();

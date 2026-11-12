@@ -10,7 +10,7 @@ import { lerZip } from './zip.js';
 import { atributos, tags, tag, desescapar, textoRico } from './xml.js';
 import { lerTema, lerEstilos, corDe } from './estilos.js';
 import { tirarPrefixos, trocarTabelas, porPrefixos } from './formulas.js';
-import { chave, letraCol, lerChave, numCol, MAX_LIN } from '../ref.js';
+import { chave, letraCol, lerChave, numCol, MAX_LIN, MAX_COL } from '../ref.js';
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
@@ -153,8 +153,12 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const cols = tags(t.dentro, 'tableColumn').map((c) => desescapar(c.a.name || ''));
       const nome = t.a.displayName || t.a.name;
       if (/<filterColumn\b/.test(t.dentro)) (f.filtros || (f.filtros = [])).push({ l1: p1.l + 1, l2: p2.l });
+      /* v0.6.11 (D-24): critérios do filtro da tabela (data, cor, lista...) ficam guardados como vieram e voltam ao salvar */
+      const fcx = {};
+      for (const fc of tags((tag(t.dentro, 'autoFilter') || {}).dentro || '', 'filterColumn')) fcx[+fc.a.colId || 0] = fc.bruto.replace(/\scolId="[^"]*"/, '');
       tabelas.set(nome.toLowerCase(), {
         nome, aba: f.nome, l1: p1.l, c1: p1.c, l2: p2.l, c2: p2.c, cols,
+        ...(Object.keys(fcx).length ? { fcx } : {}),
         cab: t.a.headerRowCount === '0' ? 0 : 1, tot: +(t.a.totalsRowCount || 0) > 0 || t.a.totalsRowShown === '1' && +(t.a.totalsRowCount || 0) > 0 ? 1 : 0,
         est: estiloDaTabela(tag(t.dentro, 'tableStyleInfo')) || { sem: 1 }, // v0.6.8 (Grok): sem estilo no arquivo, volta sem estilo
       });
@@ -534,6 +538,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       if (!(c1 >= 0)) continue;
       const w = cd.a.width != null ? parseFloat(cd.a.width) : null;
       const px = w != null ? Math.max(0, Math.trunc(((256 * w + Math.trunc(128 / 7)) / 256) * 7)) : null;
+      /* v0.6.11 (D-23): colunas ocultas até o fim da aba (max = 16384): as de depois de ultCol não viram uma a uma; fica a marca */
+      if ((cd.a.hidden === '1' || cd.a.hidden === 'true') && +cd.a.max >= MAX_COL && +cd.a.max - 1 > ultCol) aba.ocCFim = Math.min(aba.ocCFim ?? Infinity, c1);
       for (let c = c1; c <= c2; c++) {
         const oculta = cd.a.hidden === '1' || cd.a.hidden === 'true';
         if (oculta) (aba.ocC || (aba.ocC = {}))[c] = 1;
@@ -634,7 +640,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const p1 = lerChave(a1), p2 = lerChave(b1 || a1);
       const colunas = tags(af[2] || '', 'filterColumn');
       if (p1 && p2 && p2.l > p1.l) {
-        const cr = {};
+        const cr = {}, cx = {};
         let naoEntram = 0;
         for (const fc of colunas) {
           const lista = tag(fc.dentro, 'filters');
@@ -643,10 +649,11 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
             const v = tags(lista.dentro, 'filter').map((x) => x.a.val ?? '');
             if (lista.a.blank === '1' || lista.a.blank === 'true') v.push('');
             cr[col] = { v };
-          } else naoEntram++;
+          } else if (col >= p1.c && col <= p2.c) { naoEntram++; cx[col] = fc.bruto.replace(/\scolId="[^"]*"/, ''); }
         }
-        aba.fil = { fx: `${chave(p1.l, p1.c)}:${chave(p2.l, p2.c)}`, cr };
-        if (naoEntram) juntarFora('Filtros', naoEntram, 'critérios de data, cor ou "maiores que" não entram; as linhas escondidas continuam escondidas');
+        /* v0.6.11 (D-24): critério que o app não entende (data, cor, "maiores que") fica guardado em cx e volta ao salvar */
+        aba.fil = { fx: `${chave(p1.l, p1.c)}:${chave(p2.l, p2.c)}`, cr, ...(Object.keys(cx).length ? { cx } : {}) };
+        if (naoEntram) juntarFora('Filtros', naoEntram, 'critérios de data, cor ou "maiores que" ficam como vieram (as linhas continuam escondidas e o critério volta ao salvar); para mudar, use o filtro aqui');
       } else if (colunas.length) juntarFora('Filtros', 1, 'as linhas escondidas pelo filtro continuam escondidas; os botões de filtro não vêm');
       if (colunas.length && p1 && p2) filtros.push({ l1: p1.l + 1, l2: p2.l });
     }
@@ -681,7 +688,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   if (tabelas.size) {
     const porNome = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));
     const tb = {};
-    for (const [k, t] of tabelas) { const id = porNome.get(String(t.aba).toLowerCase()); if (id) tb[k] = { nome: t.nome, aba: id, l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2, cols: t.cols, cab: t.cab, tot: t.tot, ...(t.est ? { est: t.est } : {}) }; }
+    for (const [k, t] of tabelas) { const id = porNome.get(String(t.aba).toLowerCase()); if (id) tb[k] = { nome: t.nome, aba: id, l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2, cols: t.cols, cab: t.cab, tot: t.tot, ...(t.est ? { est: t.est } : {}), ...(t.fcx ? { fcx: t.fcx } : {}) }; }
     if (Object.keys(tb).length) conteudo.tabelas = tb;
   }
 
@@ -689,7 +696,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   const vistos = new Set();
   conteudo.ordem.forEach((id, i) => {
     const a = conteudo.abas[id];
-    let n = String(a.nome || '').trim().slice(0, 31) || NOME_ABA_PADRAO(i + 1);
+    /* v0.6.11 (D-22): o nome da aba fica EXATO como veio (o Excel aceita espaço no começo e no fim, e as fórmulas usam o nome exato) */
+    let n = String(a.nome || ''); n = (n.trim() ? n : NOME_ABA_PADRAO(i + 1)).slice(0, 31);
     while (vistos.has(n.toLowerCase())) n = n.slice(0, 28) + ' ' + (i + 1);
     vistos.add(n.toLowerCase());
     a.nome = n;

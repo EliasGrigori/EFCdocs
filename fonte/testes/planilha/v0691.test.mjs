@@ -38,11 +38,14 @@ test('v0.6.9.1: título com espaço no fim e quebra de linha: a tabela volta com
   assert.equal(Object.keys(c2.tabelas).length, 1);
 });
 
-test('v0.6.9.1: título só com espaços ou repetido (sem diferença de maiúsculas) continua indo como faixa normal', async () => {
+test('v0.6.9.1: título vazio ou repetido (sem diferença de maiúsculas) continua indo como faixa normal; v0.6.11.1 (D-28): título só com espaços vale, como no Excel', async () => {
   const c = (await lerXlsx(amostra('amostra-v066.xlsx'))).conteudo;
   const d = c.abas[idDe(c, 'Dados')];
   d.cel.B1 = { ...d.cel.B1, v: '   ' };
-  assert.ok(!(await texto((await gravarXlsx(c)).bytes))['xl/tables/table1.xml']);
+  assert.match((await texto((await gravarXlsx(c)).bytes))['xl/tables/table1.xml'], /name="   "/, 'título só com espaços: a tabela vai, com o nome igual ao da célula');
+  const c0 = (await lerXlsx(amostra('amostra-v066.xlsx'))).conteudo;
+  const d0 = c0.abas[idDe(c0, 'Dados')]; d0.cel.B1 = { ...d0.cel.B1, v: '' };
+  assert.ok(!(await texto((await gravarXlsx(c0)).bytes))['xl/tables/table1.xml'], 'título vazio: faixa normal');
   const c2 = (await lerXlsx(amostra('amostra-v066.xlsx'))).conteudo;
   const d2 = c2.abas[idDe(c2, 'Dados')];
   d2.cel.B1 = { ...d2.cel.B1, v: 'SEMANA' };

@@ -51,6 +51,8 @@ export function compararConteudos(a, b, { limite = 400 } = {}) {
         if (js(p[k]) === js(q[k])) continue;
         /* fórmula sem valor guardado no original: o valor novo é o que o EFCdocs calculou (quem confere é o LibreOffice) */
         if (k === 'v' && p.f != null && p.v === undefined) { calculados.push({ aba: nome, ref, f: p.f, v: q.v }); continue; }
+        /* v0.6.11: número que voltou como o mesmo texto (título de tabela: o Excel guarda como texto) */
+        if (k === 'v' && (typeof p.v === 'number' || typeof p.v === 'boolean') && typeof q.v === 'string' && (String(p.v) === q.v || (p.v === true ? 'VERDADEIRO' : 'FALSO') === q.v)) { add(nome, ref, 'v (número virou o mesmo texto)', p[k], q[k]); continue; }
         add(nome, ref, k, p[k], q[k]);
       }
     }

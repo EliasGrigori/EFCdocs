@@ -2196,7 +2196,7 @@ export function Planilha({ arquivo, cx }) {
   const gravarFiltro = (fil, rotulo) => {
     mudar(D.mudancasDoFiltro(aba, abaId, fil, textoDeDados), rotulo);
     /* v0.6.4 (Grok B02): diz quantas linhas ficaram, como o Excel faz na barra de baixo */
-    if (fil) { const n = D.contagemDoFiltro(fil, textoDeDados); if (n.total) cx.avisar(n.visiveis + ' de ' + n.total + ' linhas aparecem.', { ic: 'filtro' }); }
+    if (fil) { const n = D.contagemDoFiltro(fil, textoDeDados); if (n.total) cx.avisar(n.visiveis + ' de ' + n.total + ' linhas aparecem.' + (fil.cx ? D.AVISO_CX : ''), { ic: 'filtro' }); }
   };
   const alternarFiltro = () => {
     setMenuFiltro(null);
@@ -3371,16 +3371,16 @@ export function Planilha({ arquivo, cx }) {
             </>
           );
         })()}
-        {/* v0.6.3: setas do filtro nos títulos e menu de valores */}
+        {/* v0.6.3: setas do filtro nos títulos e menu de valores. v0.6.11.1 (D-15): título que rolou para trás do painel congelado (linha ou coluna) não mostra seta: ela caía por cima do título congelado, em dobro */}
         {aba.fil && !edit && (() => {
           const ff = D.faixaDoFiltro(aba.fil);
           if (!ff) return null;
           const y0 = G.yDe(ff.l1), y1 = G.yFim(ff.l1);
-          if (y1 - y0 < 14 || y1 < G.hh + 8 || y0 > tam.H) return null;
+          if (y1 - y0 < 14 || y1 < G.hh + 8 || y0 > tam.H || (ff.l1 >= G.cl && y1 < G.hh + G.fy + 8)) return null;
           const setas = [];
           for (let cc = ff.c1; cc <= ff.c2; cc++) {
             const x0 = G.xDe(cc), x1 = G.xFim(cc);
-            if (x1 - x0 < 22 || x1 < G.hw + 22 || x0 > tam.W - 4) continue;
+            if (x1 - x0 < 22 || x1 < G.hw + 22 || x0 > tam.W - 4 || (cc >= G.cc && x1 < G.hw + G.fx + 22)) continue;
             const filtrada = D.colunaFiltrada(aba.fil, cc);
             setas.push(
               <button key={cc} type="button" className={'pl-seta-filtro' + (filtrada ? ' on' : '')} data-seta-filtro={cc} tabIndex={-1}

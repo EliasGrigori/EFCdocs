@@ -46,7 +46,7 @@ const serieBase = (s, i, d, refs, cor) => ({
   nome: { txt: s.nome, ref: refs && refs.nome[i] || null },
   cats: { txt: d.cats, ref: refs && refs.cat || null, num: d.catsNum || null, fmt: d.catsFmt || null },
   vals: { num: s.vals, ref: refs && refs.val[i] || null, fmt: s.fmt || null },
-  preench: solido(cor), linha: { t: 'solido', cor: cor, larg: 2.25 }, contorno: null, linha: null, marcador: null, rotulos: null, pontos: {},
+  preench: solido(cor), contorno: null, linha: null, /* v0.6.11 (D-18): tinha um 'linha' repetido antes; valia este */ marcador: null, rotulos: null, pontos: {},
 });
 const eixoCat = (pos = 'b', titulo = '') => ({ tipo: 'cat', pos, titulo: titulo ? { texto: titulo } : null, grade: null, linha: { t: 'solido', cor: null }, entre: true });
 const eixoVal = (pos = 'l', titulo = '', extra = {}) => ({ tipo: 'val', pos, titulo: titulo ? { texto: titulo } : null, grade: { t: 'solido', cor: null }, linha: null, ...extra });
