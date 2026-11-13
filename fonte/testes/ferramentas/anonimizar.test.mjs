@@ -254,3 +254,21 @@ test('anonimizador v0.6.14 (D-35): link de forma para aba que não existe mais n
   assert.equal(lugarNoXml(x, x.indexOf('#Velho') + 1), 'num link ou numa ligação (Target)');
   assert.equal(lugarNoXml(x, x.lastIndexOf('Velho')), 'numa validação (prompt)');
 });
+
+test('anonimizador v0.6.15 (D-56): rótulos em vários níveis do gráfico e nome do arquivo no gráfico de tabela dinâmica são trocados; função de fórmula e endereço de esquema não dão aviso falso', async () => {
+  const { criarZip } = await import('../../src/planilha/xlsx/zip.js');
+  const z = lerZip(amostra('amostra-anonimizar.xlsx')); const arqs = [];
+  const enc = (t) => new TextEncoder().encode(t);
+  for (const nome of z.nomes) arqs.push({ nome, dados: await z.bytes(nome) });
+  /* célula "SUBTOTAL" (texto que também é nome de função) e célula "http://schemas" (texto que aparece em todo xmlns) */
+  for (const q of arqs) if (q.nome === 'xl/worksheets/sheet1.xml') q.dados = enc(new TextDecoder().decode(q.dados).replace('</sheetData>', '<row r="900"><c r="A900" t="inlineStr"><is><t>SUBTOTAL</t></is></c><c r="B900"><f>SUBTOTAL(9,B1:B3)</f></c><c r="C900" t="inlineStr"><is><t>http://schemas</t></is></c><c r="D900"><f>Tabela1[[#This Row],[Valor]]</f></c><c r="E900" t="inlineStr"><is><t>This Row</t></is></c></row></sheetData>'));
+  arqs.push({ nome: 'xl/charts/chart9.xml', dados: enc('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:pivotSource><c:name>[Planilha da Maria Exemplo.xlsx]Resumo!Tabela dinâmica1</c:name><c:fmtId val="0"/></c:pivotSource><c:chart><c:plotArea><c:barChart><c:ser><c:cat><c:multiLvlStrRef><c:f>Resumo!$A$4:$B$8</c:f><c:multiLvlStrCache><c:ptCount val="2"/><c:lvl><c:pt idx="0"><c:v>Carlos Fulano</c:v></c:pt><c:pt idx="1"><c:v>Beltrana Souza</c:v></c:pt></c:lvl></c:multiLvlStrCache></c:multiLvlStrRef></c:cat></c:ser></c:barChart></c:plotArea></c:chart></c:chartSpace>') });
+  const { bytes, relatorio } = await anonimizar(await criarZip(arqs), { sal: 3 });
+  assert.equal(relatorio.sobrou.length, 0, JSON.stringify(relatorio.sobrou));
+  const c = (await partes(bytes))['xl/charts/chart9.xml'];
+  for (const s of ['Carlos Fulano', 'Beltrana Souza', 'Maria Exemplo']) assert.ok(!c.includes(s), s + ' sobrou no gráfico');
+  assert.match(c, /<c:name>\[Pasta1\.xlsx\]Resumo!Tabela dinâmica1<\/c:name>/);
+  /* a conferência continua achando sobra de verdade numa fórmula (texto entre aspas não é nome de função) */
+  const { lugarNoXml } = await import('../../ferramentas/anonimizar/anonimizar.js');
+  assert.equal(lugarNoXml('<f>"Velho"&amp;A1</f>', 4), 'numa fórmula');
+});

@@ -314,6 +314,10 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
         .replace(/<cx:numDim\b[\s\S]*?<\/cx:numDim>/g, (m) => (numeros ? m.replace(/<cx:pt\b([^>]*)>([^<]*)<\/cx:pt>/g, (mm, at, v) => `<cx:pt${at}>${A.numero(v, false)}</cx:pt>`) : m))
         .replace(/<cx:v>([^<]*)<\/cx:v>/g, (m, v) => `<cx:v>${gravarTextoCelula(A.texto(lerXmlTexto(v)))}</cx:v>`)
         .replace(/<cx:f\b([^>]*)>([^<]*)<\/cx:f>/g, (m, at, f) => `<cx:f${at}>${escXml(A.formula(lerXmlTexto(f)))}</cx:f>`);
+      /* v0.6.15 (D-56): rótulos em vários níveis (gráfico de tabela dinâmica: <c:multiLvlStrCache>), faixa de rótulos (c15) e o nome da
+         pasta de trabalho guardado no gráfico de tabela dinâmica ("[arquivo.xlsx]Aba!Tabela dinâmica1"; o Excel não usa o nome do arquivo) */
+      x = x.replace(/<(c:multiLvlStrCache|c15:dlblRangeCache)>[\s\S]*?<\/\1>/g, (m) => m.replace(/<c:v>([^<]*)<\/c:v>/g, (mm, v) => `<c:v>${gravarTextoCelula(A.texto(lerXmlTexto(v)))}</c:v>`))
+        .replace(/(<c:pivotSource>\s*<c:name>)\[[^\]<]*\]/g, '$1[Pasta1.xlsx]');
       x = trocarT(x).replace(/<c:strCache>[\s\S]*?<\/c:strCache>/g, (m) => m.replace(/<c:v>([^<]*)<\/c:v>/g, (mm, v) => `<c:v>${gravarTextoCelula(A.texto(lerXmlTexto(v)))}</c:v>`))
         .replace(/<c:(numCache|numLit)>[\s\S]*?<\/c:\1>/g, (m) => (numeros ? m.replace(/<c:v>([^<]*)<\/c:v>/g, (mm, v) => `<c:v>${A.numero(v, false)}</c:v>`) : m))
         .replace(/<c:strLit>[\s\S]*?<\/c:strLit>/g, (m) => m.replace(/<c:v>([^<]*)<\/c:v>/g, (mm, v) => `<c:v>${gravarTextoCelula(A.texto(lerXmlTexto(v)))}</c:v>`))
@@ -386,7 +390,14 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
   /* v0.6.12 (D-31): nome de aba, de tabela e nome definido aparecem em fórmulas, em docProps/app.xml e nos vínculos; uma célula com
      o mesmo texto (ex.: "ENTRADAS", que também é nome de aba) dava aviso falso. Os nomes que ficam saem do texto antes da procura. */
   const nomesQueFicam = [...new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos, ...rel.outrosNomes, ...rel.abasDeFora, ...rel.abasCitadas])].filter((s) => s.length >= 3).sort((a, b) => b.length - a.length);
-  const semNomes = (a) => { let t = (/^xl\/(slicers|slicerCaches|timelines|timelineCaches|drawings|pivotTables)\//i.test(a.nome) || a.nome === 'xl/workbook.xml' ? a.dados.replace(/\s(?:name|cache|displayName)="[^"]*"/g, '') : a.dados); for (const nm of nomesQueFicam) { /* v0.6.14 (D-35): no link, o nome da aba vem com %20 no lugar do espaço ("#'Relatório%20e%20Estatística'!A1") */ for (const v of new Set([nm.replace(/ /g, '%20'), escXml(nm.replace(/ /g, '%20'), true)])) if (v !== nm && t.includes(v)) t = t.split(v).join('\u0001'); if (t.includes(nm)) t = t.split(nm).join('\u0001'); const e = escXml(nm, true); if (e !== nm && t.includes(e)) t = t.split(e).join('\u0001'); } return t; };
+  /* v0.6.15: o que nunca leva dado da pessoa sai antes da procura: declarações de namespace e endereços de esquema (um texto original
+     como "http://" aparecia em todas as partes) e, nas fórmulas, os nomes das funções e as palavras das tabelas (uma célula "SUBTOTAL"
+     aparecia dentro de SUBTOTAL(9;...)) */
+  /* rótulos que o Excel gera ao agrupar datas ou números da tabela dinâmica ("21/out") já foram trocados; um trocado pode, por acaso,
+     ficar igual a outro rótulo original (só 3 letras e 2 números): não é sobra */
+  const semEstrutura = (t) => t.replace(/(<rangePr\b[^>]*\/>\s*<groupItems\b[^>]*>)[\s\S]*?(<\/groupItems>)/g, '$1$2').replace(/\s(?:xmlns(?::[\w.-]+)?|mc:Ignorable|Requires|uri|ContentType|PartName|Type)="[^"]*"/g, ' ')
+    .replace(/<((?:\w+:)?(?:f|formula|formula1|formula2|calculatedColumnFormula|totalsRowFormula|definedName))\b([^>]*)>([^<]*)<\/\1>/g, (m, tag, at, f) => `<${tag}${at}>${f.replace(/\b[A-Z][A-Z0-9._]*\(/g, '\u0001(').replace(/#(?:This Row|Headers|Totals|Data|All)/g, '\u0001')}</${tag}>`);
+  const semNomes = (a) => { let t = semEstrutura(/^xl\/(slicers|slicerCaches|timelines|timelineCaches|drawings|pivotTables)\//i.test(a.nome) || a.nome === 'xl/workbook.xml' ? a.dados.replace(/\s(?:name|cache|displayName)="[^"]*"/g, '') : a.dados); for (const nm of nomesQueFicam) { /* v0.6.14 (D-35): no link, o nome da aba vem com %20 no lugar do espaço ("#'Relatório%20e%20Estatística'!A1") */ for (const v of new Set([nm.replace(/ /g, '%20'), escXml(nm.replace(/ /g, '%20'), true)])) if (v !== nm && t.includes(v)) t = t.split(v).join('\u0001'); if (t.includes(nm)) t = t.split(nm).join('\u0001'); const e = escXml(nm, true); if (e !== nm && t.includes(e)) t = t.split(e).join('\u0001'); } return t; };
   if (procurar.length) for (const a of arquivos) { if (typeof a.dados !== 'string') continue; const onde = semNomes(a); for (const s of procurar) { if (onde.includes(s) || onde.includes(escXml(s, true))) { sobrou.push({ parte: a.nome, tamanho: s.length, lugar: lugarNoXml(onde, onde.includes(s) ? onde.indexOf(s) : onde.indexOf(escXml(s, true))) }); if (sobrou.length > 50) break; } } if (sobrou.length > 50) break; }
   /* v0.6.11.1 (D-27): segunda conferência, com TODOS os textos originais: procura valor idêntico em atributos e textos de todas as
      partes (menos as células, que a troca cobre, e os estilos). Nomes que ficam de propósito (abas, tabelas, nomes definidos,
@@ -399,7 +410,8 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
     for (const v of [...ficam]) ficam.add(String(v).trim()); /* v0.6.13 (D-32): nome que fica com espaço no fim ("RESPONSAVEL ") é comparado sem o espaço */
     for (const a of arquivos) {
       if (typeof a.dados !== 'string' || /^xl\/(styles\.xml|theme\/|sharedStrings\.xml|calcChain\.xml)/i.test(a.nome) || /\.rels$/.test(a.nome) || a.nome === '[Content_Types].xml') continue;
-      const corpo = /^xl\/(worksheets|chartsheets|macrosheets|dialogsheets)\//i.test(a.nome) ? a.dados.replace(/<sheetData\b[\s\S]*?<\/sheetData>/, '') : a.dados;
+      const corpo = (/^xl\/(worksheets|chartsheets|macrosheets|dialogsheets)\//i.test(a.nome) ? a.dados.replace(/<sheetData\b[\s\S]*?<\/sheetData>/, '') : a.dados)
+        .replace(/(<rangePr\b[^>]*\/>\s*<groupItems\b[^>]*>)[\s\S]*?(<\/groupItems>)/g, '$1$2'); /* v0.6.15: rótulo gerado pelo Excel, trocado (ver semEstrutura) */
       for (const m of corpo.matchAll(/="([^"]{4,})"|>([^<]{4,})</g)) {
         conferidosExatos++;
         const v = lerEscapesX(lerXmlTexto(m[1] != null ? m[1] : m[2])).trim();
