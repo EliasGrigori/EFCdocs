@@ -49,6 +49,7 @@ export function normalizarPlanilha(c) {
   /* v0.5.0: veio do Excel (relatório, fonte padrão do arquivo e "ainda não mexido") */
   if (c.importado && typeof c.importado === 'object') out.importado = c.importado;
   if (typeof c.fonteBase === 'string') out.fonteBase = c.fonteBase;
+  if (Number.isFinite(c.tamBase) && c.tamBase >= 1 && c.tamBase <= 409) out.tamBase = c.tamBase; /* v0.6.14 (D-48): tamanho da letra do Normal */
   /* v0.6.5: tema do Excel (XML), para o arquivo salvo voltar com as mesmas cores do tema */
   if (typeof c.temaXml === 'string' && c.temaXml.length < 120000 && /^<(\w+:)?theme\b/.test(c.temaXml) && !/<script/i.test(c.temaXml)) out.temaXml = c.temaXml;
   if (c.calcExcel === true) out.calcExcel = true;
@@ -78,6 +79,10 @@ export function indiceEstilo(estilos, e) {
   return { s: estilos.length, estilos: [...estilos, JSON.parse(k)] };
 }
 export const estiloDe = (c, cel) => (cel && cel.s ? c.estilos[cel.s] || {} : {});
+/** v0.6.14 (D-47): estilo que a célula vazia herda da linha inteira ou, se não, da coluna inteira (como o Excel). 0 = nenhum. */
+export const estiloHerdado = (aba, l, c) => (aba && ((aba.estL && aba.estL[l]) || (aba.estC && aba.estC[c]) || (aba.estCFim && c >= aba.estCFim.c && aba.estCFim.s))) || 0;
+/** A célula como está no modelo ou, vazia, só com o estilo herdado da linha/coluna. */
+export const celOuHerdada = (aba, l, c, cel) => { if (cel) return cel; const s = estiloHerdado(aba, l, c); return s ? { s } : undefined; };
 
 /* ---------- tamanho de linhas e colunas ---------- */
 /** v0.6.6: largura padrão da aba (px): a do arquivo do Excel (aba.largP, ex.: 64 px) ou a do EFCdocs (80 px, melhor para o toque). */

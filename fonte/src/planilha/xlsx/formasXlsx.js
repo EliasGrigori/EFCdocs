@@ -7,7 +7,7 @@ import { escapar } from './xml.js';
 import { lerCor, lerSpPr } from './graficosXlsx.js';
 import { figuraParaTexto } from './imagensXlsx.js';
 import { LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao } from '../modelo.js';
-import { CONHECIDOS, assinaturaForma, limparForma, PT_PX } from '../formas.js';
+import { CONHECIDOS, assinaturaForma, formaSemMudanca, limparForma, PT_PX } from '../formas.js';
 
 export const EMU = 9525;
 const EMU_PT = 12700;
@@ -83,6 +83,8 @@ function lerTexto(tb, padrao, fontes, tema) {
   /* tamanho de base do lstStyle */
   const lst = filho(tb, 'lstStyle'), l1 = lst && filho(lst, 'lvl1pPr'), d1 = l1 && filho(l1, 'defRPr');
   const tamBase = d1 && d1.a.sz ? int(d1.a.sz) / 100 : 11;
+  /* v0.6.14 (D-30): cor padrão do texto gravada no lstStyle (forma sem estilo de tema) */
+  { const sf = d1 && filho(d1, 'solidFill'); const c = sf && lerCor(sf, tema); if (c) t.cor = c.cor; }
   const fonte = (tf) => (!tf ? undefined : tf === '+mn-lt' ? fontes.menor : tf === '+mj-lt' ? fontes.maior : /^\+/.test(tf) ? undefined : tf);
   const estiloDe = (rp, base = {}) => {
     const o = { ...base };
@@ -370,7 +372,7 @@ export function ligarFormaAoLivro(o, idDoNome) {
     if (p.link && p.link.abaNome) { const id = idDoNome(p.link.abaNome); if (id) p.link = { aba: id, ...(p.link.ref ? { ref: p.link.ref } : {}) }; }
     if (p.texto && p.texto.ligado && p.texto.ligado.abaNome) { const id = idDoNome(p.texto.ligado.abaNome); if (id) p.texto.ligado = { aba: id, ref: p.texto.ligado.ref }; }
   }
-  if (o.xo) o.xoSig = assinaturaForma(o);
+  if (o.xo) o.xoSig = assinaturaForma(o, { estavel: true }); /* v0.6.14 (D-51) */
   return o;
 }
 
@@ -424,10 +426,12 @@ function textoXml(t, ctx) {
   const runXml = (r) => {
     const rp = `<a:rPr lang="pt-BR" sz="${Math.round((r.tam || t.tam || 11) * 100)}"${r.neg ? ' b="1"' : ' b="0"'}${r.it ? ' i="1"' : ''}${r.sub ? ' u="sng"' : ''}${r.tach ? ' strike="sngStrike"' : ''}>` +
       `<a:solidFill>${corXml(r.cor || t.cor || '#000000')}</a:solidFill>${r.fonte ? `<a:latin typeface="${escapar(r.fonte, true)}"/>` : ''}</a:rPr>`;
-    return String(r.t || '').split('\n').map((pedaco, i) => (i ? '<a:br>' + rp.replace(/^<a:rPr/, '<a:rPr').replace(/<\/a:rPr>$/, '</a:rPr>') + '</a:br>' : '') + (pedaco ? `<a:r>${rp}<a:t>${escapar(pedaco)}</a:t></a:r>` : '')).join('');
+    return String(r.t || '').split(/\r?\n/).map((pedaco, i) => /* v0.6.14 (D-40): quebra do Windows (\r\n) também vira quebra de linha */ (i ? '<a:br>' + rp.replace(/^<a:rPr/, '<a:rPr').replace(/<\/a:rPr>$/, '</a:rPr>') + '</a:br>' : '') + (pedaco ? `<a:r>${rp}<a:t>${escapar(pedaco)}</a:t></a:r>` : '')).join('');
   };
   const ps = (pars.length ? pars : [{ al: 'l', runs: [] }]).map((q) => `<a:p><a:pPr algn="${q.al === 'ctr' ? 'ctr' : q.al === 'r' ? 'r' : q.al === 'just' ? 'just' : 'l'}"/>${(q.runs || []).map(runXml).join('')}<a:endParaRPr lang="pt-BR" sz="${Math.round((q.tam || (q.runs && q.runs[0] && q.runs[0].tam) || t.tam || 11) * 100)}"/></a:p>`).join('');
-  return `<xdr:txBody>${bp}<a:lstStyle/>${ps}</xdr:txBody>`;
+  /* v0.6.14 (D-30): a cor padrão do texto vai no lstStyle (sem ela, a forma sem estilo de tema voltava com texto preto) */
+  const lst = t.cor && t.cor !== '#000000' ? `<a:lstStyle><a:lvl1pPr><a:defRPr><a:solidFill>${corXml(t.cor)}</a:solidFill></a:defRPr></a:lvl1pPr></a:lstStyle>` : '<a:lstStyle/>';
+  return `<xdr:txBody>${bp}${lst}${ps}</xdr:txBody>`;
 }
 
 /** Uma parte → XML (xdr:sp ou xdr:pic). x,y,w,h já em EMU. reg(tipo, valor) devolve o r:id novo. */
@@ -515,7 +519,7 @@ export function gravarForma(o, ctx) {
   let inner = '';
   const usouGrupo = []; // v0.6.8: gráficos que foram dentro do grupo
   let faltouGrafico = false;
-  if (o.xo && o.xoSig && o.xoSig === assinaturaForma(o) && o.xoRels) {
+  if (o.xo && formaSemMudanca(o) && o.xoRels) {
     /* sem mexer: o XML de antes, com r:id novos e a posição de agora */
     let ok = true;
     const mapa = {};

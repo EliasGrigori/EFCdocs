@@ -1,6 +1,6 @@
 /* EFCdocs — Planilha: as funções (cerca de 120), com as regras do Excel.
    Cada função recebe os nós da conta (args) e o contexto (ctx) do motor. */
-import { E, Erro, ehErro, aNumero, aTexto, aLogico, comparar, serialDe, dataDe, horaDe, diaSemana, diasNoMes,
+import { E, Erro, ehErro, aNumero, aTexto, aLogico, comparar, compararVazioNoFim, serialDe, dataDe, horaDe, diaSemana, diasNoMes,
   serialHoje, serialAgora, lerDataTexto, lerHoraTexto, lerNumeroPt } from './valores.js';
 import { Ref, Mat, ehRef, ehMat, ehMultiplo } from './tipos.js';
 import { criterio, curingaParaRegex } from './criterios.js';
@@ -329,7 +329,7 @@ export const IMPL = {
     for (const a of args) {
       if (a.t === 'vazio') { n++; continue; }
       const v = ctx.av(a);
-      if (ehRef(v) || ehMat(v)) ctx.cada(v, (x) => { if (x != null) n++; });
+      if (ehRef(v)) /* v0.6.14 (D-36): numa matriz (ÚNICO, FILTRO...) o vazio vira 0 e conta, como no Excel */ ctx.cada(v, (x) => { if (x != null) n++; }); else if (ehMat(v)) ctx.cada(v, () => { n++; }, true);
       else n++;
     }
     return n;
@@ -691,7 +691,7 @@ export const IMPL = {
       if (vistos.has(k)) continue;
       vistos.add(k);
       if (umaVez && cont.get(k) > 1) continue;
-      out.push(r.map((x) => (x == null ? 0 : x)));
+      out.push(r); /* v0.6.14 (D-36): a célula vazia continua vazia na lista (aparece como 0, mas o CLASSIFICAR a põe no fim, como o Excel) */
     }
     if (!out.length) return E.CALC;
     return porCol ? Mat.de(out[0].length, out.length, (i, j) => out[j][i]) : new Mat(out);
@@ -704,7 +704,7 @@ export const IMPL = {
     if ([idx, ordem].some(ehErro)) return E.VALOR;
     const linhas = porCol ? Mat.de(m.colunas, m.linhas, (i, j) => m.d[j][i]).d : m.d.map((r) => [...r]);
     if (idx < 1 || idx > (linhas[0] || []).length) return E.VALOR;
-    linhas.sort((a, b) => comparar(a[idx - 1], b[idx - 1]) * (ordem < 0 ? -1 : 1));
+    linhas.sort((a, b) => compararVazioNoFim(a[idx - 1], b[idx - 1], ordem < 0 ? -1 : 1));
     const fim = linhas.map((r) => r.map((x) => (x == null ? 0 : x)));
     return porCol ? Mat.de(fim[0].length, fim.length, (i, j) => fim[j][i]) : new Mat(fim);
   },
@@ -718,7 +718,7 @@ export const IMPL = {
       chaves.push({ l: v.lista, o: o < 0 ? -1 : 1 });
     }
     const idx = [...m.d.keys()];
-    idx.sort((a, b) => { for (const k of chaves) { const r = comparar(k.l[a], k.l[b]); if (r) return r * k.o; } return a - b; });
+    idx.sort((a, b) => { for (const k of chaves) { const r = compararVazioNoFim(k.l[a], k.l[b], k.o); if (r) return r; } return a - b; });
     return new Mat(idx.map((i) => m.d[i].map((x) => (x == null ? 0 : x))));
   },
   SEQUENCE: (args, ctx) => {

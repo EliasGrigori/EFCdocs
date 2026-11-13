@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { lerXlsx } from '../../src/planilha/xlsx/ler.js';
 import { gravarXlsx } from '../../src/planilha/xlsx/gravar.js';
+import { normalizarPlanilha } from '../../src/planilha/modelo.js';
 import { compararConteudos, resumir } from '../../testes/fidelidade/comparar.mjs';
 import { conhecida } from '../../testes/fidelidade/conhecidas.mjs';
 
@@ -35,11 +36,13 @@ export async function conferirArquivo(arq, { libreoffice = true, openpyxl = true
   const tmp = pasta || mkdtempSync(join(tmpdir(), 'efc-fid-'));
   mkdirSync(tmp, { recursive: true });
   const orig = new Uint8Array(readFileSync(arq));
-  const a = (await lerXlsx(orig)).conteudo;
+  /* v0.6.14 (D-51): como o app faz: o que é lido passa pela limpeza de quando a planilha fica guardada no aparelho */
+  const a = normalizarPlanilha((await lerXlsx(orig)).conteudo);
   /* v0.6.13 (D-29): grava como o app grava, com o original guardado (devolve tabela dinâmica, segmentações, controles, macros) */
   const salvo = (await gravarXlsx(a, null, { original: orig })).bytes;
   const b = (await lerXlsx(salvo)).conteudo;
-  const c = (await lerXlsx((await gravarXlsx(b)).bytes)).conteudo;
+  /* v0.6.14: a 2ª volta também com o original (sem ele, o tema com figura vira cor lisa de propósito: D-33) */
+  const c = (await lerXlsx((await gravarXlsx(b, null, { original: orig })).bytes)).conteudo;
   const d1 = compararConteudos(a, b, { limite: 1e7 }), d2 = compararConteudos(b, c, { limite: 1e7 });
   const out = {
     arquivo: basename(arq),
@@ -53,7 +56,12 @@ export async function conferirArquivo(arq, { libreoffice = true, openpyxl = true
   if (disp.openpyxl || disp.python) {
     const r = rodarPython('conferir-estrutura.py', [arqSalvo]);
     const erros = (r.stdout || '').split('\n').filter((l) => /^ {2}\S/.test(l)).map((l) => l.trim());
-    out.estrutura = r.status === 0 ? [] : erros.length ? Object.values(erros.reduce((g, e) => { const k = e.split(':')[0].replace(/ \S+$/, ''); (g[k] || (g[k] = { grupo: k, quantas: 0, exemplo: e.slice(0, 120) })).quantas++; return g; }, {})) : [{ grupo: 'erro do conferente: ' + ((r.stderr || '').split('\n').filter(Boolean).slice(-1)[0] || `saiu com ${r.status}`), quantas: 1 }];
+    /* v0.6.14 (D-50): regras que o Excel cobra e outros leitores deixam passar (prefixo sem declaração, tabelas, estilos...) */
+    const r2 = rodarPython('conferir-regras.py', [arqSalvo]);
+    const erros2 = (r2.stdout || '').split('\n').filter((l) => /^ {3}\S/.test(l)).map((l) => l.trim());
+    if (r2.status === 1) for (const e of erros2) erros.push(e);
+    else if (r2.status !== 0) erros.push('erro do conferente de regras: ' + ((r2.stderr || '').split('\n').filter(Boolean).slice(-1)[0] || `saiu com ${r2.status}`));
+    out.estrutura = r.status === 0 && !erros.length ? [] : erros.length ? Object.values(erros.reduce((g, e) => { const k = e.split(':')[0].replace(/ \S+$/, ''); (g[k] || (g[k] = { grupo: k, quantas: 0, exemplo: e.slice(0, 120) })).quantas++; return g; }, {})) : [{ grupo: 'erro do conferente: ' + ((r.stderr || '').split('\n').filter(Boolean).slice(-1)[0] || `saiu com ${r.status}`), quantas: 1 }];
   }
   if (openpyxl && disp.openpyxl) {
     const j = join(tmp, 'openpyxl.json'); const r = rodarPython('conferir-openpyxl.py', [arq, arqSalvo, '--json', j]);
@@ -86,7 +94,7 @@ export function classificar(r, { fora = false } = {}) {
   return { novas, sabidas };
 }
 
-export const listarXlsx = (alvos) => alvos.flatMap((p) => (statSync(p).isDirectory() ? readdirSync(p).filter((n) => /\.xlsx$/i.test(n) && !n.startsWith('~$')).sort().map((n) => join(p, n)) : [p]));
+export const listarXlsx = (alvos) => alvos.flatMap((p) => (statSync(p).isDirectory() ? readdirSync(p).filter((n) => /\.xls[xm]$/i.test(n) && !n.startsWith('~$')).sort().map((n) => join(p, n)) : [p]));
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const args = process.argv.slice(2); const fora = args.includes('--fora'); const semLo = args.includes('--sem-libreoffice');

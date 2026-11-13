@@ -139,6 +139,7 @@ export function aplicarBordas(c, abaId, faixas, tipo) {
       if (tipo === 'esq' && borda.esq) bd.l = 1;
       if (tipo === 'dir' && borda.dir) bd.r = 1;
       if (Object.keys(bd).length) e.bd = bd; else delete e.bd;
+      delete e.bdt; /* v0.6.14 (D-53): borda posta no app é a lisa (o tracejado do Excel fica só onde ninguém mexeu) */
       const s = lote.estilo(e);
       const nc = { ...cel };
       if (s) nc.s = s; else delete nc.s;
@@ -433,12 +434,17 @@ export function estrutura(c, abaId, eixo, i, n) {
     if (aba.alt) mud[`conteudo.abas.${abaId}.alt`] = mapaIdx(aba.alt);
     if (aba.ocL) mud[`conteudo.abas.${abaId}.ocL`] = mapaIdx(aba.ocL);
     if (aba.ocF) mud[`conteudo.abas.${abaId}.ocF`] = mapaIdx(aba.ocF);
+    if (aba.estL) mud[`conteudo.abas.${abaId}.estL`] = mapaIdx(aba.estL); /* v0.6.14 (D-47) */
   } else {
     if (aba.larg) mud[`conteudo.abas.${abaId}.larg`] = mapaIdx(aba.larg);
     if (aba.ocC) mud[`conteudo.abas.${abaId}.ocC`] = mapaIdx(aba.ocC);
     /* v0.6.11 (D-23): "ocultas até o fim da aba" anda junto com as colunas */
     if (Number.isInteger(aba.ocCFim)) { const v = move(aba.ocCFim); mud[`conteudo.abas.${abaId}.ocCFim`] = v == null ? undefined : v; }
+    if (Number.isInteger(aba.ocCFimAte)) { const v = move(aba.ocCFimAte); mud[`conteudo.abas.${abaId}.ocCFimAte`] = v == null || v >= MAX_COL - 1 ? undefined : v; } /* v0.6.14 (D-52) */
     if (aba.zeros) mud[`conteudo.abas.${abaId}.zeros`] = mapaIdx(aba.zeros);
+    /* v0.6.14 (D-47): estilo da coluna inteira anda junto; o "até o fim" começa onde a exclusão parou */
+    if (aba.estC) mud[`conteudo.abas.${abaId}.estC`] = mapaIdx(aba.estC);
+    if (aba.estCFim) { const v = move(aba.estCFim.c); mud[`conteudo.abas.${abaId}.estCFim`] = { ...aba.estCFim, c: v == null ? i : v }; }
   }
   if (aba.fil) mud[`conteudo.abas.${abaId}.fil`] = moverFiltro(aba.fil, eixo, move);
   if (aba.mesc && aba.mesc.length) {

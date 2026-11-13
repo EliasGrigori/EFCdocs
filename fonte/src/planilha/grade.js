@@ -2,15 +2,15 @@
    mesmo com muitas linhas) e "onde caiu o toque". */
 import { letraCol, MAX_LIN, MAX_COL, chave, lerChave } from './ref.js';
 import { formatar } from './formato.js';
-import { estiloDe, mescladas, mesclaEm } from './modelo.js';
+import { estiloDe, mescladas, mesclaEm, celOuHerdada } from './modelo.js';
 import { faixaDoFiltro } from './dados.js';
 import { ehErro } from './valores.js';
 import { estiloCondicional, estiloComRegras } from './regras.js';
 
 /** Estilo da célula com as regras de cor (formatação condicional) por cima. */
 export function estiloVisto(c, cel, motor, abaId, l, col) {
-  const base = estiloDe(c, cel);
   const aba = c.abas[abaId];
+  const base = estiloDe(c, cel || (aba && (aba.estL || aba.estC || aba.estCFim) ? celOuHerdada(aba, l, col) : cel));
   if (!aba || !aba.cf || !aba.cf.length) return base;
   return estiloComRegras(base, estiloCondicional(motor, c, abaId, l, col));
 }
@@ -308,10 +308,11 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
     }
   }
   /* bordas */
+  const herda = !!(aba.estL || aba.estC || aba.estCFim);
   for (let l = la; l <= lb; l++) {
     if (!G.linhas.tam(l)) continue;
     for (let col = ca; col <= cb; col++) {
-      const cel = aba.cel[chave(l, col)];
+      const cel = herda ? celOuHerdada(aba, l, col, aba.cel[chave(l, col)]) : aba.cel[chave(l, col)];
       if (!cel || !cel.s) continue;
       const e = estiloDe(c, cel);
       if (!e.bd) continue;

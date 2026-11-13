@@ -64,7 +64,7 @@ test('xlsx: styles.xml vira estilos do EFCdocs (fonte, preenchimento, bordas, al
   const { xfs, fonteBase } = lerEstilos(xml, lerTema(null));
   assert.equal(fonteBase.nome, 'Calibri');
   assert.deepEqual(xfs[0], {});
-  assert.deepEqual(xfs[1], { b: true, i: true, u: true, tam: 14, cor: '#ffffff', fundo: '#0f4c5c', bd: { l: 1, r: 2, t: 3, b: 3 }, bdc: '#999999', nf: '"R$" #,##0.00', al: 'c', av: 'm', qb: true });
+  assert.deepEqual(xfs[1], { b: true, i: true, u: true, tam: 14, cor: '#ffffff', fundo: '#0f4c5c', bd: { l: 1, r: 2, t: 3, b: 3 }, bdc: '#999999', bdt: { b: 'double' }, nf: '"R$" #,##0.00', al: 'c', av: 'm', qb: true });
   assert.equal(xfs[2].st, true); assert.equal(xfs[2].fonte, 'Arial'); assert.equal(xfs[2].nf, 'dd/mm/yyyy'); assert.equal(xfs[2].fundo, undefined, 'cinza 12,5% sem cor não vira preenchimento');
   assert.ok(/^#[0-9a-f]{6}$/.test(xfs[2].cor) && xfs[2].cor !== '#4472c4', 'cor do tema escurecida');
   assert.deepEqual(xfs[3], { nf: '0.00%', al: 'd', av: 't' });

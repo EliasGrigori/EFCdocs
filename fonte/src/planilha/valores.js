@@ -202,3 +202,5 @@ export function lerHoraTexto(t) {
   if (mi > 59 || se > 59 || h > 9999) return null;
   return (h * 3600 + mi * 60 + se) / 86400;
 }
+/** v0.6.14 (D-36): ordem do CLASSIFICAR e do CLASSIFICARPOR do Excel: vazio sempre por último, nas duas direções; o resto como comparar. */
+export function compararVazioNoFim(a, b, dir) { if (a == null || b == null) return a == null && b == null ? 0 : a == null ? 1 : -1; return comparar(a, b) * dir; }

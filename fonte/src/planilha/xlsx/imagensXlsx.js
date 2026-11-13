@@ -1,7 +1,7 @@
 /* EFCdocs — imagens da planilha ⇄ figuras do Excel (xdr:pic dentro do desenho da aba). v0.6.3.
    Ler: figura presa a uma célula vira objeto 'imagem' (guardada pequena, em texto data:). Gravar: o inverso. */
 import { tag } from './xml.js';
-import { escapar } from './xml.js';
+import { escapar, desescapar } from './xml.js';
 import { LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao } from '../modelo.js';
 import { gifAnimado } from '../imagem.js';
 import { IMG, imagemValida } from '../objetos.js';
@@ -72,7 +72,7 @@ export async function lerFiguraDaAncora(zip, relsD, an, aba) {
   const src = await figuraParaTexto(bytes, tipo);
   if (!imagemValida(src)) return { fora: 'figura grande demais' };
   const desc = /<(?:\w+:)?cNvPr\b[^>]*\bdescr="([^"]*)"/.exec(an.dentro);
-  return { obj: { tipo: 'imagem', ...geometriaDaAncora(an, aba), src, nome: desc ? desc[1].slice(0, 200) : '' }, animada: ext === 'gif' && gifAnimado(bytes) };
+  return { obj: { tipo: 'imagem', ...geometriaDaAncora(an, aba), src, nome: desc ? desescapar(desc[1]).slice(0, 200) : '' } /* v0.6.14 (D-41): o texto alternativo vem escapado (&#10; = quebra de linha); sem desescapar, cada ida e volta dobrava o &amp; */, animada: ext === 'gif' && gifAnimado(bytes) };
 }
 
 /**

@@ -14,7 +14,7 @@ import { Motor } from './motor.js';
 import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, textoFaixaCaixa, normalFaixa, lerEndereco, lerEnderecoCaixa, nomeAbaNaFormula } from './ref.js';
 import { indiceDe } from './indice.js';
 import { esperaDeConferir } from '../nucleo/ritmo.js';
-import { eixo, ALT_PADRAO, LARG_PADRAO, largPadrao, altPadrao, estiloDe, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
+import { eixo, ALT_PADRAO, LARG_PADRAO, largPadrao, altPadrao, estiloDe, celOuHerdada, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
 import { geometria, pintarGrade, mesmasCores, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, corDaGrade, estiloVisto } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
@@ -559,7 +559,8 @@ export function Planilha({ arquivo, cx }) {
       }
     }
     const k = chave(e.l, e.c);
-    const atual = abaE.cel[k] || {};
+    /* v0.6.14 (D-47): célula vazia numa linha ou coluna formatada inteira nasce com aquele formato (como no Excel) */
+    const atual = celOuHerdada(abaE, e.l, e.c, abaE.cel[k]) || {};
     const est = estiloDe(c, atual);
     let r = lerEntrada(texto, est.nf || 'General');
     if (r.erro) {
@@ -1636,7 +1637,7 @@ export function Planilha({ arquivo, cx }) {
         const l = destino.l1 + i, col = destino.c1 + j;
         if (l >= MAX_LIN || col >= MAX_COL) return;
         const k = chave(l, col);
-        const atual = lote.pegar(abaId, k) || {};
+        const atual = celOuHerdada(aba, l, col, lote.pegar(abaId, k)) || {};
         const est = estiloDe({ estilos: lote.estilos }, atual);
         const nova = { ...atual };
         delete nova.v; delete nova.f;
@@ -2116,7 +2117,7 @@ export function Planilha({ arquivo, cx }) {
     if (!lista) return;
     const { l, c: col } = lista;
     const k = chave(l, col);
-    const atual = aba.cel[k] || {};
+    const atual = celOuHerdada(aba, l, col, aba.cel[k]) || {};
     const est = estiloDe(c, atual);
     const lote = new O.Lote(c);
     const nova = { ...atual };

@@ -7,7 +7,8 @@ const IGNORAR_ABA = new Set(['id', 'cel']);
 /* números de identificação sorteados ou renumerados a cada leitura/gravação (objetos, regras, ligações internas do desenho) não contam.
    No XML guardado de formas e grupos, a posição (a:off/a:ext) é refeita a partir da âncora, que é comparada à parte (l, c, dx, dy, w, h).
    Medidas podem variar meio ponto na conversão de unidades do Excel. */
-const INTERNOS = new Set(['id', 'xoRels', 'xoNs', 'grTok', 'tok']);
+/* v0.6.14: xoSig é a assinatura do plano do gráfico (conta os números internos); o plano em si é comparado */
+const INTERNOS = new Set(['id', 'xoRels', 'xoNs', 'grTok', 'tok', 'xoSig']);
 const limparXml = (t) => t.replace(/ (id|r:id|r:embed|r:link|r:pict)="[^"]*"/g, '').replace(/ xmlns:r="[^"]*"/g, '').replace(/<a:(off|ext|chOff|chExt)\b[^>]*\/>/g, '<a:$1/>').replace(/\d+\.\d+/g, (n) => String(Math.round(+n)));
 const semIds = (x, chave) => (Array.isArray(x) ? x.map((y) => semIds(y)) : x && typeof x === 'object' ? Object.fromEntries(Object.keys(x).filter((k) => !INTERNOS.has(k)).map((k) => [k, semIds(x[k], k)])) : typeof x === 'string' && (chave === 'xo' || chave === 'xoSig') ? limparXml(x) : x);
 /** igualdade com folga de meio ponto nos números com casas decimais */
@@ -40,6 +41,13 @@ export function compararConteudos(a, b, { limite = 400 } = {}) {
     for (const k of new Set([...Object.keys(x), ...Object.keys(y)])) {
       if (IGNORAR_ABA.has(k)) continue;
       let p = semIds(x[k]), q = semIds(y[k]);
+      /* v0.6.14: forma que veio sem o XML guardado (montada pelas partes) e voltou com ele: o XML é só a cópia do que foi gravado */
+      if (k === 'objs' && Array.isArray(p) && Array.isArray(q)) q = q.map((o, i) => (o && p[i] && p[i].xo === undefined && o.xo !== undefined ? (({ xo, ...r }) => r)(o) : o));
+      /* v0.6.14 (L-15): conversa de comentários do Excel 365 vai como anotação comum (o texto e as respostas juntos): grupo próprio */
+      if (k === 'com' && p && q && typeof p === 'object' && typeof q === 'object') {
+        const conv = Object.keys(p).filter((r) => p[r] && p[r].enc && q[r] && String(q[r].t || '').startsWith(String(p[r].t || '').slice(0, 40)));
+        if (conv.length) { add(nome, '', 'com (conversa virou anotação)', conv.length, conv.length); p = { ...p }; q = { ...q }; for (const r of conv) { delete p[r]; delete q[r]; } }
+      }
       if (k === 'alt') { p = semPadrao(p, x.altP); q = semPadrao(q, y.altP); } else if (k === 'larg') { p = semPadrao(p, x.largP); q = semPadrao(q, y.largP); }
       if (!iguais(p, q)) add(nome, '', k, p, q);
     }

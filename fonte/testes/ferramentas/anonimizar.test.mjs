@@ -232,3 +232,25 @@ test('anonimizador v0.6.13 (D-32): aviso da validação depois de uma validaçã
   assert.ok(relatorio.outrosNomes.includes('Situação '));
   assert.equal(relatorio.sobrou.length, 0, JSON.stringify(relatorio.sobrou));
 });
+
+test('anonimizador v0.6.14 (D-35): link de forma para aba que não existe mais não dá aviso falso e vai para a lista; o aviso diz em que tipo de lugar sobrou', async () => {
+  const { criarZip } = await import('../../src/planilha/xlsx/zip.js');
+  const { lugarNoXml } = await import('../../ferramentas/anonimizar/anonimizar.js');
+  const z = lerZip(amostra('amostra-anonimizar.xlsx')); const arqs = [];
+  const enc = (t) => new TextEncoder().encode(t);
+  for (const nome of z.nomes) arqs.push({ nome, dados: await z.bytes(nome) });
+  /* "Venda grande" é texto de célula e também o nome de uma aba que já não existe, citada no link de uma forma */
+  arqs.push({ nome: 'xl/drawings/_rels/drawing9.xml.rels', dados: enc('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="#\'Venda%20grande\'!A1"/></Relationships>') });
+  arqs.push({ nome: 'xl/drawings/drawing9.xml', dados: enc('<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"/>') });
+  /* e uma aba que existe, com espaço no nome ("Venda grande ok", criada aqui), citada no link com %20: a parte "ok" não pode virar sobra */
+  for (const q of arqs) if (q.nome === 'xl/workbook.xml') q.dados = enc(new TextDecoder().decode(q.dados).replace('name="RESUMO"', 'name="Resumo Maria Exemplo"'));
+  arqs.push({ nome: 'xl/drawings/_rels/drawing8.xml.rels', dados: enc('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="#\'Resumo%20Maria%20Exemplo\'!A1"/></Relationships>') });
+  const { relatorio } = await anonimizar(await criarZip(arqs), { sal: 2 });
+  assert.deepEqual(relatorio.abasCitadas, ['Venda grande']);
+  assert.equal(relatorio.sobrou.length, 0, JSON.stringify(relatorio.sobrou));
+  /* o lugar: fórmula, link, atributo */
+  const x = '<c r="A1"><f>SOMA(Velho!A1)</f></c><Relationship Id="r" Target="#Velho!A1"/><dataValidation prompt="Velho"/>';
+  assert.equal(lugarNoXml(x, x.indexOf('Velho')), 'numa fórmula');
+  assert.equal(lugarNoXml(x, x.indexOf('#Velho') + 1), 'num link ou numa ligação (Target)');
+  assert.equal(lugarNoXml(x, x.lastIndexOf('Velho')), 'numa validação (prompt)');
+});

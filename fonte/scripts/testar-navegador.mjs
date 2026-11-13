@@ -86,10 +86,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.13', async () => {
+await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.14', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.13'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.14'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1896,7 +1896,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.13'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.14'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   await p.click('[data-ver-todos]');
   igual(await p.locator('.tema-b').count(), 18);
@@ -4390,7 +4390,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.13'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.14'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4766,6 +4766,55 @@ await caso('v0.6.13: relatório mostra o que fica guardado para voltar; Salvar c
   igual(nome, 'amostra-v0613.xlsx', 'sem macro, sai .xlsx:');
   certo(nomes.includes('xl/pivotTables/pivotTable1.xml') && nomes.includes('xl/slicers/slicer1.xml') && nomes.filter((n) => /ctrlProps\//.test(n)).length === 2, 'partes de volta: ' + nomes.filter((n) => /pivot|slicer|ctrl/.test(n)).join(' '));
   certo(/Voltaram do arquivo original/.test(toast), 'aviso ao salvar: ' + toast.slice(0, 200));
+});
+
+/* v0.6.14 (D-50, D-47): o arquivo real do Elias: salvar uma planilha com botão de macro depois de recarregar (a planilha guardada no
+   aparelho) dava um arquivo que o Excel pedia para reparar; e a célula vazia de coluna formatada nasce com o formato */
+await caso('v0.6.14: depois de recarregar, Salvar como Excel passa nas regras do Excel (botões com x14 declarado)', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-v0613.xlsx', import.meta.url)));
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(1500);
+  await p.reload(); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(1500);
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const arq = join(mkdtempSync(join(tmpdir(), 'efc-v0614-')), 'salvo.xlsx'); writeFileSync(arq, readFileSync(await dl.path()));
+  await ctx.close();
+  const { spawnSync } = await import('node:child_process');
+  const temLxml = spawnSync('python3', ['-c', 'import lxml'], { stdio: 'ignore' }).status === 0;
+  if (!temLxml) { console.log('   (sem python3/lxml: regras não conferidas)'); return; }
+  const r = spawnSync('python3', [fileURLToPath(new URL('./fidelidade/conferir-regras.py', import.meta.url)), arq], { encoding: 'utf8' });
+  igual(r.status, 0, 'regras do Excel: ' + (r.stdout || '').slice(0, 300));
+});
+await caso('v0.6.14: coluna formatada inteira no Excel: a célula vazia digitada nasce com o formato da coluna e volta assim', async () => {
+  const { criarZip, lerZip } = await import('../src/planilha/xlsx/zip.js');
+  const enc = (t) => new TextEncoder().encode(t);
+  const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', NR = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  const bytes = await criarZip([
+    { nome: '[Content_Types].xml', dados: enc('<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>') },
+    { nome: '_rels/.rels', dados: enc(`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${NR}/officeDocument" Target="xl/workbook.xml"/></Relationships>`) },
+    { nome: 'xl/_rels/workbook.xml.rels', dados: enc(`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${NR}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${NR}/styles" Target="styles.xml"/></Relationships>`) },
+    { nome: 'xl/workbook.xml', dados: enc(`<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="${NS}" xmlns:r="${NR}"><sheets><sheet name="Coleta" sheetId="1" r:id="rId1"/></sheets></workbook>`) },
+    { nome: 'xl/styles.xml', dados: enc(`<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="${NS}"><numFmts count="1"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/></numFmts><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/><xf numFmtId="164" fontId="0" fillId="2" borderId="0" applyFill="1" applyNumberFormat="1"/></cellXfs></styleSheet>`) },
+    { nome: 'xl/worksheets/sheet1.xml', dados: enc(`<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="${NS}"><cols><col min="3" max="3" width="14" style="1" customWidth="1"/></cols><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>Data da coleta</t></is></c></row></sheetData></worksheet>`) },
+  ]);
+  const arq = join(mkdtempSync(join(tmpdir(), 'efc-v0614-')), 'coluna-formatada.xlsx'); writeFileSync(arq, bytes);
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirAmostra(p, arq);
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(800);
+  await celula(p, 'C5');
+  await p.keyboard.type('46000'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  const mostra = await celula(p, 'C5');
+  await print(p, 'v0614-coluna-formatada');
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const salvo = new Uint8Array(readFileSync(await dl.path()));
+  await ctx.close();
+  igual(mostra, '09/12/2025', 'a célula nova mostra a data como a coluna:');
+  const z = lerZip(salvo); const x = new TextDecoder().decode(await z.bytes('xl/worksheets/sheet1.xml')); const st = new TextDecoder().decode(await z.bytes('xl/styles.xml'));
+  const s = (/<c r="C5" s="(\d+)"/.exec(x) || [])[1];
+  certo(s && /<col min="3" max="3"[^>]* style="\d+"/.test(x), 'coluna e célula com estilo: ' + x.slice(0, 400));
+  const xf = [...st.matchAll(/<xf [^>]*?(?:\/>|>[\s\S]*?<\/xf>)/g)].map((m) => m[0]).filter((t, i, l) => true);
+  certo(/numFmtId="164"/.test((st.split('<cellXfs')[1] || '').split(/<xf /)[+s + 1] || ''), 'o estilo da C5 tem o formato de data');
 });
 
 await navegador.close();

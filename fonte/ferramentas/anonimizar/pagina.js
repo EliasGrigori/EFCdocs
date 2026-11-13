@@ -29,12 +29,13 @@ function mostrar(r, ms) {
   $('#conferencia').className = 'faixa ' + (ok ? 'ok' : 'cr');
   $('#conferencia').innerHTML = ok
     ? `<b>Conferência automática: nada do original foi encontrado.</b> Procurei os ${num(r.conferidos)} textos mais compridos do seu arquivo dentro da cópia e, um por um, os ${num(r.conferidosTodos || 0)} textos originais nos filtros, nas segmentações e nas outras partes: nenhum apareceu.`
-    : `<b>Atenção: ${num(r.sobrou.length)} texto(s) do original ainda aparecem na cópia.</b> Não use este arquivo. Avise o Claude e diga em que parte foi: ${esc([...new Set(r.sobrou.map((s) => s.parte))].join(', '))}.`;
+    : `<b>Atenção: ${num(r.sobrou.length)} texto(s) do original ainda aparecem na cópia.</b> Não use este arquivo. Avise o Claude e diga em que parte foi: ${esc([...new Set(r.sobrou.map((s) => s.parte + (s.lugar ? ` (${s.lugar})` : '')))].join(', '))}.`;
   const ficam = [];
   if (r.abas.length) ficam.push(`<li><b>Nomes das abas</b> (ficam como estão): ${r.abas.map(esc).join(' · ')}</li>`);
   if (r.tabelas.length) ficam.push(`<li><b>Nomes das tabelas</b>: ${r.tabelas.map(esc).join(' · ')}</li>`);
   if (r.nomesDefinidos.length) ficam.push(`<li><b>Nomes definidos</b>: ${r.nomesDefinidos.map(esc).join(' · ')}</li>`);
   if ((r.outrosNomes || []).length) ficam.push(`<li><b>Nomes das segmentações, linhas do tempo e tabelas dinâmicas</b>: ${r.outrosNomes.map(esc).join(' · ')}</li>`);
+  if ((r.abasCitadas || []).length) ficam.push(`<li><b>Abas citadas em links que não existem nesta planilha</b>: ${r.abasCitadas.map(esc).join(' · ')}</li>`);
   if ((r.abasDeFora || []).length) ficam.push(`<li><b>Nomes de abas da outra pasta vinculada</b>: ${r.abasDeFora.map(esc).join(' · ')}</li>`);
   ficam.push('<li><b>Fórmulas</b>: a conta e os endereços das células ficam; só os textos entre aspas e os nomes das colunas de tabela mudam.</li>');
   ficam.push('<li><b>Cores, bordas, larguras, mesclas, congelamento e validações</b>: iguais ao original. Os números 0 e 1 também ficam.</li>');

@@ -11,6 +11,7 @@ import { atributos, tags, tag, desescapar, textoRico } from './xml.js';
 import { lerTema, lerEstilos, corDe } from './estilos.js';
 import { tirarPrefixos, trocarTabelas, porPrefixos } from './formulas.js';
 import { chave, letraCol, lerChave, numCol, MAX_LIN, MAX_COL } from '../ref.js';
+import { lerColunas } from './colunasXlsx.js';
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
@@ -122,7 +123,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   /* estilos do EFCdocs (sem repetição) e a ponte xf do Excel → índice do EFCdocs */
   let estilos = [{}];
   const ponte = est.xfs.map((e) => { const r = indiceEstilo(estilos, e); estilos = r.estilos; return r.s; });
-  const sDe = (xf) => (xf == null ? 0 : ponte[+xf] || 0);
+  /* v0.6.14 (D-46): célula sem s="" usa o estilo 0 do arquivo (o "Normal"), que pode ter letra 10 ou "centralizado no meio" */
+  const sDe = (xf) => (xf == null ? ponte[0] || 0 : ponte[+xf] || 0);
   const nfDe = (s) => (s ? estilos[s].nf : null);
 
   /* ---------- abas ---------- */
@@ -222,7 +224,11 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   const nomesDef = {};
   let areasImpressao = 0;
   const defsImp = {}; // v0.6.0: área e títulos de impressão por aba (índice da aba no livro)
-  for (const d of tags(tag(wb, 'definedNames')?.dentro || '', 'definedName')) {
+  const defs = tags(tag(wb, 'definedNames')?.dentro || '', 'definedName');
+  /* v0.6.14 (D-49): quantas vezes cada nome aparece (o mesmo nome em várias abas e no livro todo) */
+  const vezes = new Map();
+  for (const d of defs) { const k = (d.a.name || '').toLowerCase(); vezes.set(k, (vezes.get(k) || 0) + 1); }
+  for (const d of defs) {
     const n = d.a.name || '';
     if (/^_xlnm\./i.test(n)) {
       if (/Print_(Area|Titles)/i.test(n) && d.a.localSheetId != null) {
@@ -238,8 +244,17 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     if (/\[\d+\]/.test(ref)) { juntarFora('Nomes que apontam para outro arquivo', 1); continue; }
     ref = conv(ref, null, 0);
     const k = n.toLowerCase();
-    if (nomesDef[k]) { if (d.a.localSheetId != null) { juntarFora('Nomes que só valem numa aba (repetidos)', 1, n); } continue; }
+    /* repetido: fica o do livro todo (sem localSheetId), que as outras abas usam; os de uma aba só vão para "Ficou de fora" */
+    if (nomesDef[k]) {
+      if (d.a.localSheetId == null && nomesDef[k].local) { nomesDef[k] = { n, ref }; juntarFora('Nomes que só valem numa aba (repetidos)', 1, n); }
+      else juntarFora('Nomes que só valem numa aba (repetidos)', 1, n);
+      continue;
+    }
     nomesDef[k] = { n, ref };
+    if (d.a.localSheetId != null) nomesDef[k].local = true;
+    /* v0.6.14 (D-49): nome que só vale numa aba (e só aparece uma vez) continua só daquela aba ao salvar
+       (a conta não muda: o EFCdocs procura em todas) */
+    if (d.a.localSheetId != null && Number.isInteger(+d.a.localSheetId) && vezes.get(k) === 1) nomesDef[k].locIdx = +d.a.localSheetId;
   }
   if (areasImpressao) juntarFora('Áreas de impressão com várias partes', areasImpressao, 'veio só a primeira parte');
 
@@ -308,6 +323,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       /* v0.6.8 (Grok): altura escolhida à mão no Excel fica guardada mesmo igual à padrão (o Alt+Enter não pode mudar) */
       if (L.ht != null && (L.ht !== altDaAba() || L.mao)) { (aba.alt || (aba.alt = {}))[L.r] = L.ht; }
       if (L.oculta) { (aba.ocL || (aba.ocL = {}))[L.r] = 1; }
+      /* v0.6.14 (D-47): estilo da linha inteira (customFormat) */
+      if (L.s) (aba.estL || (aba.estL = {}))[L.r] = L.s;
     };
     const soltarPendentes = () => {
       for (const L of pendentes) gravarLinha(L);
@@ -538,21 +555,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
 
     /* colunas: largura, ocultas */
     const ultCol = Math.max(cMax + 50, 25);
-    for (const cd of colsDef) {
-      const c1 = +cd.a.min - 1, c2 = Math.min(+cd.a.max - 1, ultCol);
-      if (!(c1 >= 0)) continue;
-      const w = cd.a.width != null ? parseFloat(cd.a.width) : null;
-      const px = w != null ? Math.max(0, Math.trunc(((256 * w + Math.trunc(128 / 7)) / 256) * 7)) : null;
-      /* v0.6.11 (D-23): colunas ocultas até o fim da aba (max = 16384): as de depois de ultCol não viram uma a uma; fica a marca */
-      if ((cd.a.hidden === '1' || cd.a.hidden === 'true') && +cd.a.max >= MAX_COL && +cd.a.max - 1 > ultCol) aba.ocCFim = Math.min(aba.ocCFim ?? Infinity, c1);
-      for (let c = c1; c <= c2; c++) {
-        const oculta = cd.a.hidden === '1' || cd.a.hidden === 'true';
-        if (oculta) (aba.ocC || (aba.ocC = {}))[c] = 1;
-        /* v0.6.9.2 (Grok, D-09): a coluna oculta também guarda a largura (volta igual ao exportar e ao reexibir) */
-        if (px != null && px > 0 && px !== aba.largP) (aba.larg || (aba.larg = {}))[c] = px;
-      }
-    }
-
+    lerColunas(aba, colsDef, ultCol, sDe);
     /* v0.6.0: configurar página (margens, papel, escala, títulos e área de impressão, cabeçalho e rodapé, quebras) */
     { const imp = lerImpressaoAba(cab, resto, defsImp[F.idx] || {}); if (imp) aba.imp = imp; }
     /* v0.6.7: aba que era um Painel do EFCdocs (o JSON vai no extLst): volta como Painel depois de ler todas as abas */
@@ -672,7 +675,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         /* v0.6.4: guarda a senha e também as permissões finas (formatar células, inserir linhas...) para voltarem iguais */
         const guardados = {};
         for (const [k, v] of Object.entries(at)) if (k !== 'sheet' && /^[A-Za-z]+$/.test(k) && v !== '') guardados[k] = String(v);
-        aba.prot = Object.keys(guardados).length ? { a: guardados } : 1;
+        aba.prot = { a: guardados }; /* v0.6.14 (D-37): mesmo sem atributos, guarda que veio do Excel (assim não ganha objects/scenarios ao salvar) */
         rel.extras.protegidas = (rel.extras.protegidas || 0) + 1;
         (rel.extras.nomesProtegidas || (rel.extras.nomesProtegidas = [])).push(F.nome);
       }
@@ -684,7 +687,9 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     rel.abas.push(ra);
     conteudo.ordem.push(id);
     conteudo.abas[id] = aba;
+    for (const nm of Object.values(nomesDef)) if (nm.locIdx === F.idx) { nm.loc = id; delete nm.locIdx; }
   }
+  for (const nm of Object.values(nomesDef)) { delete nm.locIdx; delete nm.local; }
 
   if (abasZero.length) rel.avisos.push(`${abasZero.length === 1 ? `Na aba "${abasZero[0]}"` : `Nas abas ${abasZero.map((n) => `"${n}"`).join(', ')}`}, as linhas que o arquivo não lista ficavam escondidas no Excel; aqui continuam escondidas (Layout › Reexibir mostra de novo).`);
   if (tabelas.size) rel.avisos.push(`${tabelas.size === 1 ? 'A tabela' : `As ${tabelas.size} tabelas`} do Excel ${tabelas.size === 1 ? 'vem e volta' : 'vêm e voltam'} ao salvar como Excel; aqui, nas fórmulas, o nome da coluna virou o endereço${exemploTabela ? ` (por exemplo, ${exemploTabela})` : ''}. A conta é a mesma.`);
@@ -761,6 +766,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   }
   conteudo.estilos = estilos;
   if (est.fonteBase && est.fonteBase.nome) conteudo.fonteBase = est.fonteBase.nome;
+  if (est.fonteBase && est.fonteBase.tam && est.fonteBase.tam !== 11) conteudo.tamBase = est.fonteBase.tam; /* v0.6.14 (D-48) */
   /* v0.6.5: o tema do arquivo volta igual ao salvar (cores e estilos das formas e dos gráficos do Excel dependem dele) */
   if (xmlTema && xmlTema.length < 120000 && /<(\w+:)?theme\b/.test(xmlTema)) conteudo.temaXml = xmlTema.replace(/^\s*<\?xml[^>]*\?>\s*/, '');
   conteudo.calcExcel = true; // até a primeira mudança, as fórmulas começam com o último valor do Excel (abre rápido)

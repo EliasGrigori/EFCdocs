@@ -53,6 +53,9 @@ const fimTipo = (r, nome) => r.tipo.slice(r.tipo.lastIndexOf('/') + 1) === nome;
 function comNs(pedaco, raizXml, jaTem = '') {
   const abre = /^<([\w:]+)([^>]*)>/.exec(pedaco); if (!abre) return pedaco;
   const usados = new Set(); for (const m of pedaco.matchAll(/[<\s/]([A-Za-z_][\w.-]*):[A-Za-z_]/g)) usados.add(m[1]);
+  /* v0.6.14 (D-50): o prefixo em Requires="x14" (e em Ignorable) também precisa estar declarado; sem isso o Excel pede reparo e
+     apaga a aba (achado no arquivo real do Elias: o bloco dos botões ia sem xmlns:x14) */
+  for (const m of pedaco.matchAll(/\b(?:Requires|mc:Ignorable|mc:ProcessContent)="([^"]*)"/g)) for (const p of m[1].split(/\s+/)) if (p) usados.add(p.split(':')[0]);
   let extra = '';
   for (const p of usados) {
     if (p === 'xml' || p === 'xmlns' || new RegExp(`xmlns:${p}=`).test(pedaco) || new RegExp(`xmlns:${p}=`).test(jaTem)) continue;
@@ -326,6 +329,14 @@ export async function devolver(arquivos, abas, bytesOriginal) {
       junto = junto.replace(/\b(r:(?:embed|id|link|pict))="([^"]*)"/g, (q, a, v) => { const r = relsDO.find((x) => x.id === v); if (!r) return q; let n = relsD.find((x) => x.velho === v); if (!n) { n = { velho: v, id: novoId(), tipo: r.tipo, alvo: r.alvo, fora: r.fora }; relsD.push(n); } return `${a}="${n.id}"`; });
       for (const r of relsD) { if (r.fora) continue; if (por.has(r.alvo) && !tem.has(r.alvo)) continue; if (por.has(r.alvo)) { const novo = dirDe(r.alvo) + 'dv_' + r.alvo.slice(r.alvo.lastIndexOf('/') + 1); por1(novo, await zip.bytes(r.alvo), ctOrig.get(r.alvo)); if (!ctOrig.get(r.alvo)) { const e = novo.slice(novo.lastIndexOf('.') + 1).toLowerCase(); if (padraoOrig.has(e)) novosPadroes.set(e, padraoOrig.get(e)); } r.alvo = novo; } else await copiar(r.alvo); }
       maisRels(nomeD, relsD);
+      /* v0.6.14 (D-55): grupo de controles que volta não pode ter o mesmo número de objeto das formas do app (o número do
+         controle em si fica: é ele que liga ao desenho antigo pelo spid) */
+      { const usados = new Set([...String(d.dados).matchAll(/<xdr:cNvPr\b[^>]*?\bid="(\d+)"/g)].map((m) => +m[1]));
+        let prox = Math.max(70000, ...usados) + 1;
+        junto = junto.replace(/<xdr:cNvPr\b([^>]*?)\bid="(\d+)"([^>]*)>([\s\S]*?)(?=<\/xdr:cNvPr>|<xdr:cNv(?:Sp|Grp|Pic|GraphicFrame|Cxn)Pr)/g, (q, a, id, b, dentro) => {
+          if (/compatExt\b/.test(dentro) || !usados.has(+id)) { usados.add(+id); return q; }
+          const n = prox++; usados.add(n); return `<xdr:cNvPr${a}id="${n}"${b}>${dentro}`;
+        }); }
       let t = String(d.dados); const rz = raizDe(t); const nova = comNs(rz.replace(/\/?>$/, '>') + junto, raizDe(dx)).slice(0, -junto.length);
       t = t.replace(rz, nova.endsWith('>') ? nova : rz);
       d.dados = /<\/xdr:wsDr>\s*$/.test(t) ? t.replace(/<\/xdr:wsDr>\s*$/, junto + '</xdr:wsDr>') : t.replace(/\/>\s*$/, '>' + junto + '</xdr:wsDr>');

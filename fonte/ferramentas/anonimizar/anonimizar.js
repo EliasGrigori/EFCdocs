@@ -179,7 +179,7 @@ const JPEG_CINZA = Uint8Array.from(atob('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgs
 export async function anonimizar(entrada, { numeros = true, sal } = {}) {
   const zip = lerZip(entrada);
   const A = criarAnonimizador(sal);
-  const rel = { partes: zip.nomes.length, imagens: 0, imagensNaoTrocadas: [], removidas: [], naoConhecidas: [], abas: [], tabelas: [], nomesDefinidos: [], outrosNomes: [], abasDeFora: [], macros: false, tabelaDinamica: false, avisos: [] };
+  const rel = { partes: zip.nomes.length, imagens: 0, imagensNaoTrocadas: [], removidas: [], naoConhecidas: [], abas: [], tabelas: [], nomesDefinidos: [], outrosNomes: [], abasDeFora: [], abasCitadas: [], macros: false, tabelaDinamica: false, avisos: [] };
   const ler = (n) => zip.texto(n);
   const saida = new Map(); // nome -> string | Uint8Array | null (removida)
 
@@ -366,22 +366,35 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
   const arquivos = []; for (const n of nomes) { const d = saida.get(n); if (d != null) arquivos.push({ nome: n, dados: d }); }
   const bytes = await criarZip(arquivos);
 
+  /* v0.6.14 (D-35): link de forma ou de célula que leva a uma aba que não existe mais nesta planilha ("#'Controle de Lote'!A1"):
+     o nome da aba fica (como os outros nomes de aba) e vai para a lista que o dono confere */
+  for (const a of arquivos) {
+    if (typeof a.dados !== 'string') continue;
+    const alvos = /\.rels$/.test(a.nome) ? [...a.dados.matchAll(/\bTarget="#([^"]*)"/g)].map((m) => { try { return decodeURIComponent(lerXmlTexto(m[1])); } catch { return lerXmlTexto(m[1]); } })
+      : /^xl\/worksheets\//.test(a.nome) ? [...a.dados.matchAll(/<hyperlink\b[^>]*?\blocation="([^"]*)"/g)].map((m) => lerXmlTexto(m[1])) : [];
+    for (const t of alvos) {
+      const m = /^(?:'((?:[^']|'')+)'|([^!]+))!/.exec(t); if (!m) continue;
+      const nome = m[1] != null ? m[1].replace(/''/g, "'") : m[2];
+      if (nome && !rel.abas.includes(nome) && !rel.abasCitadas.includes(nome)) rel.abasCitadas.push(nome);
+    }
+  }
+
   /* 5. conferência: procura no arquivo novo os textos originais mais compridos */
   const procurar = [...A.originais].filter((s) => s.length >= 6 && /\p{L}{3}/u.test(s)).sort((a, b) => b.length - a.length).slice(0, 400);
   const sobrou = [];
   /* nomes que ficam de propósito (segmentação, tabela dinâmica, objeto do desenho, nome definido) não contam como sobra */
   /* v0.6.12 (D-31): nome de aba, de tabela e nome definido aparecem em fórmulas, em docProps/app.xml e nos vínculos; uma célula com
      o mesmo texto (ex.: "ENTRADAS", que também é nome de aba) dava aviso falso. Os nomes que ficam saem do texto antes da procura. */
-  const nomesQueFicam = [...new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos, ...rel.outrosNomes, ...rel.abasDeFora])].filter((s) => s.length >= 3).sort((a, b) => b.length - a.length);
-  const semNomes = (a) => { let t = (/^xl\/(slicers|slicerCaches|timelines|timelineCaches|drawings|pivotTables)\//i.test(a.nome) || a.nome === 'xl/workbook.xml' ? a.dados.replace(/\s(?:name|cache|displayName)="[^"]*"/g, '') : a.dados); for (const nm of nomesQueFicam) { if (t.includes(nm)) t = t.split(nm).join('\u0001'); const e = escXml(nm, true); if (e !== nm && t.includes(e)) t = t.split(e).join('\u0001'); } return t; };
-  if (procurar.length) for (const a of arquivos) { if (typeof a.dados !== 'string') continue; const onde = semNomes(a); for (const s of procurar) { if (onde.includes(s) || onde.includes(escXml(s, true))) { sobrou.push({ parte: a.nome, tamanho: s.length }); if (sobrou.length > 50) break; } } if (sobrou.length > 50) break; }
+  const nomesQueFicam = [...new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos, ...rel.outrosNomes, ...rel.abasDeFora, ...rel.abasCitadas])].filter((s) => s.length >= 3).sort((a, b) => b.length - a.length);
+  const semNomes = (a) => { let t = (/^xl\/(slicers|slicerCaches|timelines|timelineCaches|drawings|pivotTables)\//i.test(a.nome) || a.nome === 'xl/workbook.xml' ? a.dados.replace(/\s(?:name|cache|displayName)="[^"]*"/g, '') : a.dados); for (const nm of nomesQueFicam) { /* v0.6.14 (D-35): no link, o nome da aba vem com %20 no lugar do espaço ("#'Relatório%20e%20Estatística'!A1") */ for (const v of new Set([nm.replace(/ /g, '%20'), escXml(nm.replace(/ /g, '%20'), true)])) if (v !== nm && t.includes(v)) t = t.split(v).join('\u0001'); if (t.includes(nm)) t = t.split(nm).join('\u0001'); const e = escXml(nm, true); if (e !== nm && t.includes(e)) t = t.split(e).join('\u0001'); } return t; };
+  if (procurar.length) for (const a of arquivos) { if (typeof a.dados !== 'string') continue; const onde = semNomes(a); for (const s of procurar) { if (onde.includes(s) || onde.includes(escXml(s, true))) { sobrou.push({ parte: a.nome, tamanho: s.length, lugar: lugarNoXml(onde, onde.includes(s) ? onde.indexOf(s) : onde.indexOf(escXml(s, true))) }); if (sobrou.length > 50) break; } } if (sobrou.length > 50) break; }
   /* v0.6.11.1 (D-27): segunda conferência, com TODOS os textos originais: procura valor idêntico em atributos e textos de todas as
      partes (menos as células, que a troca cobre, e os estilos). Nomes que ficam de propósito (abas, tabelas, nomes definidos,
      segmentações) não contam. Foi assim que os valores de filtro passaram sem aparecer na primeira conferência. */
   const todos = new Set([...A.originais].filter((s) => s.length >= 4 && /\p{L}{3}/u.test(s)));
   let conferidosExatos = 0;
   if (todos.size) {
-    const ficam = new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos, ...rel.outrosNomes, ...rel.abasDeFora]);
+    const ficam = new Set([...rel.abas, ...rel.tabelas, ...rel.nomesDefinidos, ...rel.outrosNomes, ...rel.abasDeFora, ...rel.abasCitadas]);
     for (const a of arquivos) { if (typeof a.dados !== 'string') continue; for (const m of a.dados.matchAll(/<(?:\w+:)?(?:slicer|timeline|slicerCacheDefinition|timelineCacheDefinition|pivotTableDefinition|pivotTable|cNvPr|definedName|table)\b[^>]*?\b(?:name|displayName|cache)="([^"]*)"/g)) ficam.add(lerXmlTexto(m[1])); }
     for (const v of [...ficam]) ficam.add(String(v).trim()); /* v0.6.13 (D-32): nome que fica com espaço no fim ("RESPONSAVEL ") é comparado sem o espaço */
     for (const a of arquivos) {
@@ -390,11 +403,22 @@ export async function anonimizar(entrada, { numeros = true, sal } = {}) {
       for (const m of corpo.matchAll(/="([^"]{4,})"|>([^<]{4,})</g)) {
         conferidosExatos++;
         const v = lerEscapesX(lerXmlTexto(m[1] != null ? m[1] : m[2])).trim();
-        if (todos.has(v) && !ficam.has(v)) { sobrou.push({ parte: a.nome, tamanho: v.length }); if (sobrou.length > 200) break; }
+        if (todos.has(v) && !ficam.has(v)) { sobrou.push({ parte: a.nome, tamanho: v.length, lugar: lugarNoXml(corpo, m.index + 2) }); if (sobrou.length > 200) break; }
       }
       if (sobrou.length > 200) break;
     }
   }
   Object.assign(rel, { ...A.cont, deslocDias: A.deslocDias, conferidos: procurar.length, conferidosTodos: todos.size, sobrou, tamanhoAntes: entrada.length || entrada.byteLength, tamanhoDepois: bytes.length });
   return { bytes, relatorio: rel };
+}
+
+/* v0.6.14: em que tipo de lugar do XML está uma posição (para o aviso dizer onde sobrou texto, sem mostrar o texto) */
+const LUGARES = { f: 'numa fórmula', v: 'num valor guardado', t: 'num texto', Relationship: 'num link ou numa ligação', hyperlink: 'num link de célula', formula1: 'numa validação', formula2: 'numa validação', definedName: 'num nome definido', text: 'num comentário', 'c:v': 'num gráfico', 'cx:v': 'num gráfico', 'cx:pt': 'num gráfico', 'c:f': 'num gráfico', 'a:t': 'numa forma ou caixa de texto', cfRule: 'numa regra de cor', dataValidation: 'numa validação', filter: 'num filtro', customFilter: 'num filtro', tableColumn: 'num título de tabela', oddHeader: 'no cabeçalho ou rodapé', oddFooter: 'no cabeçalho ou rodapé', evenHeader: 'no cabeçalho ou rodapé', evenFooter: 'no cabeçalho ou rodapé', firstHeader: 'no cabeçalho ou rodapé', firstFooter: 'no cabeçalho ou rodapé' };
+export function lugarNoXml(xml, i) {
+  if (i < 0) return '';
+  const ini = xml.lastIndexOf('<', i); if (ini < 0) return '';
+  const pedaco = xml.slice(ini, i); const tag = (/^<\/?([\w:.-]+)/.exec(pedaco) || [])[1] || '';
+  const dentroDaTag = pedaco.indexOf('>') < 0;
+  if (dentroDaTag) { const at = (/([\w:.-]+)="[^"]*$/.exec(pedaco) || [])[1]; const l = LUGARES[tag] || LUGARES[tag.split(':').pop()]; return l ? `${l} (${at || 'atributo'})` : `no atributo ${at || '?'} de <${tag}>`; }
+  return LUGARES[tag] || LUGARES[tag.split(':').pop()] || (tag ? `dentro de <${tag}>` : '');
 }

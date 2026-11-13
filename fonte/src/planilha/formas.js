@@ -565,7 +565,13 @@ function limparTexto(t) {
   if (ehNum(t.tam)) o.tam = limitar(t.tam, 1, 400, 11);
   if (ehNum(t.rotT) && t.rotT) o.rotT = limitar(t.rotT, -360, 360, 0);
   if (t.clip) o.clip = true;
-  if (t.ligado && typeof t.ligado.ref === 'string' && /^[A-Za-z]{1,3}\d{1,7}$/.test(t.ligado.ref)) o.ligado = { ref: t.ligado.ref.toUpperCase(), ...(typeof t.ligado.aba === 'string' && t.ligado.aba ? { aba: t.ligado.aba } : {}), ...(typeof t.ligado.abaNome === 'string' && t.ligado.abaNome ? { abaNome: t.ligado.abaNome.slice(0, 100) } : {}) };
+  /* v0.6.14 (D-51): a ordem das chaves fica como o leitor faz ({ aba, ref } ou { ref, abaNome }); trocada, a assinatura da forma
+     mudava ao guardar no aparelho e o grupo do Excel era refeito (perdia formas desenhadas à mão e o gráfico saía do grupo) */
+  if (t.ligado && typeof t.ligado.ref === 'string' && /^[A-Za-z]{1,3}\d{1,7}$/.test(t.ligado.ref)) {
+    const aba = typeof t.ligado.aba === 'string' && t.ligado.aba ? t.ligado.aba : null;
+    o.ligado = aba ? { aba, ref: t.ligado.ref.toUpperCase() } : { ref: t.ligado.ref.toUpperCase() };
+    if (typeof t.ligado.abaNome === 'string' && t.ligado.abaNome) o.ligado.abaNome = t.ligado.abaNome.slice(0, 100);
+  }
   return o;
 }
 function limparCust(cust) {
@@ -626,9 +632,16 @@ export function limparForma(o, base) {
   return f;
 }
 
+const jsonOrdenado = (v) => (Array.isArray(v) ? '[' + v.map(jsonOrdenado).join(',') + ']'
+  : v && typeof v === 'object' ? '{' + Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ':' + jsonOrdenado(v[k])).join(',') + '}'
+    : JSON.stringify(v) ?? 'null');
+/** A assinatura guardada ainda vale (a estável, de agora, ou a antiga, das planilhas guardadas antes da v0.6.14)? */
+export const formaSemMudanca = (o) => !!(o && o.xoSig && (o.xoSig === assinaturaForma(o, { estavel: true }) || o.xoSig === assinaturaForma(o)));
 /** Assinatura do que dá para mexer (para saber se o XML original ainda vale). */
-export function assinaturaForma(o) {
-  const s = JSON.stringify((o.partes || []).map((p) => ({ ...p, src: p.src ? p.src.length + ':' + p.src.slice(-40) : undefined })));
+export function assinaturaForma(o, { estavel = false } = {}) {
+  const arr = (o.partes || []).map((p) => ({ ...p, src: p.src ? p.src.length + ':' + p.src.slice(-40) : undefined }));
+  /* v0.6.14 (D-51): a estável não depende da ordem das chaves (a que o leitor grava daqui em diante) */
+  const s = estavel ? jsonOrdenado(arr) : JSON.stringify(arr);
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36) + ':' + s.length;

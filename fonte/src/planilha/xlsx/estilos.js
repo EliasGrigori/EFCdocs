@@ -69,6 +69,7 @@ export const FORMATOS_EMBUTIDOS = {
 /* os que o Excel de qualquer idioma mostra igual (os de data dependem do idioma: vão como formato próprio) */
 const EMBUTIDOS_FIXOS = { General: 0, '0': 1, '0.00': 2, '#,##0': 3, '#,##0.00': 4, '0%': 9, '0.00%': 10, '0.00E+00': 11, '# ?/?': 12, '# ??/??': 13, '@': 49 };
 
+const LISAS = new Set(['thin', 'medium', 'thick']);
 const ESPESSURA = { hair: 1, thin: 1, dotted: 1, dashed: 1, dashDot: 1, dashDotDot: 1, medium: 2, mediumDashed: 2, mediumDashDot: 2, mediumDashDotDot: 2, slantDashDot: 2, thick: 3, double: 3 };
 
 /** Um <dxf> (o que a formatação condicional muda) → { fundo, cor, b, i, u, st }. Aceita o <x14:dxf> também. */
@@ -120,6 +121,13 @@ export function lerEstilos(xml, tema) {
   });
   const base = fontes[0] || { nome: 'Calibri', tam: 11 };
   const fundos = tags(tag(xml, 'fills')?.dentro || '', 'fill').map((f) => {
+    const c = fundoDe(f);
+    /* v0.6.14 (D-54): degradê e hachurado: a grade mostra uma cor só, e o arquivo volta com o desenho original */
+    const p0 = tag(f.dentro, 'patternFill');
+    if (c && (tag(f.dentro, 'gradientFill') || (p0 && p0.a.patternType && p0.a.patternType !== 'solid'))) return { c, fx: '<fill>' + f.dentro + '</fill>' };
+    return c ? { c } : null;
+  });
+  function fundoDe(f) {
     const p = tag(f.dentro, 'patternFill');
     if (p) {
       const tipo = p.a.patternType || (tag(p.dentro, 'fgColor') ? 'solid' : 'none');
@@ -131,20 +139,23 @@ export function lerEstilos(xml, tema) {
     const g = tag(f.dentro, 'gradientFill');
     if (g) { const st = tags(g.dentro, 'stop')[0]; return st ? cor(st.dentro, 'color') : null; }
     return null;
-  });
+  }
   const bordas = tags(tag(xml, 'borders')?.dentro || '', 'border').map((b) => {
     const bd = {};
-    let bdc = null;
+    let bdc = null, tipos = null;
     for (const [lado, k] of [['top', 't'], ['bottom', 'b'], ['left', 'l'], ['right', 'r'], ['start', 'l'], ['end', 'r']]) {
       const t = tag(b.dentro, lado);
       if (!t || !t.a.style || t.a.style === 'none') continue;
       bd[k] = ESPESSURA[t.a.style] || 1;
+      /* v0.6.14 (D-53): pontilhada, tracejada, dupla, fio de cabelo: o tipo volta igual (a grade desenha lisa) */
+      if (ESPESSURA[t.a.style] && !LISAS.has(t.a.style)) (tipos || (tipos = {}))[k] = t.a.style;
       if (!bdc) bdc = cor(t.dentro, 'color');
     }
-    return Object.keys(bd).length ? { bd, bdc } : null;
+    return Object.keys(bd).length ? { bd, bdc, tipos } : null;
   });
   const AL = { left: 'e', center: 'c', centerContinuous: 'c', right: 'd', justify: 'e', distributed: 'c', fill: 'e' };
   const AV = { top: 't', center: 'm', justify: 'm', distributed: 'm' };
+  const ALX = new Set(['justify', 'distributed', 'fill', 'centerContinuous']);
   const xfs = tags(tag(xml, 'cellXfs')?.dentro || '', 'xf').map((x) => {
     const e = {};
     const f = fontes[+(x.a.fontId || 0)];
@@ -155,9 +166,9 @@ export function lerEstilos(xml, tema) {
       if (f.cor && f.cor !== '#000000') e.cor = f.cor;
     }
     const fu = fundos[+(x.a.fillId || 0)];
-    if (fu) e.fundo = fu;
+    if (fu) { e.fundo = fu.c; if (fu.fx && fu.fx.length < 4000) e.fx = { c: fu.c, x: fu.fx }; }
     const bo = bordas[+(x.a.borderId || 0)];
-    if (bo) { e.bd = bo.bd; if (bo.bdc && bo.bdc !== '#000000') e.bdc = bo.bdc; }
+    if (bo) { e.bd = bo.bd; if (bo.bdc && bo.bdc !== '#000000') e.bdc = bo.bdc; if (bo.tipos) e.bdt = bo.tipos; }
     const nf = fmts[+(x.a.numFmtId || 0)];
     if (nf && nf !== 'General') e.nf = nf;
     const pr = tag(x.dentro, 'protection');
@@ -167,6 +178,13 @@ export function lerEstilos(xml, tema) {
       if (AL[al.a.horizontal]) e.al = AL[al.a.horizontal];
       if (AV[al.a.vertical]) e.av = AV[al.a.vertical];
       if (al.a.wrapText === '1' || al.a.wrapText === 'true') e.qb = true;
+      /* v0.6.14 (D-46): o que a grade ainda não desenha volta igual ao salvar (justificado, distribuído, centralizar na seleção,
+         texto girado, recuo, reduzir para caber). A grade mostra o mais perto (justificado = à esquerda). */
+      if (ALX.has(al.a.horizontal)) e.alx = al.a.horizontal;
+      if (al.a.vertical === 'justify' || al.a.vertical === 'distributed') e.avx = al.a.vertical;
+      if (+al.a.textRotation > 0) e.rot = +al.a.textRotation;
+      if (+al.a.indent > 0) e.ind = +al.a.indent;
+      if (al.a.shrinkToFit === '1' || al.a.shrinkToFit === 'true') e.enc = true;
     }
     return e;
   });
@@ -180,19 +198,24 @@ export function lerEstilos(xml, tema) {
 function dxfXml(e) {
   let f = '';
   const sn = (k, nome) => (e[k] === true ? `<${nome}/>` : e[k] === false ? `<${nome} val="0"/>` : '');
-  f += sn('b', 'b') + sn('i', 'i') + sn('st', 'strike') + sn('u', 'u');
+  /* v0.6.14 (D-38): sublinhado desligado é <u val="none"/>; <u val="0"/> o Excel (e o leitor) entendem como sublinhado */
+  f += sn('b', 'b') + sn('i', 'i') + sn('st', 'strike') + (e.u === true ? '<u/>' : e.u === false ? '<u val="none"/>' : '');
   if (e.cor) f += `<color rgb="${hexArgb(e.cor)}"/>`;
   return '<dxf>' + (f ? `<font>${f}</font>` : '') + (e.fundo ? `<fill><patternFill><bgColor rgb="${hexArgb(e.fundo)}"/></patternFill></fill>` : '') + '</dxf>';
 }
 
+/* v0.6.14 (D-46): como a grade mostra cada alinhamento que ela não desenha */
+const ALX_VOLTA = { justify: 'e', fill: 'e', distributed: 'c', centerContinuous: 'c' };
 const hexArgb = (h) => 'FF' + String(h).replace('#', '').toUpperCase().padStart(6, '0').slice(-6);
 const LARG_BORDA = { 1: 'thin', 2: 'medium', 3: 'thick' };
 
 /** Estilos do EFCdocs → styles.xml. O estilo N do EFCdocs vira o xf N do Excel. */
-export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = []) {
+export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = [], tamBase = 11) {
   const fontes = [], fundos = [], bordas = [], fmts = [], xfs = [];
   const idx = (lista, x) => { const k = JSON.stringify(x); let i = lista.findIndex((y) => y.k === k); if (i < 0) { lista.push({ k, x }); i = lista.length - 1; } return i; };
-  idx(fontes, { tam: 11 });
+  /* v0.6.14 (D-48): a letra do estilo "Normal" (fonte 0) volta com o tamanho do arquivo (ex.: 10); o Excel mede as larguras com ela */
+  const tb = Number.isFinite(tamBase) && tamBase > 0 ? tamBase : 11;
+  idx(fontes, { tam: tb });
   idx(fundos, { tipo: 'none' }); idx(fundos, { tipo: 'gray125' });
   idx(bordas, {});
   const mapaFmt = new Map();
@@ -206,11 +229,15 @@ export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = []) {
   for (const e0 of estilos.length ? estilos : [{}]) {
     const e = e0 || {};
     const fonte = { b: !!e.b, i: !!e.i, u: !!e.u, st: !!e.st, tam: e.tam || 11, nome: e.fonte || null, cor: e.cor || null };
-    const fo = idx(fontes, fonte.b || fonte.i || fonte.u || fonte.st || fonte.tam !== 11 || fonte.nome || fonte.cor ? fonte : { tam: 11 });
-    const fi = e.fundo ? idx(fundos, { tipo: 'solid', cor: e.fundo }) : 0;
-    const bo = e.bd && Object.keys(e.bd).length ? idx(bordas, { bd: e.bd, cor: e.bdc || null }) : 0;
+    const fo = idx(fontes, fonte.b || fonte.i || fonte.u || fonte.st || fonte.tam !== tb || fonte.nome || fonte.cor ? fonte : { tam: tb });
+    const fi = e.fundo && e.fx && e.fx.c === e.fundo && typeof e.fx.x === 'string' && /^<fill>[\s\S]*<\/fill>$/.test(e.fx.x) && !/<script/i.test(e.fx.x) ? idx(fundos, { tipo: 'cru', xml: e.fx.x })
+      : e.fundo ? idx(fundos, { tipo: 'solid', cor: e.fundo }) : 0;
+    const bo = e.bd && Object.keys(e.bd).length ? idx(bordas, { bd: e.bd, cor: e.bdc || null, ...(e.bdt ? { t: e.bdt } : {}) }) : 0;
     const nf = idFmt(e.nf);
-    xfs.push({ fo, fi, bo, nf, al: e.al, av: e.av, qb: !!e.qb, lib: !!e.lib });
+    xfs.push({ fo, fi, bo, nf, al: e.al, av: e.av, qb: !!e.qb, lib: !!e.lib,
+      /* v0.6.14 (D-46): só vale enquanto a pessoa não trocou o alinhamento (justificado só se ainda está "à esquerda") */
+      alx: e.alx && ALX_VOLTA[e.alx] === (e.al || null) ? e.alx : null, avx: e.avx && e.av === 'm' ? e.avx : null,
+      rot: e.rot || 0, ind: e.ind || 0, enc: !!e.enc });
   }
   const fonteXml = ({ x }) => {
     let s = '<font>';
@@ -222,19 +249,20 @@ export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = []) {
     if (nome === 'Calibri') s += '<family val="2"/><scheme val="minor"/>';
     return s + '</font>';
   };
-  const fundoXml = ({ x }) => (x.tipo === 'solid'
+  const fundoXml = ({ x }) => (x.tipo === 'cru' ? x.xml : x.tipo === 'solid'
     ? `<fill><patternFill patternType="solid"><fgColor rgb="${hexArgb(x.cor)}"/><bgColor indexed="64"/></patternFill></fill>`
     : `<fill><patternFill patternType="${x.tipo}"/></fill>`);
   const bordaXml = ({ x }) => {
     if (!x.bd) return '<border><left/><right/><top/><bottom/><diagonal/></border>';
     const cor = x.cor ? `<color rgb="${hexArgb(x.cor)}"/>` : '<color indexed="64"/>';
-    const lado = (n, k) => (x.bd[k] ? `<${n} style="${LARG_BORDA[x.bd[k]] || 'thin'}">${cor}</${n}>` : `<${n}/>`);
+    const tipo = (k) => (x.t && x.t[k] && ESPESSURA[x.t[k]] === x.bd[k] ? x.t[k] : LARG_BORDA[x.bd[k]] || 'thin');
+    const lado = (n, k) => (x.bd[k] ? `<${n} style="${tipo(k)}">${cor}</${n}>` : `<${n}/>`);
     return `<border>${lado('left', 'l')}${lado('right', 'r')}${lado('top', 't')}${lado('bottom', 'b')}<diagonal/></border>`;
   };
   const AL = { e: 'left', c: 'center', d: 'right' };
   const AV = { t: 'top', m: 'center' };
   const xfXml = (x) => {
-    const al = x.al || x.av || x.qb;
+    const al = x.al || x.av || x.qb || x.alx || x.rot || x.ind || x.enc;
     let s = `<xf numFmtId="${x.nf}" fontId="${x.fo}" fillId="${x.fi}" borderId="${x.bo}" xfId="0"`;
     if (x.nf) s += ' applyNumberFormat="1"';
     if (x.fo) s += ' applyFont="1"';
@@ -244,9 +272,12 @@ export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = []) {
     if (x.lib) s += ' applyProtection="1"';
     if (!al) return prot ? s + '>' + prot + '</xf>' : s + '/>';
     s += ' applyAlignment="1"><alignment';
-    if (AL[x.al]) s += ` horizontal="${AL[x.al]}"`;
-    if (AV[x.av]) s += ` vertical="${AV[x.av]}"`;
+    if (x.alx) s += ` horizontal="${x.alx}"`; else if (AL[x.al]) s += ` horizontal="${AL[x.al]}"`;
+    if (x.avx) s += ` vertical="${x.avx}"`; else if (AV[x.av]) s += ` vertical="${AV[x.av]}"`;
+    if (x.rot) s += ` textRotation="${x.rot}"`;
     if (x.qb) s += ' wrapText="1"';
+    if (x.ind) s += ` indent="${x.ind}"`;
+    if (x.enc) s += ' shrinkToFit="1"';
     return s + '/>' + prot + '</xf>';
   };
   const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +

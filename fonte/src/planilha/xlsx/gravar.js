@@ -10,6 +10,7 @@ import { criarZip } from './zip.js';
 import { devolver } from './devolver.js';
 import { escapar, XML_CAB } from './xml.js';
 import { gravarEstilos } from './estilos.js';
+import { colunasXml } from './colunasXlsx.js';
 import { porPrefixos } from './formulas.js';
 import { lerGuardada } from '../formula.js';
 import { chave, letraCol, lerChave, MAX_COL } from '../ref.js';
@@ -121,6 +122,7 @@ const hexArgb = (h) => 'FF' + String(h).replace('#', '').toUpperCase().padStart(
  * conteudo da planilha → { bytes: Uint8Array, avisos: [] }.
  * motor: o motor de cálculo já carregado (para os valores das fórmulas); se faltar, calcula aqui.
  */
+
 export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo = '', original = null } = {}) {
   const m = motor || new Motor(conteudo);
   /* v0.6.7: abas Painel viram abas comuns com gráficos, formas e células (e o painel vai junto no extLst) */
@@ -189,6 +191,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       }
     }
     for (const k of Object.keys(aba.alt || {})) if (!linhas.has(+k)) linhas.set(+k, new Map());
+    /* v0.6.14 (D-47): linha com estilo da linha inteira vai listada, mesmo vazia */
+    for (const k of Object.keys(aba.estL || {})) if (aba.estL[k] && !linhas.has(+k)) linhas.set(+k, new Map());
     /* v0.6.8 (Grok): com zeroHeight, linha oculta e vazia não precisa ir listada (o Excel já esconde quem não está na lista) */
     if (!aba.zeroH) for (const k of Object.keys(aba.ocL || {})) if (aba.ocL[k] && !linhas.has(+k)) linhas.set(+k, new Map());
     /* v0.6.6 (Grok): aba com zeroHeight (o Excel esconde toda linha que o arquivo não lista): cada linha que aparece vai listada */
@@ -206,6 +210,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       const alt = aba.alt && aba.alt[l];
       if (aba.ocL && aba.ocL[l]) atr += ' hidden="1"';
       if (alt != null && alt !== altPadrao(aba)) atr += ` ht="${ptDe(alt)}" customHeight="1"`;
+      if (aba.estL && aba.estL[l] && c.estilos && c.estilos[aba.estL[l]]) atr += ` s="${aba.estL[l]}" customFormat="1"`;
       const cels = [];
       for (const cc of [...L.keys()].sort((a, b) => a - b)) {
         const { cel, derramado } = L.get(cc);
@@ -275,17 +280,12 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
        a faixa começa depois da última reexibida. */
     let fimOculto = null;
     if (Number.isInteger(aba.ocCFim) && aba.ocCFim >= 0) {
-      let ini = aba.ocCFim, maior = ini;
+      let ini = aba.ocCFim, maior = -1; /* v0.6.14 (D-39): com maior = ini, a marca depois da última coluna lida (sem ocC) era empurrada para fora e sumia */
       for (const k of Object.keys(aba.ocC || {})) if (+k > maior) maior = +k;
       for (let cc = aba.ocCFim; cc <= maior; cc++) if (!(aba.ocC && aba.ocC[cc])) ini = cc + 1;
       if (ini < MAX_COL) fimOculto = ini;
     }
-    const cols = [...colunas.keys()].sort((a, b) => a - b).filter((cc) => fimOculto == null || cc < fimOculto).map((cc) => {
-      const x = colunas.get(cc);
-      const w = x.w != null ? x.w : largPadrao(aba);
-      return `<col min="${cc + 1}" max="${cc + 1}" width="${larguraExcel(w)}" customWidth="1"${x.oculta ? ' hidden="1"' : ''}/>`;
-    });
-    if (fimOculto != null) { const w = (aba.larg && aba.larg[fimOculto]) ?? largPadrao(aba); cols.push(`<col min="${fimOculto + 1}" max="${MAX_COL}" width="${larguraExcel(w)}" customWidth="1" hidden="1"/>`); }
+    const cols = colunasXml(aba, colunas, fimOculto, c.estilos || []);
 
     let cab = '';
     const ip = gravarImpressaoAba(aba.imp, aba.nome);
@@ -307,7 +307,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     /* v0.6.3: aba protegida e filtro automático (antes das mescladas, como o Excel exige) */
     if (aba.prot) {
       const pa = (aba.prot && aba.prot.a) || {};
-      const extra = Object.entries({ objects: '1', scenarios: '1', ...pa }).filter(([k]) => /^[A-Za-z]+$/.test(k) && k !== 'sheet').map(([k, v]) => ` ${k}="${escapar(String(v), true)}"`).join('');
+      /* v0.6.14 (D-37): proteção que veio do Excel volta com os atributos que tinha, nem mais nem menos; só a feita no app leva o padrão do Excel (objetos e cenários protegidos) */
+      const veio = aba.prot && typeof aba.prot === 'object' && aba.prot.a;
+      const extra = Object.entries(veio ? pa : { objects: '1', scenarios: '1', ...pa }).filter(([k]) => /^[A-Za-z]+$/.test(k) && k !== 'sheet').map(([k, v]) => ` ${k}="${escapar(String(v), true)}"`).join('');
       fim += `<sheetProtection sheet="1"${extra}/>`;
     }
     /* v0.6.6: tabela do Excel: o filtro que coincide com ela vai dentro da tabela; um filtro da aba que cruza a tabela não pode existir junto */
@@ -371,7 +373,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     `<bookViews><workbookView activeTab="${primeiraVisivel}"/></bookViews><sheets>` +
     abas.map((a, i) => `<sheet name="${escapar(a.nome, true)}" sheetId="${i + 1}"${a.oculta ? ' state="hidden"' : ''} r:id="rId${i + 1}"/>`).join('') +
     '</sheets>' +
-    (nomes.length || nomesImp.length ? `<definedNames>${nomesImp.map((n) => `<definedName name="${n.nome}" localSheetId="${n.ia}"${n.oculto ? ' hidden="1"' : ''}>${escapar(n.ref)}</definedName>`).join('')}${nomes.map((n) => `<definedName name="${escapar(n.n, true)}">${escapar(porPrefixos(n.ref))}</definedName>`).join('')}</definedNames>` : '') +
+    (nomes.length || nomesImp.length ? `<definedNames>${nomesImp.map((n) => `<definedName name="${n.nome}" localSheetId="${n.ia}"${n.oculto ? ' hidden="1"' : ''}>${escapar(n.ref)}</definedName>`).join('')}${nomes.map((n) => { const li = n.loc ? c.ordem.indexOf(n.loc) : -1; return `<definedName name="${escapar(n.n, true)}"${li >= 0 ? ` localSheetId="${li}"` : ''}>${escapar(porPrefixos(n.ref))}</definedName>`; }).join('')}</definedNames>` : '') +
     '<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>';
   const nA = abas.length;
   const relsWb = `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
@@ -418,7 +420,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     { nome: 'docProps/app.xml', dados: app },
     { nome: 'xl/workbook.xml', dados: wb },
     { nome: 'xl/_rels/workbook.xml.rels', dados: relsWb },
-    { nome: 'xl/styles.xml', dados: gravarEstilos(c.estilos || [{}], c.fonteBase || 'Calibri', dxfs) },
+    { nome: 'xl/styles.xml', dados: gravarEstilos(c.estilos || [{}], c.fonteBase || 'Calibri', dxfs, c.tamBase || 11) },
     { nome: 'xl/theme/theme1.xml', dados: XML_CAB + temaSemFigura(typeof c.temaXml === 'string' && c.temaXml ? c.temaXml : TEMA_XML) }, // v0.6.5
     { nome: 'xl/sharedStrings.xml', dados: sst },
     ...(usaMatriz ? [{ nome: 'xl/metadata.xml', dados: metadata }] : []),

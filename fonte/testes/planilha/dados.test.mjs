@@ -212,5 +212,9 @@ test('v0.6.4: as permissões finas do Excel e a senha voltam iguais ao salvar', 
   assert.match(folha, /<sheetProtection sheet="1"[^>]*password="83AF"/);
   assert.match(folha, /formatCells="0"/);
   const volta = (await lerXlsx(bytes, {})).conteudo;
-  assert.deepEqual(volta.abas[volta.ordem[0]].prot, { a: { objects: '1', scenarios: '1', password: '83AF', formatCells: '0', insertRows: '0', selectLockedCells: '1' } });
+  /* v0.6.14 (D-37): volta com os mesmos atributos, sem ganhar objects/scenarios (antes ganhava: objetos e cenários ficavam travados) */
+  assert.deepEqual(volta.abas[volta.ordem[0]].prot, { a: { password: '83AF', formatCells: '0', insertRows: '0', selectLockedCells: '1' } });
+  /* aba travada no app (prot = 1) leva o padrão do Excel */
+  c.abas.a1.prot = 1; const f2 = await (await lerZip((await gravarXlsx(c, null, {})).bytes)).texto('xl/worksheets/sheet1.xml');
+  assert.match(f2, /<sheetProtection sheet="1" objects="1" scenarios="1"\/>/);
 });

@@ -1,0 +1,584 @@
+{
+ "metas": {
+  "letras": 7,
+  "cantos": 3,
+  "botaoMinPc": 28,
+  "botaoPc": 34,
+  "botaoToque": 44,
+  "maiusculasEspacadas": 0,
+  "emoji": 0,
+  "rolaDeLado": 0,
+  "errosConsole": 0,
+  "contraste": 4.5
+ },
+ "base": "/home/claude/EFCdocs-repo/fonte/docs/auditorias/base-v0.6.12",
+ "piorou": 0,
+ "telas": [
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Início",
+   "print": "pc-In_cio.png",
+   "letras": 9,
+   "tamanhos": [
+    10.5,
+    11,
+    12,
+    12.5,
+    13,
+    13.5,
+    14,
+    15.5,
+    17
+   ],
+   "cantos": 4,
+   "quaisCantos": [
+    "8px",
+    "6px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 10,
+   "menor": 34,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 2,
+   "emoji": 0,
+   "sombraEBorda": 3,
+   "contrasteFraco": 5,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [
+     "Meus arquivos",
+     "Organizar"
+    ],
+    "contraste": [
+     "Meus arquivos (3.7)",
+     "Organizar (3.7)",
+     "O que você quer faze (3.5)",
+     "Ctrl K (3.5)",
+     "0 arquivos (3.2)"
+    ]
+   },
+   "fora": [
+    "letras",
+    "cantos",
+    "maiúsculas",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Lista de planilhas",
+   "print": "pc-Lista_de_planilhas.png",
+   "letras": 9,
+   "tamanhos": [
+    10.5,
+    11,
+    12,
+    12.5,
+    13,
+    13.5,
+    14,
+    15.5,
+    17
+   ],
+   "cantos": 4,
+   "quaisCantos": [
+    "8px",
+    "6px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 7,
+   "menor": 34,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 2,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 5,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [
+     "Meus arquivos",
+     "Organizar"
+    ],
+    "contraste": [
+     "Meus arquivos (3.7)",
+     "Organizar (3.7)",
+     "O que você quer faze (3.5)",
+     "Ctrl K (3.5)",
+     "0 planilhas (3.2)"
+    ]
+   },
+   "fora": [
+    "letras",
+    "cantos",
+    "maiúsculas",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Abrir Excel (relatório)",
+   "print": "pc-Abrir_Excel__relat_rio_.png",
+   "letras": 11,
+   "tamanhos": [
+    10.5,
+    11,
+    12,
+    12.5,
+    13,
+    13.5,
+    14,
+    15.5,
+    16,
+    17,
+    20
+   ],
+   "cantos": 5,
+   "quaisCantos": [
+    "8px",
+    "6px",
+    "4px",
+    "10px",
+    "12px"
+   ],
+   "botoes": 13,
+   "menor": 32,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 8,
+   "emoji": 0,
+   "sombraEBorda": 3,
+   "contrasteFraco": 5,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [
+     "Meus arquivos",
+     "Organizar",
+     "Abas",
+     "Células"
+    ],
+    "contraste": [
+     "Meus arquivos (3.7)",
+     "Organizar (3.7)",
+     "O que você quer faze (3.5)",
+     "Ctrl K (3.5)",
+     "0 arquivos (3.2)"
+    ]
+   },
+   "fora": [
+    "letras",
+    "cantos",
+    "maiúsculas",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Página Inicial",
+   "print": "pc-Planilha___P_gina_Inicial.png",
+   "letras": 10,
+   "tamanhos": [
+    10.5,
+    11,
+    11.5,
+    12,
+    12.5,
+    13,
+    13.5,
+    14,
+    15.5,
+    17
+   ],
+   "cantos": 4,
+   "quaisCantos": [
+    "8px",
+    "6px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 69,
+   "menor": 18,
+   "abaixoDoMinimo": 34,
+   "maiusculasEspacadas": 2,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 8,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [
+     "Recortar (24)",
+     "Copiar (24)",
+     "Pincel de formatação (24)",
+     "Negrito (Ctrl+B) (27)",
+     "Itálico (Ctrl+I) (27)"
+    ],
+    "maiusculas": [
+     "Meus arquivos",
+     "Organizar"
+    ],
+    "contraste": [
+     "Meus arquivos (3.7)",
+     "Organizar (3.7)",
+     "Salvo 05:00 (3.8)",
+     "O que você quer faze (3.5)",
+     "Ctrl K (3.5)",
+     "Área de transferênci (3.8)",
+     "Fonte (3.8)",
+     "Alinhamento (3.8)"
+    ]
+   },
+   "fora": [
+    "letras",
+    "cantos",
+    "botões",
+    "maiúsculas",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Inserir",
+   "print": "pc-Planilha___Inserir.png",
+   "letras": 10,
+   "tamanhos": [
+    10.5,
+    11,
+    11.5,
+    12,
+    12.5,
+    13,
+    13.5,
+    14,
+    15.5,
+    17
+   ],
+   "cantos": 4,
+   "quaisCantos": [
+    "8px",
+    "6px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 48,
+   "menor": 18,
+   "abaixoDoMinimo": 4,
+   "maiusculasEspacadas": 2,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 8,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [
+     "Recolher a faixa (só a (22)",
+     "Opções da aba (18)",
+     "Voltar a 100% (18)",
+     "Verificação da planilh (24)"
+    ],
+    "maiusculas": [
+     "Meus arquivos",
+     "Organizar"
+    ],
+    "contraste": [
+     "Meus arquivos (3.7)",
+     "Organizar (3.7)",
+     "Salvo 05:00 (3.8)",
+     "O que você quer faze (3.5)",
+     "Ctrl K (3.5)",
+     "Planilha (3.8)",
+     "Tabelas (3.8)",
+     "Ilustrações (3.8)"
+    ]
+   },
+   "fora": [
+    "letras",
+    "cantos",
+    "botões",
+    "maiúsculas",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Dados",
+   "print": "pc-Planilha___Dados.png",
+   "letras": 10,
+   "tamanhos": [
+    10.5,
+    11,
+    11.5,
+    12,
+    12.5,
+    13,
+    13.5,
+    14,
+    15.5,
+    17
+   ],
+   "cantos": 4,
+   "quaisCantos": [
+    "8px",
+    "6px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 39,
+   "menor": 18,
+   "abaixoDoMinimo": 4,
+   "maiusculasEspacadas": 2,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 7,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [
+     "Recolher a faixa (só a (22)",
+     "Opções da aba (18)",
+     "Voltar a 100% (18)",
+     "Verificação da planilh (24)"
+    ],
+    "maiusculas": [
+     "Meus arquivos",
+     "Organizar"
+    ],
+    "contraste": [
+     "Meus arquivos (3.7)",
+     "Organizar (3.7)",
+     "Salvo 05:00 (3.8)",
+     "O que você quer faze (3.5)",
+     "Ctrl K (3.5)",
+     "Classificar e filtra (3.8)",
+     "Ferramentas (3.8)"
+    ]
+   },
+   "fora": [
+    "letras",
+    "cantos",
+    "botões",
+    "maiúsculas",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Início",
+   "print": "celular-In_cio.png",
+   "letras": 7,
+   "tamanhos": [
+    10.5,
+    11,
+    12,
+    12.5,
+    13,
+    14,
+    15.5
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "10px",
+    "6px",
+    "8px"
+   ],
+   "botoes": 8,
+   "menor": 34,
+   "abaixoDoMinimo": 4,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 1,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": [
+     "0 arquivos (3.2)"
+    ]
+   },
+   "fora": [
+    "botões",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Lista de planilhas",
+   "print": "celular-Lista_de_planilhas.png",
+   "letras": 4,
+   "tamanhos": [
+    11,
+    12.5,
+    14,
+    15.5
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "8px",
+    "6px",
+    "10px"
+   ],
+   "botoes": 5,
+   "menor": 40,
+   "abaixoDoMinimo": 3,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 1,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": [
+     "0 planilhas (3.2)"
+    ]
+   },
+   "fora": [
+    "botões",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Abrir Excel (relatório)",
+   "print": "celular-Abrir_Excel__relat_rio_.png",
+   "letras": 10,
+   "tamanhos": [
+    10.5,
+    11,
+    12,
+    12.5,
+    13,
+    13.5,
+    14,
+    15.5,
+    16,
+    20
+   ],
+   "cantos": 5,
+   "quaisCantos": [
+    "10px",
+    "6px",
+    "8px",
+    "12px",
+    "4px"
+   ],
+   "botoes": 11,
+   "menor": 32,
+   "abaixoDoMinimo": 7,
+   "maiusculasEspacadas": 6,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 1,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [
+     "Abas",
+     "Células",
+     "Fórmulas",
+     "Arquivo"
+    ],
+    "contraste": [
+     "0 arquivos (3.2)"
+    ]
+   },
+   "fora": [
+    "letras",
+    "cantos",
+    "botões",
+    "maiúsculas",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Planilha · Página Inicial",
+   "print": "celular-Planilha___P_gina_Inicial.png",
+   "letras": 6,
+   "tamanhos": [
+    11.5,
+    12,
+    13,
+    13.5,
+    14,
+    15.5
+   ],
+   "cantos": 1,
+   "quaisCantos": [
+    "10px"
+   ],
+   "botoes": 25,
+   "menor": 18,
+   "abaixoDoMinimo": 25,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 1,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [
+     "Opções da aba (18)"
+    ],
+    "maiusculas": [],
+    "contraste": [
+     "Salvo 05:00 (3.8)"
+    ]
+   },
+   "fora": [
+    "botões",
+    "contraste"
+   ],
+   "piorou": [],
+   "melhorou": [],
+   "base": "igual"
+  }
+ ]
+}

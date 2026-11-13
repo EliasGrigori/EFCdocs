@@ -101,8 +101,8 @@ def valor(c):
     v = c.value
     if v is None: return None
     if isinstance(v, str) and v.startswith('='): return ('fórmula', norm_formula(v))
-    if hasattr(v, 'text') and not isinstance(v, str): v = getattr(v, 'text', v)  # ArrayFormula
-    if type(v).__name__ == 'ArrayFormula': return ('fórmula', norm_formula(v.text))
+    if type(v).__name__ == 'ArrayFormula': return ('fórmula', norm_formula(v.text or ''))  # v0.6.14: antes virava "texto" e caía em "valor"
+    if hasattr(v, 'text') and not isinstance(v, str): v = getattr(v, 'text', v)
     if type(v).__name__ == 'CellRichText': return ('texto', str(v))
     if isinstance(v, bool): return ('lógico', v)
     if isinstance(v, (int, float)): return ('número', round(float(v), 9))
@@ -111,11 +111,36 @@ def valor(c):
 
 def larguras(ws):
     o = {}
+    # v0.6.14: largura igual à padrão da aba é a mesma coluna na tela (o openpyxl marca customWidth em toda <col> com width)
+    padrao = ws.sheet_format.defaultColWidth
+    padrao = float(padrao) if padrao else None
     for k, d in ws.column_dimensions.items():
         for col in range(d.min or 0, (d.max or 0) + 1):
             if col <= 0 or col > 16384: continue
             if d.hidden: o[col] = 'oculta'
-            elif d.customWidth and d.width: o[col] = round(float(d.width) * 2) / 2
+            elif d.customWidth and d.width:
+                w = float(d.width)
+                if padrao is None or abs(w - padrao) > 0.3: o[col] = round(w * 2) / 2
+    return o
+
+def estilos_colunas(ws, ate):
+    # v0.6.14 (D-47): estilo da coluna inteira; as colunas depois de "ate" valem pela última (XFD)
+    o = {}
+    for k, d in ws.column_dimensions.items():
+        if not d.has_style: continue
+        e = estilo(d)
+        if not e: continue
+        for col in range(d.min or 0, min(d.max or 0, ate) + 1):
+            if col > 0: o[col] = e
+        if (d.max or 0) >= 16384: o[16384] = e
+    return o
+
+def estilos_linhas(ws):
+    o = {}
+    for r, d in ws.row_dimensions.items():
+        if d.has_style:
+            e = estilo(d)
+            if e: o[r] = e
     return o
 
 def alturas(ws):
@@ -123,7 +148,7 @@ def alturas(ws):
     padrao = float(ws.sheet_format.defaultRowHeight or 15)
     for r, d in ws.row_dimensions.items():
         if d.hidden: o[r] = 'oculta'
-        elif d.ht and abs(float(d.ht) - padrao) > 0.6: o[r] = round(float(d.ht) / 0.75)
+        elif d.ht and abs(float(d.ht) - padrao) > 0.8: o[r] = round(float(d.ht) / 0.75)  # v0.6.14: 14,4 pt vira 19 px = 14,25 pt (o Excel desenha em pixels)
     return o
 
 def validacoes_x14(arq):
@@ -151,21 +176,31 @@ def comparar(orig, salvo):
     dif = []
     def add(cat, onde, como): dif.append({'categoria': cat, 'onde': onde, 'como': como})
     if len(A.sheetnames) != len(B.sheetnames): add('abas', '(pasta)', f'{len(A.sheetnames)} abas → {len(B.sheetnames)} abas')
+    # v0.6.14: com aba a menos (aba de gráfico que não volta), compara pelo nome; senão as abas seguintes saem trocadas
+    pelo_nome = len(A.sheetnames) != len(B.sheetnames)
     for i, nome in enumerate(A.sheetnames):
-        if i >= len(B.sheetnames): continue
-        nomeB = B.sheetnames[i]
+        if pelo_nome:
+            nomeB = nome if nome in B.sheetnames else next((n for n in B.sheetnames if n == nome.strip()), None)
+            if nomeB is None:
+                add('aba de gráfico não voltou' if not hasattr(A[nome], 'iter_rows') else 'aba sumiu', nome, 'não está no salvo'); continue
+        else:
+            if i >= len(B.sheetnames): continue
+            nomeB = B.sheetnames[i]
         if nomeB != nome:
             add('nome da aba: espaço no começo ou no fim sumiu' if nomeB == nome.strip() else 'nome da aba', f'aba {i + 1}', f'{len(nome)} letras → {len(nomeB)} letras')
         ler_tema(A); a = A[nome]; b = B[nomeB]
+        if not hasattr(a, 'iter_rows') or not hasattr(b, 'iter_rows'):
+            if type(a).__name__ != type(b).__name__: add('tipo da aba', nome, f'{type(a).__name__} → {type(b).__name__}')
+            continue
         if a.sheet_state != b.sheet_state: add('aba oculta', nome, f'{a.sheet_state} → {b.sheet_state}')
         maxL = maxC = maxLdados = 0
-        for row in a.iter_rows():
+        # v0.6.14: só as células que existem no arquivo (iter_rows cria o retângulo inteiro: 6 GB numa aba com dimensão até XFD)
+        for row in [list(a._cells.values())]:
             for c in row:
                 if c.value is not None: maxL = max(maxL, c.row); maxC = max(maxC, c.column)
                 if c.value is not None and not (isinstance(c.value, str) and c.value.startswith('=')) and c.value != '': maxLdados = max(maxLdados, c.row)
         fimB = b.max_row
-        ca = {(c.row, c.column): c for row in a.iter_rows() for c in row}
-        cb = {(c.row, c.column): c for row in b.iter_rows() for c in row}
+        ca = dict(a._cells); cb = dict(b._cells)
         for (r, k), c in ca.items():
             ref = f'{nome}!{get_column_letter(k)}{r}'
             va = valor(c); d = cb.get((r, k)); vb = valor(d) if d is not None else None
@@ -216,10 +251,23 @@ def comparar(orig, salvo):
         for col in sorted(set(la) | set(lb)):
             x, y = la.get(col), lb.get(col)
             if x == 'oculta' and y is None: add('coluna oculta voltou a aparecer', f'{nome}!{get_column_letter(col)}', 'oculta → visível')
-            elif x != y and not (isinstance(x, float) and isinstance(y, float) and abs(x - y) <= 0.75): add('largura', f'{nome}!{get_column_letter(col)}', f'{x} → {y}')
+            else:
+                # v0.6.14: sem largura própria = a padrão da aba (o Excel desenha em pixels: 12,25 e 12,29 são a mesma coluna)
+                px_ = x if x is not None else float(a.sheet_format.defaultColWidth or 8.43)
+                py_ = y if y is not None else float(b.sheet_format.defaultColWidth or 8.43)
+                if px_ != py_ and not (isinstance(px_, float) and isinstance(py_, float) and abs(px_ - py_) <= 0.75): add('largura', f'{nome}!{get_column_letter(col)}', f'{x} → {y}')
+        ate = maxC + 50
+        ca_, cb_ = estilos_colunas(a, ate), estilos_colunas(b, ate)
+        for col in sorted(set(ca_) | set(cb_)):
+            if not perto(ca_.get(col), cb_.get(col)): add('estilo da coluna inteira', f'{nome}!{get_column_letter(col)}', 'sumiu' if col not in cb_ else 'diferente')
+        ra_, rb_ = estilos_linhas(a), estilos_linhas(b)
+        for r in sorted(set(ra_) | set(rb_)):
+            if r > fimB and r not in rb_: add('linha depois do corte (estilo da linha)', f'{nome}!{r}', 'o EFCdocs parou antes desta linha'); continue
+            if not perto(ra_.get(r), rb_.get(r)): add('estilo da linha inteira', f'{nome}!{r}', 'sumiu' if r not in rb_ else 'diferente')
         ha, hb = alturas(a), alturas(b)
         for r in sorted(set(ha) | set(hb)):
             x, y = ha.get(r), hb.get(r)
+            if r > fimB and y is None: add('linha depois do corte (altura)', f'{nome}!{r}', 'o EFCdocs parou antes desta linha'); continue
             if x != y and not (isinstance(x, int) and isinstance(y, int) and abs(x - y) <= 1): add('altura', f'{nome}!{r}', f'{x} → {y}')
         ta = {t.name: t for t in a.tables.values()}; tb = {t.name: t for t in b.tables.values()}
         for n in sorted(set(ta) | set(tb)):
@@ -229,21 +277,39 @@ def comparar(orig, salvo):
             if [c.name for c in x.tableColumns] != [c.name for c in y.tableColumns]: add('tabela', f'{nome}!{n}', 'nomes das colunas diferentes')
             sx = x.tableStyleInfo.name if x.tableStyleInfo else None; sy = y.tableStyleInfo.name if y.tableStyleInfo else None
             if sx != sy: add('tabela', f'{nome}!{n}', f'estilo {sx} → {sy}')
-        def vals(ws): return sorted((dv.type or 'any', str(dv.sqref), str(dv.formula1 or '').replace('$', ''), str(dv.formula2 or '').replace('$', '')) for dv in ws.data_validations.dataValidation)
+        # v0.6.14: validação "qualquer valor" sem mensagem não faz nada no Excel (não conta)
+        def vals(ws): return sorted((dv.type or 'any', str(dv.sqref), str(dv.formula1 or '').replace('$', ''), str(dv.formula2 or '').replace('$', '')) for dv in ws.data_validations.dataValidation if (dv.type or 'any') != 'any' or dv.prompt or dv.error)
         va_, vb_ = sorted(vals(a) + x14.get(i, [])), vals(b)
         if va_ != vb_:
             for v in sorted(set(va_) - set(vb_))[:10]: add('validação', f'{nome}!{v[1]}', f'{v[0]} sumiu ou mudou')
             for v in sorted(set(vb_) - set(va_))[:10]: add('validação', f'{nome}!{v[1]}', f'{v[0]} apareceu ou mudou')
         def conds(ws): return sorted((str(rg.sqref), r.type) for rg in ws.conditional_formatting for r in rg.rules)
-        if conds(a) != conds(b): add('formatação condicional', nome, f'{len(conds(a))} regras → {len(conds(b))} regras')
+        # v0.6.14: barras de dados contam à parte (D-45: ainda não vêm; aparecem em "Ficou de fora")
+        barras = len([x for x in conds(a) if x[1] == 'dataBar']) - len([x for x in conds(b) if x[1] == 'dataBar'])
+        if barras > 0: add('formatação condicional: barras de dados não voltaram', nome, f'{barras} regras')
+        if [x for x in conds(a) if x[1] != 'dataBar'] != [x for x in conds(b) if x[1] != 'dataBar']: add('formatação condicional', nome, f'{len(conds(a))} regras → {len(conds(b))} regras')
         if len(a._images) != len(b._images): add('imagem', nome, f'{len(a._images)} → {len(b._images)}')
         if len(getattr(a, '_charts', [])) != len(getattr(b, '_charts', [])): add('gráfico (openpyxl)', nome, f'{len(a._charts)} → {len(b._charts)}')
-    da = sorted(n for n in A.defined_names); db = sorted(n for n in B.defined_names)
+    # v0.6.14: _xleta.* são nomes internos que o Excel recria (LAMBDA); não contam
+    def externo(dn): return bool(re.search(r"\[\d+\]", str(getattr(dn, 'attr_text', '') or getattr(dn, 'value', '') or '')))
+    fora = [n for n, d in A.defined_names.items() if externo(d)]
+    for n in fora:
+        if n not in B.defined_names: add('nome definido que aponta para outro arquivo', '(pasta)', n[:0] + 'não voltou')
+    # _xlchart.* são os nomes dos gráficos novos (cx), que ainda não voltam (D-44)
+    da = sorted(n for n in A.defined_names if not n.startswith(('_xleta.', '_xlchart.')) and n not in fora); db = sorted(n for n in B.defined_names if not n.startswith('_xleta.'))
     if da != db: add('nome definido', '(pasta)', f'{len(da)} → {len(db)}')
     return dif
 
+def grande_demais(arq):
+    import zipfile
+    return any(i.file_size > 60 * 1024 * 1024 for i in zipfile.ZipFile(arq).infolist() if i.filename.startswith('xl/worksheets/'))
+
 def main():
     if len(sys.argv) < 3: print(__doc__); return 2
+    # v0.6.14: aba com mais de 60 MB de XML (milhões de células de folga) o openpyxl não abre sem gastar mais de 6 GB
+    if grande_demais(sys.argv[1]):
+        if '--json' in sys.argv: json.dump({'total': 1, 'grupos': {'não conferido: aba com mais de 60 MB': {'quantas': 1, 'exemplos': ['(pasta)']}}}, open(sys.argv[sys.argv.index('--json') + 1], 'w'), ensure_ascii=False)
+        print('openpyxl: não conferido (aba com mais de 60 MB)'); return 1
     dif = comparar(sys.argv[1], sys.argv[2])
     grupos = {}
     for d in dif: g = grupos.setdefault(d['categoria'], {'quantas': 0, 'exemplos': []}); g['quantas'] += 1; len(g['exemplos']) < 3 and g['exemplos'].append(f"{d['onde']} ({d['como']})")

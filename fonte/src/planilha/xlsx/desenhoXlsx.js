@@ -3,7 +3,7 @@
 import { escapar, XML_CAB } from './xml.js';
 import { xmlDoGraficoObjeto, frameDoGrafico, comFormasDoGrafico, NS_A, NS_R, NS_XDR } from './graficosXlsx.js';
 import { gravarForma, formaDoBotao, ancoraXml } from './formasXlsx.js';
-import { assinaturaForma } from '../formas.js';
+import { formaSemMudanca } from '../formas.js';
 import { letraCol, lerChave } from '../ref.js';
 import { textoCelula } from '../grade.js';
 
@@ -55,7 +55,7 @@ export function gravarDesenhoAba(c, motor, aba, abaId, n0Chart, n0Img, cache = n
      se nem o grupo nem o gráfico mudaram de lugar e o grupo não mudou */
   const mesmoLugar = (o, p0) => Array.isArray(p0) && o.l === p0[0] && o.c === p0[1] && Math.abs(o.dx - p0[2]) < 1.5 && Math.abs(o.dy - p0[3]) < 1.5 && Math.abs(o.w - p0[4]) < 1.5 && Math.abs(o.h - p0[5]) < 1.5;
   const grupoPorTok = new Map();
-  for (const o of lista) if (o.tipo === 'forma' && o.grTok && o.xo && o.xoSig && o.xoSig === assinaturaForma(o) && mesmoLugar(o, o.grP0) && !grupoPorTok.has(o.grTok)) grupoPorTok.set(o.grTok, o);
+  for (const o of lista) if (o.tipo === 'forma' && o.grTok && o.xo && formaSemMudanca(o) && mesmoLugar(o, o.grP0) && !grupoPorTok.has(o.grTok)) grupoPorTok.set(o.grTok, o);
   const dentroDe = new Map(); // id da forma → { k: gráfico }
   for (const o of lista) {
     if (o.tipo !== 'grafico' || !o.noGrupo || !mesmoLugar(o, o.noGrupo.p0)) continue;

@@ -486,7 +486,7 @@ export function ancorasEmOrdem(dx) {
   const out = [];
   const rx = /<(?:\w+:)?(twoCellAnchor|oneCellAnchor|absoluteAnchor)\b([^>]*)>([\s\S]*?)<\/(?:\w+:)?\1>/g;
   let m;
-  while ((m = rx.exec(dx))) { const ed = /editAs="(\w+)"/.exec(m[2]); out.push({ tipo: m[1], dentro: m[3], ed: ed ? ed[1] : m[1] === 'twoCellAnchor' ? 'twoCell' : '' }); }
+  while ((m = rx.exec(dx))) { const ed = /editAs="(\w+)"/.exec(m[2]); out.push({ tipo: m[1], dentro: m[3], ed: ed ? ed[1] : m[1] === 'twoCellAnchor' ? 'twoCell' : m[1] === 'oneCellAnchor' ? 'oneCell' : m[1] === 'absoluteAnchor' ? 'absolute' : '' }); } /* v0.6.14 (D-42): âncora de uma célula ou fixa não vira "move e estica com as células" ao salvar */
   return out;
 }
 /** Namespaces declarados na raiz do desenho (para o XML guardado das formas voltar válido). */

@@ -16,6 +16,8 @@ import { renomearAba, excluirAba, duplicarAba } from '../../src/planilha/operaco
 const ORIG = new Uint8Array(readFileSync(new URL('../amostras/amostra-v0613.xlsx', import.meta.url)));
 const ESTRUTURA = new URL('../../scripts/fidelidade/conferir-estrutura.py', import.meta.url);
 const temPython = spawnSync('python3', ['-c', '1'], { stdio: 'ignore' }).status === 0;
+const REGRAS = new URL('../../scripts/fidelidade/conferir-regras.py', import.meta.url);
+const temLxml = spawnSync('python3', ['-c', 'import lxml'], { stdio: 'ignore' }).status === 0;
 const dec = (d) => new TextDecoder().decode(d);
 const ler = async (bytes) => normalizarPlanilha((await lerXlsx(bytes)).conteudo);
 async function partes(bytes) { const z = lerZip(bytes); const o = {}; for (const n of z.nomes) o[n] = /\.(xml|rels|vml)$/.test(n) ? dec(await z.bytes(n)) : await z.bytes(n); return o; }
@@ -25,8 +27,12 @@ const idDe = (c, nome) => c.ordem.find((id) => c.abas[id].nome === nome);
 function semErroDeEstrutura(bytes) {
   if (!temPython) return;
   const d = mkdtempSync(join(tmpdir(), 'efc-v0613-')); const f = join(d, 'x.xlsx'); writeFileSync(f, bytes);
-  const r = spawnSync('python3', [ESTRUTURA.pathname, f], { encoding: 'utf8' }); rmSync(d, { recursive: true, force: true });
+  const r = spawnSync('python3', [ESTRUTURA.pathname, f], { encoding: 'utf8' });
+  /* v0.6.14 (D-50): e as regras que o Excel cobra e outros leitores deixam passar (prefixo sem declaração em Requires="x14") */
+  const r2 = temLxml ? spawnSync('python3', [REGRAS.pathname, f], { encoding: 'utf8' }) : { status: 0 };
+  rmSync(d, { recursive: true, force: true });
   assert.equal(r.status, 0, r.stdout);
+  assert.equal(r2.status, 0, r2.stdout);
 }
 
 test('v0.6.13: cada aba lida sabe de que parte do original veio; a cópia de uma aba não leva isso', async () => {
