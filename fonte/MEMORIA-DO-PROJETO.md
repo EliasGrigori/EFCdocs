@@ -1,6 +1,6 @@
 # MEMÓRIA DO PROJETO — EFCdocs
 
-Atualizado em 13/11/2026 · App **Vértice Docs** (R23) · GitHub e site na **v0.6.14** (13/11) · **v0.6.14 "Estável nas planilhas reais" publicada em 13/11**
+Atualizado em 13/11/2026 · App **Vértice Docs** (R23) · GitHub e site na **v0.6.14** (commit 059ea4d, 13/11) · **v0.6.14 "Estável nas planilhas reais" publicada em 13/11**
 
 > **Este arquivo é a memória do projeto.** O Claude lê ele PRIMEIRO em toda conversa nova e grava de volta ao fechar cada versão.
 > Ele viaja em toda entrega (pasta da versão, ZIP da fonte e repositório), para nada se perder.
@@ -212,7 +212,7 @@ Atualizado em 13/11/2026 · App **Vértice Docs** (R23) · GitHub e site na **v0
 | v0.6.12 | Rápida: D-16 (digitar, apagar e desfazer em planilha grande abaixo de 0,1 s), gravação que espera a pessoa parar, diário de segurança que recupera o que não foi gravado; D-31 (anonimizador) | Fable 5.2 · alto | APROVADA inteira 12/11 (A01, A02, B01, C01, D01, E01) e PUBLICADA 12/11 |
 | v0.6.13 | Guardar e devolver: macros, tabela dinâmica, segmentação, linha do tempo, controles e suplementos voltam do original ao salvar (D-29); tema com figura (D-33); conferência estrutural na rede; anonimizador (D-32) | Fable 5.2 · alto (iniciada), Opus 5.5 · alto (o Elias trocou no meio) | APROVADA inteira 12/11 (A01, A02, B01, C01, D01, E01) e PUBLICADA 12/11 |
 | v0.6.10 a v0.6.17 | Rework da Planilha em versões pequenas. **Ordem decidida em 12/11 (D01 da v0.6.11.1):** v0.6.12 Rápida · v0.6.13 Guardar e devolver · **v0.6.14 Estável nas planilhas reais (D-34, decidido em 12/11, D01 da v0.6.13)** · v0.6.15 Cara do Cwork (R21, R22; linha do congelamento com 1 px, C02) · depois Tabelas vivas · Imagens e objetos (D-30) · Validação e mescladas · Planilhas comuns | ver `fase-0/FASE-0-VARREDURA-ESTUDO-E-BASE.md` | A FAZER, depois da aprovação |
-| v0.6.14 | Estável nas planilhas reais: D-34 triado; D-35 a D-42, D-46 a D-55 corrigidos (D-50 = o erro do Excel no arquivo real do Elias); conferente de regras do Excel; rede no caminho do app | Opus 5.5 · alto | **PUBLICADA 13/11** (ordem "Pode publicar" às 04:56, antes de responder os itens; D01 e D02 em aberto) |
+| v0.6.14 | Estável nas planilhas reais: D-34 triado; D-35 a D-42, D-46 a D-55 corrigidos (D-50 = o erro do Excel no arquivo real do Elias); conferente de regras do Excel; rede no caminho do app | Opus 5.5 · alto | **PUBLICADA 13/11, commit 059ea4d** (ordem "Pode publicar" às 04:56, antes de responder os itens; D01 e D02 em aberto) |
 | v0.7.0 | Docx: editor, POP, formulários, revisões no editor, Word, PDF; gráfico no Quadro | Opus 5 · alto | começada (modelo e medidas do Documento) |
 | v0.8.0 | Pastas, lançamentos, arquivados, documentos externos, fotos com prazo | Opus 5.5 · alto | |
 | v0.9.0 | Nuvem, login próprio, regras do Firestore, aprovação, avisos, medidor de espaço | Opus 5.5 · alto | |
