@@ -1,0 +1,85 @@
+/* Vértice Docs — movimento das telas (v0.6.15), pela skill Transitions.dev (licença: uso livre em produto, sem
+   redistribuir a biblioteca; docs/CREDITOS.md). Tokens da escala do Transitions.dev e as receitas de janela (06 modal),
+   menu (05 dropdown), aviso (22 toast), seções das Opções (21 acordeão), chave liga-desliga (27 toggle) e mudança de
+   largura (01 card resize). No React os menus e avisos somem da página ao fechar, então aqui só a entrada é animada.
+   Quem pediu menos movimento no aparelho (prefers-reduced-motion) não vê nada disso. Carregado depois de cwork.css. */
+:root {
+  /* escala */
+  --duration-stagger: 40ms; --duration-micro: 80ms; --duration-quick: 150ms; --duration-fast: 250ms;
+  --duration-medium: 350ms; --duration-slow: 400ms; --duration-very-slow: 500ms;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1); --ease-in-out: ease-in-out; --ease-out: ease-out; --ease-linear: linear;
+  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --distance-micro: 4px; --distance-small: 6px; --distance-base: 8px; --distance-medium: 12px; --distance-large: 30px;
+  --scale-large: 0.96; --scale-medium: 0.97; --scale-small: 0.98; --scale-tiny: 0.99;
+  --blur-small: 2px; --blur-medium: 3px; --blur-large: 8px;
+  /* receitas */
+  --modal-open-dur: 250ms; --modal-scale: 0.96; --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dropdown-open-dur: 250ms; --dropdown-pre-scale: 0.97; --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --toast-open: 350ms; --toast-distance: 16px; --toast-blur: 2px; --toast-scale: 0.97; --toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --acc-expand: 250ms; --acc-chevron: 250ms; --acc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --toggle-dur: 350ms; --toggle-ease: cubic-bezier(0.34, 1.35, 0.64, 1);
+  --resize-dur: 300ms; --resize-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* janela (06 modal): cresce do centro, de 0,96 a 1 (era jan-entra de 140 ms) */
+.janela { animation: t-modal-in var(--modal-open-dur) var(--modal-ease); will-change: transform, opacity; }
+@keyframes t-modal-in { from { opacity: 0; transform: scale(var(--modal-scale)); } to { opacity: 1; transform: scale(1); } }
+
+/* menus (05 dropdown): crescem do ponto de onde saíram */
+.novo-drive-m, .pl-menu, .pl-fmenu, .ge-pop, .faixa-menu { animation: t-dropdown-in var(--dropdown-open-dur) var(--dropdown-ease); transform-origin: top left; }
+.faixa-menu { transform-origin: top right; }
+@keyframes t-dropdown-in { from { opacity: 0; transform: scale(var(--dropdown-pre-scale)); } to { opacity: 1; transform: scale(1); } }
+
+/* aviso (22 toast): sobe de baixo, um pouco desfocado */
+.toast { animation: t-toast-in var(--toast-open) var(--toast-ease); }
+@keyframes t-toast-in {
+  from { opacity: 0; transform: translateY(var(--toast-distance)) scale(var(--toast-scale)); filter: blur(var(--toast-blur)); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+/* seções das Opções (21 acordeão): o corpo aparece sem pulo e a setinha vira */
+.op-corpo { animation: t-acc-in var(--acc-expand) var(--acc-ease); }
+@keyframes t-acc-in { from { opacity: 0; filter: blur(2px); transform: translateY(calc(-1 * var(--distance-micro))); } to { opacity: 1; filter: none; transform: none; } }
+.op-cab > svg { transition: transform var(--acc-chevron) var(--acc-ease); }
+
+/* chave liga-desliga (27 toggle): a bolinha passa um tiquinho e volta (era 150 ms reto) */
+.chave input:after { transition: left var(--toggle-dur) var(--toggle-ease); }
+
+/* mudança de largura (01 card resize): alça do menu escondido e barra de progresso de abrir o Excel */
+.menu-alca { transition: width var(--resize-dur) var(--resize-ease), box-shadow var(--resize-dur) var(--resize-ease), filter .2s ease, color .18s ease .08s; }
+.menu-alca svg { transition: opacity .2s ease .08s, transform var(--resize-dur) var(--resize-ease); }
+.barra-prog i { transition: width var(--resize-dur) var(--resize-ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  .janela, .novo-drive-m, .pl-menu, .pl-fmenu, .ge-pop, .faixa-menu, .toast, .op-corpo { animation: none !important; }
+  .op-cab > svg, .chave input:after, .menu-alca, .menu-alca svg, .barra-prog i { transition: none !important; }
+}
+
+/* ---------- efeitos aprovados pelo Elias em 13/11 (F01 a F05), código próprio inspirado no React Bits ----------
+   F01 contagem nos números do relatório: componente Contagem em src/ui/excel.jsx */
+/* F02: um brilho atravessa o botão de ouro ao passar o mouse (uma vez) */
+.btn.primary { position: relative; overflow: hidden; }
+.btn.primary::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .55), transparent); transform: skewX(-18deg); pointer-events: none; }
+.btn.primary:hover:not(:disabled)::after { animation: ef-brilho 700ms var(--ease-smooth-out) 1; }
+@keyframes ef-brilho { from { left: -60%; } to { left: 130%; } }
+/* F03: luz dourada fraca que segue o mouse nos cartões do Início (só com mouse) */
+.cartao-novo { position: relative; }
+.cartao-novo::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity var(--duration-fast) var(--ease-out);
+  background: radial-gradient(200px circle at var(--luz-x, 50%) var(--luz-y, 50%), rgba(217, 180, 106, .18), transparent 70%); }
+@media (hover: hover) { .cartao-novo:hover:not(:disabled)::after { opacity: 1; } }
+/* F04: listas de arquivos entram em cascata (40 ms entre um e outro, sobem 8 px) */
+.lista.grade > .arq { animation: ef-cascata var(--duration-slow) var(--ease-smooth-out) both; }
+.lista.grade > .arq:nth-child(2) { animation-delay: 40ms; } .lista.grade > .arq:nth-child(3) { animation-delay: 80ms; }
+.lista.grade > .arq:nth-child(4) { animation-delay: 120ms; } .lista.grade > .arq:nth-child(5) { animation-delay: 160ms; }
+.lista.grade > .arq:nth-child(6) { animation-delay: 200ms; } .lista.grade > .arq:nth-child(n+7) { animation-delay: 240ms; }
+@keyframes ef-cascata { from { opacity: 0; transform: translateY(var(--distance-base)); } to { opacity: 1; transform: none; } }
+/* F05: o certo do "Salvo" se desenha a cada gravação */
+.foot-salvo { display: inline-flex; align-items: center; gap: 5px; }
+.foot-certo { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--ok); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.foot-certo path { stroke-dasharray: 22; stroke-dashoffset: 0; animation: ef-certo var(--duration-very-slow) var(--ease-smooth-out); }
+@keyframes ef-certo { from { stroke-dashoffset: 22; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .btn.primary::after { display: none; }
+  .cartao-novo::after { transition: none !important; }
+  .lista.grade > .arq, .foot-certo path { animation: none !important; }
+}

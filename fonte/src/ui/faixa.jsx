@@ -58,7 +58,7 @@ const FAIXAS = {
     { id: 'revisao', nome: 'Revisão', grupos: [
       { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar'], ['g', 'revisao.comentarios'], ['g', 'arquivo.versoes']] },
       { nome: 'Proteger', itens: [['g', 'revisao.travar']] }] },
-    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['col', ['exibir.grade', 'exibir.folhaClara', 'exibir.barraFormula', 'exibir.abaGrafico']], ['g', 'exibir.zoom']] }, { nome: 'Linhas e colunas', itens: [['col', ['planilha.ocultarLinha', 'planilha.ocultarColuna', 'planilha.reexibir', 'planilha.reexibirColuna']]] }, ...GRUPOS_EXIBIR] },
+    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['col', ['exibir.grade', 'exibir.folhaClara', 'exibir.barraFormula']], ['col', ['exibir.abaGrafico', 'exibir.zoom']]] }, { nome: 'Linhas e colunas', itens: [['lin', ['planilha.ocultarLinha', 'planilha.reexibir', 'planilha.ocultarColuna', 'planilha.reexibirColuna'], 2]] }, ...GRUPOS_EXIBIR] },
   ],
   docx: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
@@ -367,9 +367,9 @@ function OpcoesFaixa({ prefs, cx, cel, compacto }) {
           {cx.setPref && (
             <>
               <span className="faixa-menu-sep" />
-              <span className="faixa-menu-cab">Temas favoritos</span>
-              <div className="faixa-temas" role="group" aria-label="Temas favoritos">
-                {(prefs.favTemas || []).map((id) => {
+              <span className="faixa-menu-cab">Tema</span>
+              <div className="faixa-temas" role="group" aria-label="Tema">
+                {TEMAS.map(([id]) => {
                   const t = TEMAS.find(([x]) => x === id);
                   if (!t || !AMOSTRAS[id]) return null;
                   return (
@@ -377,7 +377,7 @@ function OpcoesFaixa({ prefs, cx, cel, compacto }) {
                       onClick={() => { cx.setPref('tema', id); setAberto(null); }}><i style={{ '--tb': AMOSTRAS[id][0], '--ta': AMOSTRAS[id][1] }} /><span>{t[1]}</span></button>
                   );
                 })}
-                <button type="button" className="faixa-tema-mais" data-faixa-temas-mais onClick={() => { setAberto(null); cx.executar('app.opcoes'); }}>Escolher favoritos…</button>
+                <button type="button" className="faixa-tema-mais" data-faixa-temas-mais onClick={() => { setAberto(null); cx.executar('app.opcoes'); }}>Mais opções de tela…</button>
               </div>
             </>
           )}

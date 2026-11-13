@@ -6,6 +6,21 @@ import { lerArquivoExcel } from '../planilha/xlsx/abrir.js';
 const n = (x) => Number(x || 0).toLocaleString('pt-BR');
 const kb = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
 
+/** v0.6.15 (F01 aprovado): o número conta de 0 até o valor em 0,6 s, uma vez, ao abrir o relatório (código próprio,
+    ideia do Count Up do React Bits). Quem pediu menos movimento vê o número direto. */
+function Contagem({ valor, fmt = n }) {
+  const parado = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [v, setV] = useState(parado ? valor : 0);
+  useEffect(() => {
+    if (parado || !valor) { setV(valor); return undefined; }
+    let id = 0, t0 = 0;
+    const passo = (t) => { if (!t0) t0 = t; const k = Math.min(1, (t - t0) / 600); setV(valor * (1 - Math.pow(1 - k, 3))); if (k < 1) id = requestAnimationFrame(passo); };
+    id = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(id);
+  }, [valor, parado]);
+  return <b>{fmt(Math.round(v))}</b>;
+}
+
 /** Caixa do relatório: borda, faixa de título e cor própria (verde = veio, vermelho = ficou de fora, amarelo = bom saber, azul = nota). */
 function Caixa({ tom, icone, titulo, qtd, children, dados }) {
   return (
@@ -45,10 +60,10 @@ export function RelatorioExcel({ rel }) {
   return (
     <div className="rel-excel">
       <div className="rel-nums">
-        <div className="rel-num"><span>Abas</span><b>{n(abas.length)}</b></div>
-        <div className="rel-num"><span>Células</span><b>{n(rel.celulas)}</b></div>
-        <div className="rel-num azul"><span>Fórmulas</span><b>{n(rel.formulas)}</b></div>
-        {rel.bytes ? <div className="rel-num"><span>Arquivo</span><b>{kb(rel.bytes)}</b></div> : null}
+        <div className="rel-num"><span>Abas</span><Contagem valor={abas.length} /></div>
+        <div className="rel-num"><span>Células</span><Contagem valor={rel.celulas || 0} /></div>
+        <div className="rel-num azul"><span>Fórmulas</span><Contagem valor={rel.formulas || 0} /></div>
+        {rel.bytes ? <div className="rel-num"><span>Arquivo</span><Contagem valor={rel.bytes} fmt={kb} /></div> : null}
       </div>
       <Caixa tom="verde" icone="check" titulo="Veio" qtd={veio.length} dados={{ 'data-rel': 'veio' }}>
         <ul className="rel-lista">{veio.map((t, i) => <li key={i}>{t}</li>)}</ul>

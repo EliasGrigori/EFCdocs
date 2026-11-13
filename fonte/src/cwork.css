@@ -1,0 +1,147 @@
+/* Vértice Docs — visual do Cwork (v0.6.15, R17, R21, R22, C02).
+   Carregado por último (main.jsx). Dois temas: Claro (id "papel": marfim e ouro) e Escuro (id "dark": o Dourado).
+   Escala única: letras 11 · 12 · 13 · 14 · 16 · 20 · 26 px; cantos 4 (miúdos) · 7 (botões, campos, chips) · 10 (cartões e janelas)
+   e o círculo. Fontes embutidas (funcionam sem internet): títulos Fraunces, texto Source Sans 3 (licença OFL, docs/CREDITOS.md). */
+
+@font-face { font-family: 'Source Sans 3'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fontes/source-sans-3-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Source Sans 3'; font-style: normal; font-weight: 600; font-display: swap; src: url('./fontes/source-sans-3-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Source Sans 3'; font-style: normal; font-weight: 700; font-display: swap; src: url('./fontes/source-sans-3-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Fraunces'; font-style: normal; font-weight: 600; font-display: swap; src: url('./fontes/fraunces-latin-600-normal.woff2') format('woff2'); }
+
+:root {
+  --f: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fh: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --r-jan: 10px; --r-card: 10px; --r-ctl: 7px; --r-chip: 7px; --r-miudo: 4px; --r-pill: 999px;
+  --ouro: linear-gradient(135deg, #f7df9e 0%, #d9b46a 52%, #b4862f 100%);
+  --ouro-tx: #1c1406;
+}
+
+/* ---------- Claro (marfim e ouro) ---------- */
+body[data-theme=papel] {
+  --bg: #f7f5ef; --surface: #fffefb; --surface-2: #f2eee4; --surface-3: #e9e3d3;
+  --border: #e6dfcf; --border-light: #d8cdb2;
+  --text: #1e1b14; --text-muted: #5b5443; --text-dim: #6f6754;
+  --primary: #865f1f; --primary-soft: rgba(154, 113, 40, .13); --on-primary: #1c1406;
+  --ok: #2f7d4f; --warn: #8a5e09; --crit: #b33a32; --info: #2a6a88;
+  --ok-soft: rgba(47, 125, 79, .13); --warn-soft: rgba(154, 106, 12, .14); --crit-soft: rgba(179, 58, 50, .12); --info-soft: rgba(42, 106, 136, .12);
+  --row-hover: #f2eee4; --star: #9a7128;
+  --shadow: 0 14px 36px rgba(60, 45, 15, .14);
+  --sh-1: 0 1px 2px rgba(60, 45, 15, .06), 0 1px 1px rgba(60, 45, 15, .04);
+  --sh-2: 0 2px 6px rgba(60, 45, 15, .07), 0 10px 26px rgba(60, 45, 15, .10);
+  --sh-jan: 0 4px 12px rgba(60, 45, 15, .08), 0 22px 54px rgba(60, 45, 15, .16);
+  --anel: 0 0 0 3px rgba(154, 113, 40, .22);
+  --a: #9a7128;
+}
+/* ---------- Escuro (o Dourado) ---------- */
+body[data-theme=dark] {
+  --bg: #0b0d16; --surface: #121524; --surface-2: #181c2e; --surface-3: #20253a;
+  --border: #2a2b3b; --border-light: #3d3b4b;
+  --text: #f3eee3; --text-muted: #bcb3a1; --text-dim: #9a917f;
+  --primary: #d9b46a; --primary-soft: rgba(217, 180, 106, .14); --on-primary: #1c1406;
+  --ok: #7fbf98; --warn: #e2b55f; --crit: #e38b7d; --info: #8fb8d0;
+  --ok-soft: rgba(127, 191, 152, .14); --warn-soft: rgba(226, 181, 95, .14); --crit-soft: rgba(227, 139, 125, .14); --info-soft: rgba(143, 184, 208, .14);
+  --row-hover: #181c2e; --star: #d9b46a;
+  --shadow: 0 14px 36px rgba(0, 0, 0, .5);
+  --sh-1: 0 1px 2px rgba(0, 0, 0, .35);
+  --sh-2: 0 2px 8px rgba(0, 0, 0, .35), 0 12px 28px rgba(0, 0, 0, .35);
+  --sh-jan: 0 6px 16px rgba(0, 0, 0, .4), 0 24px 60px rgba(0, 0, 0, .5);
+  --anel: 0 0 0 3px rgba(217, 180, 106, .25);
+  --a: #d9b46a;
+}
+html { background: var(--bg, #f7f5ef); }
+body[data-theme=papel], body[data-theme=dark] { background: var(--bg); }
+body[data-theme=papel]::before, body[data-theme=dark]::before { content: none !important; }
+
+/* ---------- letra ---------- */
+body { font-family: var(--f); font-size: 14px; }
+button, input, select, textarea { font-family: inherit; }
+.brand-name, .nome, .tb-tit .nome, .pg-tit, .jan-tit, .rg-tit, h1, h2 { font-family: var(--fh); font-weight: 600; letter-spacing: 0; }
+kbd { font-family: var(--f); }
+
+/* ---------- botões ---------- */
+.btn.primary, .btn.primary:hover {
+  background: var(--ouro); color: var(--ouro-tx); border-color: #b4862f;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .45) inset, 0 4px 14px rgba(180, 134, 47, .28);
+}
+.btn.primary svg { color: var(--ouro-tx); }
+.btn.primary:hover { filter: brightness(1.03); }
+:focus-visible { outline: none; box-shadow: var(--anel); }
+
+/* ---------- menu lateral ---------- */
+.rail { background: var(--surface); border-right: 1px solid var(--border); box-shadow: none; }
+.brand-name { font-size: 20px; color: var(--text); }
+.rn { color: var(--text-muted); border-radius: var(--r-ctl); }
+.rn:hover { background: var(--surface-2); color: var(--text); }
+.rn.active { background: var(--surface-2); color: var(--primary); font-weight: 600; }
+.rn.active::before { background: var(--a); }
+.rail-sep { color: var(--text-dim); text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; }
+.rail-user { background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; }
+
+/* ---------- barra de cima: título serifado com traço dourado (como no Cwork) ---------- */
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: none; }
+.tb-tit .nome { font-size: 20px; color: var(--text); position: relative; }
+.tb-tit .nome::after { content: ''; position: absolute; left: 8px; bottom: -3px; width: 34px; height: 3px; border-radius: 3px; background: var(--ouro); }
+.tabs .tab { color: var(--text-muted); font-size: 14px; }
+.tabs .tab.active { color: var(--primary); font-weight: 600; box-shadow: inset 0 -2px 0 var(--a); background: transparent; }
+.busca { background: var(--surface-2); border-color: var(--border); color: var(--text-muted); border-radius: var(--r-ctl); }
+
+/* ---------- faixa de comandos: no jeito do Excel (R21), redesenhada ---------- */
+/* v0.6.15 (Elias, 13/11: "as caixas dos ícones... poderia ser idêntica ao Excel"): faixa lisa como a do Excel:
+   sem caixa nos grupos, um traço fino entre eles, botões sem fundo até passar o mouse */
+.ribbon { background: var(--surface); border-bottom: 1px solid var(--border); }
+.ribbon .rb-g, .ribbon[data-estilo=B] .rb-g { background: transparent; border: 0; border-right: 1px solid var(--border); border-radius: 0; box-shadow: none; }
+.ribbon .rb-g:last-of-type, .ribbon[data-estilo=B] .rb-g:last-of-type { border-right: 0; }
+.ribbon .rb-n { color: var(--text-muted); font-size: 12px; text-transform: none; letter-spacing: 0; }
+.ribbon[data-estilo=B] .rbb, .ribbon[data-estilo=B] .rbs, .ribbon[data-estilo=B] .rbi { background: transparent; box-shadow: none; border-color: transparent; }
+.ribbon[data-estilo=B] .rbb:hover:not(:disabled), .ribbon[data-estilo=B] .rbs:hover:not(:disabled), .ribbon[data-estilo=B] .rbi:hover:not(:disabled) { background: var(--surface-2); box-shadow: none; transform: none; }
+.ribbon[data-estilo=B] .rbb.on, .ribbon[data-estilo=B] .rbs.on, .ribbon[data-estilo=B] .rbi.on { background: var(--primary-soft); box-shadow: none; }
+
+/* ---------- rodapé ---------- */
+.foot { background: var(--surface); border-top: 1px solid var(--border); color: var(--text-muted); }
+/* alvos de 28 px ou mais no computador (meta do Cwork); a coluna com 4 comandos vira duas colunas */
+.ribbon:not([data-estilo=E]) .rbs { height: 28px; min-height: 28px; }
+.ribbon:not([data-estilo=E]) .rbi { width: 28px; height: 28px; min-height: 28px; }
+.ribbon:not([data-estilo=E]) .rb-col:has(> :nth-child(4)) { display: grid; grid-template-rows: repeat(3, 28px); grid-auto-flow: column; column-gap: 4px; }
+.ribbon:not([data-estilo=E]) .rb-col:has(> :nth-child(4)) .rbs { height: 28px; font-size: 13px; }
+/* o comando principal da aba (Colar, Novo post-it...) fica como no Excel: ícone grande sem quadro em volta */
+.ribbon [data-prim], .ribbon[data-estilo=B] [data-prim], .ribbon[data-estilo=B] [data-prim].on { background: transparent; color: var(--text); box-shadow: none; }
+.ribbon [data-prim]:hover:not(:disabled), .ribbon[data-estilo=B] [data-prim]:hover:not(:disabled) { background: var(--surface-2); color: var(--text); filter: none; }
+.ribbon [data-prim] svg.ic-novo, .ribbon[data-estilo=B] [data-prim] svg.ic-novo { color: var(--primary); }
+/* toque: 44 px */
+.app.cel .ribbon[data-estilo=E] .rbb, .app.cel .ribbon[data-estilo=E] .rbs { height: 44px; min-width: 44px; }
+.app.cel .ribbon[data-estilo=E] .rbi { width: 44px; height: 44px; }
+.brand-name { font-size: 16px; white-space: nowrap; }
+/* mais alvos de 28 px no computador */
+.rb-recolher { min-height: 28px; min-width: 28px; }
+.pl-aba-mais, .pl-zpct { min-height: 28px; min-width: 28px; display: inline-flex; align-items: center; justify-content: center; }
+.foot .pl-lamp, .foot .qd-lamp { min-height: 28px; }
+.pl-cap { opacity: 0 !important; }
+/* toque: 44 px no celular */
+.app.cel .iconbtn, .app.cel .topbar-row .rbi, .app.cel .ribbon .rbi { width: 44px; height: 44px; min-height: 44px; }
+.app.cel .topbar-row .nome, .app.cel .tlab, .app.cel .btn, .app.cel .btn.sm { min-height: 44px; }
+.app.cel .pl-fx { min-height: 44px; }
+.app.cel .pl-nome, .app.cel .pl-fx-b { height: 44px; min-height: 44px; }
+.app.cel .pl-aba, .app.cel .pl-aba-nova, .app.cel .pl-aba-mais { min-height: 44px; }
+.app.cel .foot .pl-lamp, .app.cel .foot .qd-lamp { min-height: 44px; }
+.app.cel .tbar .rbi { width: 44px; height: 44px; min-height: 44px; }
+.app.cel .pl-lamp, .app.cel .qd-lamp { min-height: 44px; }
+/* seta do filtro da coluna no padrão do Cwork (C02 da Fase 0) */
+.pl-seta-filtro { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border-light); border-radius: var(--r-miudo); box-shadow: var(--sh-1); }
+.pl-seta-filtro:hover { background: var(--surface-2); color: var(--text); border-color: var(--a); }
+.pl-seta-filtro.on { background: var(--ouro); color: var(--ouro-tx); border-color: #b4862f; }
+.pl-seta-filtro.on svg path { fill: currentColor; }
+/* relatório "O que veio do Excel": número da caixa legível nos dois temas (contraste 4,5 ou mais) */
+.rel-caixa { border-radius: var(--r-card); overflow: hidden; }
+.rel-qtd { color: var(--surface); border-radius: var(--r-miudo); }
+/* perfil no menu: ícone desenhado no lugar da bolinha de iniciais (meta do Cwork) */
+.rail-user .av svg { width: 17px; height: 17px; }
+/* alvos que ainda ficavam abaixo de 28 px (auditoria visual) */
+.qd-zoom .rbi { width: 28px; height: 28px; min-height: 28px; }
+.foot-desfazer { min-height: 28px; }
+.app.cel .pl-st { min-height: 44px; }
+input[type=checkbox], input[type=radio] { accent-color: var(--primary); }
+/* Opções: os dois temas lado a lado */
+.temas-dois { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.temas-dois .tema-b { min-height: 40px; justify-content: flex-start; gap: 8px; }
+/* aba ativa da faixa: traço dourado de 2 px embaixo, igual nos dois temas */
+body[data-theme=papel] .tabs .tab.active, body[data-theme=dark] .tabs .tab.active { color: var(--primary); font-weight: 600; border-bottom: 2px solid var(--a); box-shadow: none; background: transparent; }

@@ -142,16 +142,20 @@ export function lerEstilos(xml, tema) {
   }
   const bordas = tags(tag(xml, 'borders')?.dentro || '', 'border').map((b) => {
     const bd = {};
-    let bdc = null, tipos = null;
+    let bdc = null, tipos = null, lados = null;
     for (const [lado, k] of [['top', 't'], ['bottom', 'b'], ['left', 'l'], ['right', 'r'], ['start', 'l'], ['end', 'r']]) {
       const t = tag(b.dentro, lado);
       if (!t || !t.a.style || t.a.style === 'none') continue;
       bd[k] = ESPESSURA[t.a.style] || 1;
       /* v0.6.14 (D-53): pontilhada, tracejada, dupla, fio de cabelo: o tipo volta igual (a grade desenha lisa) */
       if (ESPESSURA[t.a.style] && !LISAS.has(t.a.style)) (tipos || (tipos = {}))[k] = t.a.style;
-      if (!bdc) bdc = cor(t.dentro, 'color');
+      const ck = cor(t.dentro, 'color');
+      if (!bdc) bdc = ck;
+      (lados || (lados = {}))[k] = ck || '#000000';
     }
-    return Object.keys(bd).length ? { bd, bdc, tipos } : null;
+    /* v0.6.15 (D-57): cada lado com a sua cor (ex.: em cima azul-claro, embaixo azul-escuro); só guarda quando os lados diferem */
+    const cs = lados ? new Set(Object.values(lados)) : new Set();
+    return Object.keys(bd).length ? { bd, bdc, tipos, lados: cs.size > 1 ? lados : null } : null;
   });
   const AL = { left: 'e', center: 'c', centerContinuous: 'c', right: 'd', justify: 'e', distributed: 'c', fill: 'e' };
   const AV = { top: 't', center: 'm', justify: 'm', distributed: 'm' };
@@ -168,7 +172,7 @@ export function lerEstilos(xml, tema) {
     const fu = fundos[+(x.a.fillId || 0)];
     if (fu) { e.fundo = fu.c; if (fu.fx && fu.fx.length < 4000) e.fx = { c: fu.c, x: fu.fx }; }
     const bo = bordas[+(x.a.borderId || 0)];
-    if (bo) { e.bd = bo.bd; if (bo.bdc && bo.bdc !== '#000000') e.bdc = bo.bdc; if (bo.tipos) e.bdt = bo.tipos; }
+    if (bo) { e.bd = bo.bd; if (bo.bdc && bo.bdc !== '#000000') e.bdc = bo.bdc; if (bo.tipos) e.bdt = bo.tipos; if (bo.lados) e.bdcs = bo.lados; }
     const nf = fmts[+(x.a.numFmtId || 0)];
     if (nf && nf !== 'General') e.nf = nf;
     const pr = tag(x.dentro, 'protection');
@@ -232,7 +236,7 @@ export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = [], tamBase
     const fo = idx(fontes, fonte.b || fonte.i || fonte.u || fonte.st || fonte.tam !== tb || fonte.nome || fonte.cor ? fonte : { tam: tb });
     const fi = e.fundo && e.fx && e.fx.c === e.fundo && typeof e.fx.x === 'string' && /^<fill>[\s\S]*<\/fill>$/.test(e.fx.x) && !/<script/i.test(e.fx.x) ? idx(fundos, { tipo: 'cru', xml: e.fx.x })
       : e.fundo ? idx(fundos, { tipo: 'solid', cor: e.fundo }) : 0;
-    const bo = e.bd && Object.keys(e.bd).length ? idx(bordas, { bd: e.bd, cor: e.bdc || null, ...(e.bdt ? { t: e.bdt } : {}) }) : 0;
+    const bo = e.bd && Object.keys(e.bd).length ? idx(bordas, { bd: e.bd, cor: e.bdc || null, ...(e.bdt ? { t: e.bdt } : {}), ...(e.bdcs && typeof e.bdcs === 'object' ? { cs: e.bdcs } : {}) }) : 0;
     const nf = idFmt(e.nf);
     xfs.push({ fo, fi, bo, nf, al: e.al, av: e.av, qb: !!e.qb, lib: !!e.lib,
       /* v0.6.14 (D-46): só vale enquanto a pessoa não trocou o alinhamento (justificado só se ainda está "à esquerda") */
@@ -256,7 +260,8 @@ export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = [], tamBase
     if (!x.bd) return '<border><left/><right/><top/><bottom/><diagonal/></border>';
     const cor = x.cor ? `<color rgb="${hexArgb(x.cor)}"/>` : '<color indexed="64"/>';
     const tipo = (k) => (x.t && x.t[k] && ESPESSURA[x.t[k]] === x.bd[k] ? x.t[k] : LARG_BORDA[x.bd[k]] || 'thin');
-    const lado = (n, k) => (x.bd[k] ? `<${n} style="${tipo(k)}">${cor}</${n}>` : `<${n}/>`);
+    const corDe = (k) => { const h = x.cs && typeof x.cs[k] === 'string' && /^#[0-9a-f]{6}$/i.test(x.cs[k]) ? x.cs[k] : null; return h ? (h.toLowerCase() === '#000000' ? '<color indexed="64"/>' : `<color rgb="${hexArgb(h)}"/>`) : cor; };
+    const lado = (n, k) => (x.bd[k] ? `<${n} style="${tipo(k)}">${corDe(k)}</${n}>` : `<${n}/>`);
     return `<border>${lado('left', 'l')}${lado('right', 'r')}${lado('top', 't')}${lado('bottom', 'b')}<diagonal/></border>`;
   };
   const AL = { e: 'left', c: 'center', d: 'right' };

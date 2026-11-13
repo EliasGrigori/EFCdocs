@@ -199,6 +199,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     if (aba.zeroH) {
       let lim = -1;
       for (const k of linhas.keys()) if (k > lim) lim = k;
+      /* v0.6.15 (D-58): as linhas vazias e visíveis entre o último dado e o bloco oculto do fim também vão listadas; sem isso,
+         salvando duas vezes, elas sumiam (o Excel esconde quem não está na lista) */
+      if (aba.ocL) { let fim = -1; for (const k of Object.keys(aba.ocL)) if (aba.ocL[k] && +k > fim) fim = +k; let ini = fim; while (ini > 0 && aba.ocL[ini - 1]) ini--; if (ini - 1 > lim) lim = ini - 1; }
       for (let r = 0; r <= Math.min(lim, 1048575); r++) if (!(aba.ocL && aba.ocL[r]) && !linhas.has(r)) linhas.set(r, new Map());
     }
 

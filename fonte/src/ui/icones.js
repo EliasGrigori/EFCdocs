@@ -162,3 +162,22 @@ export const ICONES = {
   "contagotas": "<path d=\"M3.5 20.5l1-4 9.5-9.5 3 3-9.5 9.5z\"/><path d=\"M14 7l2.8-2.8a2.1 2.1 0 0 1 3 3L17 10\"/><path d=\"M12.5 5.5l6 6\"/>",
   "trocarCor": "<path d=\"M4 8h13l-3-3\"/><path d=\"M20 16H7l3 3\"/>",
 };
+
+/* v0.6.15 (R22): menu de navegação e barra de cima no desenho do Cwork (traço 1,8, pontas redondas, mesmas formas do EFCwork) */
+Object.assign(ICONES, {
+  casa: '<path d="M4 11 12 4l8 7v8.5a.5.5 0 0 1-.5.5H15v-6H9v6H4.5a.5.5 0 0 1-.5-.5z"/>',
+  planilha: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M4 14.5h16M9.5 9.5V20"/>',
+  docx: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+  postits: '<path d="M5 4h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M15 9h4a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-4"/>',
+  pasta: '<path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+  externo: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 15.5l5-5M10.5 10.5H14V14"/>',
+  lixeira: '<path d="M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
+  busca: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+  filtro: '<path d="M3 5h18l-7 8.5V19l-4 2v-7.5z"/>',
+  /* seta do filtro da coluna (C02 da Fase 0): o funil do Cwork com a setinha; filtrada = funil cheio em ouro (CSS) */
+  filtroSeta: '<path d="M3 4.5h12l-4.7 5.7V15l-2.6 1.3v-6.1z"/><path d="m15.5 14 2.5 2.5 2.5-2.5"/>',
+  tela: '<path d="m11 17-5-5 5-5M18 17l-5-5 5-5"/>',
+  desfazer: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  refazer: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
+});

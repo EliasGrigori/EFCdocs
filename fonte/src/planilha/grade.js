@@ -196,8 +196,10 @@ export function desenhar(p) {
   }
 
   /* linhas dos painéis congelados */
-  if (G.cl) { ctx.fillStyle = cores.congelado; ctx.fillRect(0, hh + G.fy - 1, W, 2); }
-  if (G.cc) { ctx.fillStyle = cores.congelado; ctx.fillRect(hw + G.fx - 1, 0, 2, H); }
+  /* v0.6.15 (C02): 1 pixel da tela, como no Excel (era 2) */
+  const um = 1 / (p.dpr || 1);
+  if (G.cl) { ctx.fillStyle = cores.congelado; ctx.fillRect(0, Math.round((hh + G.fy - um) / um) * um, W, um); }
+  if (G.cc) { ctx.fillStyle = cores.congelado; ctx.fillRect(Math.round((hw + G.fx - um) / um) * um, 0, um, H); }
 
   desenharCabecalhos(p, mesc);
   ctx.restore();
@@ -324,6 +326,7 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
         if (!e.bd[k]) return;
         const n = nPx(k);
         ctx.lineWidth = n / dpr;
+        if (e.bdcs) ctx.strokeStyle = e.bdcs[k] || e.bdc || cores.borda; /* v0.6.15 (D-57): cor de cada lado */
         const q = meio(v - 1 / dpr, n);
         ctx.beginPath();
         if (horiz) { ctx.moveTo(px(a1) - (n - 1) / dpr / 2, q); ctx.lineTo(px(a2), q); } else { ctx.moveTo(q, px(a1) - (n - 1) / dpr / 2); ctx.lineTo(q, px(a2)); }

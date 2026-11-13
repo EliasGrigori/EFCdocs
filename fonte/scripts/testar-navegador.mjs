@@ -37,7 +37,8 @@ const errosConsole = [];
 let paginaAtual = null;
 async function novaPagina(opcoes = {}) {
   const { padraoQuadro, celBarraNova, ...resto } = opcoes;
-  const ctx = await navegador.newContext({ viewport: { width: 1366, height: 800 }, acceptDownloads: true, ...resto });
+  /* v0.6.15: os testes de comportamento rodam com "reduzir movimento" (as caixas não estão no meio da animação ao medir); o caso do movimento liga de volta */
+  const ctx = await navegador.newContext({ viewport: { width: 1366, height: 800 }, acceptDownloads: true, reducedMotion: 'reduce', ...resto });
   /* v0.4.4.1: a barra da esquerda do quadro começa escondida; os testes antigos de ferramentas ligam a barra, a não ser que peçam o padrão */
   if ((resto.isMobile || (resto.viewport && resto.viewport.width <= 800)) && !celBarraNova) await ctx.addInitScript(() => { globalThis.EFC_CEL_ABAS = true; }); // v0.4.9: os testes antigos do celular já começam com as abas abertas
   if (!padraoQuadro) await ctx.addInitScript(() => { try { for (const k of ['efcdocs:quadro-prefs', 'efcdocs-demo:quadro-prefs']) if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v: 2, ferramentas: true })); } catch { /* sem armazenamento */ } });
@@ -86,10 +87,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.14', async () => {
+await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.15', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.14'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.15'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -331,22 +332,19 @@ await caso('perfil Leitor: quadro só de leitura', async () => {
   await p.locator('.opcoes .chipb:has-text("Admin")').click();
   await p.keyboard.press('Escape');
 });
-await caso('18 temas sem erro (16 do EFClaudian + Petróleo + Papel)', async () => {
+await caso('v0.6.15 (R17): dois temas do Cwork, Claro e Escuro, sem erro', async () => {
   await p.locator('.topbar [aria-label="Opções"]').click();
   await abrirSecao(p, 'tema');
-  const destaque = await p.locator('.tema-b').count();
-  certo(destaque >= 6 && destaque <= 8, 'v0.4.9: de cara só os principais (claros e escuros): ' + destaque);
-  igual((await p.locator('.temas-rot').allInnerTexts()).join('|').toLowerCase(), 'claros|escuros');
-  await p.click('[data-ver-todos]');
-  const temas = await p.locator('.tema-b').count();
-  igual(temas, 18);
-  for (let i = 0; i < temas; i++) await p.locator('.tema-b').nth(i).click();
-  await p.locator('.tema-b[data-tema=petroleo]').click();
+  igual((await p.locator('.tema-b').allInnerTexts()).map((t) => t.trim()).join('|'), 'Claro|Escuro');
+  igual(await p.locator('[data-ver-todos], .temas-rot, [data-tema-fav]').count(), 0, 'sem lista de 18 temas nem estrelas');
+  await p.locator('.tema-b[data-tema=dark]').click();
+  igual(await p.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(11, 13, 22)', 'Escuro = fundo #0b0d16');
   await p.keyboard.press('Escape');
-  await print(p, '11-tema-petroleo');
+  await print(p, '11-tema-escuro');
   await p.locator('.topbar [aria-label="Opções"]').click();
   await abrirSecao(p, 'tema');
-  await p.locator('.tema-b[data-tema=light]').click();
+  await p.locator('.tema-b[data-tema=papel]').click();
+  igual(await p.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(247, 245, 239)', 'Claro = marfim #f7f5ef');
   await p.keyboard.press('Escape');
 });
 await ctx.close();
@@ -1896,13 +1894,12 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.14'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.15'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
-  await p.click('[data-ver-todos]');
-  igual(await p.locator('.tema-b').count(), 18);
-  await p.locator('.tema-b[data-tema=campo]').click();
-  certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).includes('Campo'));
-  await p.locator('.tema-b[data-tema=petroleo]').click();
+  igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
+  await p.locator('.tema-b[data-tema=dark]').click();
+  certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).includes('Escuro'));
+  await p.locator('.tema-b[data-tema=papel]').click();
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 0);
   await p.keyboard.press('Escape');
@@ -1910,7 +1907,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   await p.keyboard.type('tema');
   await p.keyboard.press('Enter');
   await p.waitForSelector('.opcoes');
-  certo(await p.locator('.tema-b').count() >= 6, 'o comando Tema devia abrir já na seção Tema');
+  igual(await p.locator('.tema-b').count(), 2, 'o comando Tema devia abrir já na seção Tema');
   await print(p, '61-opcoes-sanfona');
   await p.keyboard.press('Escape');
 });
@@ -1922,8 +1919,8 @@ await caso('v0.4.4: abas da faixa sem pílula (cantos retos), a ativa sublinhada
   igual(r.raio, '0px');
   igual(r.borda, '2px');
   const raioBtn = await p.locator('.topbar .iconbtn').first().evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
-  /* v0.6.0 (estilo Camadas, E1): botões com 8 px de canto */
-  igual(raioBtn, 8, 'botão no padrão Camadas: ' + raioBtn);
+  /* v0.6.15 (R17, visual do Cwork): botões com 7 px de canto (era 8 no estilo Camadas) */
+  igual(raioBtn, 7, 'botão no padrão do Cwork: ' + raioBtn);
 });
 await ctx.close();
 ({ ctx, p } = await novaPagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }));
@@ -2025,8 +2022,7 @@ await caso('v0.4.4.1: Opções, resumo da Tela curto e nomes de tema numa linha 
   await p.waitForSelector('.op-sec');
   certo((await p.locator('.op-sec[data-sec=tela] .res').innerText()).trim() === 'Excel · tudo · completo', await p.locator('.op-sec[data-sec=tela] .res').innerText());
   await abrirSecao(p, 'tema');
-  await p.click('[data-ver-todos]');
-  for (const nome of ['Alto contraste', 'Curvas de nível']) {
+  for (const nome of ['Claro', 'Escuro']) {
     const alt = await p.locator(`.tema-b:has-text("${nome}")`).first().evaluate((el) => el.getBoundingClientRect().height);
     certo(alt <= 44, nome + ' quebrou em duas linhas: ' + alt);
   }
@@ -3174,10 +3170,10 @@ await caso('v0.6.0 (E1): janelas no estilo Camadas: cantos de 12 px, quadrinho d
   await cmd(p, 'formatar.condicional');
   await p.waitForSelector('[data-condicional]');
   const j = p.locator('.janela').first();
-  igual(await j.evaluate((e) => getComputedStyle(e).borderTopLeftRadius), '12px');
+  igual(await j.evaluate((e) => getComputedStyle(e).borderTopLeftRadius), '10px', 'v0.6.15 (Cwork): janela com 10 px (era 12)');
   igual(await p.locator('.janela .janela-ic').count(), 1, 'ícone no cabeçalho');
   certo((await j.evaluate((e) => getComputedStyle(e).boxShadow)).split('rgba').length >= 3, 'sombra em camadas');
-  igual(await p.locator('.janela .btn').first().evaluate((e) => getComputedStyle(e).borderTopLeftRadius), '8px');
+  igual(await p.locator('.janela .btn').first().evaluate((e) => getComputedStyle(e).borderTopLeftRadius), '7px', 'v0.6.15 (Cwork): botão com 7 px (era 8)');
   await print(p, 'v060-janela-camadas');
   await p.keyboard.press('Escape');
   await p.waitForTimeout(150);
@@ -3463,7 +3459,7 @@ await caso('v0.6.1: mescladas que atravessam a linha do congelamento não pintam
   igual(await corEm('C6'), '217,217,217', 'antes de rolar: cinza na linha 6');
   await p.mouse.move(cv.x + 400, cv.y + 300); await p.mouse.wheel(0, 90); await p.waitForTimeout(400);
   igual(await corEm('C6'), '217,217,217', 'depois de rolar: a parte congelada continua cinza');
-  igual(await corEm('C3'), '255,255,255', 'depois de rolar: o título continua com fundo branco (antes ficava cinza)');
+  { const c3 = await corEm('C3'); certo(c3.split(',').every((v) => +v >= 250), 'depois de rolar: o título continua com o fundo da folha (antes ficava cinza): ' + c3); } // v0.6.15: a folha do Claro é #fffefb
   await print(p, 'v061-congelada');
 });
 
@@ -3876,26 +3872,19 @@ await caso('v0.6.3: aba contextual Gráfico: aparece só com o gráfico selecion
   igual(await p.locator('.tabs .tab.ctx').count(), 0, 'clicar numa célula tira a aba');
   igual(await p.locator('.tabs .tab.active').innerText(), 'Inserir', 'volta para a aba de antes');
 });
-await caso('v0.6.3: temas favoritos: estrela nas opções, bolinhas no menu da faixa, no máximo 2 e escolher troca o tema', async () => {
+await caso('v0.6.15: menu da faixa mostra o Claro e o Escuro; escolher troca o tema; "Mais opções" abre a seção Tema', async () => {
   await p.click('[data-opcoes-faixa]'); await p.waitForTimeout(200);
-  const antes = await p.locator('.faixa-tema').count();
-  igual(antes, 2, 'dois favoritos de fábrica');
-  await print(p, 'v063-temas-favoritos');
+  igual((await p.locator('.faixa-tema').allInnerTexts()).map((t) => t.trim()).join('|'), 'Claro|Escuro');
+  await print(p, 'v0615-temas-faixa');
   const escolhido = await p.locator('.faixa-tema:not(.on)').first().getAttribute('data-faixa-tema');
   await p.locator(`[data-faixa-tema="${escolhido}"]`).click(); await p.waitForTimeout(250);
   await p.click('[data-opcoes-faixa]'); await p.waitForTimeout(150);
   igual(await p.locator(`[data-faixa-tema="${escolhido}"]`).getAttribute('aria-pressed'), 'true', 'tema trocado');
   await p.locator('[data-faixa-temas-mais]').click(); await p.waitForSelector('.op-sec[data-sec=tema]');
-  await abrirSecao(p, 'tema'); await p.waitForSelector('[data-tema-fav]');
-  const livres = await p.locator('[data-tema-fav][aria-pressed=false]').evaluateAll((l) => l.slice(0, 2).map((x) => x.getAttribute('data-tema-fav')));
-  for (const id of livres) await p.locator(`[data-tema-fav="${id}"]`).click();
-  await p.waitForTimeout(150);
-  igual(await p.locator('[data-tema-fav][aria-pressed=true]').count(), 2, 'nunca mais de 2 favoritos');
-  await print(p, 'v063-temas-estrelas');
+  await abrirSecao(p, 'tema');
+  igual(await p.locator('.tema-b').count(), 2);
+  await p.locator('.tema-b[data-tema=papel]').click();
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
-  await p.click('[data-opcoes-faixa]'); await p.waitForTimeout(150);
-  igual(await p.locator('.faixa-tema').count(), 2, 'menu mostra os 2');
-  await p.keyboard.press('Escape');
 });
 await caso('v0.6.3: Início › linhas e colunas: cada botão tem ícone próprio', async () => {
   await p.click('.tabs .tab:has-text("Página Inicial")'); await p.waitForTimeout(150);
@@ -4046,7 +4035,7 @@ await caso('v0.6.5: Inserir › Forma: escolher o desenho, escrever, cor e link;
   await p.waitForSelector('[data-forma-janela]');
   const j = p.locator('.janela.fm-jan');
   const raio = await j.evaluate((e) => getComputedStyle(e).borderTopLeftRadius);
-  igual(raio, '12px', 'janela no estilo Camadas');
+  igual(raio, '10px', 'janela no visual do Cwork (v0.6.15; era 12 no estilo Camadas)');
   await p.click('[data-fm-des="rightArrow"]');
   await p.locator('[data-fm-texto]').fill('Próximo passo');
   await p.click('[data-ge-op="fm-sombra:sim"]');
@@ -4390,7 +4379,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.14'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.15'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4815,6 +4804,112 @@ await caso('v0.6.14: coluna formatada inteira no Excel: a célula vazia digitada
   certo(s && /<col min="3" max="3"[^>]* style="\d+"/.test(x), 'coluna e célula com estilo: ' + x.slice(0, 400));
   const xf = [...st.matchAll(/<xf [^>]*?(?:\/>|>[\s\S]*?<\/xf>)/g)].map((m) => m[0]).filter((t, i, l) => true);
   certo(/numFmtId="164"/.test((st.split('<cellXfs')[1] || '').split(/<xf /)[+s + 1] || ''), 'o estilo da C5 tem o formato de data');
+});
+
+/* ---------- v0.6.15: cara do Cwork (R17, R21, R22, C02) ---------- */
+await caso('v0.6.15 (R17): letras do Cwork embutidas (funcionam sem internet): títulos em Fraunces, texto em Source Sans 3', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await p.goto(BASE + '#/'); await p.waitForSelector('.brand-name');
+  const r = await p.evaluate(async () => { await document.fonts.ready; return {
+    corpo: getComputedStyle(document.body).fontFamily, marca: getComputedStyle(document.querySelector('.brand-name')).fontFamily,
+    fr: document.fonts.check('600 20px Fraunces'), ss: document.fonts.check('400 14px "Source Sans 3"'),
+    carregadas: [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, '') + ' ' + f.weight) }; });
+  await ctx.close();
+  certo(/^"?Source Sans 3/.test(r.corpo), 'texto: ' + r.corpo);
+  certo(/^"?Fraunces/.test(r.marca), 'título: ' + r.marca);
+  certo(r.carregadas.includes('Fraunces 600') && r.carregadas.some((f) => f.startsWith('Source Sans 3')), 'letras carregadas: ' + r.carregadas.join(', '));
+});
+await caso('v0.6.15 (R17): quem tinha um dos 16 temas antigos abre no Claro ou no Escuro, pelo fundo do tema', async () => {
+  for (const [antigo, novo, fundo] of [['ocean', 'dark', 'rgb(11, 13, 22)'], ['campo', 'papel', 'rgb(247, 245, 239)']]) {
+    const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+    await ctx.addInitScript((t) => { try { localStorage.setItem('efcdocs:prefs', JSON.stringify({ tema: t, favTemas: ['campo', 'ouro'] })); } catch { /* */ } }, antigo);
+    await p.goto(BASE + '#/'); await p.waitForSelector('.foot');
+    const r = await p.evaluate(() => ({ tema: document.body.dataset.theme, fundo: getComputedStyle(document.body).backgroundColor }));
+    await ctx.close();
+    igual(r.tema, novo, antigo + ' vira ' + novo);
+    igual(r.fundo, fundo, 'fundo do ' + novo);
+  }
+});
+await caso('v0.6.15 (C02): linha do congelamento com 1 pixel, como no Excel (era 2)', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await ctx.addInitScript(() => {
+    globalThis.__riscos = [];
+    const f = CanvasRenderingContext2D.prototype.fillRect;
+    CanvasRenderingContext2D.prototype.fillRect = function (x, y, w, h) { if ((w > 300 && h > 0 && h <= 3) || (h > 300 && w > 0 && w <= 3)) globalThis.__riscos.push([w > 300 ? 'h' : 'v', Math.min(w, h)]); return f.call(this, x, y, w, h); };
+  });
+  await abrirV069(p, 'RESUMO');
+  const r = await p.evaluate(() => globalThis.__riscos);
+  await print(p, 'v0615-congelado-1px');
+  await ctx.close();
+  certo(r.some(([s, e]) => s === 'h' && e === 1) && r.some(([s, e]) => s === 'v' && e === 1), 'linhas de 1 px nos dois sentidos: ' + JSON.stringify(r.slice(0, 6)));
+  igual(r.filter(([, e]) => e > 1).length, 0, 'nenhuma linha de congelamento grossa');
+});
+await caso('v0.6.15 (R22): seta do filtro no desenho do Cwork (funil com seta); filtrada vira o funil cheio em ouro', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await novaPlanilha(p);
+  await digitarEm(p, 'A1', ['Nome', 'Ana', 'Rui']);
+  await celula(p, 'A1'); await cmd(p, 'dados.filtrar'); await p.waitForSelector('[data-seta-filtro]');
+  const antes = await p.locator('[data-seta-filtro="0"] svg').innerHTML();
+  await p.locator('[data-seta-filtro="0"]').dispatchEvent('pointerdown'); await p.waitForSelector('[data-filtro-menu]');
+  await p.locator('[data-filtro-tudo]').uncheck(); await p.locator('[data-filtro-v="Ana"]').check(); await p.locator('[data-filtro-ok]').click(); await p.waitForTimeout(250);
+  const depois = await p.locator('[data-seta-filtro="0"] svg').innerHTML();
+  const fundo = await p.locator('[data-seta-filtro="0"]').evaluate((el) => getComputedStyle(el).backgroundImage);
+  await print(p, 'v0615-filtro');
+  await ctx.close();
+  certo(antes.includes('m15.5 14'), 'seta com o funil e a setinha: ' + antes);
+  certo(!depois.includes('m15.5 14') && depois.includes('M3 5h18'), 'filtrada mostra o funil: ' + depois);
+  certo(/gradient/.test(fundo), 'filtrada em ouro: ' + fundo);
+});
+
+await caso('v0.6.15 (Transitions.dev): janela, menu, aviso e seção das Opções entram com a receita e os tempos da escala; com "reduzir movimento" nada se move', async () => {
+  for (const modo of ['no-preference', 'reduce']) {
+    const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 }, reducedMotion: modo });
+    await p.goto(BASE + '#/'); await p.waitForSelector('.foot');
+    const anim = (sel) => p.locator(sel).first().evaluate((el) => { const c = getComputedStyle(el); return c.animationName + ' ' + c.animationDuration; });
+    await p.locator('.topbar [aria-label="Opções"]').click(); await p.waitForSelector('.janela');
+    const jan = await anim('.janela');
+    await abrirSecao(p, 'tema'); const sec = await anim('.op-corpo');
+    const seta = await p.locator('.op-sec[data-sec=tema] .op-cab > svg').evaluate((el) => getComputedStyle(el).transitionDuration);
+    await p.keyboard.press('Escape');
+    await p.click('.novo-drive-b'); await p.waitForSelector('.novo-drive-m'); const menu = await anim('.novo-drive-m');
+    await ctx.close();
+    if (modo === 'reduce') { for (const [n, v] of [['janela', jan], ['seção', sec], ['menu', menu]]) certo(v.startsWith('none'), n + ' devia ficar parada: ' + v); continue; }
+    igual(jan, 't-modal-in 0.25s', 'janela (06 modal)');
+    igual(sec, 't-acc-in 0.25s', 'seção (21 acordeão)');
+    igual(seta, '0.25s', 'setinha da seção');
+    igual(menu, 't-dropdown-in 0.25s', 'menu (05 dropdown)');
+  }
+});
+
+await caso('v0.6.15 (F01 a F05 aprovados): contagem no relatório, brilho no botão de ouro, luz nos cartões, lista em cascata e certo ao salvar', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 }, reducedMotion: 'no-preference' });
+  await p.goto(BASE + '#/'); await p.waitForSelector('.cartao-novo');
+  /* F03: a luz segue o mouse */
+  await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(400);
+  const c = p.locator('.cartao-novo').first();
+  await c.hover({ position: { x: 40, y: 30 } }); await c.hover({ position: { x: 60, y: 50 } }); await p.waitForTimeout(300);
+  const luz = await c.evaluate((el) => [el.style.getPropertyValue('--luz-x'), getComputedStyle(el, '::after').opacity]);
+  /* F02: o brilho do botão de ouro */
+  await p.hover('.novo-drive-b'); await p.waitForTimeout(80);
+  const brilho = await p.locator('.novo-drive-b').evaluate((el) => getComputedStyle(el, '::after').animationName);
+  /* F01: os números contam (no meio da contagem ainda não chegaram ao valor) */
+  await p.click('[data-abrir-excel]'); await p.setInputFiles('[data-excel-arquivo]', AMOSTRA_V069);
+  await p.waitForSelector('.rel-num b'); await p.waitForTimeout(60);
+  const cedo = await p.locator('.rel-num b').nth(1).innerText(); await p.waitForTimeout(900);
+  const fim = await p.locator('.rel-num b').nth(1).innerText();
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(600);
+  /* F05: o certo do Salvo */
+  await celula(p, 'A30'); await p.keyboard.type('9'); await p.keyboard.press('Enter'); await p.waitForSelector('.foot-certo', { timeout: 8000 });
+  const certoAnim = await p.locator('.foot-certo path').evaluate((el) => getComputedStyle(el).animationName);
+  /* F04: lista em cascata */
+  await p.goto(BASE + '#/planilha'); await p.waitForSelector('.lista.grade > .arq');
+  const cascata = await p.locator('.lista.grade > .arq').first().evaluate((el) => getComputedStyle(el).animationName);
+  await ctx.close();
+  certo(luz[0] && luz[0] !== '50%' && +luz[1] > 0, 'luz nos cartões: ' + luz);
+  igual(brilho, 'ef-brilho', 'brilho no botão de ouro');
+  certo(cedo !== fim && +fim.replace(/\D/g, '') > 0, `contagem: ${cedo} → ${fim}`);
+  igual(certoAnim, 'ef-certo', 'certo desenhado ao salvar');
+  igual(cascata, 'ef-cascata', 'lista em cascata');
 });
 
 await navegador.close();

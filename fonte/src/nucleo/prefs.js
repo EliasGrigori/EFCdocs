@@ -1,29 +1,24 @@
 /* EFCdocs — preferências da tela (guardadas no aparelho). */
 
-/* Os 16 temas do EFClaudian, com os mesmos nomes, e o Petróleo (proposta da v0.3.0, cores do ícone). */
-export const TEMAS = [
-  ['papel', 'Papel'], ['light', 'Claro'], ['dark', 'Escuro'], ['ocean', 'Ardósia'], ['forest', 'Sálvia'],
-  ['sunset', 'Gelo'], ['campo', 'Campo'], ['sol', 'Alto contraste'], ['aurora', 'Aurora'],
-  ['topo', 'Curvas de nível'], ['pomar', 'Pomar'], ['ponto', 'Pontilhado'], ['ouro', 'Ouro'],
-  ['estrela', 'Estrela'], ['brisa', 'Brisa'], ['nevoa', 'Névoa'], ['esmeralda', 'Esmeralda'],
-  ['petroleo', 'Petróleo'],
-];
+/* v0.6.15 (R17): o visual do Cwork tem dois temas: Claro (marfim e ouro) e Escuro (o Dourado: fundo #0b0d16, ouro #d9b46a).
+   Os ids ficam "papel" e "dark" (o que a pessoa já guardou e as regras de cada tema continuam valendo); os outros 16 temas saem
+   e quem usava um deles passa para o Claro ou o Escuro, pelo fundo. */
+export const TEMAS = [['papel', 'Claro'], ['dark', 'Escuro']];
+const FUNDOS_ANTIGOS = {
+  papel: '#eef1f4', dark: '#0a0a0f', light: '#f5f5f7', ocean: '#0f141a', forest: '#111412', sunset: '#151110', campo: '#eef3e4', sol: '#fff',
+  aurora: '#0b0b12', topo: '#0e1411', pomar: '#f4f1e8', ponto: '#f3f3f7', ouro: '#0f0d08', estrela: '#0a0f1c', brisa: '#eef6f4', nevoa: '#f1f3f6',
+  esmeralda: '#f2efe6', petroleo: '#0c2a33',
+};
 const IDS_TEMA = TEMAS.map(([id]) => id);
 
 /* Amostra de cada tema na tela de Opções: [fundo, cor principal] */
-export const AMOSTRAS = {
-  papel: ['#eef1f4', '#0f4c5c'], dark: ['#0a0a0f', '#8b5cf6'], light: ['#f5f5f7', '#7c3aed'], ocean: ['#0f141a', '#6b9bd1'],
-  forest: ['#111412', '#7fb59a'], sunset: ['#151110', '#d08c6a'], campo: ['#eef3e4', '#5d8a2e'],
-  sol: ['#fff', '#0b3d91'], aurora: ['#0b0b12', '#9d86f5'], topo: ['#0e1411', '#8cc39f'],
-  pomar: ['#f4f1e8', '#4f7f35'], ponto: ['#f3f3f7', '#5454c8'], ouro: ['#0f0d08', '#d4a94a'],
-  estrela: ['#0a0f1c', '#f0b94a'], brisa: ['#eef6f4', '#1f8a74'], nevoa: ['#f1f3f6', '#56708f'],
-  esmeralda: ['#f2efe6', '#0f5c46'], petroleo: ['#0c2a33', '#f1a93b'],
-};
+export const AMOSTRAS = { papel: ['#f7f5ef', '#9a7128'], dark: ['#0b0d16', '#d9b46a'] };
 
 /* v0.4.9 (L09): temas claros e escuros (pelo fundo da amostra) e os que aparecem logo de cara */
 const luz = (hex) => { const n = parseInt(hex.slice(1).length === 3 ? hex.slice(1).replace(/./g, '$&$&') : hex.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
 export const ehTemaClaro = (id) => !!AMOSTRAS[id] && luz(AMOSTRAS[id][0]) > 0.5;
-export const TEMAS_DESTAQUE = ['papel', 'light', 'nevoa', 'dark', 'ocean', 'petroleo'];
+const temaNovo = (id) => (IDS_TEMA.includes(id) ? id : FUNDOS_ANTIGOS[id] ? (luz(FUNDOS_ANTIGOS[id]) > 0.5 ? 'papel' : 'dark') : null);
+export const TEMAS_DESTAQUE = ['papel', 'dark'];
 
 export const OPCOES = {
   layout: ['A', 'B'],
@@ -72,11 +67,11 @@ export function prefsPadrao(escuro = false) {
 export function normalizarPrefs(salvas, escuro = false) {
   const p = { ...prefsPadrao(escuro) };
   if (!salvas || typeof salvas !== 'object') return p;
-  if (IDS_TEMA.includes(salvas.tema)) p.tema = salvas.tema;
+  if (temaNovo(salvas.tema)) p.tema = temaNovo(salvas.tema);
   if (typeof salvas.relevo === 'boolean') p.relevo = salvas.relevo;
   if (typeof salvas.mesa === 'boolean') p.mesa = salvas.mesa;
   if (typeof salvas.painel === 'boolean') p.painel = salvas.painel;
   for (const k of Object.keys(OPCOES)) if (OPCOES[k].includes(salvas[k])) p[k] = salvas[k];
-  if (Array.isArray(salvas.favTemas)) p.favTemas = [...new Set(salvas.favTemas.filter((id) => IDS_TEMA.includes(id)))].slice(0, MAX_FAV);
+  if (Array.isArray(salvas.favTemas)) p.favTemas = [...new Set(salvas.favTemas.map(temaNovo).filter(Boolean))].slice(0, MAX_FAV);
   return p;
 }

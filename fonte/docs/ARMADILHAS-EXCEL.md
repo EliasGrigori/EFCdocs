@@ -77,3 +77,5 @@ O que o arquivo do Excel faz de diferente do que parece, aprendido em defeito de
 40. **Borda tem tipo** (`dotted`, `dashed`, `double`, `hair`...) além da espessura, e o preenchimento pode ser degradê (`gradientFill`) ou hachurado (D-53, D-54, v0.6.14).
 41. **Números dos objetos do desenho (`cNvPr id`) não se repetem** na mesma aba; o do controle de formulário tem de casar com o `spid` do desenho antigo (VML) e não muda (D-55, v0.6.14).
 42. **A rede de fidelidade faz o caminho do app**: ler → limpar como quando a planilha fica guardada no aparelho → gravar. Sem a limpeza, a rede não via o D-51 (grupos refeitos depois de guardar).
+43. **Cada lado da borda tem a sua cor** (`<left><color theme="4" tint="..."/></left>` diferente do `<bottom>`). Guardar uma cor só para a borda inteira pinta os quatro lados com a primeira (D-57, v0.6.15).
+44. **`zeroHeight="1"` (linhas escondidas por padrão)** inverte a lógica: a linha que não aparece no arquivo fica oculta. Ao gravar, as linhas ocultas que a pessoa escondeu no fim da faixa têm de ser escritas até a última, senão a próxima abertura conta errado onde a faixa termina (D-58, v0.6.15).

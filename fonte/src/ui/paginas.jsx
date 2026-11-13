@@ -156,7 +156,8 @@ function CartoesInicio({ cx }) {
         const bloq = cx.bloqueado(CMD_NOVO[t]);
         const dica = `${TIPOS[t].novo}|${bloq || DESCRICAO[t] + (TIPOS[t].chega ? ` Editor na ${TIPOS[t].chega}.` : '')}`;
         return (
-          <button key={t} type="button" className="cartao-novo" disabled={!!bloq} data-novo={t} data-dica={dica} aria-label={TIPOS[t].novo} onClick={() => cx.executar(CMD_NOVO[t])}>
+          <button key={t} type="button" className="cartao-novo" disabled={!!bloq} data-novo={t} data-dica={dica} aria-label={TIPOS[t].novo} onClick={() => cx.executar(CMD_NOVO[t])}
+            onPointerMove={(ev) => { if (ev.pointerType !== 'mouse') return; const r = ev.currentTarget.getBoundingClientRect(); ev.currentTarget.style.setProperty('--luz-x', ev.clientX - r.left + 'px'); ev.currentTarget.style.setProperty('--luz-y', ev.clientY - r.top + 'px'); }}>
             {PREVIA[t]}
             <span className="cn-rod">
               <span className="ri"><Icone n={t} /></span>

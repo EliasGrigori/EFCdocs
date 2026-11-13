@@ -33,7 +33,7 @@ const r = await build({
   format: 'esm',
   target: ['es2020', 'chrome90', 'safari15'],
   jsx: 'automatic',
-  loader: { '.js': 'jsx' },
+  loader: { '.js': 'jsx', '.woff2': 'file' },
   outdir: join(dist, 'assets'),
   entryNames: 'app-[hash]',
   assetNames: 'app-[hash]',
@@ -74,12 +74,16 @@ writeFileSync(join(dist, 'manifest.webmanifest'), JSON.stringify({
   ],
 }, null, 2) + '\n');
 
-const arquivos = ['./', ...['apple-touch-icon.png', 'logo-abertura.png', 'assets/' + css, 'assets/' + js, 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'index.html', 'manifest.webmanifest'].map((f) => './' + f)];
+/* v0.6.15: as fontes embutidas também vão para o cache do app (funciona sem internet) */
+const fontes = assets.filter((f) => f.endsWith('.woff2')).map((f) => 'assets/' + f);
+const arquivos = ['./', ...['apple-touch-icon.png', 'logo-abertura.png', 'assets/' + css, 'assets/' + js, ...fontes, 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'index.html', 'manifest.webmanifest'].map((f) => './' + f)];
 const sw = readFileSync(join(raiz, 'scripts/sw.modelo.js'), 'utf8')
   .replace('{{VERSAO}}', 'efcdocs-' + versao)
   .replace('{{ARQUIVOS}}', JSON.stringify(arquivos, null, 2));
 writeFileSync(join(dist, 'sw.js'), sw);
 copyFileSync(join(raiz, 'scripts/COMO-PUBLICAR.md'), join(dist, 'COMO-PUBLICAR.md'));
+/* v0.6.15: o aviso de licença (OFL) vai junto das letras embutidas */
+for (const f of readdirSync(join(raiz, 'src/fontes'))) if (f.endsWith('.txt')) copyFileSync(join(raiz, 'src/fontes', f), join(dist, 'assets', f));
 
 const kb = (f) => (statSync(join(dist, f)).size / 1024).toFixed(1) + ' KB';
 console.log(`Vértice Docs (EFCdocs) ${versao} montado em dist/`);

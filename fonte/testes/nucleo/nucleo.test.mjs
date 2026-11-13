@@ -10,7 +10,7 @@ import { pode, PERFIS, MATRIZ } from '../../src/nucleo/perfis.js';
 import { normalizarPrefs, prefsPadrao, TEMAS, AMOSTRAS, estiloDaFaixa } from '../../src/nucleo/prefs.js';
 import { ehDemo, chave, ler, gravar } from '../../src/nucleo/armazem.js';
 
-test('versão é v0.6.14', () => assert.equal(VERSAO, 'v0.6.14'));
+test('versão é v0.6.15', () => assert.equal(VERSAO, 'v0.6.15'));
 
 test('pegar e por não mexem no original', () => {
   const o = { a: { b: 1 } };
@@ -189,14 +189,16 @@ test('preferências: padrão, tema Papel e valores inválidos', () => {
   assert.equal(prefsPadrao(false).tema, 'papel', 'v0.4.8 (L01): o tema claro Papel é o padrão');
   assert.equal(prefsPadrao(true).tema, 'papel');
   assert.equal(prefsPadrao(false).mesa, true, 'v0.4.8: papel sobre a mesa ligado');
-  assert.equal(normalizarPrefs({ tema: 'light' }).tema, 'light', 'quem escolheu Claro continua no Claro');
-  assert.equal(normalizarPrefs({ tema: 'petroleo' }).tema, 'petroleo');
+  /* v0.6.15 (R17): os temas antigos viram o Claro ou o Escuro do Cwork, pelo fundo */
+  assert.equal(normalizarPrefs({ tema: 'light' }).tema, 'papel', 'quem escolheu um tema claro vai para o Claro');
+  assert.equal(normalizarPrefs({ tema: 'petroleo' }).tema, 'dark', 'quem escolheu um tema escuro vai para o Escuro');
+  assert.equal(normalizarPrefs({ tema: 'dark' }).tema, 'dark');
   const p = normalizarPrefs({ tema: 'xx', faixa: 'nada', relevo: false, menu: 'icones' });
   assert.equal(p.tema, 'papel');
   assert.equal(p.faixa, 'tudo');
   assert.equal(p.relevo, false);
   assert.equal(p.menu, 'icones');
-  assert.equal(TEMAS.length, 18);
+  assert.deepEqual(TEMAS.map(([id]) => id), ['papel', 'dark']);
   for (const [id] of TEMAS) assert.ok(AMOSTRAS[id], id);
 });
 
@@ -230,15 +232,14 @@ test('v0.4.1: duas abas gravando o mesmo arquivo: a segunda gravação com marca
   assert.equal((await b.abrir(a.ficha.id)).ficha.nome, 'Da aba 2');
 });
 
-test('v0.4.9 (L09): temas claros e escuros pelo fundo; os principais têm 3 de cada', async () => {
+test('v0.6.15 (R17): dois temas do Cwork; os 16 antigos migram pelo fundo; favoritos antigos viram Claro e Escuro', async () => {
   const { ehTemaClaro, TEMAS, TEMAS_DESTAQUE } = await import('../../src/nucleo/prefs.js');
-  const claros = TEMAS.filter(([id]) => ehTemaClaro(id)).map(([id]) => id);
-  const escuros = TEMAS.filter(([id]) => !ehTemaClaro(id)).map(([id]) => id);
-  assert.equal(claros.length + escuros.length, 18);
-  for (const id of ['papel', 'light', 'campo', 'nevoa']) assert.ok(claros.includes(id), id + ' devia ser claro');
-  for (const id of ['dark', 'ocean', 'petroleo', 'ouro']) assert.ok(escuros.includes(id), id + ' devia ser escuro');
-  assert.equal(TEMAS_DESTAQUE.filter((id) => ehTemaClaro(id)).length, 3);
-  assert.equal(TEMAS_DESTAQUE.filter((id) => !ehTemaClaro(id)).length, 3);
+  assert.equal(TEMAS.length, 2);
+  assert.ok(ehTemaClaro('papel')); assert.ok(!ehTemaClaro('dark'));
+  assert.deepEqual(TEMAS_DESTAQUE, ['papel', 'dark']);
+  for (const id of ['light', 'campo', 'nevoa']) assert.equal(normalizarPrefs({ tema: id }).tema, 'papel', id);
+  for (const id of ['ocean', 'petroleo', 'ouro']) assert.equal(normalizarPrefs({ tema: id }).tema, 'dark', id);
+  assert.deepEqual(normalizarPrefs({ favTemas: ['campo', 'ouro', 'light'] }).favTemas, ['papel', 'dark']);
 });
 
 test('v0.6.2: estilo da faixa: Automático é B no computador e E no celular; B, C, D e E valem; lixo volta ao padrão', () => {

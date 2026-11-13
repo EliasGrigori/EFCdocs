@@ -192,7 +192,7 @@ export const COMANDOS = [
   C('exibir.painel', 'Mostrar ou fechar o painel lateral', 'painel', { sin: ['propriedades', 'painel', 'detalhes'] }),
   C('exibir.layoutA', 'Layout: faixa tipo Excel', 'layoutA', { sin: ['ribbon', 'faixa completa', 'opção a'] }),
   C('exibir.layoutB', 'Layout: barra curta e painel', 'layoutB', { sin: ['barra simples', 'opção b'] }),
-  C('exibir.tema', 'Tema', 'tema', { sin: ['cor', 'escuro', 'claro', 'aparência', 'esmeralda', 'petróleo'] }),
+  C('exibir.tema', 'Tema', 'tema', { sin: ['cor', 'escuro', 'claro', 'aparência', 'dourado', 'marfim'] }),
   C('exibir.mesa', 'Papel sobre a mesa (sombras e contorno)', 'relevo', { sin: ['sombra', 'contorno', 'moldura', 'borda', 'sombreamento', 'acabamento'] }),
   C('exibir.relevo', 'Relevo nas barras', 'relevo', { sin: ['sombra', 'efeito 3d', 'destaque'] }),
   C('exibir.telaCheia', 'Tela cheia', 'tela', { sin: ['maximizar', 'esconder tudo'] }),

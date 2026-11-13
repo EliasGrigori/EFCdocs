@@ -9,6 +9,22 @@ Lente 6.4 do Método Sabiá 2.0: toda biblioteca e todo código aberto usado ou 
 | React | 19.2.8 | MIT | telas |
 | React DOM | 19.2.8 | MIT | telas |
 
+## Letras embutidas no app (v0.6.15, visual do Cwork)
+
+| Letra | Pesos | Licença | Onde | Origem |
+|---|---|---|---|---|
+| Fraunces (Undercase Type) | 600 | SIL Open Font License 1.1 | títulos (`src/fontes/fraunces-latin-600-normal.woff2`) | pacote @fontsource/fraunces (só o recorte latino) |
+| Source Sans 3 (Adobe) | 400, 600, 700 | SIL Open Font License 1.1 | texto (`src/fontes/source-sans-3-latin-*.woff2`) | pacote @fontsource/source-sans-3 (só o recorte latino) |
+
+Os avisos de licença ficam ao lado das letras (`src/fontes/OFL-Fraunces.txt` e `src/fontes/OFL-Source-Sans-3.txt`). A OFL permite embutir e redistribuir com o app; não permite vender a letra sozinha. Vão no pacote e no guardado para uso sem internet.
+
+## Movimento das telas (v0.6.15)
+
+| Origem | Licença | Onde | Como foi usado |
+|---|---|---|---|
+| Transitions.dev (Jakub Antalik) | Transitions.dev License: uso livre em produtos pessoais e comerciais, pode copiar e modificar; não pode redistribuir a coleção como biblioteca concorrente | `src/movimento.css` | tokens da escala e os valores das receitas 01 (card resize), 05 (dropdown), 06 (modal), 21 (acordeão), 22 (toast) e 27 (toggle), adaptados para entrada no React. Termos: https://transitions.dev/terms.html |
+| React Bits | MIT com Commons Clause | nenhum código | só referência de ideias para os efeitos propostos na página de demonstração; nada copiado |
+
 O resto do app (grade, motor de fórmulas, leitura e gravação de .xlsx, ZIP, PDF da planilha, gráficos, Quadro, Documento) é código próprio do EFCdocs. Nenhum trecho de código de outro projeto foi copiado para `src/` até a v0.6.10.
 
 ## Só para montar e testar (não vão para o app)

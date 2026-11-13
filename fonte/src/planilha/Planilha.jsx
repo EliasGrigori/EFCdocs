@@ -3382,7 +3382,7 @@ export function Planilha({ arquivo, cx }) {
               <button key={cc} type="button" className={'pl-seta-filtro' + (filtrada ? ' on' : '')} data-seta-filtro={cc} tabIndex={-1}
                 aria-label={(filtrada ? 'Filtro ativo na coluna ' : 'Filtrar a coluna ') + letraCol(cc)} title={filtrada ? 'Esta coluna está filtrada' : 'Filtrar esta coluna'}
                 style={{ left: Math.min(x1, tam.W) - 20, top: y1 - 20 }}
-                onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); setMenuFiltro((m) => (m && m.col === cc ? null : { col: cc })); }}><Icone n={filtrada ? 'filtro' : 'chevronBaixo'} /></button>,
+                onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); setMenuFiltro((m) => (m && m.col === cc ? null : { col: cc })); }}><Icone n={filtrada ? 'filtro' : 'filtroSeta'} /></button>,
             );
           }
           let menu = null;

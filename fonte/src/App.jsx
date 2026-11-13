@@ -662,7 +662,7 @@ export function App() {
             {aberto ? (
               <>
                 <span className="some-cel"><b>{TIPOS[ficha.tipo].nome}</b></span>
-                <span className="some-cel">{aberto.sujo ? 'Salvando…' : 'Salvo neste aparelho às ' + hora(aberto.salvoEm)}</span>
+                <span className="some-cel foot-salvo">{aberto.sujo ? 'Salvando…' : <>{/* v0.6.15 (F05 aprovado): o certo se desenha a cada gravação */}<svg key={aberto.salvoEm || 0} className="foot-certo" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>{'Salvo neste aparelho às ' + hora(aberto.salvoEm)}</>}</span>
                 {ultimo && <button type="button" className="some-cel foot-desfazer" title="Ver a linha do tempo do desfazer" onClick={() => setLinhaTempo(true)}>Desfazer: {ultimo}</button>}
                 <span className="sts">
                   {ficha.tipo === 'planilha' && <StatusPlanilha st={st.planilha} />}

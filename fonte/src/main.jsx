@@ -7,6 +7,8 @@ import './quadro/quadro.css';
 import './planilha/planilha.css';
 import './ui/assinatura.css';
 import './camadas.css';
+import './cwork.css';
+import './movimento.css';
 
 createRoot(document.getElementById('raiz')).render(<App />);
 iniciarPwa();

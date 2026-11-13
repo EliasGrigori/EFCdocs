@@ -139,7 +139,7 @@ export function aplicarBordas(c, abaId, faixas, tipo) {
       if (tipo === 'esq' && borda.esq) bd.l = 1;
       if (tipo === 'dir' && borda.dir) bd.r = 1;
       if (Object.keys(bd).length) e.bd = bd; else delete e.bd;
-      delete e.bdt; /* v0.6.14 (D-53): borda posta no app é a lisa (o tracejado do Excel fica só onde ninguém mexeu) */
+      delete e.bdt; delete e.bdcs; /* v0.6.14 (D-53), v0.6.15 (D-57): borda posta no app é a lisa (o tracejado do Excel fica só onde ninguém mexeu) */
       const s = lote.estilo(e);
       const nc = { ...cel };
       if (s) nc.s = s; else delete nc.s;
