@@ -344,3 +344,10 @@ F342;App;visual;"Movimento das telas (janela, menu, aviso, seções das Opções
 F343;App;visual;"Efeitos aprovados: contagem no relatório, brilho no botão de ouro, luz nos cartões do Início, listas em cascata, certo ao salvar";funciona;"v0.6.15 (F01 a F05 aprovados em 13/11)";manter;v0.6.15
 F344;App;visual;"Faixa lisa como a do Excel (sem caixa nos grupos)";funciona;"v0.6.15 (R25)";manter;v0.6.15
 F345;App;visual;"Faixa igual ao Excel: cada botão no mesmo lugar do Excel e ícones no estilo do Excel";falta;"R25: pedido de 13/11";Faixa igual ao Excel (depois das Pontes);v0.6.15
+F346;App;ponte;"Documentos internos com sub-abas (Etiquetas, Fichas e custódias, Formulários, Fluxogramas, POPs e procedimentos) e código";funciona;"v0.6.16 (Ponte 1)";manter;v0.6.16
+F347;App;ponte;"Compartilhar com o Cwork (PDF e planilha original pela caixa de troca do aparelho; mesma ficha, versão sobe)";funciona;"v0.6.16 (Ponte 1); Documento chega na v0.7.0";manter;v0.6.16
+F348;App;ponte;"Abrir no Vértice o que o Cwork mandou, com aviso de chegada";funciona;"v0.6.16 (Ponte 1); só .xlsx/.xlsm por enquanto";manter;v0.6.16
+F349;App;ponte;"Resumo do envio ao lado da ficha (copiar, na ficha, faltam N de M, Copiar tudo)";funciona;"v0.6.16 (Ponte 1)";manter;v0.6.16
+F350;App;ponte;"Preencher sozinho por nome de célula (1 a 32 campos, mescladas) e imprimir com os dados";falta;"Ponte 2";v0.6.17 Ponte 2;v0.6.16
+F351;Planilha;validacao;"Seta da lista suspensa respeita o painel congelado ao rolar";funciona;"D-59 corrigido na v0.6.16";manter;v0.6.16
+F352;App;menu;"Alça do menu escondido não cobre os números das linhas";funciona;"D-60 corrigido na v0.6.16";manter;v0.6.16

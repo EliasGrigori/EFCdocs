@@ -1,0 +1,42 @@
+/* Vértice Docs — Ponte 1 (v0.6.16): Documentos internos e o painel Resumo do envio, no visual do Cwork. */
+.int-abas { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border); margin: 4px 0 12px; }
+.int-aba { min-height: 34px; padding: 0 12px; border: 0; background: transparent; color: var(--text-muted); font-size: 14px; border-bottom: 2px solid transparent; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.int-aba:hover { color: var(--text); background: var(--surface-2); }
+.int-aba.on { color: var(--primary); font-weight: 600; border-bottom-color: var(--a); }
+.int-aba .qt { font-size: 12px; color: var(--text-dim); }
+.internos .arq { align-items: center; }
+.int-estado { font-size: 12px; color: var(--text-muted); white-space: nowrap; padding: 2px 8px; border-radius: var(--r-chip); background: var(--surface-2); }
+.int-estado.ok { color: var(--ok); background: var(--ok-soft); }
+.int-estado.warn { color: var(--warn); background: var(--warn-soft); }
+.int-campos { display: grid; gap: 12px; min-width: min(420px, 86vw); }
+.int-campos .campo { display: grid; gap: 4px; }
+.int-campos select, .int-campos input { min-height: 36px; }
+/* painel do resumo: ao lado, como o painel de detalhes; no celular, embaixo */
+.resumo-envio { width: 300px; flex: none; border-left: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; overflow: auto; }
+.re-cab { display: flex; align-items: flex-start; gap: 8px; padding: 12px 12px 8px 16px; border-bottom: 1px solid var(--border); }
+.re-cab > div { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.re-cab b { font-family: var(--fh); font-weight: 600; font-size: 16px; }
+.re-cab span { font-size: 13px; color: var(--text-muted); }
+.re-conta { margin: 10px 16px 4px; font-size: 13px; font-weight: 600; color: var(--warn); }
+.re-linhas { display: grid; padding: 0 8px; }
+.re-linha { display: grid; gap: 2px; padding: 8px; border-bottom: 1px solid var(--border); }
+.re-rot { font-size: 12px; color: var(--text-muted); }
+.re-val { display: flex; align-items: center; gap: 6px; min-height: 28px; }
+.re-val b { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.re-val em { font-style: normal; font-size: 12px; color: var(--ok); display: inline-flex; align-items: center; gap: 3px; }
+.re-val em svg { width: 14px; height: 14px; }
+.re-linha.na-ficha .re-val b { color: var(--text-muted); }
+.re-lista { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 13px; }
+.re-lista li span { display: inline-block; max-width: 190px; vertical-align: middle; }
+.re-val .iconbtn, .re-lista .iconbtn { width: 28px; height: 28px; min-height: 28px; }
+.re-rod { padding: 12px 16px; margin-top: auto; border-top: 1px solid var(--border); }
+.app.cel .work { flex-direction: column; }
+.app.cel .resumo-envio { width: auto; max-height: 42vh; border-left: 0; border-top: 1px solid var(--border); }
+.app.cel .re-val .iconbtn, .app.cel .re-lista .iconbtn, .app.cel .int-aba { min-height: 44px; }
+.app.cel .re-val .iconbtn, .app.cel .re-lista .iconbtn { width: 44px; height: 44px; }
+/* lista em linhas largas: nome e código em cima, sub-aba e data embaixo, situação à direita */
+.internos .lista.grade { grid-template-columns: 1fr; max-width: 980px; }
+.internos .arq .abre { flex: 1; min-width: 0; }
+.int-estado { align-self: center; }
+.app.cel .int-abas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.app.cel .int-aba { flex: none; }

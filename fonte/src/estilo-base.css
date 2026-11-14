@@ -1910,7 +1910,7 @@ body[data-theme=papel] .selo.warn, body[data-theme=papel] .novo .em { background
   box-shadow: 1px 0 5px rgba(12, 28, 38, .30); padding: 0; position: fixed; overflow: visible;
   transition: width .28s cubic-bezier(.22, .8, .28, 1), box-shadow .28s ease, filter .2s ease, color .18s ease .08s;
 }
-.menu-alca::before { content: ''; position: absolute; left: 0; top: -14px; bottom: -14px; width: 26px; } /* área de pegar maior que o traço */
+.menu-alca::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 9px; } /* D-60 (v0.6.16): a área de pegar era de 26 x 84 px e cobria os números das linhas (não dava para mudar a altura da linha ali); agora é só a beirada */
 .menu-alca svg { width: 16px; height: 16px; opacity: 0; transform: translateX(-4px); transition: opacity .2s ease .08s, transform .28s cubic-bezier(.22, .8, .28, 1); }
 .menu-alca:hover, .menu-alca:focus-visible { width: 22px; color: var(--on-primary); filter: none; box-shadow: 2px 2px 9px rgba(12, 28, 38, .38); }
 .menu-alca:hover svg, .menu-alca:focus-visible svg, .menu-alca.puxa svg { opacity: 1; transform: none; }

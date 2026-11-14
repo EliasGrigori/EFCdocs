@@ -87,10 +87,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.15', async () => {
+await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.16', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.15'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.16'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1894,7 +1894,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.15'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.16'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -4379,7 +4379,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.15'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.16'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4910,6 +4910,131 @@ await caso('v0.6.15 (F01 a F05 aprovados): contagem no relatório, brilho no bot
   certo(cedo !== fim && +fim.replace(/\D/g, '') > 0, `contagem: ${cedo} → ${fim}`);
   igual(certoAnim, 'ef-certo', 'certo desenhado ao salvar');
   igual(cascata, 'ef-cascata', 'lista em cascata');
+});
+
+/* ---------- v0.6.16: Ponte 1 com o EFCwork (uma página no mesmo endereço faz o papel do EFCwork, como o confere-ponte.js dele) ---------- */
+const CONTRATO = (n) => readFileSync(fileURLToPath(new URL('../contrato/' + n, import.meta.url)), 'utf8');
+/* espera chegar algo na caixa para o app (waitForFunction não espera função assíncrona) */
+async function naCaixa(W, app, ms = 15000) { for (let t = 0; t < ms; t += 250) { if (await W.evaluate((a) => EFDPonte.esperando(a).then((l) => l.length), app)) return; await W.waitForTimeout(250); } throw new Error('nada chegou na caixa para ' + app); }
+async function cworkDeMentira(ctx) {
+  const W = await ctx.newPage(); await W.goto(BASE + 'COMO-PUBLICAR.md');
+  await W.addScriptTag({ content: CONTRATO('efd-v1.js') }); await W.addScriptTag({ content: CONTRATO('efd-ponte.js') });
+  return W;
+}
+await caso('v0.6.16 (Ponte 1): Compartilhar com o Cwork pede a sub-aba, põe na caixa uma ficha que passa no contrato, com PDF e planilha; recebido e versão 2 com o mesmo id', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  const W = await cworkDeMentira(ctx);
+  await novaPlanilha(p);
+  await p.locator('canvas.pl-cv').click({ position: { x: 60, y: 32 } }); await p.waitForTimeout(150);
+  for (const t of ['OS', 'Tab', 'OS-77', 'Enter', 'Amostras', 'Tab', '6', 'Enter']) { if (t === 'Tab' || t === 'Enter') await p.keyboard.press(t); else await p.keyboard.type(t); await p.waitForTimeout(40); }
+  await p.waitForTimeout(900);
+  await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.compartilharCwork');
+  await p.waitForSelector('[data-int-salvar]');
+  await p.selectOption('[data-int-subaba]', 'Fichas e custódias'); await p.fill('[data-int-codigo]', 'FIC-01'); await p.click('[data-int-salvar]');
+  await naCaixa(W, 'efcwork');
+  const r1 = await W.evaluate(async () => { const i = (await EFDPonte.esperando('efcwork'))[0]; const t = new TextDecoder('latin1').decode(i.pdf);
+    return { caixa: EFDPonte.confere(i), erros: EFD.ficha(i.ficha), id: i.ficha.id, rev: i.ficha.rev, pasta: i.ficha.pastaNome, cod: i.ficha.codigo, pdf: t.slice(0, 5), pags: (t.match(/\/Type \/Page\b/g) || []).length, decl: i.ficha.pub.paginas, bytes: i.pdf.byteLength, declBytes: i.ficha.pub.bytes, orig: new TextDecoder().decode(i.original.slice(0, 2)), pid: i.pid }; });
+  await print(p, 'v0616-compartilhado');
+  await W.evaluate((pid) => EFDPonte.apagar(pid), r1.pid); /* o EFCwork guardou e tirou da caixa */
+  await p.goto(BASE + '#/internos'); await p.waitForSelector('[data-int-estado]'); await p.waitForTimeout(500);
+  const estado = await p.locator('[data-int-estado]').first().innerText();
+  await print(p, 'v0616-internos');
+  await p.locator('.internos .abre').first().click(); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(400);
+  await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.compartilharCwork');
+  await naCaixa(W, 'efcwork');
+  const r2 = await W.evaluate(async () => { const i = (await EFDPonte.esperando('efcwork'))[0]; return { id: i.ficha.id, rev: i.ficha.rev, erros: EFD.ficha(i.ficha) }; });
+  await ctx.close();
+  igual(r1.caixa.length + r1.erros.length, 0, 'item e ficha no contrato: ' + r1.caixa.concat(r1.erros).join('; '));
+  igual(`${r1.pasta}|${r1.cod}|${r1.rev}`, 'Fichas e custódias|FIC-01|1');
+  certo(r1.pdf === '%PDF-' && r1.pags === r1.decl && r1.bytes === r1.declBytes, 'PDF com as páginas e o tamanho declarados: ' + JSON.stringify(r1));
+  igual(r1.orig, 'PK', 'a planilha original vai junto (.xlsx)');
+  igual(estado, 'Recebido pelo Cwork · versão 1');
+  igual(`${r2.id === r1.id}|${r2.rev}|${r2.erros.length}`, 'true|2|0', 'compartilhar de novo: mesmo id, versão 2');
+});
+await caso('v0.6.16 (Ponte 1): o que o Cwork manda abrir chega com aviso, abre no Vértice com o resumo do envio ("na ficha", faltam N de M, copiar) e o resumo sai da caixa ao fechar', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const W = await cworkDeMentira(ctx);
+  const xlsx = [...readFileSync(AMOSTRA_V069)];
+  await p.goto(BASE + '#/'); await p.waitForSelector('.foot');
+  const pid = await W.evaluate(async (x) => { const docId = 'dteste00000001';
+    await EFDPonte.por({ de: 'efcwork', para: 'docs', tipo: 'resumo', docId, titulo: 'Remessa de 12/11/2026 · Laboratório A', dados: { 'coleta.os': 'OS-0000-INEXISTENTE', 'envio.amostras': 6, 'coleta.data': '2026-11-12', 'coleta.coletor': 'Joana Silva', 'amostras[]': [{ n: 1, identificacao: 'A-01', data: '2026-11-12' }] } });
+    return EFDPonte.por({ de: 'efcwork', para: 'docs', tipo: 'abrir', original: new Uint8Array(x).buffer, nomeArquivo: 'Cadeia de custódia - Lab A.xlsx', docId }); }, xlsx);
+  await p.waitForSelector('.toast button:has-text("Abrir")', { timeout: 8000 });
+  const aviso = await p.locator('.toast').first().innerText();
+  await p.locator('.toast button:has-text("Abrir")').click();
+  await p.waitForSelector('[data-resumo]', { timeout: 30000 }); await p.waitForTimeout(500);
+  const faltam = await p.locator('[data-resumo-faltam]').innerText();
+  const linhas = await p.locator('.re-linha').count();
+  await p.locator('[data-resumo-tudo]').click(); await p.waitForTimeout(200);
+  const copiado = await p.evaluate(() => navigator.clipboard.readText().catch(() => ''));
+  await print(p, 'v0616-resumo');
+  const antes = await W.evaluate(async () => (await EFDPonte.esperando('docs')).map((i) => i.tipo).join(','));
+  await p.click('[aria-label="Fechar o resumo"]'); await p.waitForTimeout(400);
+  const depois = await W.evaluate(async () => (await EFDPonte.esperando('docs')).length);
+  await p.goto(BASE + '#/internos'); await p.waitForSelector('.internos .arq');
+  const sub = await p.locator('[data-int-sub="Recebidos do Cwork"].on').count();
+  const todas = await p.locator('.int-aba:has-text("Todas")').count();
+  await ctx.close();
+  certo(/Chegou do Cwork para abrir: Cadeia de custódia - Lab A\.xlsx/.test(aviso), 'aviso de chegada: ' + aviso);
+  certo(pid && /^Faltam \d+ de 4$/.test(faltam), 'contador: ' + faltam);
+  igual(linhas, 5, 'uma linha por dado (4 simples + a lista)');
+  certo(copiado.startsWith('Remessa de 12/11/2026 · Laboratório A\n') && copiado.includes('Data da coleta: 12/11/2026'), 'Copiar tudo: ' + copiado);
+  igual(antes, 'resumo', 'o "abrir" sai da caixa depois de guardado; o resumo fica enquanto o painel está aberto');
+  igual(depois, 0, 'fechar o resumo tira da caixa');
+  igual(sub, 1, 'o arquivo ficou em Documentos internos › Recebidos do Cwork (a página abre na sub-aba que tem documento)');
+  igual(todas, 0, 'sem a aba "Todas" (pedido do Elias em 13/11)');
+});
+
+await caso('v0.6.16 (Ponte 1): o Quadro também vai para o Cwork (PDF deitado, sem arquivo de reserva)', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  const W = await cworkDeMentira(ctx);
+  await p.goto(BASE + '#/postits'); await p.locator('[data-novo=postits]').first().click(); await p.waitForTimeout(900);
+  await cmd(p, 'inserir.postit'); await p.waitForTimeout(250); await p.keyboard.press('Escape');
+  await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.compartilharCwork');
+  await p.waitForSelector('[data-int-salvar]'); await p.selectOption('[data-int-subaba]', 'Fluxogramas'); await p.click('[data-int-salvar]');
+  await naCaixa(W, 'efcwork');
+  const r = await W.evaluate(async () => { const i = (await EFDPonte.esperando('efcwork'))[0]; return { erros: EFD.ficha(i.ficha), tipo: i.ficha.tipo, orient: i.ficha.pub.orient, orig: !!i.original, pasta: i.ficha.pastaNome }; });
+  await ctx.close();
+  igual(JSON.stringify(r), JSON.stringify({ erros: [], tipo: 'postits', orient: 'paisagem', orig: false, pasta: 'Fluxogramas' }));
+});
+
+/* ---------- v0.6.16: defeitos achados pelo Elias em 13/11 (D-59 e D-60) ---------- */
+const AMOSTRA_V0616 = fileURLToPath(new URL('../testes/amostras/amostra-v0616.xlsx', import.meta.url));
+await caso('v0.6.16 (D-59): a seta da lista suspensa não fica solta por cima do painel congelado quando a célula rola para baixo ou para o lado dele', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 900, height: 600 } });
+  await p.goto(BASE + '#/'); await p.click('[data-abrir-excel]'); await p.setInputFiles('[data-excel-arquivo]', AMOSTRA_V0616);
+  await p.waitForSelector('[data-excel-abrir]'); await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(500);
+  await p.bringToFront(); await celula(p, 'C8'); await p.waitForTimeout(200);
+  const cv = await p.locator('canvas.pl-cv').boundingBox();
+  const parada = await p.locator('[data-lista-seta]').count();
+  await p.mouse.move(cv.x + 300, cv.y + 160); await p.mouse.wheel(0, 120); await p.waitForTimeout(350); /* longe do aviso do canto */
+  const baixo = await p.locator('[data-lista-seta]').count();
+  await p.mouse.wheel(0, -2000); await p.waitForTimeout(250);
+  const voltou = await p.locator('[data-lista-seta]').count();
+  await p.mouse.wheel(150, 0); await p.waitForTimeout(350);
+  const lado = await p.locator('[data-lista-seta]').count();
+  await ctx.close();
+  igual(`${parada}|${baixo}|${voltou}|${lado}`, '1|0|1|0', 'seta: parada | rolou para baixo do congelado | voltou | rolou para o lado do congelado');
+});
+await caso('v0.6.16 (D-60): a alça do menu escondido não cobre os números das linhas: dá para pegar a borda da linha ao lado dela', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 900, height: 600 }, reducedMotion: 'no-preference' });
+  await ctx.addInitScript(() => { try { localStorage.setItem('efcdocs:prefs', JSON.stringify({ tema: 'papel', menu: 'oculto' })); } catch { /* */ } });
+  await novaPlanilha(p);
+  const a = await p.locator('[data-menu-alca]').boundingBox(), meio = a.y + a.height / 2;
+  const em = (x, y) => p.evaluate(([x1, y1]) => { const e = document.elementFromPoint(x1, y1); return e.closest('[data-menu-alca]') ? 'alça' : 'planilha'; }, [x, y]);
+  const pontos = [await em(3, meio), await em(12, meio), await em(12, a.y - 8), await em(12, a.y + a.height + 8)].join('|');
+  let pega = 0;
+  for (let y = a.y + 2; y < a.y + a.height - 2; y += 1) { await p.mouse.move(14, y); if ((await p.evaluate(([x1, y1]) => getComputedStyle(document.elementFromPoint(x1, y1)).cursor, [14, y])) === 'row-resize') pega++; }
+  await p.mouse.move(14, meio); await p.waitForTimeout(400);
+  const larg = (await p.locator('[data-menu-alca]').boundingBox()).width;
+  await p.mouse.move(3, meio); await p.waitForTimeout(450);
+  const largEm = (await p.locator('[data-menu-alca]').boundingBox()).width;
+  await p.locator('[data-menu-alca]').click(); await p.waitForSelector('.rail');
+  await ctx.close();
+  igual(pontos, 'alça|planilha|planilha|planilha', 'só a beirada é da alça');
+  certo(pega >= 4, 'bordas de linha que dá para pegar na altura da alça: ' + pega);
+  certo(larg <= 9 && largEm >= 20, `a alça só cresce com o mouse em cima dela: ${larg} e ${largEm}`);
 });
 
 await navegador.close();

@@ -25,6 +25,10 @@ Os avisos de licença ficam ao lado das letras (`src/fontes/OFL-Fraunces.txt` e 
 | Transitions.dev (Jakub Antalik) | Transitions.dev License: uso livre em produtos pessoais e comerciais, pode copiar e modificar; não pode redistribuir a coleção como biblioteca concorrente | `src/movimento.css` | tokens da escala e os valores das receitas 01 (card resize), 05 (dropdown), 06 (modal), 21 (acordeão), 22 (toast) e 27 (toggle), adaptados para entrada no React. Termos: https://transitions.dev/terms.html |
 | React Bits | MIT com Commons Clause | nenhum código | só referência de ideias para os efeitos propostos na página de demonstração; nada copiado |
 
+## Contrato com o EFCwork (v0.6.16)
+
+`contrato/efd-v1.js`, `contrato/efd-ponte.js`, `contrato/exemplos-efd-v1.json` e `contrato/confere.js` vêm do repositório do EFCwork (`EliasGrigori/efcwork`, mesmo dono), iguais byte a byte, sem biblioteca de fora. Servem para os dois apps conversarem pela caixa de troca do aparelho.
+
 O resto do app (grade, motor de fórmulas, leitura e gravação de .xlsx, ZIP, PDF da planilha, gráficos, Quadro, Documento) é código próprio do EFCdocs. Nenhum trecho de código de outro projeto foi copiado para `src/` até a v0.6.10.
 
 ## Só para montar e testar (não vão para o app)

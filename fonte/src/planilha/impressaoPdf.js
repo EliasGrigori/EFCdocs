@@ -153,3 +153,18 @@ export async function svgParaImagemPdf(svg, wPt, hPt, fator = 3) {
     return { bytes: new Uint8Array(await blob.arrayBuffer()), w, h };
   } finally { URL.revokeObjectURL(url); }
 }
+
+/** v0.6.16: as imagens (gráficos) das páginas, uma vez cada, prontas para o PDF. */
+export async function imagensDasPaginas(paginas) {
+  const imagens = new Map();
+  for (const p of paginas) for (const o of p.ops) if (o.k === 'img' && !imagens.has(o.svg)) { try { imagens.set(o.svg, await svgParaImagemPdf(o.svg, o.w, o.h)); } catch { imagens.set(o.svg, null); } }
+  return imagens;
+}
+/** v0.6.16: baixa os bytes com o nome dado. */
+export function baixarBytes(bytes, nome, tipo = 'application/pdf') {
+  const url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
+  const a = document.createElement('a');
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}

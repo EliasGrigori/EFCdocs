@@ -125,7 +125,14 @@ export async function exportarPng(c, nome, { vista, codigos, demo }) {
   baixar(await paraBlob(cv, 'image/png'), `${nome}.png`);
 }
 
-export async function exportarPdf(c, nome, { vista, codigos, demo }) {
+export async function exportarPdf(c, nome, opcoes) {
+  const { bytes } = await pdfDoQuadro(c, nome, opcoes);
+  baixar(new Blob([bytes], { type: 'application/pdf' }), `${nome}.pdf`);
+  return bytes.length;
+}
+
+/** v0.6.16 (Ponte 1): o PDF do quadro em bytes (paisagem), para baixar ou mandar ao Cwork. */
+export async function pdfDoQuadro(c, nome, { vista, codigos, demo }) {
   const saida = await canvasesDaSaida(c, vista, { escala: 2, codigos, demo });
   const base = vista === 'kanban' ? 'Kanban' : 'Quadro';
   const folhasPdf = [];
@@ -142,8 +149,7 @@ export async function exportarPdf(c, nome, { vista, codigos, demo }) {
     rodape: `Vértice Docs · Post-its${demo ? ' · DEMO · EFC' : ''} · gerado em ${carimboData()}`,
     folhas: folhasPdf,
   });
-  baixar(new Blob([bytes], { type: 'application/pdf' }), `${nome}.pdf`);
-  return bytes.length;
+  return { bytes, paginas: folhasPdf.length };
 }
 
 /** Imprime em paisagem por uma moldura escondida (não abre janela nova). Uma página do papel por folha. */

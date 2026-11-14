@@ -1,0 +1,1666 @@
+{
+ "contrato": "EFD",
+ "v": 1,
+ "aviso": "Dados inventados. Nenhum nome, endereço ou documento real.",
+ "validos": {
+  "fichas": [
+   {
+    "v": 1,
+    "id": "dmhx3k2a01zz9q",
+    "tipo": "planilha",
+    "nome": "Etiqueta da caixa",
+    "codigo": "ETQ-01",
+    "pasta": "",
+    "pastaNome": "Etiquetas",
+    "orig": null,
+    "status": "vigente",
+    "rev": 1,
+    "origem": "docs",
+    "cancelado": false,
+    "motivo": "",
+    "lixeiraEm": null,
+    "pub": {
+     "rev": 1,
+     "em": "2026-11-10T13:40:00.000Z",
+     "porId": "uid-joana",
+     "por": "Joana Silva",
+     "formato": "pdf",
+     "bytes": 612,
+     "partes": 1,
+     "sha256": "b90a1ed37f7e51962c3d8bdea0f7fa733306b4bba0eb5f7b27310746d65f6e88",
+     "paginas": 1,
+     "papel": "A4",
+     "orient": "retrato",
+     "preenche": "docs",
+     "campos": [
+      {
+       "chave": "lab.nome",
+       "rotulo": "Laboratório",
+       "tipo": "texto"
+      },
+      {
+       "chave": "lab.endereco",
+       "rotulo": "Endereço",
+       "tipo": "texto"
+      },
+      {
+       "chave": "unidade.nome",
+       "rotulo": "Remetente",
+       "tipo": "texto"
+      },
+      {
+       "chave": "coleta.os",
+       "rotulo": "O.S",
+       "tipo": "texto"
+      },
+      {
+       "chave": "coleta.data",
+       "rotulo": "Data da coleta",
+       "tipo": "data"
+      },
+      {
+       "chave": "envio.caixa",
+       "rotulo": "Caixa",
+       "tipo": "numero"
+      },
+      {
+       "chave": "envio.caixas",
+       "rotulo": "de",
+       "tipo": "numero"
+      }
+     ]
+    },
+    "criadoPorId": "uid-joana",
+    "criadoPor": "Joana Silva",
+    "criadoEm": "2026-11-10T13:05:00.000Z",
+    "alteradoPorId": "uid-joana",
+    "alteradoPor": "Joana Silva",
+    "alteradoEm": "2026-11-10T13:40:00.000Z"
+   },
+   {
+    "v": 1,
+    "id": "dmhx3k2a02ab1c",
+    "tipo": "planilha",
+    "nome": "Cadeia de custódia - Laboratório A",
+    "codigo": "CUS-01",
+    "pasta": "",
+    "pastaNome": "Fichas e custódias",
+    "orig": null,
+    "status": "vigente",
+    "rev": 1,
+    "origem": "docs",
+    "cancelado": false,
+    "motivo": "",
+    "lixeiraEm": null,
+    "pub": {
+     "rev": 1,
+     "em": "2026-11-10T13:40:00.000Z",
+     "porId": "uid-joana",
+     "por": "Joana Silva",
+     "formato": "pdf",
+     "bytes": 613,
+     "partes": 3,
+     "sha256": "8a0b6a5ed2bba5933309ebd16dff84cc8697e2af513c9ab205d3408e6a37099b",
+     "paginas": 1,
+     "papel": "A4",
+     "orient": "paisagem",
+     "preenche": "docs",
+     "campos": [
+      {
+       "chave": "lab.nome",
+       "rotulo": "Laboratório",
+       "tipo": "texto"
+      },
+      {
+       "chave": "coleta.coletor",
+       "rotulo": "Coletor",
+       "tipo": "texto"
+      },
+      {
+       "chave": "amostras[].identificacao",
+       "rotulo": "Identificação",
+       "tipo": "texto"
+      },
+      {
+       "chave": "amostras[].data",
+       "rotulo": "Data",
+       "tipo": "data"
+      },
+      {
+       "chave": "amostras[].analise",
+       "rotulo": "Análise",
+       "tipo": "texto"
+      }
+     ]
+    },
+    "criadoPorId": "uid-joana",
+    "criadoPor": "Joana Silva",
+    "criadoEm": "2026-11-10T13:05:00.000Z",
+    "alteradoPorId": "uid-joana",
+    "alteradoPor": "Joana Silva",
+    "alteradoEm": "2026-11-10T13:40:00.000Z"
+   },
+   {
+    "v": 1,
+    "id": "dmhx3k2a03k7p2",
+    "tipo": "externo",
+    "nome": "Ficha de solicitação - Laboratório B",
+    "codigo": "FIC-02",
+    "pasta": "",
+    "pastaNome": "Fichas e custódias",
+    "orig": null,
+    "status": "vigente",
+    "rev": 1,
+    "origem": "efcwork",
+    "cancelado": false,
+    "motivo": "",
+    "lixeiraEm": null,
+    "pub": {
+     "rev": 1,
+     "em": "2026-11-10T13:40:00.000Z",
+     "porId": "uid-joana",
+     "por": "Joana Silva",
+     "formato": "pdf",
+     "bytes": 617,
+     "partes": 1,
+     "sha256": "2eb747238d39d239719a1b45c186d1f976eaa8e27770d8441c725c1f7802c232",
+     "paginas": 1,
+     "papel": "A4",
+     "orient": "retrato",
+     "preenche": "nao",
+     "campos": []
+    },
+    "criadoPorId": "uid-joana",
+    "criadoPor": "Joana Silva",
+    "criadoEm": "2026-11-10T13:05:00.000Z",
+    "alteradoPorId": "uid-joana",
+    "alteradoPor": "Joana Silva",
+    "alteradoEm": "2026-11-10T13:40:00.000Z"
+   },
+   {
+    "v": 1,
+    "id": "dmhx3k2a06l1n4",
+    "tipo": "link",
+    "nome": "Manual do equipamento (exemplo)",
+    "codigo": "MAN-01",
+    "pasta": "",
+    "pastaNome": "Manuais",
+    "orig": null,
+    "status": "vigente",
+    "rev": 1,
+    "origem": "efcwork",
+    "cancelado": false,
+    "motivo": "",
+    "lixeiraEm": null,
+    "pub": null,
+    "criadoPorId": "uid-joana",
+    "criadoPor": "Joana Silva",
+    "criadoEm": "2026-11-10T13:05:00.000Z",
+    "alteradoPorId": "uid-joana",
+    "alteradoPor": "Joana Silva",
+    "alteradoEm": "2026-11-10T13:40:00.000Z",
+    "link": "https://exemplo.invalid/manual.pdf"
+   },
+   {
+    "v": 1,
+    "id": "dmhx3k2a05w3e1",
+    "tipo": "planilha",
+    "nome": "Ficha de cotação - Laboratório B",
+    "codigo": "FIC-03",
+    "pasta": "",
+    "pastaNome": "Fichas e custódias",
+    "orig": {
+     "formato": "xlsx",
+     "bytes": 48211,
+     "partes": 1,
+     "sha256": "2eb747238d39d239719a1b45c186d1f976eaa8e27770d8441c725c1f7802c232",
+     "nomeArquivo": "ficha-cotacao-lab-b.xlsx"
+    },
+    "status": "vigente",
+    "rev": 1,
+    "origem": "efcwork",
+    "cancelado": false,
+    "motivo": "",
+    "lixeiraEm": null,
+    "pub": {
+     "rev": 1,
+     "em": "2026-11-10T13:40:00.000Z",
+     "porId": "uid-joana",
+     "por": "Joana Silva",
+     "formato": "pdf",
+     "bytes": 617,
+     "partes": 1,
+     "sha256": "2eb747238d39d239719a1b45c186d1f976eaa8e27770d8441c725c1f7802c232",
+     "paginas": 1,
+     "papel": "A4",
+     "orient": "retrato",
+     "preenche": "nao",
+     "campos": []
+    },
+    "criadoPorId": "uid-joana",
+    "criadoPor": "Joana Silva",
+    "criadoEm": "2026-11-10T13:05:00.000Z",
+    "alteradoPorId": "uid-joana",
+    "alteradoPor": "Joana Silva",
+    "alteradoEm": "2026-11-10T13:40:00.000Z"
+   },
+   {
+    "v": 1,
+    "id": "dmhx3k2a04r0t8",
+    "tipo": "docx",
+    "nome": "POP - Coleta de água",
+    "codigo": "POP-07",
+    "pasta": "",
+    "pastaNome": "Etiquetas",
+    "orig": null,
+    "status": "rascunho",
+    "rev": 0,
+    "origem": "docs",
+    "cancelado": false,
+    "motivo": "",
+    "lixeiraEm": null,
+    "pub": null,
+    "criadoPorId": "uid-joana",
+    "criadoPor": "Joana Silva",
+    "criadoEm": "2026-11-10T13:05:00.000Z",
+    "alteradoPorId": "uid-joana",
+    "alteradoPor": "Joana Silva",
+    "alteradoEm": "2026-11-10T13:40:00.000Z"
+   }
+  ],
+  "copias": {
+   "dmhx3k2a01zz9q": [
+    {
+     "rev": 1,
+     "n": 0,
+     "de": 1,
+     "b64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA2OCA+PgpzdHJlYW0KQlQgL0YxIDE4IFRmIDYwIDc4MCBUZCAoRVRJUVVFVEEgREEgQ0FJWEEgKGV4ZW1wbG8gaW52ZW50YWRvKSkgVGogRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAzNTkgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0MjkKJSVFT0YK"
+    }
+   ],
+   "dmhx3k2a02ab1c": [
+    {
+     "rev": 1,
+     "n": 0,
+     "de": 3,
+     "b64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAv"
+    },
+    {
+     "rev": 1,
+     "n": 1,
+     "de": 3,
+     "b64": "Rm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA2OSA+PgpzdHJlYW0KQlQgL0YxIDE4IFRmIDYwIDc4MCBUZCAoQ0FERUlBIERFIENVU1RPRElBIChleGVtcGxvIGludmVudGFkbykpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2"
+    },
+    {
+     "rev": 1,
+     "n": 2,
+     "de": 3,
+     "b64": "ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzYwIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDMwCiUlRU9GCg=="
+    }
+   ],
+   "dmhx3k2a03k7p2": [
+    {
+     "rev": 1,
+     "n": 0,
+     "de": 1,
+     "b64": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA3MyA+PgpzdHJlYW0KQlQgL0YxIDE4IFRmIDYwIDc4MCBUZCAoRklDSEEgRE8gTEFCT1JBVE9SSU8gQiAoZXhlbXBsbyBpbnZlbnRhZG8pKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDM2NCAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQzNAolJUVPRgo="
+    }
+   ]
+  },
+  "impressos": [
+   {
+    "v": 1,
+    "ponto": "coletas.envio",
+    "nome": "Etiqueta da caixa",
+    "docId": "dmhx3k2a01zz9q",
+    "lab": "",
+    "copias": "porCaixa",
+    "ordem": 1,
+    "ativo": true
+   },
+   {
+    "v": 1,
+    "ponto": "coletas.envio",
+    "nome": "Cadeia de custódia",
+    "docId": "dmhx3k2a02ab1c",
+    "lab": "Laboratório A",
+    "copias": "uma",
+    "ordem": 2,
+    "ativo": true
+   },
+   {
+    "v": 1,
+    "ponto": "coletas.envio",
+    "nome": "Ficha de solicitação",
+    "docId": "dmhx3k2a03k7p2",
+    "lab": "Laboratório B",
+    "copias": 2,
+    "ordem": 3,
+    "ativo": true
+   }
+  ],
+  "pedidos": [
+   {
+    "v": 1,
+    "pid": "p8k2m4x9aa01",
+    "docId": "dmhx3k2a01zz9q",
+    "de": "efcwork",
+    "copias": 1,
+    "criadoEm": "2026-11-12T12:00:00.000Z",
+    "dados": {
+     "lab.nome": "Laboratório A",
+     "lab.endereco": "Rua das Acácias, 100",
+     "unidade.nome": "Fazenda Norte",
+     "coleta.os": "2026-0412",
+     "coleta.data": "2026-11-12",
+     "envio.caixas": 2
+    },
+    "folhas": [
+     {
+      "envio.caixa": 1
+     },
+     {
+      "envio.caixa": 2
+     }
+    ]
+   },
+   {
+    "v": 1,
+    "pid": "p8k2m4x9aa02",
+    "docId": "dmhx3k2a02ab1c",
+    "de": "efcwork",
+    "copias": 1,
+    "criadoEm": "2026-11-12T12:00:05.000Z",
+    "dados": {
+     "lab.nome": "Laboratório A",
+     "coleta.coletor": "Marcos Lima",
+     "amostras[]": [
+      {
+       "n": 1,
+       "identificacao": "T01-A",
+       "data": "2026-11-12",
+       "analise": "Resíduos"
+      },
+      {
+       "n": 2,
+       "identificacao": "T02-A",
+       "data": "2026-11-12",
+       "analise": "Resíduos"
+      }
+     ]
+    }
+   }
+  ],
+  "treinos": [
+   {
+    "v": 1,
+    "titulo": "Coleta de água para análise (POP-07)",
+    "data": "2026-11-10",
+    "hora": "08:00",
+    "horas": 1,
+    "local": "Refeitório",
+    "situacao": "realizado",
+    "origem": "sabia",
+    "instrutorId": "uid-joana",
+    "instrutorNome": "Joana Silva",
+    "quiz": {
+     "app": "sabia",
+     "sessaoId": "s1a2b3c4",
+     "treinoId": "t9z8",
+     "versao": 3,
+     "cod": "SAB-4F2A-91C0-0B7E-55AA-D012",
+     "meta": 70,
+     "pct": 86,
+     "metaOk": true
+    },
+    "participantes": [
+     {
+      "nome": "Ana Souza",
+      "setor": "Packing",
+      "presente": true,
+      "ac": 9,
+      "nq": 10,
+      "pct": 90,
+      "eficaz": true
+     },
+     {
+      "nome": "Pedro Alves",
+      "setor": "Campo",
+      "presente": true,
+      "ac": 6,
+      "nq": 10,
+      "pct": 60,
+      "eficaz": false
+     }
+    ],
+    "resumo": {
+     "pessoas": 2,
+     "eficazes": 1,
+     "reforco": 1
+    },
+    "docs": [
+     {
+      "docId": "dmhx3k2a04r0t8",
+      "papel": "pop"
+     }
+    ],
+    "ref": null,
+    "criadoPorId": "uid-joana",
+    "criadoPorNome": "Joana Silva",
+    "criadoEm": "2026-11-10T12:10:00.000Z"
+   },
+   {
+    "v": 1,
+    "titulo": "Higienização das mãos",
+    "data": "2026-11-06",
+    "horas": 0.5,
+    "local": "Packing",
+    "situacao": "realizado",
+    "origem": "efcwork",
+    "instrutorId": "uid-marcos",
+    "instrutorNome": "Marcos Lima",
+    "quiz": null,
+    "participantes": [
+     {
+      "nome": "Ana Souza",
+      "setor": "Packing",
+      "presente": true,
+      "eficaz": null
+     },
+     {
+      "nome": "Rita Gomes",
+      "setor": "Packing",
+      "presente": false,
+      "eficaz": null
+     }
+    ],
+    "resumo": {
+     "pessoas": 1,
+     "eficazes": 0,
+     "reforco": 0
+    },
+    "docs": [],
+    "ref": {
+     "tipo": "apontamento",
+     "id": "ap123"
+    },
+    "criadoPorId": "uid-marcos",
+    "criadoPorNome": "Marcos Lima",
+    "criadoEm": "2026-11-06T14:00:00.000Z"
+   },
+   {
+    "v": 1,
+    "titulo": "Boas práticas no packing",
+    "data": "2026-11-18",
+    "situacao": "programado",
+    "origem": "efcwork",
+    "instrutorId": "uid-marcos",
+    "instrutorNome": "Marcos Lima",
+    "quiz": null,
+    "participantes": [],
+    "docs": [],
+    "criadoPorId": "uid-joana",
+    "criadoPorNome": "Joana Silva",
+    "criadoEm": "2026-11-11T10:00:00.000Z"
+   }
+  ]
+ },
+ "invalidos": {
+  "fichas": [
+   [
+    "id fora do padrão",
+    {
+     "v": 1,
+     "id": "ETQ 01",
+     "tipo": "planilha",
+     "nome": "Etiqueta da caixa",
+     "codigo": "ETQ-01",
+     "pasta": "",
+     "pastaNome": "Etiquetas",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "docs",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": {
+      "rev": 1,
+      "em": "2026-11-10T13:40:00.000Z",
+      "porId": "uid-joana",
+      "por": "Joana Silva",
+      "formato": "pdf",
+      "bytes": 612,
+      "partes": 1,
+      "sha256": "b90a1ed37f7e51962c3d8bdea0f7fa733306b4bba0eb5f7b27310746d65f6e88",
+      "paginas": 1,
+      "papel": "A4",
+      "orient": "retrato",
+      "preenche": "docs",
+      "campos": [
+       {
+        "chave": "lab.nome",
+        "rotulo": "Laboratório",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.endereco",
+        "rotulo": "Endereço",
+        "tipo": "texto"
+       },
+       {
+        "chave": "unidade.nome",
+        "rotulo": "Remetente",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.os",
+        "rotulo": "O.S",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.data",
+        "rotulo": "Data da coleta",
+        "tipo": "data"
+       },
+       {
+        "chave": "envio.caixa",
+        "rotulo": "Caixa",
+        "tipo": "numero"
+       },
+       {
+        "chave": "envio.caixas",
+        "rotulo": "de",
+        "tipo": "numero"
+       }
+      ]
+     },
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z"
+    }
+   ],
+   [
+    "vigente sem cópia",
+    {
+     "v": 1,
+     "id": "dmhx3k2a01zz9q",
+     "tipo": "planilha",
+     "nome": "Etiqueta da caixa",
+     "codigo": "ETQ-01",
+     "pasta": "",
+     "pastaNome": "Etiquetas",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "docs",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": null,
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z"
+    }
+   ],
+   [
+    "campo fora do dicionário",
+    {
+     "v": 1,
+     "id": "dmhx3k2a01zz9q",
+     "tipo": "planilha",
+     "nome": "Etiqueta da caixa",
+     "codigo": "ETQ-01",
+     "pasta": "",
+     "pastaNome": "Etiquetas",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "docs",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": {
+      "rev": 1,
+      "em": "2026-11-10T13:40:00.000Z",
+      "porId": "uid-joana",
+      "por": "Joana Silva",
+      "formato": "pdf",
+      "bytes": 612,
+      "partes": 1,
+      "sha256": "b90a1ed37f7e51962c3d8bdea0f7fa733306b4bba0eb5f7b27310746d65f6e88",
+      "paginas": 1,
+      "papel": "A4",
+      "orient": "retrato",
+      "preenche": "docs",
+      "campos": [
+       {
+        "chave": "cliente.cpf",
+        "rotulo": "Laboratório",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.endereco",
+        "rotulo": "Endereço",
+        "tipo": "texto"
+       },
+       {
+        "chave": "unidade.nome",
+        "rotulo": "Remetente",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.os",
+        "rotulo": "O.S",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.data",
+        "rotulo": "Data da coleta",
+        "tipo": "data"
+       },
+       {
+        "chave": "envio.caixa",
+        "rotulo": "Caixa",
+        "tipo": "numero"
+       },
+       {
+        "chave": "envio.caixas",
+        "rotulo": "de",
+        "tipo": "numero"
+       }
+      ]
+     },
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z"
+    }
+   ],
+   [
+    "externo que diz preencher",
+    {
+     "v": 1,
+     "id": "dmhx3k2a03k7p2",
+     "tipo": "externo",
+     "nome": "Ficha de solicitação - Laboratório B",
+     "codigo": "FIC-02",
+     "pasta": "",
+     "pastaNome": "Fichas e custódias",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "efcwork",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": {
+      "rev": 1,
+      "em": "2026-11-10T13:40:00.000Z",
+      "porId": "uid-joana",
+      "por": "Joana Silva",
+      "formato": "pdf",
+      "bytes": 617,
+      "partes": 1,
+      "sha256": "2eb747238d39d239719a1b45c186d1f976eaa8e27770d8441c725c1f7802c232",
+      "paginas": 1,
+      "papel": "A4",
+      "orient": "retrato",
+      "preenche": "docs",
+      "campos": [
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       }
+      ]
+     },
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z"
+    }
+   ],
+   [
+    "data sem ser ISO UTC",
+    {
+     "v": 1,
+     "id": "dmhx3k2a01zz9q",
+     "tipo": "planilha",
+     "nome": "Etiqueta da caixa",
+     "codigo": "ETQ-01",
+     "pasta": "",
+     "pastaNome": "Etiquetas",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "docs",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": {
+      "rev": 1,
+      "em": "2026-11-10T13:40:00.000Z",
+      "porId": "uid-joana",
+      "por": "Joana Silva",
+      "formato": "pdf",
+      "bytes": 612,
+      "partes": 1,
+      "sha256": "b90a1ed37f7e51962c3d8bdea0f7fa733306b4bba0eb5f7b27310746d65f6e88",
+      "paginas": 1,
+      "papel": "A4",
+      "orient": "retrato",
+      "preenche": "docs",
+      "campos": [
+       {
+        "chave": "lab.nome",
+        "rotulo": "Laboratório",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.endereco",
+        "rotulo": "Endereço",
+        "tipo": "texto"
+       },
+       {
+        "chave": "unidade.nome",
+        "rotulo": "Remetente",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.os",
+        "rotulo": "O.S",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.data",
+        "rotulo": "Data da coleta",
+        "tipo": "data"
+       },
+       {
+        "chave": "envio.caixa",
+        "rotulo": "Caixa",
+        "tipo": "numero"
+       },
+       {
+        "chave": "envio.caixas",
+        "rotulo": "de",
+        "tipo": "numero"
+       }
+      ]
+     },
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "10/11/2026 10:05",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z"
+    }
+   ],
+   [
+    "nome com barra",
+    {
+     "v": 1,
+     "id": "dmhx3k2a01zz9q",
+     "tipo": "planilha",
+     "nome": "Etiqueta/caixa",
+     "codigo": "ETQ-01",
+     "pasta": "",
+     "pastaNome": "Etiquetas",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "docs",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": {
+      "rev": 1,
+      "em": "2026-11-10T13:40:00.000Z",
+      "porId": "uid-joana",
+      "por": "Joana Silva",
+      "formato": "pdf",
+      "bytes": 612,
+      "partes": 1,
+      "sha256": "b90a1ed37f7e51962c3d8bdea0f7fa733306b4bba0eb5f7b27310746d65f6e88",
+      "paginas": 1,
+      "papel": "A4",
+      "orient": "retrato",
+      "preenche": "docs",
+      "campos": [
+       {
+        "chave": "lab.nome",
+        "rotulo": "Laboratório",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.endereco",
+        "rotulo": "Endereço",
+        "tipo": "texto"
+       },
+       {
+        "chave": "unidade.nome",
+        "rotulo": "Remetente",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.os",
+        "rotulo": "O.S",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.data",
+        "rotulo": "Data da coleta",
+        "tipo": "data"
+       },
+       {
+        "chave": "envio.caixa",
+        "rotulo": "Caixa",
+        "tipo": "numero"
+       },
+       {
+        "chave": "envio.caixas",
+        "rotulo": "de",
+        "tipo": "numero"
+       }
+      ]
+     },
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z"
+    }
+   ],
+   [
+    "sem versão do contrato",
+    {
+     "id": "dmhx3k2a01zz9q",
+     "tipo": "planilha",
+     "nome": "Etiqueta da caixa",
+     "codigo": "ETQ-01",
+     "pasta": "",
+     "pastaNome": "Etiquetas",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "docs",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": {
+      "rev": 1,
+      "em": "2026-11-10T13:40:00.000Z",
+      "porId": "uid-joana",
+      "por": "Joana Silva",
+      "formato": "pdf",
+      "bytes": 612,
+      "partes": 1,
+      "sha256": "b90a1ed37f7e51962c3d8bdea0f7fa733306b4bba0eb5f7b27310746d65f6e88",
+      "paginas": 1,
+      "papel": "A4",
+      "orient": "retrato",
+      "preenche": "docs",
+      "campos": [
+       {
+        "chave": "lab.nome",
+        "rotulo": "Laboratório",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.endereco",
+        "rotulo": "Endereço",
+        "tipo": "texto"
+       },
+       {
+        "chave": "unidade.nome",
+        "rotulo": "Remetente",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.os",
+        "rotulo": "O.S",
+        "tipo": "texto"
+       },
+       {
+        "chave": "coleta.data",
+        "rotulo": "Data da coleta",
+        "tipo": "data"
+       },
+       {
+        "chave": "envio.caixa",
+        "rotulo": "Caixa",
+        "tipo": "numero"
+       },
+       {
+        "chave": "envio.caixas",
+        "rotulo": "de",
+        "tipo": "numero"
+       }
+      ]
+     },
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z"
+    }
+   ],
+   [
+    "link sem https",
+    {
+     "v": 1,
+     "id": "dmhx3k2a03k7p2",
+     "tipo": "link",
+     "nome": "Ficha de solicitação - Laboratório B",
+     "codigo": "FIC-02",
+     "pasta": "",
+     "pastaNome": "Fichas e custódias",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "efcwork",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": null,
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z",
+     "link": "ftp://x"
+    }
+   ],
+   [
+    "link com arquivo",
+    {
+     "v": 1,
+     "id": "dmhx3k2a03k7p2",
+     "tipo": "link",
+     "nome": "Ficha de solicitação - Laboratório B",
+     "codigo": "FIC-02",
+     "pasta": "",
+     "pastaNome": "Fichas e custódias",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "efcwork",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": {
+      "rev": 1,
+      "em": "2026-11-10T13:40:00.000Z",
+      "porId": "uid-joana",
+      "por": "Joana Silva",
+      "formato": "pdf",
+      "bytes": 617,
+      "partes": 1,
+      "sha256": "2eb747238d39d239719a1b45c186d1f976eaa8e27770d8441c725c1f7802c232",
+      "paginas": 1,
+      "papel": "A4",
+      "orient": "retrato",
+      "preenche": "nao",
+      "campos": []
+     },
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z",
+     "link": "https://exemplo.invalid/a"
+    }
+   ],
+   [
+    "33 campos",
+    {
+     "v": 1,
+     "id": "dmhx3k2a01zz9q",
+     "tipo": "planilha",
+     "nome": "Etiqueta da caixa",
+     "codigo": "ETQ-01",
+     "pasta": "",
+     "pastaNome": "Etiquetas",
+     "orig": null,
+     "status": "vigente",
+     "rev": 1,
+     "origem": "docs",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": {
+      "rev": 1,
+      "em": "2026-11-10T13:40:00.000Z",
+      "porId": "uid-joana",
+      "por": "Joana Silva",
+      "formato": "pdf",
+      "bytes": 612,
+      "partes": 1,
+      "sha256": "b90a1ed37f7e51962c3d8bdea0f7fa733306b4bba0eb5f7b27310746d65f6e88",
+      "paginas": 1,
+      "papel": "A4",
+      "orient": "retrato",
+      "preenche": "docs",
+      "campos": [
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       },
+       {
+        "chave": "lab.nome",
+        "rotulo": "Lab",
+        "tipo": "texto"
+       }
+      ]
+     },
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z"
+    }
+   ],
+   [
+    "arquivo de reserva grande demais",
+    {
+     "v": 1,
+     "id": "dmhx3k2a03k7p2",
+     "tipo": "externo",
+     "nome": "Ficha de solicitação - Laboratório B",
+     "codigo": "FIC-02",
+     "pasta": "",
+     "pastaNome": "Fichas e custódias",
+     "orig": {
+      "formato": "xlsx",
+      "bytes": 5000000,
+      "partes": 6,
+      "sha256": "2eb747238d39d239719a1b45c186d1f976eaa8e27770d8441c725c1f7802c232",
+      "nomeArquivo": "ficha.xlsx"
+     },
+     "status": "vigente",
+     "rev": 1,
+     "origem": "efcwork",
+     "cancelado": false,
+     "motivo": "",
+     "lixeiraEm": null,
+     "pub": {
+      "rev": 1,
+      "em": "2026-11-10T13:40:00.000Z",
+      "porId": "uid-joana",
+      "por": "Joana Silva",
+      "formato": "pdf",
+      "bytes": 617,
+      "partes": 1,
+      "sha256": "2eb747238d39d239719a1b45c186d1f976eaa8e27770d8441c725c1f7802c232",
+      "paginas": 1,
+      "papel": "A4",
+      "orient": "retrato",
+      "preenche": "nao",
+      "campos": []
+     },
+     "criadoPorId": "uid-joana",
+     "criadoPor": "Joana Silva",
+     "criadoEm": "2026-11-10T13:05:00.000Z",
+     "alteradoPorId": "uid-joana",
+     "alteradoPor": "Joana Silva",
+     "alteradoEm": "2026-11-10T13:40:00.000Z"
+    }
+   ]
+  ],
+  "copias": [
+   [
+    "n fora da contagem",
+    {
+     "rev": 1,
+     "n": 3,
+     "de": 3,
+     "b64": "AAAA"
+    }
+   ],
+   [
+    "b64 com caractere estranho",
+    {
+     "rev": 1,
+     "n": 0,
+     "de": 1,
+     "b64": "AA AA"
+    }
+   ]
+  ],
+  "impressos": [
+   [
+    "ponto desconhecido",
+    {
+     "v": 1,
+     "ponto": "financeiro.boleto",
+     "nome": "Etiqueta da caixa",
+     "docId": "dmhx3k2a01zz9q",
+     "lab": "",
+     "copias": "porCaixa",
+     "ordem": 1,
+     "ativo": true
+    }
+   ],
+   [
+    "cópias zero",
+    {
+     "v": 1,
+     "ponto": "coletas.envio",
+     "nome": "Etiqueta da caixa",
+     "docId": "dmhx3k2a01zz9q",
+     "lab": "",
+     "copias": 0,
+     "ordem": 1,
+     "ativo": true
+    }
+   ]
+  ],
+  "pedidos": [
+   [
+    "dado fora do dicionário",
+    {
+     "v": 1,
+     "pid": "p8k2m4x9aa01",
+     "docId": "dmhx3k2a01zz9q",
+     "de": "efcwork",
+     "copias": 1,
+     "criadoEm": "2026-11-12T12:00:00.000Z",
+     "dados": {
+      "lab.nome": "Laboratório A",
+      "lab.endereco": "Rua das Acácias, 100",
+      "unidade.nome": "Fazenda Norte",
+      "coleta.os": "2026-0412",
+      "coleta.data": "2026-11-12",
+      "envio.caixas": 2,
+      "pessoa.cpf": "000"
+     },
+     "folhas": [
+      {
+       "envio.caixa": 1
+      },
+      {
+       "envio.caixa": 2
+      }
+     ]
+    }
+   ],
+   [
+    "número como texto",
+    {
+     "v": 1,
+     "pid": "p8k2m4x9aa01",
+     "docId": "dmhx3k2a01zz9q",
+     "de": "efcwork",
+     "copias": 1,
+     "criadoEm": "2026-11-12T12:00:00.000Z",
+     "dados": {
+      "lab.nome": "Laboratório A",
+      "lab.endereco": "Rua das Acácias, 100",
+      "unidade.nome": "Fazenda Norte",
+      "coleta.os": "2026-0412",
+      "coleta.data": "2026-11-12",
+      "envio.caixas": "2"
+     },
+     "folhas": [
+      {
+       "envio.caixa": 1
+      },
+      {
+       "envio.caixa": 2
+      }
+     ]
+    }
+   ],
+   [
+    "folha com dado fora do dicionário",
+    {
+     "v": 1,
+     "pid": "p8k2m4x9aa01",
+     "docId": "dmhx3k2a01zz9q",
+     "de": "efcwork",
+     "copias": 1,
+     "criadoEm": "2026-11-12T12:00:00.000Z",
+     "dados": {
+      "lab.nome": "Laboratório A",
+      "lab.endereco": "Rua das Acácias, 100",
+      "unidade.nome": "Fazenda Norte",
+      "coleta.os": "2026-0412",
+      "coleta.data": "2026-11-12",
+      "envio.caixas": 2
+     },
+     "folhas": [
+      {
+       "envio.caixa": 1
+      },
+      {
+       "envio.caixa": 2,
+       "caixa.peso": 3
+      }
+     ]
+    }
+   ],
+   [
+    "coluna desconhecida na lista",
+    {
+     "v": 1,
+     "pid": "p8k2m4x9aa02",
+     "docId": "dmhx3k2a02ab1c",
+     "de": "efcwork",
+     "copias": 1,
+     "criadoEm": "2026-11-12T12:00:05.000Z",
+     "dados": {
+      "lab.nome": "Laboratório A",
+      "coleta.coletor": "Marcos Lima",
+      "amostras[]": [
+       {
+        "n": 1,
+        "identificacao": "T01-A",
+        "data": "2026-11-12",
+        "analise": "Resíduos",
+        "telefone": "x"
+       },
+       {
+        "n": 2,
+        "identificacao": "T02-A",
+        "data": "2026-11-12",
+        "analise": "Resíduos"
+       }
+      ]
+     }
+    }
+   ]
+  ],
+  "treinos": [
+   [
+    "realizado sem participantes",
+    {
+     "v": 1,
+     "titulo": "Higienização das mãos",
+     "data": "2026-11-06",
+     "horas": 0.5,
+     "local": "Packing",
+     "situacao": "realizado",
+     "origem": "efcwork",
+     "instrutorId": "uid-marcos",
+     "instrutorNome": "Marcos Lima",
+     "quiz": null,
+     "participantes": [],
+     "resumo": {
+      "pessoas": 1,
+      "eficazes": 0,
+      "reforco": 0
+     },
+     "docs": [],
+     "ref": {
+      "tipo": "apontamento",
+      "id": "ap123"
+     },
+     "criadoPorId": "uid-marcos",
+     "criadoPorNome": "Marcos Lima",
+     "criadoEm": "2026-11-06T14:00:00.000Z"
+    }
+   ],
+   [
+    "do Sabiá sem sessão",
+    {
+     "v": 1,
+     "titulo": "Coleta de água para análise (POP-07)",
+     "data": "2026-11-10",
+     "hora": "08:00",
+     "horas": 1,
+     "local": "Refeitório",
+     "situacao": "realizado",
+     "origem": "sabia",
+     "instrutorId": "uid-joana",
+     "instrutorNome": "Joana Silva",
+     "quiz": null,
+     "participantes": [
+      {
+       "nome": "Ana Souza",
+       "setor": "Packing",
+       "presente": true,
+       "ac": 9,
+       "nq": 10,
+       "pct": 90,
+       "eficaz": true
+      },
+      {
+       "nome": "Pedro Alves",
+       "setor": "Campo",
+       "presente": true,
+       "ac": 6,
+       "nq": 10,
+       "pct": 60,
+       "eficaz": false
+      }
+     ],
+     "resumo": {
+      "pessoas": 2,
+      "eficazes": 1,
+      "reforco": 1
+     },
+     "docs": [
+      {
+       "docId": "dmhx3k2a04r0t8",
+       "papel": "pop"
+      }
+     ],
+     "ref": null,
+     "criadoPorId": "uid-joana",
+     "criadoPorNome": "Joana Silva",
+     "criadoEm": "2026-11-10T12:10:00.000Z"
+    }
+   ],
+   [
+    "cancelado sem motivo",
+    {
+     "v": 1,
+     "titulo": "Boas práticas no packing",
+     "data": "2026-11-18",
+     "situacao": "cancelado",
+     "origem": "efcwork",
+     "instrutorId": "uid-marcos",
+     "instrutorNome": "Marcos Lima",
+     "quiz": null,
+     "participantes": [],
+     "docs": [],
+     "criadoPorId": "uid-joana",
+     "criadoPorNome": "Joana Silva",
+     "criadoEm": "2026-11-11T10:00:00.000Z"
+    }
+   ],
+   [
+    "sessão de teste",
+    {
+     "v": 1,
+     "titulo": "Coleta de água para análise (POP-07)",
+     "data": "2026-11-10",
+     "hora": "08:00",
+     "horas": 1,
+     "local": "Refeitório",
+     "situacao": "realizado",
+     "origem": "sabia",
+     "instrutorId": "uid-joana",
+     "instrutorNome": "Joana Silva",
+     "quiz": {
+      "app": "sabia",
+      "sessaoId": "s1a2b3c4",
+      "treinoId": "t9z8",
+      "versao": 3,
+      "cod": "SAB-4F2A-91C0-0B7E-55AA-D012",
+      "meta": 70,
+      "pct": 86,
+      "metaOk": true
+     },
+     "participantes": [
+      {
+       "nome": "Ana Souza",
+       "setor": "Packing",
+       "presente": true,
+       "ac": 9,
+       "nq": 10,
+       "pct": 90,
+       "eficaz": true
+      },
+      {
+       "nome": "Pedro Alves",
+       "setor": "Campo",
+       "presente": true,
+       "ac": 6,
+       "nq": 10,
+       "pct": 60,
+       "eficaz": false
+      }
+     ],
+     "resumo": {
+      "pessoas": 2,
+      "eficazes": 1,
+      "reforco": 1
+     },
+     "docs": [
+      {
+       "docId": "dmhx3k2a04r0t8",
+       "papel": "pop"
+      }
+     ],
+     "ref": null,
+     "criadoPorId": "uid-joana",
+     "criadoPorNome": "Joana Silva",
+     "criadoEm": "2026-11-10T12:10:00.000Z",
+     "teste": true
+    }
+   ],
+   [
+    "código de conferência torto",
+    {
+     "v": 1,
+     "titulo": "Coleta de água para análise (POP-07)",
+     "data": "2026-11-10",
+     "hora": "08:00",
+     "horas": 1,
+     "local": "Refeitório",
+     "situacao": "realizado",
+     "origem": "sabia",
+     "instrutorId": "uid-joana",
+     "instrutorNome": "Joana Silva",
+     "quiz": {
+      "app": "sabia",
+      "sessaoId": "s1a2b3c4",
+      "treinoId": "t9z8",
+      "versao": 3,
+      "cod": "SAB-123",
+      "meta": 70,
+      "pct": 86,
+      "metaOk": true
+     },
+     "participantes": [
+      {
+       "nome": "Ana Souza",
+       "setor": "Packing",
+       "presente": true,
+       "ac": 9,
+       "nq": 10,
+       "pct": 90,
+       "eficaz": true
+      },
+      {
+       "nome": "Pedro Alves",
+       "setor": "Campo",
+       "presente": true,
+       "ac": 6,
+       "nq": 10,
+       "pct": 60,
+       "eficaz": false
+      }
+     ],
+     "resumo": {
+      "pessoas": 2,
+      "eficazes": 1,
+      "reforco": 1
+     },
+     "docs": [
+      {
+       "docId": "dmhx3k2a04r0t8",
+       "papel": "pop"
+      }
+     ],
+     "ref": null,
+     "criadoPorId": "uid-joana",
+     "criadoPorNome": "Joana Silva",
+     "criadoEm": "2026-11-10T12:10:00.000Z"
+    }
+   ]
+  ]
+ }
+}

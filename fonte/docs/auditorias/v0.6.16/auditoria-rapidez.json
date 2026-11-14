@@ -1,0 +1,107 @@
+{
+ "metas": {
+  "comum": 100,
+  "pesada": 1000,
+  "lento": 3
+ },
+ "base": "/home/claude/EFCdocs-repo/fonte/docs/auditorias/base-v0.6.12",
+ "piorou": 0,
+ "medidas": [
+  {
+   "acao": "Digitar um número e Enter",
+   "freio": 1,
+   "ms": 50,
+   "vezes": [
+    50,
+    50,
+    50,
+    50,
+    51
+   ],
+   "meta": 100,
+   "fora": false,
+   "antes": 83,
+   "base": "melhorou: 83 → 50 ms"
+  },
+  {
+   "acao": "Mover a seleção",
+   "freio": 1,
+   "ms": 34,
+   "vezes": [
+    34,
+    34,
+    34,
+    34,
+    34
+   ],
+   "meta": 100,
+   "fora": false,
+   "antes": 34,
+   "base": "igual (34 ms antes)"
+  },
+  {
+   "acao": "Desfazer",
+   "freio": 1,
+   "ms": 34,
+   "vezes": [
+    37,
+    49,
+    34,
+    33,
+    33
+   ],
+   "meta": 100,
+   "fora": false,
+   "antes": 34,
+   "base": "igual (34 ms antes)"
+  },
+  {
+   "acao": "Digitar um número e Enter",
+   "freio": 4,
+   "ms": 152,
+   "vezes": [
+    184,
+    150,
+    151,
+    152,
+    152
+   ],
+   "meta": 300,
+   "fora": false,
+   "antes": 263,
+   "base": "melhorou: 263 → 152 ms"
+  },
+  {
+   "acao": "Mover a seleção",
+   "freio": 4,
+   "ms": 78,
+   "vezes": [
+    62,
+    76,
+    78,
+    79,
+    82
+   ],
+   "meta": 300,
+   "fora": false,
+   "antes": 82,
+   "base": "igual (82 ms antes)"
+  },
+  {
+   "acao": "Desfazer",
+   "freio": 4,
+   "ms": 86,
+   "vezes": [
+    86,
+    84,
+    86,
+    79,
+    102
+   ],
+   "meta": 300,
+   "fora": false,
+   "antes": 117,
+   "base": "melhorou: 117 → 86 ms"
+  }
+ ]
+}

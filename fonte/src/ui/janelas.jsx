@@ -155,6 +155,7 @@ export function Painel({ aberto, cx, fechar, extra }) {
         <dl>
           <dt>Nome</dt><dd>{f.nome}</dd>
           <dt>Tipo</dt><dd>{TIPOS[f.tipo].nome}</dd>
+          {f.pastaNome && <><dt>Documento interno</dt><dd data-painel-interno>{f.pastaNome}{f.codigo ? ' · ' + f.codigo : ''}</dd></>}
           <dt>Situação</dt><dd><span className={'selo ' + cls}>{txt}</span></dd>
           <dt>Versão do arquivo</dt><dd>{String(f.rev).padStart(2, '0')}</dd>
           <dt>Criado</dt><dd>{cx.dataHora(f.criadoEm)}</dd>
@@ -165,7 +166,7 @@ export function Painel({ aberto, cx, fechar, extra }) {
       <div className="side-s">
         <h4>Ações</h4>
         <div className="chips">
-          {['arquivo.renomear', 'arquivo.lixeira', 'arquivo.exportarPDF', f.tipo === 'postits' ? 'arquivo.exportarImagem' : null, 'arquivo.lancar'].filter(Boolean).map((id) => {
+          {['arquivo.renomear', 'arquivo.lixeira', 'arquivo.exportarPDF', f.tipo === 'postits' ? 'arquivo.exportarImagem' : null, 'arquivo.interno', 'arquivo.compartilharCwork', 'arquivo.lancar'].filter(Boolean).map((id) => {
             const c = PorId[id];
             const chega = chegaNa(c, f.tipo);
             const bloq = cx.bloqueado(id);

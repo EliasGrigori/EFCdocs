@@ -142,6 +142,8 @@ export const DESCRICAO = {
   'arquivo.renomear': 'Muda o nome do arquivo.',
   'arquivo.lixeira': 'Manda o arquivo para a lixeira. Dá para restaurar.',
   'arquivo.exportarPDF': 'Gera um PDF para imprimir ou mandar.',
+  'arquivo.interno': 'Põe este arquivo em Documentos internos, numa sub-aba (Etiquetas, Fichas e custódias, Formulários...), com um código.',
+  'arquivo.compartilharCwork': 'Manda o PDF (e a planilha original, se couber) para o EFCwork deste aparelho. Mandar de novo depois de editar sobe a versão.',
   'arquivo.exportarImagem': 'Salva o quadro como imagem PNG.',
   'arquivo.exportarExcel': 'Baixa esta planilha como arquivo do Excel (.xlsx), com fórmulas, cores e abas. O Excel recalcula ao abrir.',
   'arquivo.baixarOriginal': 'Baixa o arquivo do Excel exatamente como veio, sem as mudanças feitas aqui (com macros, imagens e tudo que o Vértice Docs não traz).',

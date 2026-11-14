@@ -27,9 +27,11 @@ import { normalizarPlanilha } from './planilha/modelo.js';
 import { StatusPlanilha } from './planilha/partes.jsx';
 import { LinhaDoTempo } from './ui/historico.jsx';
 import { JanelaAbrirExcel } from './ui/excel.jsx';
+import { usarPonte } from './ponte/usarPonte.js';
+import { DocsInternos, JanelaInterno, ResumoEnvio } from './ui/internos.jsx';
 
 const AUTOR = 'neste aparelho';
-const TITULOS = { '': 'Início', planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros', lixeira: 'Lixeira', pastas: 'Pastas', externos: 'Documentos externos' };
+const TITULOS = { '': 'Início', planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros', lixeira: 'Lixeira', pastas: 'Pastas', externos: 'Documentos externos', internos: 'Documentos internos' };
 const NOVO_POR_CMD = { 'arquivo.novaPlanilha': 'planilha', 'arquivo.novoDocumento': 'docx', 'arquivo.novoQuadro': 'postits' };
 const DO_MODULO = { planilha: 'da planilha', docx: 'do documento', postits: 'do quadro' };
 
@@ -448,6 +450,19 @@ export function App() {
     recarregar();
   }, [banco, aplicarDiff, recarregar]);
 
+  /* v0.6.16 (Ponte 1): sub-aba e código do documento interno (com o arquivo aberto, entra no desfazer como o Renomear) */
+  const mudarFichaArquivo = useCallback(async (f, mud) => {
+    const atual = abertoRef.current;
+    if (atual && atual.arquivo.ficha.id === f.id) { aplicarDiff(criarDiff(atual.arquivo, { 'ficha.pastaNome': mud.pastaNome || undefined, 'ficha.codigo': mud.codigo || undefined }, 'Documento interno'), 'documento interno'); return; }
+    await banco.mudarFicha(f.id, { pastaNome: mud.pastaNome || undefined, codigo: mud.codigo || undefined, alteradoEm: new Date().toISOString(), alteradoPor: AUTOR }, 'documento interno');
+    recarregar();
+  }, [banco, aplicarDiff, recarregar]);
+  const ponte = usarPonte({ banco, fichas, recarregar, avisar, aberto, autor: AUTOR, mudarFichaArquivo });
+  const ponteRef = useRef(ponte); ponteRef.current = ponte;
+  const pidRota = rota.startsWith('abrir/') ? rota.slice(6) : null;
+  useEffect(() => { if (pidRota) ponteRef.current.abrirDaCaixa(pidRota); }, [pidRota]);
+  useEffect(() => { if (rota === 'internos') ponteRef.current.atualizarEstado(); }, [rota]);
+
   const perguntarNome = useCallback((f) => setPergunta({
     titulo: 'Renomear', campo: 'Nome do arquivo', valor: f.nome, confirmar: 'Salvar nome', validar: validarNome,
     aoConfirmar: (nome) => { if (nome !== f.nome) renomearArquivo(f, nome); },
@@ -515,6 +530,7 @@ export function App() {
       case 'arquivo.abrir': setAbrirExcel(true); return;
       case 'arquivo.renomear': if (atual) perguntarNome(atual.arquivo.ficha); return;
       case 'arquivo.lixeira': if (atual) mandarLixeira(atual.arquivo.ficha); return;
+      case 'arquivo.interno': if (atual) ponteRef.current.setJanela({ ficha: atual.arquivo.ficha }); return;
       case 'editar.desfazer': desfazerOuRefazer(false); return;
       case 'editar.refazer': desfazerOuRefazer(true); return;
       case 'editar.historico': case 'arquivo.versoes': setLinhaTempo(true); return;
@@ -542,6 +558,8 @@ export function App() {
         return;
       }
       default: {
+        /* v0.6.16: imprimir com o resumo do envio na tela tira o resumo da caixa (o painel fica até fechar) */
+        if ((id === 'arquivo.imprimir' || id === 'arquivo.exportarPDF') && ponteRef.current.resumo) ponteRef.current.resumoUsado();
         const ed = editorRef.current;
         if (ed && ed.trata && ed.trata(id)) return;
         avisar(`"${cmd.nome}" ainda não faz nada aqui.`, { ic: 'info' });
@@ -594,12 +612,14 @@ export function App() {
     pode: (acao) => !semPermissao(acao), travado, buscarNoEditor: (q) => { const ed = editorRef.current; return ed && ed.buscar ? ed.buscar(q) : []; },
     registrarEditor: (ed) => { editorRef.current = ed; }, setStatus: setStatusEd, setContexto, contexto: contextoEd,
     alvoPainel, alvoRodape, abrirPainel: () => setPref('painel', true), painelAberto: prefs.painel, cel,
+    compartilharCwork: (gerar) => { const a = abertoRef.current; if (a) ponte.compartilhar(a.arquivo.ficha, gerar); },
   };
 
   const contagem = useMemo(() => {
     const a = ativos(fichas);
     const c = { lixeira: fichas.length - a.length };
     for (const t of Object.keys(TIPOS)) c[t] = a.filter((f) => f.tipo === t).length;
+    c.internos = a.filter((f) => f.pastaNome).length;
     return c;
   }, [fichas]);
 
@@ -611,7 +631,8 @@ export function App() {
       : t === 'planilha'
         ? <Planilha key={aberto.arquivo.ficha.id} arquivo={aberto.arquivo} cx={cx} />
         : <EditorEmBreve tipo={t} />;
-  } else if (idRota) conteudo = <div className="pagina" aria-busy="true" />;
+  } else if (idRota || pidRota) conteudo = <div className="pagina" aria-busy="true" />;
+  else if (rota === 'internos') conteudo = <DocsInternos fichas={fichas} estado={ponte.estado} cx={cx} acrescentar={() => ponte.setJanela({})} editar={(f) => ponte.setJanela({ ficha: f })} />;
   else if (TIPOS[rota]) conteudo = <ListaDoTipo tipo={rota} fichas={fichas} cx={cx} demo={demo} />;
   else if (rota === 'lixeira') conteudo = <Lixeira fichas={fichas} cx={cx} />;
   else if (rota === 'pastas' || rota === 'externos') conteudo = <EmBreve qual={rota} />;
@@ -654,6 +675,7 @@ export function App() {
             <Painel aberto={aberto} cx={cx} fechar={() => setPref('painel', false)}
               extra={ficha.tipo === 'postits' || ficha.tipo === 'planilha' ? <div className="painel-extra" ref={setAlvoPainel} /> : null} />
           )}
+          {aberto && ponte.resumo && ponte.resumo.docId === ficha.id && <ResumoEnvio resumo={ponte.resumo} conteudo={aberto.arquivo.conteudo} avisar={avisar} aoFechar={ponte.fecharResumo} />}
         </div>
         {cel && !aberto ? (
           <BarraCelular rota={rota} cont={contagem} abrirGaveta={() => setGaveta(true)} />
@@ -699,6 +721,7 @@ export function App() {
       {paleta && <Paleta mod={mod} cx={cx} aoFechar={() => setPaleta(false)} />}
       {opcoes && <Opcoes prefs={prefs} setPref={setPref} cx={cx} aoFechar={() => setOpcoes(false)} demo={demo} versao={VERSAO} espaco={espaco} abrir={opcoes} />}
       {pergunta && <Pergunta p={pergunta} aoFechar={() => setPergunta(null)} />}
+      {ponte.janela && <JanelaInterno ficha={ponte.janela.ficha} fichas={fichas} depois={!!ponte.janela.depois} aoSalvar={ponte.salvarInterno} aoFechar={() => ponte.setJanela(null)} />}
       {abrirExcel && <JanelaAbrirExcel aoFechar={() => setAbrirExcel(false)} aoAbrir={(conteudo, nome, original) => { setAbrirExcel(false); criarCom('planilha', nome, conteudo, '"{nome}" veio do Excel. O que veio e o que ficou de fora: Arquivo › O que veio do Excel.', original); }} />}
       {linhaTempo && aberto && <LinhaDoTempo h={aberto.h} aoIr={irParaPasso} aoFechar={() => setLinhaTempo(false)} />}
       <Avisos lista={avisos} tirar={tirarAviso} menu={cel ? 'cel' : prefs.menu} />

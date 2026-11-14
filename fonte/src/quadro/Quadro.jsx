@@ -8,7 +8,7 @@ import { Icone, Janela } from '../ui/comum.jsx';
 import * as Q from './modelo.js';
 import { itemNoPonto, itensNoRet, normalizarRet, enquadrar, ancora, limites } from './geometria.js';
 import { limitesDoQuadro } from './desenho.js';
-import { exportarPdf, exportarPng, imprimir, quadroVazio } from './exportar.js';
+import { exportarPdf, exportarPng, imprimir, quadroVazio, pdfDoQuadro } from './exportar.js';
 import { ItemView, CamadaSetas, PontosLigacao, Alca, BarraSelecao, Minimapa, Temporizador, JanelaCores, JanelaFormas, JanelaLocalizar, JanelaModelos, Ferramentas, CoresCelular, Assistente, PainelTarefa, PainelLegenda, PortalPainel } from './partes.jsx';
 import { KanbanVista } from './Kanban.jsx';
 import { derivar, mudancasLegenda, alturaLegenda } from './legenda.js';
@@ -349,6 +349,7 @@ export function Quadro({ arquivo, cx }) {
       if (como === 'pdf') { cx.avisar('Gerando o PDF paisagem…', { ic: 'pdf' }); await exportarPdf(c, ficha.nome, opcoes); cx.avisar(`PDF pronto: ${ficha.nome}.pdf`, { ic: 'pdf' }); }
       if (como === 'png') { await exportarPng(c, ficha.nome, opcoes); cx.avisar(`Imagem pronta: ${ficha.nome}.png`, { ic: 'imagem' }); }
       if (como === 'imprimir') await imprimir(c, ficha.nome, opcoes);
+      if (como === 'cwork') cx.compartilharCwork(async () => { const q = await pdfDoQuadro(c, ficha.nome, opcoes); return { pdf: q.bytes, paginas: q.paginas, papel: 'A4', orient: 'paisagem' }; }); /* v0.6.16 (Ponte 1) */
     } catch {
       cx.avisar('Não deu para gerar o arquivo. Tente de novo.', { ic: 'aviso' });
     }
@@ -473,9 +474,8 @@ export function Quadro({ arquivo, cx }) {
         trocarQp('ortografia');
         cx.avisar(qp.ortografia ? 'Correção ortográfica desligada.' : 'Correção ortográfica ligada: o corretor do aparelho sublinha as palavras ao escrever.', { ic: 'ortografia' });
         return true;
-      case 'arquivo.exportarPDF': exportar('pdf'); return true;
-      case 'arquivo.exportarImagem': exportar('png'); return true;
-      case 'arquivo.imprimir': exportar('imprimir'); return true;
+      case 'arquivo.exportarPDF': case 'arquivo.compartilharCwork': case 'arquivo.exportarImagem': case 'arquivo.imprimir': /* v0.6.16: compartilhar = Ponte 1 */
+        exportar({ 'arquivo.exportarPDF': 'pdf', 'arquivo.compartilharCwork': 'cwork', 'arquivo.exportarImagem': 'png', 'arquivo.imprimir': 'imprimir' }[id]); return true;
       default: return false;
     }
   };

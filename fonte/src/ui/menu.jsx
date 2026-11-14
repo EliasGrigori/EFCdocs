@@ -8,7 +8,7 @@ const PRINCIPAIS = [['', 'casa', 'Início'], ['planilha', 'planilha', 'Planilhas
 /* v0.4.9 (L04): como o Drive: Início, "Meus arquivos", Organizar e a Lixeira embaixo. [rota, ícone, nome, versão em que chega] */
 const INICIO = PRINCIPAIS[0];
 const MEUS = PRINCIPAIS.slice(1);
-const ORGANIZAR = [['pastas', 'pasta', 'Pastas', 'v0.8.0'], ['externos', 'externo', 'Documentos externos', 'v0.8.0']];
+const ORGANIZAR = [['internos', 'arquivar', 'Documentos internos'], ['pastas', 'pasta', 'Pastas', 'v0.8.0'], ['externos', 'externo', 'Documentos externos', 'v0.8.0']];
 const LIXEIRA = ['lixeira', 'lixeira', 'Lixeira'];
 const NOVOS = [['arquivo.novaPlanilha', 'planilha', 'Planilha', 'planilha'], ['arquivo.novoDocumento', 'docx', 'Documento', 'docx'], ['arquivo.novoQuadro', 'postits', 'Quadro', 'postits']];
 

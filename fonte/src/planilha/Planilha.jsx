@@ -43,11 +43,12 @@ import { lerFaixaDoLivro } from './xlsx/graficosXlsx.js';
 import { svgDoGrafico } from './desenhoGrafico.js';
 import { paginar, normalizarImp, impParaGuardar, sugestaoPainel } from './impressao.js';
 import { desenharPaginas, svgDaPagina } from './paginaDesenho.js';
-import { pdfDasPaginas, svgParaImagemPdf } from './impressaoPdf.js';
+import { pdfDasPaginas, imagensDasPaginas, baixarBytes } from './impressaoPdf.js';
 import { JanelaImprimir } from './imprimirUi.jsx';
 import { JanelaAssinatura, AssinaturaView } from '../ui/assinatura.jsx';
 import { RelatorioExcel } from '../ui/excel.jsx';
 import { baixarXlsx } from './xlsx/abrir.js';
+import { gravarXlsx } from './xlsx/gravar.js';
 import { validacaoEm, listaDaCelula, opcoesLista, valorValido, mensagemDeErro, comentarioEm, textoDoComentario, listaComentarios, tirarDeFaixas, regraToca, textoFaixas } from './regras.js';
 import { JanelaValidacao, JanelaCondicional, JanelaComentario, JanelaComentarios, ListaSuspensa, Balao } from './regrasUi.jsx';
 import { ASN } from '../nucleo/assinatura.js';
@@ -993,14 +994,8 @@ export function Planilha({ arquivo, cx }) {
   const baixarPdfPainel = async (paraImprimir = false) => {
     if (!pecas.length) { cx.avisar('O painel está vazio: ponha peças antes de fazer o PDF.', { ic: 'aviso' }); return; }
     const pg = paginaDoPainel();
-    const imagens = new Map();
-    for (const o of pg.ops) if (o.k === 'img' && !imagens.has(o.svg)) { try { imagens.set(o.svg, await svgParaImagemPdf(o.svg, o.w, o.h)); } catch { imagens.set(o.svg, null); } }
-    const bytes = pdfDasPaginas([pg], { titulo: `${ficha.nome || 'Planilha'} · ${aba.nome}`, imagens });
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = `${nomeArquivoSaida()} - ${aba.nome.replace(/[\\/:*?"<>|]/g, '_')}.pdf`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    const bytes = pdfDasPaginas([pg], { titulo: `${ficha.nome || 'Planilha'} · ${aba.nome}`, imagens: await imagensDasPaginas([pg]) });
+    baixarBytes(bytes, `${nomeArquivoSaida()} - ${aba.nome.replace(/[\\/:*?"<>|]/g, '_')}.pdf`);
     if (paraImprimir) cx.avisar('O PDF do painel foi baixado: abra e imprima (uma página, deitada).', { ic: 'pdf' });
     else cx.avisar('PDF do painel pronto (uma página).', { ic: 'pdf' });
   };
@@ -1072,17 +1067,12 @@ export function Planilha({ arquivo, cx }) {
     return { paginas: todas, esc, aviso };
   };
   const nomeArquivoSaida = () => String(ficha.nome || 'planilha').replace(/[\\/:*?"<>|]/g, '_');
+  /* v0.6.16: o PDF em bytes serve para baixar e para o Cwork (Compartilhar) */
+  const pdfDe = async (imp, alvo) => { const r = gerarImpressao(imp, alvo); return { r, bytes: r.paginas.length ? pdfDasPaginas(r.paginas, { titulo: ficha.nome || 'Planilha', imagens: await imagensDasPaginas(r.paginas) }) : null }; };
   const baixarPdf = async (imp, alvo) => {
-    const r = gerarImpressao(imp, alvo);
-    if (!r.paginas.length) { cx.avisar(r.aviso || 'Nada para o PDF.', { ic: 'aviso' }); return; }
-    const imagens = new Map();
-    for (const p of r.paginas) for (const o of p.ops) if (o.k === 'img' && !imagens.has(o.svg)) { try { imagens.set(o.svg, await svgParaImagemPdf(o.svg, o.w, o.h)); } catch { imagens.set(o.svg, null); } }
-    const bytes = pdfDasPaginas(r.paginas, { titulo: ficha.nome || 'Planilha', imagens });
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = nomeArquivoSaida() + '.pdf';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    const { r, bytes } = await pdfDe(imp, alvo);
+    if (!bytes) { cx.avisar(r.aviso || 'Nada para o PDF.', { ic: 'aviso' }); return; }
+    baixarBytes(bytes, nomeArquivoSaida() + '.pdf');
     cx.avisar(`PDF pronto: ${r.paginas.length} página${r.paginas.length === 1 ? '' : 's'}.`, { ic: 'pdf' });
   };
   const imprimirPaginas = async (imp, alvo) => {
@@ -2426,6 +2416,10 @@ export function Planilha({ arquivo, cx }) {
       case 'editar.comentar': return ed(() => setJanela({ tipo: 'comentario', l: sel.ativa.l, c: sel.ativa.c }));
       case 'revisao.comentarios': setJanela({ tipo: 'comentarios' }); return true;
       case 'arquivo.exportarExcel': salvarExcel(); return true;
+      case 'arquivo.compartilharCwork': cx.compartilharCwork(async () => { /* v0.6.16 (Ponte 1): PDF de todas as abas e a planilha original (com o que veio do Excel) */
+        const imp = normalizarImp(aba.imp), { r, bytes } = await pdfDe(imp, 'todas'); if (!bytes) throw new Error(r.aviso || 'Não há nada para o PDF.');
+        const o = c.importado ? await lerOriginal(ficha.id) : null, x = await gravarXlsx(c, motor, { titulo: ficha.nome, original: o && o.blob ? new Uint8Array(await o.blob.arrayBuffer()) : null });
+        return { pdf: bytes, paginas: r.paginas.length, papel: imp.papel, orient: imp.orient, original: { bytes: x.bytes, nome: ficha.nome + (x.macros ? '.xlsm' : '.xlsx') } }; }); return true;
       case 'arquivo.baixarOriginal': (async () => {
         const o = await lerOriginal(ficha.id);
         if (!o || !o.blob) { cx.avisar(c.importado ? 'O arquivo original não está neste aparelho: só ficam guardados os arquivos abertos do Excel a partir da v0.6.0, no aparelho onde foram abertos.' : 'Esta planilha não veio de um arquivo do Excel: use Salvar como Excel.', { ic: 'info', longo: true }); return; }
@@ -3323,7 +3317,9 @@ export function Planilha({ arquivo, cx }) {
           const { l: al, c: ac } = sel.ativa;
           const mA = mesclaEm(mesc, al, ac);
           const x0 = G.xDe(mA ? mA.c1 : ac), x1 = (mA ? G.xFim(mA.c2) : G.xFim(ac)), y0 = G.yDe(mA ? mA.l1 : al), y1 = (mA ? G.yFim(mA.l2) : G.yFim(al));
-          const visivel = x1 > G.hw + 24 && x0 < tam.W && y1 > G.hh && y0 < tam.H;
+          /* D-59 (v0.6.16): célula fora do congelado que rolou para baixo dele não mostra seta, balão nem link por cima do painel congelado */
+          const topoLivre = (mA ? mA.l1 : al) >= G.cl ? G.hh + G.fy : G.hh, ladoLivre = (mA ? mA.c2 : ac) >= G.cc ? G.hw + G.fx : G.hw;
+          const visivel = x1 > ladoLivre + 24 && x0 < tam.W && y1 > topoLivre + 10 && y0 < tam.H;
           const reg = visivel ? validacaoEm(aba, al, ac) : null;
           const temSeta = visivel && !somenteLeitura && listaDaCelula(aba, al, ac);
           const maxX = tam.W - 8;
@@ -3344,7 +3340,7 @@ export function Planilha({ arquivo, cx }) {
             <>
               {temSeta && (
                 <button type="button" className="pl-seta-lista" data-lista-seta aria-label="Abrir a lista da célula" title="Abrir a lista (Alt+↓)" tabIndex={-1}
-                  style={{ left: Math.min(x1, tam.W) - 19, top: y0 + 1, height: Math.max(14, y1 - y0 - 2) }}
+                  style={{ left: Math.min(x1, tam.W) - 19, top: Math.max(y0, topoLivre) + 1, height: Math.max(10, y1 - Math.max(y0, topoLivre) - 2) }}
                   onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); if (lista) setLista(null); else abrirLista(); }}><Icone n="chevronBaixo" /></button>
               )}
               {(() => {

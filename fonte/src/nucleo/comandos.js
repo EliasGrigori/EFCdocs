@@ -31,6 +31,9 @@ export const COMANDOS = [
   C('arquivo.imprimir', 'Imprimir', 'imprimir', { sin: ['impressora'], chega: porModulo(V6, V7, null), acao: 'exportar' }),
   /* v0.6.8 (Grok): na planilha já abre a linha do tempo (o que foi feito, para voltar a um passo); versões salvas chegam na v0.7.0 */
   C('arquivo.versoes', 'Versões e revisões', 'historico', { sin: ['histórico', 'revisão antiga', 'versão anterior', 'linha do tempo'], chega: porModulo(null, V7, null), mods: ['docx', 'planilha'] }),
+  /* v0.6.16 (Ponte 1): documentos internos e compartilhar com o EFCwork pela caixa de troca do aparelho */
+  C('arquivo.interno', 'Documento interno', 'pasta', { sin: ['sub-aba', 'código do documento', 'etiqueta', 'ficha', 'formulário', 'fluxograma', 'pop'], mods: ['planilha', 'postits', 'docx'], acao: 'arquivo.renomear', ed: true }),
+  C('arquivo.compartilharCwork', 'Compartilhar com o Cwork', 'externo', { sin: ['cwork', 'efcwork', 'mandar para o cwork', 'impressos', 'enviar'], mods: ['planilha', 'postits', 'docx'], chega: porModulo(null, V7, null), acao: 'exportar', ed: true }),
   C('arquivo.lancar', 'Lançar na pasta', 'pasta', { sin: ['lançamento', 'registrar', 'enviar para pasta'], chega: V8, acao: 'lancar' }),
   C('arquivo.cancelar', 'Cancelar com motivo', 'arquivar', { sin: ['cancelar lançamento', 'anular'], chega: V8, acao: 'lancamento.cancelar' }),
 
