@@ -28,12 +28,11 @@ import * as O from './operacoes.js';
 import * as D from './dados.js';
 import { JanelaClassificar, JanelaDuplicados, JanelaTravar, MenuFiltro } from './dadosUi.jsx';
 import { objetosDaAba, novaAssinatura, novoGrafico, novaImagem, novoBotao, caberImagem, GR, IMG, BTN, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS, idObjeto } from './objetos.js';
-import { FM, temLink, textoDaForma, svgDaForma } from './formas.js';
+import { FM, temLink, textoDaForma } from './formas.js';
 import { FormaView, JanelaForma, valoresLigados } from './formasUi.jsx';
 import * as I from './inserir.js';
 import { JanelaTabela, JanelaStatus, JanelaLink, JanelaBotao, JanelaImagem } from './inserirUi.jsx';
 import { lerImagem } from './imagem.js';
-import { dadosDaFaixa } from './graficos.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
 import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
 import { ehPainel, painelVazio, novaPeca, arrumar, textoDoNumero, textoDaMeta, NOME_PECA, PAINEL, alturaDoPainel } from './painel.js';
@@ -41,8 +40,8 @@ import { PainelView, JanelaPeca, JanelaGraficoPainel } from './painelUi.jsx';
 import { refsDoPlano, pacoteDoGrafico } from './graficoPlano.js';
 import { lerFaixaDoLivro } from './xlsx/graficosXlsx.js';
 import { svgDoGrafico } from './desenhoGrafico.js';
-import { paginar, normalizarImp, impParaGuardar, sugestaoPainel } from './impressao.js';
-import { desenharPaginas, svgDaPagina } from './paginaDesenho.js';
+import { normalizarImp, impParaGuardar, sugestaoPainel } from './impressao.js';
+import * as IL from './imprimirLivro.js';
 import { pdfDasPaginas, imagensDasPaginas, baixarBytes } from './impressaoPdf.js';
 import { JanelaImprimir } from './imprimirUi.jsx';
 import { JanelaAssinatura, AssinaturaView } from '../ui/assinatura.jsx';
@@ -770,34 +769,9 @@ export function Planilha({ arquivo, cx }) {
   const temaGrafico = (() => { try { const v = getComputedStyle(document.body).getPropertyValue('--surface').trim(); const m = /^#([0-9a-f]{6})$/i.exec(v); if (!m) return TEMA_CLARO; const n = parseInt(m[1], 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 128 ? TEMA_CLARO : TEMA_ESCURO; } catch { return TEMA_CLARO; } })();
   /** Lê a faixa dos dados ("A1:C20" ou "Resumo!A1:C20") e devolve { d, erro, fx, aba }. */
   /* v0.6.5: texto da célula ligada a uma forma (caixa de texto que mostra o valor da célula) */
-  const lerLigadoDe = (idPadrao) => (lg) => {
-    const idA = lg && lg.aba && c.abas[lg.aba] ? lg.aba : idPadrao;
-    const p = lg && lerChave(lg.ref);
-    if (!p) return '';
-    try { return textoCelula(motor, c, idA, p.l, p.c).t; } catch { return ''; }
-  };
+  const lerLigadoDe = (idPadrao) => IL.lerLigadoDe(c, motor, idPadrao);
   const lerLigado = lerLigadoDe(abaId);
-  const lerDadosGrafico = (texto, porLinhas, abaPadrao = abaId, mostrarOcultos = false) => {
-    let t = String(texto || '').trim();
-    let abaD = abaPadrao;
-    const m = /^(?:'([^']+)'|([^!]+))!(.+)$/.exec(t);
-    if (m) {
-      const nome = (m[1] || m[2]).trim();
-      const id = c.ordem.find((x) => c.abas[x].nome.toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR'));
-      if (!id) return { erro: `Não achei a aba "${nome}".`, d: { cats: [], series: [] } };
-      abaD = id; t = m[3].trim();
-    }
-    const f0 = lerEndereco(t.toUpperCase());
-    if (!f0) return { erro: t ? 'Diga as células, por exemplo A1:C20.' : '', d: { cats: [], series: [] } };
-    const f = normalFaixa(f0);
-    if ((f.l2 - f.l1 + 1) > 5000 || (f.c2 - f.c1 + 1) > 60) return { erro: 'Faixa grande demais para um gráfico (até 5.000 linhas e 60 colunas).', d: { cats: [], series: [] } };
-    const AD = c.abas[abaD];
-    /* v0.6.1: como no Excel, linhas e colunas ocultas ficam fora (a não ser que o gráfico peça para mostrar) */
-    const ocultos = !mostrarOcultos && AD && (AD.ocL || AD.ocC) ? { l: AD.ocL || {}, c: AD.ocC || {} } : null;
-    const fmtDe = (l, cc) => { const x = AD && AD.cel[chave(l, cc)]; return x ? estiloDe(c, x).nf || null : null; };
-    const d = dadosDaFaixa(f, (l, cc) => { const v = motor.valor(abaD, l, cc); return v && typeof v === 'object' ? null : v; }, (l, cc) => textoCelula(motor, c, abaD, l, cc).t, porLinhas, fmtDe, ocultos);
-    return { d, fx: textoFaixa(f), aba: abaD, ocultas: d.ocultas || 0 };
-  };
+  const lerDadosGrafico = (texto, porLinhas, abaPadrao = abaId, mostrarOcultos = false) => IL.lerDadosGrafico(c, motor, texto, porLinhas, abaPadrao, mostrarOcultos);
   /** Região em volta da célula ativa (como o Excel faz ao inserir gráfico com uma célula só escolhida). */
   const regiaoAtual = (l0, c0) => {
     /* v0.6.1 (Grok G01): fórmula que dá vazio não conta, senão a região ia até a linha 403 */
@@ -1000,72 +974,8 @@ export function Planilha({ arquivo, cx }) {
     else cx.avisar('PDF do painel pronto (uma página).', { ic: 'pdf' });
   };
   /* ---------- Imprimir e PDF (v0.6.0) ---------- */
-  const fonteImpressao = (idA) => {
-    const A = c.abas[idA];
-    const ec = eixo(A.larg, A.ocC, largPadrao(A), MAX_COL), el = eixo(A.alt, A.ocL, altPadrao(A), MAX_LIN);
-    const ms = mescladas(A);
-    const objetos = objetosDaAba(A).map((o) => {
-      if (o.tipo === 'grafico') {
-        if (o.g.t === 'excel') return { ...o, svg: svgDoGrafico(o.g, null, { w: o.w, h: o.h, tema: TEMA_CLARO, lerFaixa: lerFaixaDoLivro(c, motor, idA, o.g.plano && o.g.plano.soVisiveis === false) }) };
-        const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : idA, !!o.g.op.ocultos);
-        return { ...o, svg: svgDoGrafico(o.g, ld.d, { w: o.w, h: o.h, tema: TEMA_CLARO }) };
-      }
-      /* v0.6.8 (Grok): o texto das formas também vai como texto (invisível, por cima da imagem) para dar para pesquisar no PDF */
-      if (o.tipo === 'forma') {
-        const ll = lerLigadoDe(idA);
-        const texto = (o.partes || []).map((pp) => (pp.texto && pp.texto.ligado ? ll(pp.texto.ligado) || '' : pp.texto && pp.texto.pars ? pp.texto.pars.map((q) => (q.runs || []).map((r) => r.t || '').join('')).join(' ') : '')).filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
-        return { ...o, svg: svgDaForma(o, Math.max(1, o.w), Math.max(1, o.h), { lerLigado: ll, uid: 'imp' + o.id }), ...(texto ? { textoOculto: texto.slice(0, 500) } : {}) };
-      }
-      const nome = String(o.nome || '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-      const lin = Math.round(o.h * 0.72);
-      return { ...o, svg: `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${o.w} ${o.h}" width="${o.w}" height="${o.h}">${o.rub ? `<image href="${o.rub}" xlink:href="${o.rub}" x="6" y="2" width="${o.w - 12}" height="${lin - 4}" preserveAspectRatio="xMidYMax meet"/>` : ''}<line x1="6" y1="${lin}" x2="${o.w - 6}" y2="${lin}" stroke="#222" stroke-width="1"/><text x="${o.w / 2}" y="${lin + 14}" text-anchor="middle" font-size="12" font-family="Helvetica, Arial" fill="#222">${nome}</text></svg>` };
-    });
-    return {
-      tamCol: (k) => ec.tam(k), tamLin: (k) => el.tam(k),
-      celula: (l, k) => { const tc = textoCelula(motor, c, idA, l, k); return { t: tc.t, al: tc.al, e: tc.e, v: tc.v, cor: tc.cor }; },
-      mescla: (l, k) => mesclaEm(ms, l, k),
-      objetos, aba: A.nome, arquivo: ficha.nome || 'Planilha', agora: new Date(),
-    };
-  };
-  /** Área usada: células com valor, fórmula, preenchimento ou borda, mais os objetos. */
-  const areaUsada = (idA) => {
-    const A = c.abas[idA];
-    let l2 = -1, c2 = -1;
-    for (const [k, x] of Object.entries(A.cel || {})) {
-      if (!x) continue;
-      const e = x.s ? (c.estilos[x.s] || {}) : {};
-      if (x.v === undefined && x.f === undefined && !e.fundo && !e.bd) continue;
-      const p = lerChave(k);
-      /* fórmula que dá vazio (a folga copiada até o fim) não estica a impressão */
-      if (p && !e.fundo && !e.bd && (x.v === '' || x.f !== undefined)) { let v; try { v = motor.valor(idA, p.l, p.c); } catch { v = null; } if (v == null || v === '') continue; }
-      if (p) { if (p.l > l2) l2 = p.l; if (p.c > c2) c2 = p.c; }
-    }
-    const ec = eixo(A.larg, A.ocC, largPadrao(A), MAX_COL), el = eixo(A.alt, A.ocL, altPadrao(A), MAX_LIN);
-    for (const o of objetosDaAba(A)) { const cf = ec.em(ec.pos(o.c) + o.dx + o.w - 1), lf = el.em(el.pos(o.l) + o.dy + o.h - 1); if (lf > l2) l2 = lf; if (cf > c2) c2 = cf; }
-    for (const m of mescladas(A)) { if (m.l2 > l2) l2 = m.l2; if (m.c2 > c2) c2 = m.c2; }
-    return l2 < 0 ? null : { l1: 0, c1: 0, l2, c2 };
-  };
-  const gerarImpressao = (imp, alvo) => {
-    const ids = alvo === 'todas' ? c.ordem.filter((x) => !c.abas[x].oculta) : [abaId];
-    let todas = [], esc = 1, aviso = '';
-    for (const idA of ids) {
-      const impA = idA === abaId ? imp : normalizarImp(c.abas[idA].imp);
-      let area = null;
-      if (alvo === 'sel' && idA === abaId) area = normalFaixa(faixa);
-      else if (impA.area) { const f0 = lerEndereco(impA.area); area = f0 ? normalFaixa(f0) : null; if (!f0 && idA === abaId) aviso = `"${impA.area}" não é uma área válida (use, por exemplo, A1:F40).`; }
-      if (!area) area = areaUsada(idA);
-      if (!area) continue;
-      if ((area.l2 - area.l1 + 1) * (area.c2 - area.c1 + 1) > 3000000) { aviso = 'Área grande demais para imprimir de uma vez: escolha uma parte.'; continue; }
-      const fonte = fonteImpressao(idA);
-      const pg = paginar(impA, area, fonte.tamCol, fonte.tamLin, { objetos: fonte.objetos || [] });
-      if (pg.paginas.length > 500) { aviso = `Daria ${pg.paginas.length} páginas: escolha uma área menor ou use "Aba toda numa página" / "Todas as colunas numa página".`; continue; }
-      if (idA === abaId) esc = pg.esc;
-      todas = todas.concat(desenharPaginas(pg, fonte));
-    }
-    if (!todas.length && !aviso) aviso = 'Não há nada para imprimir: a aba está vazia.';
-    /* numera as páginas no conjunto todo */
-    return { paginas: todas, esc, aviso };
-  };
+  /* v0.6.17: as páginas saem de planilha/imprimirLivro.js (sem depender da tela; a Ponte 2 usa o mesmo caminho) */
+  const gerarImpressao = (imp, alvo) => IL.gerarImpressao(c, motor, { imp, alvo, abaId, faixa, nomeArquivo: ficha.nome });
   const nomeArquivoSaida = () => String(ficha.nome || 'planilha').replace(/[\\/:*?"<>|]/g, '_');
   /* v0.6.16: o PDF em bytes serve para baixar e para o Cwork (Compartilhar) */
   const pdfDe = async (imp, alvo) => { const r = gerarImpressao(imp, alvo); return { r, bytes: r.paginas.length ? pdfDasPaginas(r.paginas, { titulo: ficha.nome || 'Planilha', imagens: await imagensDasPaginas(r.paginas) }) : null }; };
@@ -1078,16 +988,7 @@ export function Planilha({ arquivo, cx }) {
   const imprimirPaginas = async (imp, alvo) => {
     const r = gerarImpressao(imp, alvo);
     if (!r.paginas.length) { cx.avisar(r.aviso || 'Nada para imprimir.', { ic: 'aviso' }); return; }
-    const p0 = r.paginas[0];
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${nomeArquivoSaida()}</title><style>@page{size:${p0.W}pt ${p0.H}pt;margin:0}html,body{margin:0;padding:0;background:#fff}.pg{width:${p0.W}pt;height:${p0.H}pt;overflow:hidden;page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto;break-after:auto}.pg svg{display:block;width:100%;height:100%}</style></head><body>${r.paginas.map((p, i) => `<div class="pg">${svgDaPagina(p, { id: 'i' + i + '_' })}</div>`).join('')}</body></html>`;
-    const fr = document.createElement('iframe');
-    fr.setAttribute('aria-hidden', 'true');
-    fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
-    document.body.appendChild(fr);
-    const d = fr.contentDocument;
-    d.open(); d.write(html); d.close();
-    await new Promise((ok) => setTimeout(ok, 250));
-    try { fr.contentWindow.focus(); fr.contentWindow.print(); } finally { setTimeout(() => fr.remove(), 60000); }
+    await IL.imprimirPaginas(r.paginas, nomeArquivoSaida());
   };
   const salvarImp = (imp) => mudar({ [`conteudo.abas.${abaId}.imp`]: impParaGuardar(imp) }, 'Configurar página');
   const mudarImp = (fn, rotulo) => { const atual = normalizarImp(aba.imp); mudar({ [`conteudo.abas.${abaId}.imp`]: impParaGuardar(fn(atual)) }, rotulo); };
@@ -2419,7 +2320,7 @@ export function Planilha({ arquivo, cx }) {
       case 'arquivo.compartilharCwork': cx.compartilharCwork(async () => { /* v0.6.16 (Ponte 1): PDF de todas as abas e a planilha original (com o que veio do Excel) */
         const imp = normalizarImp(aba.imp), { r, bytes } = await pdfDe(imp, 'todas'); if (!bytes) throw new Error(r.aviso || 'Não há nada para o PDF.');
         const o = c.importado ? await lerOriginal(ficha.id) : null, x = await gravarXlsx(c, motor, { titulo: ficha.nome, original: o && o.blob ? new Uint8Array(await o.blob.arrayBuffer()) : null });
-        return { pdf: bytes, paginas: r.paginas.length, papel: imp.papel, orient: imp.orient, original: { bytes: x.bytes, nome: ficha.nome + (x.macros ? '.xlsm' : '.xlsx') } }; }); return true;
+        return { pdf: bytes, paginas: r.paginas.length, papel: imp.papel, orient: imp.orient, original: { bytes: x.bytes, nome: ficha.nome + (x.macros ? '.xlsm' : '.xlsx') }, conteudo: c }; }); return true;
       case 'arquivo.baixarOriginal': (async () => {
         const o = await lerOriginal(ficha.id);
         if (!o || !o.blob) { cx.avisar(c.importado ? 'O arquivo original não está neste aparelho: só ficam guardados os arquivos abertos do Excel a partir da v0.6.0, no aparelho onde foram abertos.' : 'Esta planilha não veio de um arquivo do Excel: use Salvar como Excel.', { ic: 'info', longo: true }); return; }
@@ -2579,7 +2480,7 @@ export function Planilha({ arquivo, cx }) {
     const nfAtivo = estiloAtivo.nf;
     cx.setStatus({
       planilha: {
-        calc, mostrar: prefs.status, faixa: normalFaixa(faixa), somenteLeitura,
+        calc, mostrar: prefs.status, faixa: normalFaixa(faixa), abaId, somenteLeitura,
         formatar: (v) => formatar(v, nfAtivo && !/%/.test(nfAtivo) ? nfAtivo : 'General').t,
         semLugar: faixa.l1 !== faixa.l2 && faixa.c1 !== faixa.c2 && false,
         dica: edit ? (ehFormula ? 'Digitando fórmula: clique nas células ou use as setas para apontar' : 'Digitando') : null,
@@ -2591,7 +2492,7 @@ export function Planilha({ arquivo, cx }) {
       },
       zoom: z,
     });
-  }, [calc, prefs.status, faixa, z, edit && !!edit, ehFormula, estiloAtivo.nf, c]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [calc, prefs.status, faixa, abaId, z, edit && !!edit, ehFormula, estiloAtivo.nf, c]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* v0.6.4: zoom do navegador muda a densidade da tela: redesenha na hora para as letras não ficarem borradas */
   const [densidade, setDensidade] = useState(0);

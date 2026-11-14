@@ -5,6 +5,7 @@ import { TIPOS, ativos } from '../nucleo/modelo.js';
 import { Janela, Icone, dataHora } from './comum.jsx';
 import './internos.css';
 import { SUBABAS, PODE_COMPARTILHAR, estadoDoc, linhasDoResumo, textoDoResumo, noDocumento } from '../ponte/ponte.js';
+import { camposDoLivro, divergencias } from '../ponte/campos.js';
 
 const copiar = async (texto, avisar, oQue) => {
   try { await navigator.clipboard.writeText(texto); avisar(`${oQue} copiado.`, { ic: 'check' }); } catch { avisar('Não deu para copiar aqui. Selecione o texto e use Ctrl+C.', { ic: 'aviso' }); }
@@ -97,11 +98,15 @@ export function JanelaInterno({ ficha, fichas, aoSalvar, aoFechar, depois }) {
 }
 
 /** Painel "Resumo do envio": os dados que o EFCwork mandou, com copiar, "na ficha" e quantos faltam. */
-export function ResumoEnvio({ resumo, conteudo, avisar, aoFechar }) {
+export function ResumoEnvio({ resumo, conteudo, avisar, aoFechar, aoPreencher }) {
   const linhas = useMemo(() => linhasDoResumo(resumo.dados), [resumo]);
   const achou = useMemo(() => noDocumento(conteudo, linhas), [conteudo, linhas]);
   const simples = linhas.filter((x) => x.tipo !== 'lista');
   const faltam = simples.filter((x) => !achou.has(x.chave)).length;
+  /* v0.6.17 (Ponte 2): com campos marcados, dá para preencher e imprimir daqui; e o número da ficha que difere do envio é apontado (D03) */
+  const campos = useMemo(() => (conteudo && conteudo.abas ? camposDoLivro(conteudo).campos : []), [conteudo]);
+  const difere = useMemo(() => (campos.length ? divergencias(conteudo, campos, resumo.dados || {}) : new Map()), [conteudo, campos, resumo]);
+  const preenche = campos.filter((x) => (x.lista || x.chave) in (resumo.dados || {})).length;
   return (
     <aside className="resumo-envio" aria-label="Resumo do envio" data-resumo>
       <div className="re-cab">
@@ -109,6 +114,7 @@ export function ResumoEnvio({ resumo, conteudo, avisar, aoFechar }) {
         <button type="button" className="iconbtn" aria-label="Fechar o resumo" title="Fechar (o resumo sai da caixa)" onClick={aoFechar}><Icone n="x" /></button>
       </div>
       <div className="re-conta" data-resumo-faltam>{faltam ? `Faltam ${faltam} de ${simples.length}` : `Todos os ${simples.length} já estão na ficha`}</div>
+      {difere.size > 0 && <div className="re-difere" data-resumo-difere>{difere.size === 1 ? 'Um número da ficha está diferente do envio.' : `${difere.size} números da ficha estão diferentes do envio.`}</div>}
       <div className="re-linhas">
         {linhas.map((x) => (
           <div key={x.chave} className={'re-linha' + (achou.has(x.chave) ? ' na-ficha' : '')} data-resumo-chave={x.chave}>
@@ -116,7 +122,7 @@ export function ResumoEnvio({ resumo, conteudo, avisar, aoFechar }) {
             {x.tipo === 'lista' ? (
               <ol className="re-lista">{x.linhas.map((t, i) => <li key={i}><span>{t}</span><button type="button" className="iconbtn" aria-label={'Copiar ' + t} onClick={() => copiar(t, avisar, 'Linha')}><Icone n="copiar" /></button></li>)}</ol>
             ) : (
-              <span className="re-val"><b>{x.texto}</b>{achou.has(x.chave) && <em><Icone n="check" />na ficha</em>}
+              <span className="re-val"><b>{x.texto}</b>{difere.has(x.chave) ? <em className="dif" data-difere={x.chave}>na ficha está {difere.get(x.chave).toLocaleString('pt-BR')}</em> : achou.has(x.chave) && <em><Icone n="check" />na ficha</em>}
                 <button type="button" className="iconbtn" aria-label={'Copiar ' + x.rotulo} title="Copiar" onClick={() => copiar(x.texto, avisar, x.rotulo)}><Icone n="copiar" /></button></span>
             )}
           </div>
@@ -124,6 +130,7 @@ export function ResumoEnvio({ resumo, conteudo, avisar, aoFechar }) {
       </div>
       <div className="re-rod">
         <button type="button" className="btn sm" data-resumo-tudo onClick={() => copiar(textoDoResumo(resumo.titulo, linhas), avisar, 'Resumo')}><Icone n="copiar" />Copiar tudo</button>
+        {preenche > 0 && aoPreencher && <button type="button" className="btn sm primary" data-resumo-preencher title={`O documento tem ${preenche} ${preenche === 1 ? 'campo marcado' : 'campos marcados'} para estes dados`} onClick={aoPreencher}><Icone n="imprimir" />Preencher e imprimir</button>}
       </div>
     </aside>
   );

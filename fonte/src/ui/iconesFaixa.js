@@ -10,6 +10,7 @@ const CANTOS = '<path d="M4 8.5V4h4.5M15.5 4H20v4.5M20 15.5V20h-4.5M8.5 20H4v-4.
 export const NOVOS = {
   /* v0.6.16 (Ponte 1): pasta com etiqueta (documento interno) e bandeja com seta para cima (vai para o Cwork) */
   interno: `<path class="t" d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9.5A1.5 1.5 0 0 0 19 8h-7l-2-2.5H5A1.5 1.5 0 0 0 3.5 7z"/><path d="M9 14h6M9 16.5h3.5"/>`,
+  camposCwork: `<rect class="t" x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M9.5 9.5v10"/><path d="M12.5 13h5M12.5 16h3"/>`,
   cwork: `<path class="t" d="M3.5 14.5h4.5l1.5 2.5h5l1.5-2.5h4.5v4.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M12 3.5v9M8.5 7 12 3.5 15.5 7"/>`,
   /* Arquivo */
   novo: `<path class="t" d="${FOLHA}"/><path d="${DOBRA}"/><path d="M12 11.5v6M9 14.5h6"/>`,
@@ -201,7 +202,7 @@ export const NOVOS = {
 export const MAPA = {
   'arquivo.novo': 'novo', 'arquivo.renomear': 'renomear', 'arquivo.abrir': 'abrir', 'arquivo.exportarExcel': 'excel',
   'arquivo.baixarOriginal': 'baixar', 'arquivo.relatorioExcel': 'relatorio', 'arquivo.exportarPDF': 'pdf', 'arquivo.imprimir': 'imprimir',
-  'arquivo.versoes': 'versoes', 'arquivo.lancar': 'lancar', 'arquivo.lixeira': 'lixeira', 'arquivo.interno': 'interno', 'arquivo.compartilharCwork': 'cwork',
+  'arquivo.versoes': 'versoes', 'arquivo.lancar': 'lancar', 'arquivo.lixeira': 'lixeira', 'arquivo.interno': 'interno', 'arquivo.camposCwork': 'camposCwork', 'arquivo.compartilharCwork': 'cwork',
   'editar.colar': 'colar', 'editar.recortar': 'recortar', 'editar.copiar': 'copiar', 'editar.pincel': 'pincel',
   'formatar.negrito': 'negrito', 'formatar.italico': 'italico', 'formatar.sublinhado': 'sublinhado', 'formatar.bordas': 'bordas',
   'formatar.preenchimento': 'balde', 'formatar.corFonte': 'corfonte', 'formatar.fonte': 'fonte',

@@ -40,3 +40,33 @@
 .int-estado { align-self: center; }
 .app.cel .int-abas { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .app.cel .int-aba { flex: none; }
+/* ---------- v0.6.17 (Ponte 2): painel Campos do Cwork, número diferente no resumo e a tela do pedido ---------- */
+.pc-dica { margin: 10px 16px 6px; font-size: 13px; color: var(--text-muted); }
+.pc-aviso { margin: 0 16px 8px; font-size: 13px; color: var(--warn); }
+.pc-grupo { margin: 10px 8px 2px; font-size: 12px; font-weight: 600; color: var(--text-dim); }
+.pc-linha { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 2px 8px; border-bottom: 1px solid var(--border); }
+.pc-rot { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.pc-linha.on .pc-rot { font-weight: 600; }
+.pc-onde { font-size: 12px; color: var(--primary); background: var(--primary-soft); border-radius: var(--r-miudo); padding: 2px 6px; white-space: nowrap; max-width: 96px; overflow: hidden; text-overflow: ellipsis; }
+.pc-linha .iconbtn { width: 28px; height: 28px; min-height: 28px; }
+.pc-linha .btn.sm { min-height: 28px; }
+.re-difere { margin: 0 16px 4px; font-size: 13px; font-weight: 600; color: var(--crit); }
+.re-val em.dif { color: var(--crit); }
+.re-rod { display: flex; flex-wrap: wrap; gap: 8px; }
+.pedido { display: grid; gap: 12px; align-content: start; }
+.pd-cab { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.pd-cab > div:first-child { flex: 1; min-width: 200px; }
+.pd-cab .pg-tit { margin: 0; font-size: 20px; }
+.pd-sub { margin: 2px 0 0; font-size: 14px; color: var(--text-muted); }
+.pd-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.pd-dica { margin: 0; font-size: 13px; color: var(--text-muted); }
+.pd-aviso { padding: 10px 12px; border-radius: var(--r-ctl); font-size: 14px; }
+.pd-aviso.crit { background: var(--crit-soft); color: var(--crit); }
+.pd-aviso.ok { background: var(--ok-soft); color: var(--ok); }
+.pd-paginas { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.pd-pg { background: #fff; border: 1px solid var(--border-light); border-radius: var(--r-miudo); overflow: hidden; }
+.pd-pg svg { display: block; width: 100%; height: 100%; }
+.pd-mais { align-self: center; font-size: 13px; color: var(--text-muted); }
+.app.cel .pc-linha .iconbtn { width: 44px; height: 44px; }
+.app.cel .pc-linha .btn.sm, .app.cel .pc-linha { min-height: 44px; }
+.resumo-envio .re-cab { position: sticky; top: 0; z-index: 1; background: var(--surface); }

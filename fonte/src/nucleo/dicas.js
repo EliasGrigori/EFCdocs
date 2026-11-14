@@ -143,6 +143,7 @@ export const DESCRICAO = {
   'arquivo.lixeira': 'Manda o arquivo para a lixeira. Dá para restaurar.',
   'arquivo.exportarPDF': 'Gera um PDF para imprimir ou mandar.',
   'arquivo.interno': 'Põe este arquivo em Documentos internos, numa sub-aba (Etiquetas, Fichas e custódias, Formulários...), com um código.',
+  'arquivo.camposCwork': 'Marca, em cada célula, o dado que o Cwork preenche sozinho (OS, data, laboratório, lista de amostras...). Até 32 por documento.',
   'arquivo.compartilharCwork': 'Manda o PDF (e a planilha original, se couber) para o EFCwork deste aparelho. Mandar de novo depois de editar sobe a versão.',
   'arquivo.exportarImagem': 'Salva o quadro como imagem PNG.',
   'arquivo.exportarExcel': 'Baixa esta planilha como arquivo do Excel (.xlsx), com fórmulas, cores e abas. O Excel recalcula ao abrir.',

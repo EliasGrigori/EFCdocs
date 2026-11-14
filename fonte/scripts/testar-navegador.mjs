@@ -87,10 +87,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.16', async () => {
+await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.17', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.16'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.17'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1894,7 +1894,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.16'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.17'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -4379,7 +4379,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.16'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.17'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -5035,6 +5035,93 @@ await caso('v0.6.16 (D-60): a alça do menu escondido não cobre os números das
   igual(pontos, 'alça|planilha|planilha|planilha', 'só a beirada é da alça');
   certo(pega >= 4, 'bordas de linha que dá para pegar na altura da alça: ' + pega);
   certo(larg <= 9 && largEm >= 20, `a alça só cresce com o mouse em cima dela: ${larg} e ${largEm}`);
+});
+
+/* ---------- v0.6.17: Ponte 2 (campos por nome de célula, pedido de impressão, número diferente) ---------- */
+/* a janela de imprimir não abre no teste: conta quantas vezes o app mandou imprimir */
+const semImpressora = (ctx) => ctx.addInitScript(() => { window.__imprimiu = 0; const d = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow'); Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', { get() { const w = d.get.call(this); if (w && !w.__p) { w.__p = 1; w.print = () => { window.top.__imprimiu++; }; } return w; } }); });
+/* ficha inventada com 6 campos marcados pelo painel; devolve o que o EFCwork recebeu ao compartilhar */
+async function fichaComCampos(p, W) {
+  await p.bringToFront(); await novaPlanilha(p);
+  for (const [r, t] of [['A1', 'Ficha de solicitação'], ['A3', 'OS'], ['B3', 'modelo'], ['A4', 'Data da coleta'], ['A5', 'Caixas'], ['B5', '5'], ['A7', 'Nº'], ['B7', 'Identificação'], ['C7', 'Data'], ['A8', '1'], ['B8', 'exemplo']]) { await celula(p, r); await p.keyboard.type(t); await p.keyboard.press('Enter'); await p.waitForTimeout(40); }
+  await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.camposCwork'); await p.waitForSelector('[data-campos]');
+  for (const [r, ch] of [['B3', 'coleta.os'], ['B4', 'coleta.data'], ['B5', 'envio.caixas'], ['A8:A10', 'amostras[].n'], ['B8:B10', 'amostras[].identificacao'], ['C8:C10', 'amostras[].data']]) { await celula(p, r); await p.locator(`[data-campo-marcar="${ch}"]`).click(); await p.waitForTimeout(120); }
+  const painel = { conta: await p.locator('[data-campos-conta]').innerText(), os: await p.locator('[data-campo="coleta.os"] .pc-onde').innerText(), cabem: await p.locator('.pc-grupo:has-text("Lista de amostras")').innerText() };
+  await p.waitForTimeout(900);
+  await cmd(p, 'arquivo.compartilharCwork'); await p.waitForSelector('[data-int-salvar]'); await p.selectOption('[data-int-subaba]', 'Fichas e custódias'); await p.click('[data-int-salvar]');
+  await naCaixa(W, 'efcwork');
+  const doc = await W.evaluate(async () => { const i = (await EFDPonte.esperando('efcwork'))[0]; await EFDPonte.apagar(i.pid); return { erros: EFD.ficha(i.ficha), id: i.ficha.id, rev: i.ficha.rev, preenche: i.ficha.pub.preenche, campos: i.ficha.pub.campos.map((x) => x.chave).join(',') }; });
+  return { painel, doc };
+}
+const respostas = (W) => W.evaluate(async () => (await EFDPonte.esperando('efcwork')).filter((i) => i.tipo === 'resposta').map((i) => ({ pedido: i.pedido, ok: i.ok, erro: i.erro, paginas: i.paginas })));
+await caso('v0.6.17 (Ponte 2): marcar campos pelo painel (nomes efc_), compartilhar com preenche e campos; o pedido do Cwork vira cópia preenchida, imprime e responde; o modelo não muda', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await semImpressora(ctx);
+  const W = await cworkDeMentira(ctx);
+  const { painel, doc } = await fichaComCampos(p, W);
+  const pid = await W.evaluate((d) => EFDPonte.por({ de: 'efcwork', para: 'docs', tipo: 'pedido', docId: d.id, rev: d.rev, copias: 1,
+    dados: { 'coleta.os': 'OS-0412', 'coleta.data': '2026-11-12', 'envio.caixas': 2, 'amostras[]': [1, 2, 3, 4].map((n) => ({ n, identificacao: 'T0' + n + '-A', data: '2026-11-12' })) }, folhas: [{ 'envio.caixas': 1 }, { 'envio.caixas': 2 }] }), doc);
+  await p.waitForSelector('.toast button:has-text("Ver e imprimir")', { timeout: 8000 });
+  await p.locator('.toast button:has-text("Ver e imprimir")').click(); await p.waitForSelector('[data-pedido="pronto"]', { timeout: 20000 });
+  const sub = await p.locator('.pd-sub').innerText();
+  const pagina1 = await p.locator('.pd-pg').first().innerText(), pagina2 = await p.locator('.pd-pg').nth(1).innerText();
+  await print(p, 'v0617-pedido');
+  await p.click('[data-pedido-imprimir]'); await p.waitForSelector('[data-pedido="feito"]', { timeout: 10000 });
+  const imprimiu = await p.evaluate(() => window.__imprimiu), resp = await respostas(W), sobrou = await W.evaluate(async () => (await EFDPonte.esperando('docs')).length);
+  /* o modelo continua com o texto de exemplo */
+  await p.goto(BASE + '#/internos'); await p.waitForSelector('.internos .abre'); await p.locator('.internos .abre').first().click(); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(400);
+  await celula(p, 'B3'); const modelo = await p.locator('.pl-cap').getAttribute('aria-label');
+  await ctx.close();
+  igual(`${painel.conta}|${painel.os}|${painel.cabem}`, '6 de 32 marcados|B3|Lista de amostras · cabem 3 linhas');
+  igual(JSON.stringify(doc.erros) + doc.preenche + '|' + doc.campos, '[]docs|envio.caixas,coleta.data,coleta.os,amostras[].n,amostras[].identificacao,amostras[].data', 'a ficha passa no contrato com os campos');
+  certo(/4 folhas · 4 páginas/.test(sub), '2 folhas × lista de 4 em 3 casas = 4 folhas: ' + sub);
+  certo(pagina1.includes('OS-0412') && pagina1.includes('12/11/2026') && pagina1.includes('T03-A') && !pagina1.includes('T04-A') && !pagina1.includes('modelo') && !pagina1.includes('exemplo'), 'folha 1 preenchida: ' + pagina1.replace(/\s+/g, ' '));
+  certo(pagina2.includes('T04-A') && !pagina2.includes('T01-A'), 'a folha repete com a linha que não coube: ' + pagina2.replace(/\s+/g, ' '));
+  igual(imprimiu, 1, 'mandou imprimir uma vez');
+  igual(JSON.stringify(resp), JSON.stringify([{ pedido: pid, ok: true, paginas: 4 }]), 'resposta ao Cwork');
+  igual(sobrou, 0, 'o pedido saiu da caixa');
+  certo(/modelo/.test(modelo), 'o documento guardado continua como modelo: ' + modelo);
+});
+await caso('v0.6.17 (Ponte 2): pedido inválido responde o erro e não imprime (campo que o documento não tem, versão antiga, documento que não existe)', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await semImpressora(ctx);
+  const W = await cworkDeMentira(ctx);
+  const { doc } = await fichaComCampos(p, W);
+  const erros = [];
+  for (const ped of [{ docId: doc.id, dados: { 'lab.nome': 'Laboratório A' } }, { docId: doc.id, rev: doc.rev + 3, dados: { 'coleta.os': 'OS-1' } }, { docId: 'dnaoexiste0001', dados: { 'coleta.os': 'OS-1' } }]) {
+    const pid = await W.evaluate((x) => EFDPonte.por({ de: 'efcwork', para: 'docs', tipo: 'pedido', copias: 1, ...x }), ped);
+    await p.goto(BASE + '#/pedido/' + pid); await p.waitForSelector('[data-pedido="erro"]', { timeout: 15000 });
+    erros.push((await p.locator('[data-pedido-erro]').innerText()).replace(/\s+/g, ' '));
+    await p.goto(BASE + '#/'); await p.waitForSelector('.foot');
+  }
+  await print(p, 'v0617-pedido-erro');
+  const resp = (await respostas(W)).map((r) => `${r.ok}:${r.erro}`).join(' '), imprimiu = await p.evaluate(() => window.__imprimiu), sobrou = await W.evaluate(async () => (await EFDPonte.esperando('docs')).length);
+  await ctx.close();
+  igual(resp, 'false:campo-desconhecido false:revisao-mudou false:sem-documento');
+  certo(/Laboratório/.test(erros[0]) && /versão/.test(erros[1]) && /não está neste aparelho/.test(erros[2]) && erros.every((e) => /O Cwork foi avisado/.test(e)), 'a tela diz o motivo: ' + erros.join(' || '));
+  igual(`${imprimiu}|${sobrou}`, '0|0', 'nada impresso e nada sobrando na caixa');
+});
+await caso('v0.6.17 (Ponte 2, D03): o resumo aponta o número da ficha diferente do envio e "Preencher e imprimir" monta a cópia sem gravar nada', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await semImpressora(ctx);
+  const W = await cworkDeMentira(ctx);
+  const { doc } = await fichaComCampos(p, W);
+  await W.evaluate((d) => EFDPonte.por({ de: 'efcwork', para: 'docs', tipo: 'resumo', docId: d.id, titulo: 'Remessa de 12/11/2026 · Laboratório A', dados: { 'lab.nome': 'Laboratório A', 'coleta.os': 'OS-0412', 'envio.caixas': 6, 'amostras[]': [{ n: 1, identificacao: 'A-01', data: '2026-11-12' }] } }), doc);
+  await p.waitForSelector('[data-resumo]', { timeout: 8000 });
+  const difere = await p.locator('[data-resumo-difere]').innerText(), linha = await p.locator('[data-difere="envio.caixas"]').innerText();
+  await print(p, 'v0617-resumo-difere');
+  await p.click('[data-resumo-preencher]'); await p.waitForSelector('[data-pedido="pronto"]', { timeout: 20000 });
+  const titulo = await p.locator('.pedido .pg-tit').innerText(), pagina = (await p.locator('.pd-pg').first().innerText()).replace(/\s+/g, ' ');
+  await p.click('[data-pedido-imprimir]'); await p.waitForSelector('[data-pedido="feito"]');
+  const imprimiu = await p.evaluate(() => window.__imprimiu), resp = await respostas(W);
+  await p.click('[data-pedido-sair]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(400);
+  await celula(p, 'B5'); const b5 = await p.locator('.pl-cap').getAttribute('aria-label');
+  await ctx.close();
+  igual(difere, 'Um número da ficha está diferente do envio.'); igual(linha, 'na ficha está 5');
+  igual(titulo, 'Preencher e imprimir');
+  certo(pagina.includes('OS-0412') && pagina.includes('A-01') && / 6 /.test(' ' + pagina + ' ') && !pagina.includes('Laboratório A'), 'só entra o que o documento tem marcado: ' + pagina);
+  igual(`${imprimiu}|${resp.length}`, '1|0', 'imprime e não manda resposta (não veio de um pedido)');
+  certo(/\b5\b/.test(b5), 'a ficha guardada continua com 5: ' + b5);
 });
 
 await navegador.close();

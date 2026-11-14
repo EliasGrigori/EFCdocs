@@ -29,6 +29,7 @@ import { LinhaDoTempo } from './ui/historico.jsx';
 import { JanelaAbrirExcel } from './ui/excel.jsx';
 import { usarPonte } from './ponte/usarPonte.js';
 import { DocsInternos, JanelaInterno, ResumoEnvio } from './ui/internos.jsx';
+import { PainelCampos, TelaPedido } from './ponte/camposUi.jsx';
 
 const AUTOR = 'neste aparelho';
 const TITULOS = { '': 'Início', planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros', lixeira: 'Lixeira', pastas: 'Pastas', externos: 'Documentos externos', internos: 'Documentos internos' };
@@ -119,6 +120,7 @@ export function App() {
   const [alvoRodape, setAlvoRodape] = useState(null); /* v0.4.8 (L11): a Verificação mora no rodapé, igual em todos os arquivos */
   const [linhaTempo, setLinhaTempo] = useState(false);
   const [abrirExcel, setAbrirExcel] = useState(false);
+  const [camposAbertos, setCamposAbertos] = useState(false); // v0.6.17 (Ponte 2): painel Campos do Cwork
   const editorRef = useRef(null);
 
   /* tema, relevo e cor da barra do celular */
@@ -462,6 +464,8 @@ export function App() {
   const pidRota = rota.startsWith('abrir/') ? rota.slice(6) : null;
   useEffect(() => { if (pidRota) ponteRef.current.abrirDaCaixa(pidRota); }, [pidRota]);
   useEffect(() => { if (rota === 'internos') ponteRef.current.atualizarEstado(); }, [rota]);
+  const pidPedido = rota.startsWith('pedido/') ? rota.slice(7) : null; /* v0.6.17 (Ponte 2): pedido de impressão do Cwork (ou "local": do resumo do envio) */
+  useEffect(() => { if (pidPedido === 'local' && !ponteRef.current.pedidoLocal) irPara(''); }, [pidPedido]);
 
   const perguntarNome = useCallback((f) => setPergunta({
     titulo: 'Renomear', campo: 'Nome do arquivo', valor: f.nome, confirmar: 'Salvar nome', validar: validarNome,
@@ -531,6 +535,7 @@ export function App() {
       case 'arquivo.renomear': if (atual) perguntarNome(atual.arquivo.ficha); return;
       case 'arquivo.lixeira': if (atual) mandarLixeira(atual.arquivo.ficha); return;
       case 'arquivo.interno': if (atual) ponteRef.current.setJanela({ ficha: atual.arquivo.ficha }); return;
+      case 'arquivo.camposCwork': if (atual && atual.arquivo.ficha.tipo === 'planilha') setCamposAbertos((v) => !v); return;
       case 'editar.desfazer': desfazerOuRefazer(false); return;
       case 'editar.refazer': desfazerOuRefazer(true); return;
       case 'editar.historico': case 'arquivo.versoes': setLinhaTempo(true); return;
@@ -632,6 +637,7 @@ export function App() {
         ? <Planilha key={aberto.arquivo.ficha.id} arquivo={aberto.arquivo} cx={cx} />
         : <EditorEmBreve tipo={t} />;
   } else if (idRota || pidRota) conteudo = <div className="pagina" aria-busy="true" />;
+  else if (pidPedido) conteudo = pidPedido === 'local' && !ponte.pedidoLocal ? <div className="pagina" aria-busy="true" /> : <TelaPedido key={pidPedido} pid={pidPedido} local={pidPedido === 'local' ? ponte.pedidoLocal : null} banco={banco} avisar={avisar} aoSair={() => irPara(pidPedido === 'local' ? 'arq/' + ponte.pedidoLocal.docId : '')} />;
   else if (rota === 'internos') conteudo = <DocsInternos fichas={fichas} estado={ponte.estado} cx={cx} acrescentar={() => ponte.setJanela({})} editar={(f) => ponte.setJanela({ ficha: f })} />;
   else if (TIPOS[rota]) conteudo = <ListaDoTipo tipo={rota} fichas={fichas} cx={cx} demo={demo} />;
   else if (rota === 'lixeira') conteudo = <Lixeira fichas={fichas} cx={cx} />;
@@ -675,7 +681,9 @@ export function App() {
             <Painel aberto={aberto} cx={cx} fechar={() => setPref('painel', false)}
               extra={ficha.tipo === 'postits' || ficha.tipo === 'planilha' ? <div className="painel-extra" ref={setAlvoPainel} /> : null} />
           )}
-          {aberto && ponte.resumo && ponte.resumo.docId === ficha.id && <ResumoEnvio resumo={ponte.resumo} conteudo={aberto.arquivo.conteudo} avisar={avisar} aoFechar={ponte.fecharResumo} />}
+          {aberto && ponte.resumo && ponte.resumo.docId === ficha.id && <ResumoEnvio resumo={ponte.resumo} conteudo={aberto.arquivo.conteudo} avisar={avisar} aoFechar={ponte.fecharResumo} aoPreencher={() => ponte.preencherDoResumo(aberto.arquivo.conteudo)} />}
+          {aberto && camposAbertos && ficha.tipo === 'planilha' && <PainelCampos conteudo={aberto.arquivo.conteudo} sel={st.planilha ? { abaId: st.planilha.abaId, faixa: st.planilha.faixa } : null} travado={!!travado || !!(st.planilha && st.planilha.somenteLeitura)}
+            aoMudar={(mud, rotulo) => aplicarDiff(criarDiff(aberto.arquivo, mud, rotulo), 'campo do Cwork')} aoFechar={() => setCamposAbertos(false)} />}
         </div>
         {cel && !aberto ? (
           <BarraCelular rota={rota} cont={contagem} abrirGaveta={() => setGaveta(true)} />

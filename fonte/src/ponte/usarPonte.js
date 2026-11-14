@@ -5,6 +5,8 @@ import { criarArquivo } from '../nucleo/modelo.js';
 import { guardarOriginal } from '../nucleo/originais.js';
 import { irPara } from '../ui/comum.jsx';
 import { montarEnvio, PODE_COMPARTILHAR } from './ponte.js';
+import { camposDoLivro, camposParaPub } from './campos.js';
+import { pedidoDoResumo } from './pedido.js';
 import { temCaixa, lerEstado, marcarEstado, porNaCaixa, conferirRecebidos, esperandoAqui, pegar, apagar, ouvir } from './caixa.js';
 
 export const SUBABA_RECEBIDOS = 'Recebidos do Cwork';
@@ -13,6 +15,7 @@ export function usarPonte({ banco, fichas, recarregar, avisar, aberto, autor, mu
   const [estado, setEstado] = useState(() => lerEstado());
   const [resumo, setResumo] = useState(null);
   const [janela, setJanela] = useState(null); // { ficha?, depois?: gerar }
+  const [pedidoLocal, setPedidoLocal] = useState(null); // "Preencher e imprimir" a partir do resumo
   const fichasRef = useRef(fichas); fichasRef.current = fichas;
   const idAberto = aberto ? aberto.arquivo.ficha.id : null;
 
@@ -33,11 +36,14 @@ export function usarPonte({ banco, fichas, recarregar, avisar, aberto, autor, mu
   useEffect(() => {
     if (!temCaixa()) return undefined;
     const avisarAbrir = (pid, nome) => avisar(`Chegou do Cwork para abrir: ${nome || 'um arquivo'}.`, { ic: 'abrir', acao: { rotulo: 'Abrir', fazer: () => irPara('abrir/' + pid) } });
-    esperandoAqui().then((l) => { const i = l.filter((x) => x.tipo === 'abrir').pop(); if (i) avisarAbrir(i.pid, i.nomeArquivo); }).catch(() => {});
+    /* v0.6.17 (Ponte 2): pedido de impressão com os dados do Cwork */
+    const avisarPedido = (i) => { const f = fichasRef.current.find((x) => x.id === i.docId); avisar(`O Cwork pediu para imprimir ${f ? '"' + f.nome + '"' : 'um documento'}.`, { ic: 'imprimir', longo: true, acao: { rotulo: 'Ver e imprimir', fazer: () => irPara('pedido/' + i.pid) } }); };
+    esperandoAqui().then((l) => { const i = l.filter((x) => x.tipo === 'abrir').pop(); if (i) avisarAbrir(i.pid, i.nomeArquivo); const p = l.filter((x) => x.tipo === 'pedido').pop(); if (p) avisarPedido(p); }).catch(() => {});
     atualizarEstado();
     const parar = ouvir(async (m) => {
       if (m.oQue === 'abrir') { const i = await pegar(m.pid); if (i) avisarAbrir(m.pid, i.nomeArquivo); }
       if (m.oQue === 'resumo') lerResumo(idAberto);
+      if (m.oQue === 'pedido') { const i = await pegar(m.pid); if (i) avisarPedido(i); }
     });
     const foco = () => atualizarEstado();
     addEventListener('focus', foco);
@@ -84,6 +90,9 @@ export function usarPonte({ banco, fichas, recarregar, avisar, aberto, autor, mu
     try { await apagar(r.pid); } catch { /* sem caixa */ }
   }, [resumo]);
 
+  /** v0.6.17: "Preencher e imprimir" do resumo do envio (os mesmos passos do pedido, sem resposta ao Cwork). */
+  const preencherDoResumo = useCallback((conteudo) => { if (!resumo) return; setPedidoLocal(pedidoDoResumo(resumo, conteudo)); irPara('pedido/local'); }, [resumo]);
+
   /** Compartilhar com o Cwork. gerar() devolve { pdf, paginas, papel, orient, original? }. Sem sub-aba, pergunta antes. */
   const compartilhar = useCallback(async (ficha, gerar) => {
     if (!PODE_COMPARTILHAR[ficha.tipo]) { avisar('Compartilhar o Documento chega junto com o editor, na v0.7.0.', { ic: 'info' }); return; }
@@ -91,9 +100,14 @@ export function usarPonte({ banco, fichas, recarregar, avisar, aberto, autor, mu
     if (!ficha.pastaNome) { setJanela({ ficha, depois: gerar }); return; }
     try {
       avisar('Montando o PDF para o Cwork…', { ic: 'pdf' });
-      const g = await gerar();
+      const { conteudo, ...g } = await gerar();
       const rev = ((lerEstado()[ficha.id] || {}).rev || 0) + 1;
-      const envio = await montarEnvio({ ficha, ...g, rev });
+      /* v0.6.17 (Ponte 2): os campos marcados por nome de célula vão na ficha, para o Cwork saber o que mandar */
+      const cp = conteudo ? camposDoLivro(conteudo) : { campos: [], fora: [], excesso: 0 };
+      const envio = await montarEnvio({ ficha, ...g, rev, campos: camposParaPub(cp.campos) });
+      if (cp.campos.length) envio.avisos.unshift(`Vai com ${cp.campos.length} ${cp.campos.length === 1 ? 'campo' : 'campos'} para o Cwork preencher.`);
+      if (cp.fora.length) envio.avisos.push(`${cp.fora.length === 1 ? 'O nome' : 'Os nomes'} ${cp.fora.join(', ')} ${cp.fora.length === 1 ? 'começa' : 'começam'} com efc_ mas não ${cp.fora.length === 1 ? 'é campo' : 'são campos'} do Cwork: ${cp.fora.length === 1 ? 'ficou' : 'ficaram'} de fora.`);
+      if (cp.excesso) envio.avisos.push(`O Cwork aceita até 32 campos por documento: ${cp.excesso} ${cp.excesso === 1 ? 'ficou' : 'ficaram'} de fora.`);
       const pid = await porNaCaixa(envio);
       setEstado(marcarEstado(ficha.id, { rev, pid, em: envio.ficha.alteradoEm, estado: 'caixa' }));
       avisar(`"${ficha.nome}" (versão ${rev}) está na caixa do Cwork. Abra o EFCwork neste aparelho para ele receber.${envio.avisos.length ? ' ' + envio.avisos.join(' ') : ''}`, { ic: 'check', longo: true });
@@ -110,5 +124,5 @@ export function usarPonte({ banco, fichas, recarregar, avisar, aberto, autor, mu
     if (depois && mud.pastaNome) compartilhar({ ...f, ...mud }, depois);
   }, [janela, mudarFichaArquivo, compartilhar]);
 
-  return { estado, resumo, janela, setJanela, abrirDaCaixa, fecharResumo, resumoUsado, compartilhar, salvarInterno, atualizarEstado };
+  return { estado, resumo, janela, setJanela, abrirDaCaixa, fecharResumo, resumoUsado, compartilhar, salvarInterno, atualizarEstado, pedidoLocal, preencherDoResumo };
 }

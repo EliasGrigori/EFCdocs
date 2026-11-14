@@ -91,10 +91,10 @@ export async function sha256(bytes) {
 
 /**
  * Monta o que vai para a caixa: a ficha do contrato (passa em EFD.ficha), o PDF e, se couber, o original.
- * entrada: { ficha (do Vértice), pdf: Uint8Array, paginas, papel, orient, original?: { bytes: Uint8Array, nome }, rev (a nova), agora, autor }
+ * entrada: { ficha (do Vértice), pdf: Uint8Array, paginas, papel, orient, original?: { bytes: Uint8Array, nome }, rev (a nova), agora, autor, campos?: [{ chave, rotulo, tipo }] }
  * Devolve { ficha, pdf: ArrayBuffer, original?: ArrayBuffer, nomeArquivo?, avisos } ou lança erro com o motivo.
  */
-export async function montarEnvio({ ficha, pdf, paginas, papel, orient, original, rev, agora = new Date().toISOString(), autor = 'Vértice Docs (neste aparelho)', mm }) {
+export async function montarEnvio({ ficha, pdf, paginas, papel, orient, original, rev, agora = new Date().toISOString(), autor = 'Vértice Docs (neste aparelho)', mm, campos = [] }) {
   const avisos = [];
   if (!pdf || !pdf.length) throw new Error('Não há nada para o PDF: o arquivo está vazio.');
   if (partesDe(pdf.length) > EFD.PARTES_MAX) throw new Error(`O PDF ficou com ${(pdf.length / 1048576).toFixed(1).replace('.', ',')} MB; o Cwork aceita até 3,3 MB. Diminua a área de impressão ou divida o arquivo.`);
@@ -103,7 +103,7 @@ export async function montarEnvio({ ficha, pdf, paginas, papel, orient, original
   const quem = String(autor).slice(0, 80), id = 'vertice-docs';
   const pub = {
     rev, em: agora, porId: id, por: quem, formato: 'pdf', bytes: pdf.length, partes: partesDe(pdf.length), sha256: await sha256(pdf),
-    paginas: Math.max(1, Math.min(200, paginas | 0)), papel: papelEfd, orient: orient === 'paisagem' ? 'paisagem' : 'retrato', preenche: 'nao', campos: [],
+    paginas: Math.max(1, Math.min(200, paginas | 0)), papel: papelEfd, orient: orient === 'paisagem' ? 'paisagem' : 'retrato', preenche: campos.length ? 'docs' : 'nao', campos, /* v0.6.17 (Ponte 2): campos marcados por nome de célula */
   };
   if (papelEfd === 'etiqueta') pub.mm = mm;
   let orig = null, buf = null, nomeArquivo;

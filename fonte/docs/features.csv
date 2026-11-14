@@ -348,6 +348,10 @@ F346;App;ponte;"Documentos internos com sub-abas (Etiquetas, Fichas e custódias
 F347;App;ponte;"Compartilhar com o Cwork (PDF e planilha original pela caixa de troca do aparelho; mesma ficha, versão sobe)";funciona;"v0.6.16 (Ponte 1); Documento chega na v0.7.0";manter;v0.6.16
 F348;App;ponte;"Abrir no Vértice o que o Cwork mandou, com aviso de chegada";funciona;"v0.6.16 (Ponte 1); só .xlsx/.xlsm por enquanto";manter;v0.6.16
 F349;App;ponte;"Resumo do envio ao lado da ficha (copiar, na ficha, faltam N de M, Copiar tudo)";funciona;"v0.6.16 (Ponte 1)";manter;v0.6.16
-F350;App;ponte;"Preencher sozinho por nome de célula (1 a 32 campos, mescladas) e imprimir com os dados";falta;"Ponte 2";v0.6.17 Ponte 2;v0.6.16
+F350;App;ponte;"Preencher sozinho por nome de célula (1 a 32 campos, mescladas e listas) e imprimir com os dados do Cwork";funciona;"v0.6.17 (Ponte 2): pedido, cópia em memória, resposta";manter;v0.6.17
 F351;Planilha;validacao;"Seta da lista suspensa respeita o painel congelado ao rolar";funciona;"D-59 corrigido na v0.6.16";manter;v0.6.16
 F352;App;menu;"Alça do menu escondido não cobre os números das linhas";funciona;"D-60 corrigido na v0.6.16";manter;v0.6.16
+F353;App;ponte;"Painel Campos do Cwork: marcar e tirar campos (nomes efc_), com capacidade das listas";funciona;"v0.6.17 (Ponte 2)";manter;v0.6.17
+F354;App;ponte;"Compartilhar leva preenche e campos na ficha; avisa nome efc_ desconhecido e excesso de 32";funciona;"v0.6.17 (Ponte 2)";manter;v0.6.17
+F355;App;ponte;"Resumo do envio: número da ficha diferente do envio e Preencher e imprimir";funciona;"v0.6.17 (D03 aprovado em 13/11)";manter;v0.6.17
+F356;Planilha;impressao;"Imprimir e PDF fora da tela (planilha/imprimirLivro.js), mesmo resultado";funciona;"v0.6.17: Planilha.jsx de 3.699 para 3.600 linhas";manter;v0.6.17

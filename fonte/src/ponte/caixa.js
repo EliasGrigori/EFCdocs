@@ -26,3 +26,5 @@ export const esperandoAqui = () => Ponte.esperando('docs');
 export const pegar = (pid) => Ponte.pegar(pid);
 export const apagar = (pid) => Ponte.apagar(pid);
 export const ouvir = (fn) => Ponte.ouvir('docs', fn);
+/** v0.6.17 (Ponte 2): a resposta de um pedido de impressão ({ pedido: pid, ok, erro, paginas }). */
+export const responder = (item, { ok, erro, paginas = 0 }) => Ponte.por({ de: 'docs', para: item.de, tipo: 'resposta', pedido: item.pid, ok: !!ok, ...(erro ? { erro } : {}), paginas });

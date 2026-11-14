@@ -13,7 +13,7 @@ const ABA_ARQUIVO = {
   id: 'arquivo', nome: 'Arquivo', grupos: [
     { nome: 'Arquivo', itens: [['g', 'arquivo.novo'], ['g', 'arquivo.renomear'], ['g', 'arquivo.abrir'], ['g', 'arquivo.exportarExcel'], ['g', 'arquivo.baixarOriginal'], ['g', 'arquivo.relatorioExcel'], ['g', 'arquivo.exportarWord'], ['g', 'arquivo.exportarPDF'], ['g', 'arquivo.exportarImagem'], ['g', 'arquivo.imprimir']] },
     { nome: 'Registro', itens: [['g', 'arquivo.versoes'], ['g', 'arquivo.lancar'], ['g', 'arquivo.lixeira']] },
-    { nome: 'Cwork', itens: [['g', 'arquivo.interno'], ['g', 'arquivo.compartilharCwork']] },
+    { nome: 'Cwork', itens: [['g', 'arquivo.interno'], ['g', 'arquivo.camposCwork'], ['g', 'arquivo.compartilharCwork']] },
   ],
 };
 const GRUPOS_EXIBIR = [
@@ -147,7 +147,7 @@ export const ROTULO_CURTO = {
   'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Verificação', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
   'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
   'dados.validacao': 'Validação', 'formatar.condicional': 'Destacar regra', 'editar.localizar': 'Localizar',
-  'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.interno': 'Documento interno', 'arquivo.compartilharCwork': 'Compartilhar com o Cwork', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
+  'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.interno': 'Documento interno', 'arquivo.camposCwork': 'Campos do Cwork', 'arquivo.compartilharCwork': 'Compartilhar com o Cwork', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
   'arquivo.abrir': 'Abrir Excel', 'arquivo.exportarExcel': 'Salvar como Excel', 'arquivo.relatorioExcel': 'O que veio do Excel', 'arquivo.baixarOriginal': 'Baixar original',
   'editar.comentar': 'Comentário', 'revisao.comentarios': 'Comentários', 'organizar.temporizador': 'Temporizador', 'revisao.comparar': 'Comparar',
   'revisao.concluir': 'Concluir revisão', 'pagina.cabecalho': 'Cabeçalho do POP', 'pagina.orientacao': 'Orientação',
