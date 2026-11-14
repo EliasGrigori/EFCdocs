@@ -4,6 +4,7 @@
    rosca + pizza, colunas + linhas, eixo da direita, linha curva, marcadores, rótulos com formato, mínimo e máximo dos eixos...).
    O mesmo SVG serve para a tela, a impressão/PDF e as miniaturas.
    Cada parte leva data-parte="..." para o editor saber onde a pessoa clicou (titulo, legenda, fundo, area, eixo:y, serie:2, ponto:0:3). */
+import { svgDoCx } from './desenhoCx.js';
 import { NOME_TIPO, escala, numeroCurto } from './graficos.js';
 import { construir, resolverPlano, seriesDe, corSemaforo, metaPadraoDe, PT } from './graficoPlano.js';
 import { formatar } from './formato.js';
@@ -28,6 +29,7 @@ export function planoDoGrafico(g, d, lerFaixa = null) {
 
 /** SVG do gráfico (texto). d = dadosDaFaixa(...) */
 export function svgDoGrafico(g, d, opc = {}) {
+  if (g && g.t === 'cx') return svgDoCx(g, opc); /* v0.6.18 (D-44): gráfico novo do Excel 2016 */
   const P = planoDoGrafico(g, d, opc.lerFaixa);
   return svgDoPlano(P, { ...opc, rotulo: (NOME_TIPO[g.t] || 'Gráfico') + (g.titulo ? ': ' + g.titulo : '') });
 }
@@ -843,6 +845,4 @@ function desenharComEixos(P, A, { C, add, fs, corTexto, corFraco, mini, T, w = A
 }
 
 /** Miniatura simples de um tipo (para os botões). */
-export function svgMini(g, d, w = 64, h = 40, tema = TEMA_CLARO, lerFaixa = null) {
-  return svgDoPlano(planoDoGrafico(g, d, lerFaixa), { w, h, tema, mini: true });
-}
+export const svgMini = (g, d, w = 64, h = 40, tema = TEMA_CLARO, lerFaixa = null) => svgDoPlano(planoDoGrafico(g, d, lerFaixa), { w, h, tema, mini: true });

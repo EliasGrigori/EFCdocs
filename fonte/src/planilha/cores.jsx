@@ -132,7 +132,7 @@ export function PainelCores({ rotulo, valor, aoMudar, semCor = 'Sem cor', cores 
           <button key={k} type="button" role="tab" aria-selected={aba === k} className={aba === k ? 'on' : ''} data-cr-aba={k} onClick={() => setAba(k)}>{t}</button>
         ))}
       </div>
-      <button type="button" className={'cr-sem' + (!atual ? ' on' : '')} onClick={() => escolher(undefined)}>{semCor}</button>
+      {semCor !== null && <button type="button" className={'cr-sem' + (!atual ? ' on' : '')} onClick={() => escolher(undefined)}>{semCor}</button>}
       {lista.length ? (
         <div className="cr-amostras">
           {lista.map(([hex, nome]) => (

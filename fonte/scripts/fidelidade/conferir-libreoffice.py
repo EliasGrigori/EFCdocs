@@ -77,7 +77,9 @@ def comparar(salvo, pasta):
     def celulas(arq, data_only, so=None):
         wb = openpyxl.load_workbook(arq, read_only=True, data_only=data_only)
         for nome in wb.sheetnames:
-            ws = wb[nome]; ws.reset_dimensions(); d = {}
+            ws = wb[nome]
+            if not hasattr(ws, 'iter_rows'): continue  # v0.6.18: aba de gráfico (chartsheet) não tem células
+            ws.reset_dimensions(); d = {}
             for row in ws.iter_rows():
                 for c in row:
                     v = getattr(c, 'value', None)

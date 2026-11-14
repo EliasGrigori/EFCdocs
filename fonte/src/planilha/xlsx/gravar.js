@@ -2,6 +2,8 @@
    Vai: valores, fórmulas (com o valor já calculado), estilos, larguras, alturas, ocultas, mescladas, congelar painéis,
    cor e abas ocultas, nomes definidos e matrizes que derramam (matriz dinâmica do Excel 365).
    O Excel recalcula tudo ao abrir (fullCalcOnLoad). */
+import { virarAbasDeGrafico } from './abaGraficoXlsx.js';
+import { CT_CX, CT_ESTILO, CT_CORES, REL_ESTILO, REL_CORES } from './cxXlsx.js';
 import { gravarDesenhoAba } from './desenhoXlsx.js';
 import { comPaineisParaExcel, extDoPainel } from './painelXlsx.js';
 import { TEMA_XML } from './temaPadrao.js';
@@ -329,7 +331,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     }
     const mesc = (aba.mesc || []).filter((t) => /^[A-Z]+\d+:[A-Z]+\d+$/.test(t));
     if (mesc.length) fim += `<mergeCells count="${mesc.length}">${mesc.map((t) => `<mergeCell ref="${t}"/>`).join('')}</mergeCells>`;
-    fim += gravarCondicionais(aba.cf, dxfs);
+    const extsAba = []; // v0.6.18: blocos do extLst da aba (barras de dados do Excel 2010)
+    fim += gravarCondicionais(aba.cf, dxfs, extsAba);
     fim += gravarValidacoes(aba.val);
     /* v0.6.3: links das células (internet e e-mail vão como relação externa; os de dentro da planilha, como local) */
     { const hl = [], ext = [];
@@ -363,7 +366,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       });
       fim += `<tableParts count="${ids.length}">${ids.map((n) => `<tablePart r:id="rIdT${n}"/>`).join('')}</tableParts>`;
     }
-    if (aba.painelJson) fim += extDoPainel(aba.painelJson);
+    if (aba.painelJson) extsAba.push(extDoPainel(aba.painelJson).replace(/^<extLst>|<\/extLst>$/g, ''));
+    if (extsAba.length) fim += `<extLst>${extsAba.join('')}</extLst>`;
     partes.push({
       nome: `xl/worksheets/sheet${ia + 1}.xml`,
       dados: `${XML_CAB}<worksheet xmlns="${NS}" xmlns:r="${NS_R}">${cab}<sheetData>${corpo.join('')}</sheetData>${fim}</worksheet>`,
@@ -407,7 +411,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     '<Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' +
     (usaMatriz ? `<Override PartName="/xl/metadata.xml" ContentType="${CT}sheetMetadata+xml"/>` : '') +
     notas.map((n) => `<Override PartName="/xl/comments${n.ia + 1}.xml" ContentType="${CT}comments+xml"/>`).join('') +
-    desenhos.map((d) => `<Override PartName="/xl/drawings/drawing${d.ia + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>` + d.charts.map((ch) => `<Override PartName="/xl/charts/chart${ch.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>` + (ch.us ? `<Override PartName="/xl/drawings/drawingGr${ch.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chartshapes+xml"/>` : '')).join('')).join('') +
+    desenhos.map((d) => `<Override PartName="/xl/drawings/drawing${d.ia + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>` + d.charts.map((ch) => (ch.cx ? `<Override PartName="/xl/charts/chartEx${ch.n}.xml" ContentType="${CT_CX}"/>` + (ch.estilo ? `<Override PartName="/xl/charts/styleEx${ch.n}.xml" ContentType="${CT_ESTILO}"/>` : '') + (ch.cores ? `<Override PartName="/xl/charts/colorsEx${ch.n}.xml" ContentType="${CT_CORES}"/>` : '') : `<Override PartName="/xl/charts/chart${ch.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`) + (ch.us ? `<Override PartName="/xl/drawings/drawingGr${ch.n}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chartshapes+xml"/>` : '')).join('')).join('') +
     tabelasG.map((t) => `<Override PartName="/xl/tables/table${t.n}.xml" ContentType="${CT}table+xml"/>`).join('') +
     '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
     '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>';
@@ -435,7 +439,13 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     ...desenhos.flatMap((d) => [
       { nome: `xl/drawings/drawing${d.ia + 1}.xml`, dados: d.drawing },
       { nome: `xl/drawings/_rels/drawing${d.ia + 1}.xml.rels`, dados: d.rels },
-      ...d.charts.map((ch) => ({ nome: `xl/charts/chart${ch.n}.xml`, dados: ch.xml })),
+      ...d.charts.map((ch) => ({ nome: ch.cx ? `xl/charts/chartEx${ch.n}.xml` : `xl/charts/chart${ch.n}.xml`, dados: ch.xml })),
+      /* v0.6.18 (D-44): o estilo e as cores do gráfico novo (cx) */
+      ...d.charts.filter((ch) => ch.cx && (ch.estilo || ch.cores)).flatMap((ch) => [
+        { nome: `xl/charts/_rels/chartEx${ch.n}.xml.rels`, dados: `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${ch.estilo ? `<Relationship Id="rId1" Type="${REL_ESTILO}" Target="styleEx${ch.n}.xml"/>` : ''}${ch.cores ? `<Relationship Id="rId2" Type="${REL_CORES}" Target="colorsEx${ch.n}.xml"/>` : ''}</Relationships>` },
+        ...(ch.estilo ? [{ nome: `xl/charts/styleEx${ch.n}.xml`, dados: ch.estilo }] : []),
+        ...(ch.cores ? [{ nome: `xl/charts/colorsEx${ch.n}.xml`, dados: ch.cores }] : []),
+      ]),
       /* v0.6.6: caixas de texto por cima dos gráficos */
       ...d.charts.filter((ch) => ch.us).flatMap((ch) => [
         { nome: `xl/charts/_rels/chart${ch.n}.xml.rels`, dados: `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdUS1" Type="${REL}chartUserShapes" Target="../drawings/drawingGr${ch.n}.xml"/></Relationships>` },
@@ -457,6 +467,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
         tb.map((x) => `<Relationship Id="rIdT${x.n}" Type="${REL}table" Target="../tables/table${x.n}.xml"/>`).join('') + '</Relationships>' };
     }).filter(Boolean),
   ];
+  /* v0.6.18 (D-43): abas de gráfico voltam como aba de gráfico (ou como aba comum, se ganharam células) */
+  { const ag = virarAbasDeGrafico(arquivos, abas, primeiraVisivel); if (ag.viraramComuns.length) avisos.push(`${ag.viraramComuns.length === 1 ? `A aba de gráfico "${ag.viraramComuns[0]}" ganhou células ou outros objetos aqui e vai` : `As abas de gráfico ${ag.viraramComuns.map((x) => `"${x}"`).join(', ')} ganharam células ou outros objetos aqui e vão`} como aba comum, com o gráfico.`); }
   /* v0.6.13 (D-29): o que o app não edita volta do arquivo original guardado no aparelho */
   const imp = c.importado || {};
   let dv = null;

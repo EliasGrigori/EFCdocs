@@ -5,7 +5,7 @@ import { formatar } from './formato.js';
 import { estiloDe, mescladas, mesclaEm, celOuHerdada } from './modelo.js';
 import { faixaDoFiltro } from './dados.js';
 import { ehErro } from './valores.js';
-import { estiloCondicional, estiloComRegras } from './regras.js';
+import { estiloCondicional, estiloComRegras, barraDeDados, temBarras, corClaraDaBarra } from './regras.js';
 
 /** Estilo da célula com as regras de cor (formatação condicional) por cima. */
 export function estiloVisto(c, cel, motor, abaId, l, col) {
@@ -280,6 +280,25 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       { const x0 = px(R.x), y0 = px(R.y); ctx.fillRect(x0, y0, px(R.x + R.w) - x0 - 1 / dpr, px(R.y + R.h) - y0 - 1 / dpr); }
     }
   }
+  /* v0.6.18 (D-45): barras de dados (por cima da grade, por baixo do texto) */
+  const comBarras = temBarras(aba);
+  if (comBarras) {
+    for (let l = la; l <= lb; l++) {
+      const h = G.linhas.tam(l) * z;
+      if (!h) continue;
+      for (let col = ca; col <= cb; col++) {
+        const w = G.colunas.tam(col) * z;
+        if (!w) continue;
+        const m = mesc.length ? mesclaEm(mesc, l, col) : null;
+        if (m && (m.l1 !== l || m.c1 !== col)) continue;
+        const bar = barraDeDados(motor, c, abaId, l, col);
+        if (!bar) continue;
+        let x = G.xDe(col), y = G.yDe(l), ww = w, hh2 = h;
+        if (m) { const R = retMescla(G, m, reg); if (!R) continue; x = R.x; y = R.y; ww = R.w; hh2 = R.h; }
+        desenharBarra(ctx, bar, x, y, ww, hh2, z, dpr);
+      }
+    }
+  }
   /* textos */
   ctx.textBaseline = 'alphabetic';
   for (let l = la; l <= lb; l++) {
@@ -301,6 +320,7 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       if (!cel && !motor.areaDerramada(abaId, cl, cc)) continue;
       tx = textoCelula(motor, c, abaId, cl, cc);
       if (tx.t === '') continue;
+      if (comBarras && typeof tx.v === 'number') { const bar = barraDeDados(motor, c, abaId, cl, cc); if (bar && bar.semValor) continue; }
       let x = G.xDe(cc), yy = G.yDe(cl), w = w0, hh = h;
       if (m) { const R = retMescla(G, m, reg); if (!R) continue; x = R.x; yy = R.y; w = R.w; hh = R.h; }
       /* v0.6.11 (D-15): na linha dos títulos do filtro, o texto não entra no lugar da seta (18 px; 24 no toque) */
@@ -353,6 +373,31 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       ctx.fillStyle = '#c00000';
       ctx.beginPath(); ctx.moveTo(xd, yt); ctx.lineTo(xd - t, yt); ctx.lineTo(xd, yt + t); ctx.closePath(); ctx.fill();
     }
+  }
+}
+
+/** Uma barra de dados dentro da célula (x, y, w, h em px da tela). */
+function desenharBarra(ctx, bar, x, y, w, h, z, dpr) {
+  const padX = Math.max(1, Math.round(2 * z)), padY = Math.max(1, Math.round(2 * z));
+  const ux = x + padX, uw = Math.max(0, w - 2 * padX - 1 / dpr), uy = y + padY, uh = Math.max(1, h - 2 * padY - 1 / dpr);
+  const sx = (f) => (bar.rtl ? ux + uw * (1 - f) : ux + uw * f);
+  const x1 = Math.min(sx(bar.a), sx(bar.b)), x2 = Math.max(sx(bar.a), sx(bar.b));
+  if (x2 - x1 >= 0.5) {
+    if (bar.lisa) ctx.fillStyle = bar.cor;
+    else {
+      /* o degradê sai do começo da barra (do eixo, quando tem) e clareia na ponta */
+      const deEixo = bar.eixo != null && bar.a < bar.eixo - 1e-9;
+      const g = ctx.createLinearGradient(deEixo !== bar.rtl ? x2 : x1, 0, deEixo !== bar.rtl ? x1 : x2, 0);
+      g.addColorStop(0, bar.cor); g.addColorStop(1, corClaraDaBarra(bar.cor));
+      ctx.fillStyle = g;
+    }
+    ctx.fillRect(x1, uy, x2 - x1, uh);
+    if (bar.borda) { ctx.strokeStyle = bar.borda; ctx.lineWidth = 1 / dpr; ctx.strokeRect(x1 + 0.5 / dpr, uy + 0.5 / dpr, x2 - x1 - 1 / dpr, uh - 1 / dpr); }
+  }
+  if (bar.eixo != null && bar.eixo > 0 && bar.eixo < 1) {
+    const ex = Math.round(sx(bar.eixo) * dpr) / dpr + 0.5 / dpr;
+    ctx.save(); ctx.strokeStyle = bar.corEixo; ctx.lineWidth = 1 / dpr; ctx.setLineDash([2 / dpr, 2 / dpr]);
+    ctx.beginPath(); ctx.moveTo(ex, y); ctx.lineTo(ex, y + h); ctx.stroke(); ctx.restore();
   }
 }
 

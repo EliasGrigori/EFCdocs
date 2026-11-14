@@ -1,7 +1,8 @@
 /* EFCdocs v0.6.5 — o desenho de uma aba (xl/drawings/drawingN.xml): gráficos, imagens, formas e botões, NA ORDEM da aba
    (o primeiro fica embaixo, o último em cima, como no Excel). */
 import { escapar, XML_CAB } from './xml.js';
-import { xmlDoGraficoObjeto, frameDoGrafico, comFormasDoGrafico, NS_A, NS_R, NS_XDR } from './graficosXlsx.js';
+import { xmlDoGraficoObjeto, frameDoGrafico, comFormasDoGrafico, lerFaixaDoLivro, NS_A, NS_R, NS_XDR } from './graficosXlsx.js';
+import { xmlDoCx, frameDoCx, REL_CX } from './cxXlsx.js';
 import { gravarForma, formaDoBotao, ancoraXml } from './formasXlsx.js';
 import { formaSemMudanca } from '../formas.js';
 import { letraCol, lerChave } from '../ref.js';
@@ -40,6 +41,16 @@ export function gravarDesenhoAba(c, motor, aba, abaId, n0Chart, n0Img, cache = n
   };
   /* o gráfico vira uma parte chart{n}.xml e uma relação; devolve o r:id (ou null) */
   const parteDoGrafico = (o) => {
+    /* v0.6.18 (D-44): gráfico novo do Excel (cx): volta o XML guardado, com os nomes e números de agora */
+    if (o.g && o.g.t === 'cx') {
+      const xml = xmlDoCx(c, abaId, o.g, lerFaixaDoLivro(c, motor, abaId, true));
+      if (!xml) return null;
+      const n = n0Chart + charts.length;
+      charts.push({ n, xml, cx: true, ...(o.g.cx.estilo ? { estilo: o.g.cx.estilo } : {}), ...(o.g.cx.cores ? { cores: o.g.cx.cores } : {}) });
+      const rid = novoRel();
+      rels.push({ id: rid, tipo: 'chartEx', alvo: `../charts/chartEx${n}.xml` });
+      return rid;
+    }
     const xml = xmlDoGraficoObjeto(c, motor, aba, abaId, o);
     if (!xml) return null;
     const n = n0Chart + charts.length;
@@ -50,7 +61,7 @@ export function gravarDesenhoAba(c, motor, aba, abaId, n0Chart, n0Img, cache = n
     rels.push({ id: rid, tipo: 'chart', alvo: `../charts/chart${n}.xml` });
     return rid;
   };
-  const soltarGrafico = (o) => { const rid = parteDoGrafico(o); if (rid) ancoras.push(ancoraXml(aba, o, frameDoGrafico(o, novoId(), rid))); };
+  const soltarGrafico = (o) => { const rid = parteDoGrafico(o); if (rid) ancoras.push(ancoraXml(aba, o, o.g && o.g.t === 'cx' ? frameDoCx(o, novoId(), rid) : frameDoGrafico(o, novoId(), rid))); };
   /* v0.6.8 (Grok): gráficos que vieram dentro de um grupo do Excel (velocímetro sobre o painel) voltam para dentro dele,
      se nem o grupo nem o gráfico mudaram de lugar e o grupo não mudou */
   const mesmoLugar = (o, p0) => Array.isArray(p0) && o.l === p0[0] && o.c === p0[1] && Math.abs(o.dx - p0[2]) < 1.5 && Math.abs(o.dy - p0[3]) < 1.5 && Math.abs(o.w - p0[4]) < 1.5 && Math.abs(o.h - p0[5]) < 1.5;
@@ -104,7 +115,7 @@ export function gravarDesenhoAba(c, motor, aba, abaId, n0Chart, n0Img, cache = n
   if (!ancoras.length) return null;
   const nsTxt = Object.entries(ns).map(([p, u]) => `xmlns${p ? ':' + p : ''}="${escapar(u, true)}"`).join(' ');
   const drawing = `${XML_CAB}<xdr:wsDr ${nsTxt}>${ancoras.join('')}</xdr:wsDr>`;
-  const TIPO = { chart: `${NS_R}/chart`, image: `${NS_R}/image`, hyperlink: `${NS_R}/hyperlink` };
+  const TIPO = { chart: `${NS_R}/chart`, image: `${NS_R}/image`, hyperlink: `${NS_R}/hyperlink`, chartEx: REL_CX };
   const relsXml = `${XML_CAB}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
     rels.map((r) => `<Relationship Id="${r.id}" Type="${TIPO[r.tipo]}" Target="${escapar(r.alvo, true)}"${r.externo ? ' TargetMode="External"' : ''}/>`).join('') + '</Relationships>';
   void letraCol;

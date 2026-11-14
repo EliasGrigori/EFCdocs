@@ -41,6 +41,13 @@ export const tipoDoElemento = (el) => { const m = /^<(?:\w+:)?(\w+)\b/.exec(el);
 const ehSegmentacao = (s) => /slicer|timeslicer/i.test(s);
 
 /** Tira de dentro do grupo os blocos de segmentação de dados e os gráficos (que viram objetos soltos). */
+/** v0.6.18 (D-44): gráfico novo (cx) dentro de grupo vem num AlternateContent; para ler, vale o quadro do Choice (não a caixa de aviso do Fallback). */
+export const comQuadroCx = (x) => String(x).replace(/<(\w+:)?AlternateContent\b[\s\S]*?<\/(\w+:)?AlternateContent>/g, (b) => {
+  if (!/chartex/i.test(b)) return b;
+  const ch = /<(?:\w+:)?Choice\b[^>]*>([\s\S]*?)<\/(?:\w+:)?Choice>/.exec(b);
+  return ch ? ch[1] : b;
+});
+
 function limparGrupoBruto(el) {
   let segmentacoes = 0;
   let s = el.replace(/<(\w+:)?AlternateContent\b[\s\S]*?<\/(\w+:)?AlternateContent>/g, (b) => {
@@ -175,13 +182,15 @@ export async function lerFormaDaAncora(el, ctx) {
   let aprox = 0;
   const tipo = tipoDoElemento(el);
   let bruto = el, gruposGraficos = [];
+  let paraLer = null;
   if (tipo === 'grpSp') {
     const lg = limparGrupoBruto(el);
     bruto = lg.s;
+    paraLer = comQuadroCx(lg.s);
     /* v0.6.13 (D-29): segmentação dentro de grupo: o resto do grupo vem; ela volta ao salvar, solta, no mesmo lugar */
     gruposGraficos = lg.graficos;
   }
-  const raiz = arvore(bruto);
+  const raiz = arvore(paraLer || bruto);
   const { W, H } = { W: ctx.geo.w, H: ctx.geo.h };
   const partes = [];
   const xoRels = {};
@@ -319,7 +328,7 @@ export async function lerFormaDaAncora(el, ctx) {
 
   /* gráficos de dentro do grupo: posição deles dentro da âncora */
   if (gruposGraficos.length) {
-    const r2 = arvore(el);
+    const r2 = arvore(comQuadroCx(el));
     const procurar = (no, T) => {
       if (no.n === 'grpSp') {
         const x = xf0(no); const oe = offExt(x);

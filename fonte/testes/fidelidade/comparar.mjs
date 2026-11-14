@@ -2,7 +2,8 @@
    Usado na ida e volta: ler o .xlsx → gravar → ler de novo → comparar. O número do estilo pode mudar;
    o que conta é o estilo de verdade (fonte, cor, borda, formato...). */
 const IGNORAR_CONTEUDO = new Set(['v', 'seq', 'importado', 'abas', 'ordem', 'estilos']);
-const IGNORAR_ABA = new Set(['id', 'cel']);
+/* v0.6.18: org é a parte do arquivo de onde a aba veio; com aba de gráfico no meio, a numeração das partes muda de um arquivo para o outro */
+const IGNORAR_ABA = new Set(['id', 'cel', 'org']);
 
 /* números de identificação sorteados ou renumerados a cada leitura/gravação (objetos, regras, ligações internas do desenho) não contam.
    No XML guardado de formas e grupos, a posição (a:off/a:ext) é refeita a partir da âncora, que é comparada à parte (l, c, dx, dy, w, h).

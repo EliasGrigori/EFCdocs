@@ -113,7 +113,7 @@ export const TIPOS_REGRA = [
   ['cellIs', 'Valor da célula'], ['expression', 'Fórmula'], ['containsText', 'Texto que contém'], ['notContainsText', 'Texto que não contém'],
   ['beginsWith', 'Texto que começa com'], ['endsWith', 'Texto que termina com'], ['duplicateValues', 'Valores repetidos'], ['uniqueValues', 'Valores únicos'],
   ['containsBlanks', 'Células vazias'], ['notContainsBlanks', 'Células preenchidas'], ['containsErrors', 'Células com erro'], ['notContainsErrors', 'Células sem erro'],
-  ['top10', 'Maiores ou menores valores'], ['aboveAverage', 'Acima ou abaixo da média'],
+  ['top10', 'Maiores ou menores valores'], ['aboveAverage', 'Acima ou abaixo da média'], ['dataBar', 'Barras de dados'],
 ];
 const NOME_TIPO = Object.fromEntries(TIPOS_REGRA);
 
@@ -129,6 +129,7 @@ export function descreverRegra(r) {
     case 'endsWith': return `Texto termina com "${r.tx || ''}"`;
     case 'top10': return `${r.bx ? 'Menores' : 'Maiores'} ${r.n || 10}${r.pc ? '%' : ''} valores`;
     case 'aboveAverage': return r.ab === 0 ? 'Abaixo da média' : 'Acima da média';
+    case 'dataBar': return `Barras de dados${r.b && r.b.lisa ? ' lisas' : ''}${r.b && r.b.semValor ? ', só a barra' : ''}`;
     default: return NOME_TIPO[r.t] || r.t;
   }
 }
@@ -145,7 +146,7 @@ function compilar(motor, abaId, lista) {
     k = { motor, abaId, rev: -1, itens: lista.map((r) => { const fx = faixasDe(r.fx); return { r, fx, anc: ancoraDe(fx), cache: new Map(), todos: null }; }) };
     compilados.set(lista, k);
   }
-  if (k.rev !== motor.rev) { k.rev = motor.rev; for (const it of k.itens) { it.cache.clear(); it.todos = null; } }
+  if (k.rev !== motor.rev) { k.rev = motor.rev; for (const it of k.itens) { it.cache.clear(); it.todos = null; it.lim = null; } }
   return k.itens;
 }
 
@@ -233,6 +234,100 @@ export function estiloCondicional(motor, c, abaId, l, col) {
   return out;
 }
 export const temCondicional = (aba) => !!(aba && aba.cf && aba.cf.length);
+
+/* ---------- v0.6.18 (D-45): barras de dados ---------- */
+export const BARRA_NOVA = { min: { t: 'autoMin' }, max: { t: 'autoMax' }, cor: '#638ec6', minL: 0, maxL: 100, x14: 1, neg: '#ff0000', eixo: 'auto' };
+function limiteDaBarra(motor, abaId, it, o, nums, ehMax) {
+  const lo = nums[0], hi = nums[nums.length - 1];
+  const t = (o && o.t) || (ehMax ? 'max' : 'min');
+  const valor = () => { if (typeof o.v === 'number') return o.v; const x = unico(motor, abaId, o.v, it.anc.l, it.anc.c, it.anc); return typeof x === 'number' ? x : aNumero(x); };
+  switch (t) {
+    case 'autoMin': return Math.min(0, lo);
+    case 'autoMax': return Math.max(0, hi);
+    case 'num': case 'formula': { const v = valor(); return typeof v === 'number' && Number.isFinite(v) ? v : ehMax ? hi : lo; }
+    case 'percent': { const p = valor(); return typeof p === 'number' && Number.isFinite(p) ? lo + (hi - lo) * p / 100 : ehMax ? hi : lo; }
+    case 'percentile': {
+      const p = valor(); if (typeof p !== 'number' || !Number.isFinite(p)) return ehMax ? hi : lo;
+      const k = Math.max(0, Math.min(1, p / 100)) * (nums.length - 1); const i = Math.floor(k);
+      return nums[i] + (nums[Math.min(nums.length - 1, i + 1)] - nums[i]) * (k - i);
+    }
+    case 'max': return hi;
+    default: return lo;
+  }
+}
+/**
+ * A barra da célula, em frações da largura útil: { a, b (de onde até onde), cor, lisa, borda, eixo (fração ou null), corEixo, semValor, rtl } ou null.
+ * Como o Excel 2010: sem números negativos a barra cresce da esquerda; com negativos (eixo automático) o eixo fica onde o zero cai
+ * e a barra negativa vai para a esquerda com a cor dos negativos. A primeira regra de barra que vale na célula ganha.
+ */
+export function barraDeDados(motor, c, abaId, l, col) {
+  const aba = c.abas[abaId];
+  const lista = aba && aba.cf;
+  if (!lista || !lista.length) return null;
+  const itens = compilar(motor, abaId, lista);
+  for (const it of itens) {
+    if (it.r.t !== 'dataBar' || !emFaixas(it.fx, l, col)) continue;
+    const v = motor.valor(abaId, l, col);
+    if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+    const b = it.r.b || {};
+    if (!it.lim) {
+      const { nums } = todosOsValores(motor, abaId, it);
+      if (!nums.length) return null;
+      let lo = limiteDaBarra(motor, abaId, it, b.min, nums, false), hi = limiteDaBarra(motor, abaId, it, b.max, nums, true);
+      if (hi < lo) [lo, hi] = [hi, lo];
+      it.lim = { lo, hi };
+    }
+    const { lo, hi } = it.lim;
+    const minL = (Number.isFinite(b.minL) ? b.minL : 10) / 100, maxL = (Number.isFinite(b.maxL) ? b.maxL : 90) / 100;
+    const x = Math.max(lo, Math.min(hi, v));
+    const base = { cor: b.cor || '#638ec6', lisa: !!b.lisa, borda: b.borda || null, semValor: !!b.semValor, rtl: b.dir === 'rtl', eixo: null, corEixo: b.corEixo || '#000000' };
+    const temNeg = b.x14 && b.eixo !== 'nao' && (lo < 0 || b.eixo === 'meio');
+    if (!temNeg) {
+      const f = hi === lo ? maxL : minL + (x - lo) / (hi - lo) * (maxL - minL);
+      return { ...base, a: 0, b: Math.max(0, Math.min(1, f)) };
+    }
+    /* com eixo: o zero divide a célula; cada lado na sua escala */
+    const ax = b.eixo === 'meio' ? 0.5 : hi <= 0 ? 1 : lo >= 0 ? 0 : -lo / (hi - lo);
+    const negativo = x < 0;
+    const lado = negativo ? ax : 1 - ax;
+    const ref = negativo ? (lo < 0 ? -lo : 1) : (hi > 0 ? hi : 1);
+    const f = Math.max(0, Math.min(1, Math.abs(x) / ref)) * lado;
+    return { ...base, eixo: ax, a: negativo ? ax - f : ax, b: negativo ? ax : ax + f, cor: negativo && b.neg ? b.neg : base.cor, borda: negativo && base.borda ? (b.negBorda || b.neg || base.borda) : base.borda };
+  }
+  return null;
+}
+/** Cor clara para o fim do degradê da barra (como o Excel: a ponta quase branca). */
+export function corClaraDaBarra(hex, k = 0.88) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '')); if (!m) return '#ffffff';
+  const n = parseInt(m[1], 16); const mix = (v) => Math.round(v + (255 - v) * k);
+  return '#' + [mix(n >> 16 & 255), mix(n >> 8 & 255), mix(n & 255)].map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+export const temBarras = (aba) => !!(aba && aba.cf && aba.cf.some((r) => r.t === 'dataBar'));
+/** A barra em retângulos para a impressão e o PDF (o degradê vira faixas, que todo leitor de PDF mostra igual). */
+export function opsDaBarra(bar, x, y, w, h, esc = 1) {
+  const ops = [];
+  const pad = 1.5 * Math.max(0.6, esc);
+  const ux = x + pad, uw = Math.max(0, w - 2 * pad), uy = y + pad, uh = Math.max(0.5, h - 2 * pad);
+  const sx = (f) => (bar.rtl ? ux + uw * (1 - f) : ux + uw * f);
+  const x1 = Math.min(sx(bar.a), sx(bar.b)), x2 = Math.max(sx(bar.a), sx(bar.b));
+  if (x2 - x1 >= 0.3) {
+    if (bar.lisa) ops.push({ k: 'rect', x: x1, y: uy, w: x2 - x1, h: uh, fill: bar.cor });
+    else {
+      const n = Math.max(1, Math.min(24, Math.round((x2 - x1) / 2)));
+      const deEixo = bar.eixo != null && bar.a < bar.eixo - 1e-9;
+      const claro = corClaraDaBarra(bar.cor);
+      const mistura = (t) => { const a = parseInt(bar.cor.slice(1), 16), b = parseInt(claro.slice(1), 16); const m = (s) => Math.round(((a >> s) & 255) + (((b >> s) & 255) - ((a >> s) & 255)) * t); return '#' + [m(16), m(8), m(0)].map((v) => v.toString(16).padStart(2, '0')).join(''); };
+      for (let i = 0; i < n; i++) {
+        const t = (i + 0.5) / n; const passo = (x2 - x1) / n;
+        const xi = x1 + i * passo;
+        ops.push({ k: 'rect', x: xi, y: uy, w: passo + 0.05, h: uh, fill: mistura(deEixo !== bar.rtl ? 1 - t : t) });
+      }
+    }
+    if (bar.borda) ops.push({ k: 'rectL', x: x1, y: uy, w: x2 - x1, h: uh, cor: bar.borda, w2: 0.5 });
+  }
+  if (bar.eixo != null && bar.eixo > 0 && bar.eixo < 1) ops.push({ k: 'line', x1: sx(bar.eixo), y1: y, x2: sx(bar.eixo), y2: y + h, cor: bar.corEixo || '#000000', w: 0.4 });
+  return ops;
+}
 
 /** Estilo da célula já com a cor das regras por cima (só para desenhar; o arquivo não muda). */
 export function estiloComRegras(base, ef) {

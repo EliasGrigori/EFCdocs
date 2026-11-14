@@ -87,10 +87,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.17', async () => {
+await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.18', async () => {
   await p.goto(BASE);
   await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.17'), 'rodapé sem v0.6.9');
+  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.18'), 'rodapé sem v0.6.9');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -1894,7 +1894,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.17'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.18'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -4379,7 +4379,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.17'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.18'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -5122,6 +5122,97 @@ await caso('v0.6.17 (Ponte 2, D03): o resumo aponta o número da ficha diferente
   certo(pagina.includes('OS-0412') && pagina.includes('A-01') && / 6 /.test(' ' + pagina + ' ') && !pagina.includes('Laboratório A'), 'só entra o que o documento tem marcado: ' + pagina);
   igual(`${imprimiu}|${resp.length}`, '1|0', 'imprime e não manda resposta (não veio de um pedido)');
   certo(/\b5\b/.test(b5), 'a ficha guardada continua com 5: ' + b5);
+});
+
+/* ---------- v0.6.18: Guardar e devolver 2 (aba de gráfico, gráficos do Excel 2016, barras de dados) ---------- */
+const AMOSTRA_V0618 = fileURLToPath(new URL('../testes/amostras/amostra-v0618.xlsx', import.meta.url));
+await caso('v0.6.18 (D-43, D-44, D-45): abrir a planilha com aba de gráfico, cascata, funil em grupo e barras de dados: nada fica de fora', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 800 } });
+  await p.goto(BASE + '#/'); await p.click('[data-abrir-excel]'); await p.setInputFiles('[data-excel-arquivo]', AMOSTRA_V0618);
+  await p.waitForSelector('[data-excel-abrir]'); await p.waitForTimeout(400);
+  const veio = await p.locator('[data-rel="veio"]').innerText(), fora = await p.locator('[data-rel="fora"]').count();
+  await print(p, 'v0618-relatorio');
+  await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(700);
+  const abas = await p.locator('.pl-abas [data-aba]').allInnerTexts();
+  const cascata = await p.locator('[data-grafico="cx"] svg[data-cx="waterfall"] [data-parte^="barra:"]').count();
+  /* barras na grade: o pixel no começo da célula C9 (barra verde lisa) e no fim de B2 (a menor barra antiga não chega lá) */
+  const cv = await p.locator('canvas.pl-cv').first().boundingBox();
+  const px = async (x, y) => p.evaluate(([xx, yy]) => { const c = document.querySelector('canvas.pl-cv'); const r = c.getBoundingClientRect(); const k = c.width / r.width; const d = c.getContext('2d').getImageData(Math.round((xx - r.left) * k), Math.round((yy - r.top) * k), 1, 1).data; return [d[0], d[1], d[2]]; }, [x, y]);
+  /* .pl-cap fica no canto de cima à esquerda da célula escolhida */
+  const posCel = async (ref) => { await celula(p, ref); return p.evaluate(() => { const r = document.querySelector('.pl-cap').getBoundingClientRect(); return { x: r.left, y: r.top }; }); };
+  const c9 = await posCel('C9'), b2 = await posCel('B2'), c2 = await posCel('C2');
+  await celula(p, 'A12'); await p.waitForTimeout(200); void cv; /* longe das barras, sem rolar a grade */
+  const verde = await px(c9.x + 6, c9.y + 10), fimB2 = await px(b2.x + (c2.x - b2.x) * 0.7, b2.y + 10);
+  const e2txt = await celula(p, 'E2');
+  await print(p, 'v0618-indicadores');
+  await p.locator('.pl-abas [data-aba="Gráfico"]').click(); await p.waitForTimeout(500);
+  const abaGr = await p.locator('[data-grafico="excel"]').boundingBox();
+  await print(p, 'v0618-aba-grafico');
+  await p.locator('.pl-abas [data-aba="Painel"]').click(); await p.waitForTimeout(500);
+  const funil = await p.locator('[data-grafico="cx"] svg[data-cx="funnel"] [data-parte^="barra:"]').count();
+  const mapa = await p.locator('[data-grafico="cx"] svg[data-cx="treemap"]').innerHTML().catch(() => '');
+  const aviso = await p.locator('.pl-obj-forma, [data-forma]').allInnerTexts().catch(() => []);
+  await print(p, 'v0618-painel');
+  await ctx.close();
+  certo(/Barras de dados[\s\S]*4 regras/.test(veio) && /Abas de gráfico[\s\S]*1 aba/.test(veio) && /Gráficos do Excel 2016[\s\S]*3 gráficos/.test(veio), 'caixa Veio: ' + veio.slice(0, 400));
+  igual(fora, 0, 'nada na caixa "Ficou de fora":');
+  igual(abas.join('|'), 'Indicadores|Gráfico|Painel');
+  igual(cascata, 9, 'cascata com 9 barras:');
+  certo(Math.abs(verde[0] - 0x63) < 12 && Math.abs(verde[1] - 0xbe) < 12 && Math.abs(verde[2] - 0x7b) < 12, 'barra verde em C9: ' + verde);
+  certo(fimB2[0] > 235 && fimB2[1] > 235, 'a menor barra antiga (10%) não chega a 70% da célula B2: ' + fimB2);
+  certo(abaGr && abaGr.width > 800, 'o gráfico ocupa a aba de gráfico: ' + JSON.stringify(abaGr));
+  igual(funil, 5, 'funil com 5 barras, dentro do grupo:');
+  certo(/Mapa de árvore/.test(mapa), 'o mapa de árvore aparece como quadro com o nome');
+  certo(!aviso.join(' ').includes('não está disponível'), 'sem a caixa de aviso do Excel antigo');
+  certo(/72/.test(e2txt), 'E2 continua com o número (só não aparece na grade): ' + e2txt);
+});
+
+await caso('v0.6.18: gráfico do Excel 2016 não abre o editor (avisa); barras de dados novas pela janela de regras, com "só a barra"', async () => {
+  const { ctx, p } = await novaPagina();
+  await p.goto(BASE + '#/'); await p.click('[data-abrir-excel]'); await p.setInputFiles('[data-excel-arquivo]', AMOSTRA_V0618);
+  await p.waitForSelector('[data-excel-abrir]'); await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(600);
+  await p.locator('[data-grafico="cx"]').first().dblclick(); await p.waitForTimeout(300);
+  const aviso = await p.locator('.toast').last().innerText(), janela = await p.locator('.ge-jan, [data-ge-layout]').count();
+  /* a regra nova: Barras de dados em H2:H6 (números digitados) */
+  await digitarEm(p, 'H2', ['10', '20', '30', '40', '50']);
+  await celula(p, 'H2'); await p.keyboard.down('Shift'); for (let i = 0; i < 4; i++) await p.keyboard.press('ArrowDown'); await p.keyboard.up('Shift');
+  await p.click('.tabs .tab:has-text("Página Inicial")'); await cmd(p, 'formatar.condicional');
+  await p.waitForSelector('[data-condicional]');
+  const lista = await p.locator('.rg-regras').innerText();
+  await p.click('[data-cond-nova]'); await p.selectOption('[data-cond-tipo]', 'dataBar'); await p.waitForSelector('[data-cond-barra]');
+  await p.check('[data-cond-sovalor]');
+  const previa = await p.locator('.rg-previa .rg-amostra-barra').count();
+  await p.click('[data-cond-ok]'); await p.click('[data-cond-aplicar]'); await p.waitForTimeout(400);
+  const h6 = await celula(p, 'H6');
+  await print(p, 'v0618-barra-nova');
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const bytes = new Uint8Array(readFileSync(await dl.path()));
+  await ctx.close();
+  certo(/ainda não se edita aqui/.test(aviso) && /Cascata/.test(aviso), 'aviso do gráfico: ' + aviso);
+  igual(janela, 0, 'o editor de gráfico não abre:');
+  certo(/Barras de dados lisas/.test(lista) && /só a barra/.test(lista), 'a lista mostra as barras que vieram: ' + lista.slice(0, 300));
+  igual(previa, 1, 'prévia da barra:');
+  igual(h6, '50', 'a célula continua com o número:');
+  const { lerZip } = await import('../src/planilha/xlsx/zip.js');
+  const z = lerZip(bytes); const ws = new TextDecoder().decode(await z.bytes('xl/worksheets/sheet1.xml'));
+  certo(z.nomes.includes('xl/chartsheets/sheet2.xml') && z.nomes.filter((n) => /chartEx\d+\.xml$/.test(n)).length === 3, 'partes: ' + z.nomes.filter((n) => /chart/.test(n)).join(' '));
+  igual((ws.match(/<cfRule type="dataBar"/g) || []).length, 5, 'as 4 barras que vieram e a nova:');
+  certo(/sqref="H2:H6"><cfRule type="dataBar"[^>]*><dataBar showValue="0">/.test(ws), 'a nova sem o número');
+});
+
+await caso('v0.6.18: a prévia da impressão leva as barras de dados (lisa, com degradê e a negativa em vermelho)', async () => {
+  const { ctx, p } = await novaPagina();
+  await p.goto(BASE + '#/'); await p.click('[data-abrir-excel]'); await p.setInputFiles('[data-excel-arquivo]', AMOSTRA_V0618);
+  await p.waitForSelector('[data-excel-abrir]'); await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(600);
+  await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.imprimir'); await p.waitForSelector('[data-imp-alvo]'); await p.waitForTimeout(600);
+  const previa = await p.evaluate(() => [...document.querySelectorAll('[data-imp-previa] .imp-svg')].map((s) => s.innerHTML).join(''));
+  await print(p, 'v0618-impressao');
+  await ctx.close();
+  certo(/fill="#63be7b"/i.test(previa), 'barra verde lisa na prévia');
+  certo(/fill="#ff[0-3][0-9a-f][0-3][0-9a-f]"/i.test(previa), 'barra negativa vermelha na prévia (o degradê começa no vermelho, junto do eixo)');
+  const azuis = new Set([...previa.matchAll(/fill="#([0-9a-f]{6})"/gi)].map((m) => m[1].toLowerCase()).filter((h) => { const n = parseInt(h, 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return b > r + 20 && b >= g && r >= 0x60; }));
+  certo(azuis.size >= 3, 'barra antiga em degradê (vários tons de azul que clareiam): ' + [...azuis].slice(0, 6).join(' '));
 });
 
 await navegador.close();

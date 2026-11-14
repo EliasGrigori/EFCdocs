@@ -8,6 +8,7 @@ import { objetosDaAba } from './objetos.js';
 import { svgDaForma } from './formas.js';
 import { dadosDaFaixa } from './graficos.js';
 import { TEMA_CLARO, svgDoGrafico } from './desenhoGrafico.js';
+import { barraDeDados, temBarras } from './regras.js';
 import { lerFaixaDoLivro } from './xlsx/graficosXlsx.js';
 import { paginar, normalizarImp } from './impressao.js';
 import { desenharPaginas, svgDaPagina } from './paginaDesenho.js';
@@ -44,15 +45,21 @@ export function lerDadosGrafico(c, motor, texto, porLinhas, abaPadrao, mostrarOc
 }
 
 /** O que a impressão precisa saber de uma aba: tamanhos, texto de cada célula, mescladas e os objetos já desenhados. */
+/** SVG de um gráfico da aba idA. O do Excel (e o do Excel 2016) lê as células pelas referências dele e usa temaXl; k aumenta só esse. */
+export function svgDoGraficoDoLivro(c, motor, idA, g, { w, h, tema = TEMA_CLARO, temaXl = tema, k = 1 }) {
+  if (g.t === 'excel' || g.t === 'cx') return svgDoGrafico(g, null, { w: w * k, h: h * k, tema: temaXl, lerFaixa: lerFaixaDoLivro(c, motor, idA, g.plano && g.plano.soVisiveis === false) });
+  const ld = lerDadosGrafico(c, motor, g.dados.fx, !!g.porLinhas, g.dados.aba && c.abas[g.dados.aba] ? g.dados.aba : idA, !!(g.op && g.op.ocultos));
+  return svgDoGrafico(g, ld.d, { w, h, tema });
+}
+
 export function fonteImpressao(c, motor, idA, nomeArquivo) {
   const A = c.abas[idA];
   const ec = eixo(A.larg, A.ocC, largPadrao(A), MAX_COL), el = eixo(A.alt, A.ocL, altPadrao(A), MAX_LIN);
   const ms = mescladas(A);
+  const comBarras = temBarras(A);
   const objetos = objetosDaAba(A).map((o) => {
     if (o.tipo === 'grafico') {
-      if (o.g.t === 'excel') return { ...o, svg: svgDoGrafico(o.g, null, { w: o.w, h: o.h, tema: TEMA_CLARO, lerFaixa: lerFaixaDoLivro(c, motor, idA, o.g.plano && o.g.plano.soVisiveis === false) }) };
-      const ld = lerDadosGrafico(c, motor, o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : idA, !!o.g.op.ocultos);
-      return { ...o, svg: svgDoGrafico(o.g, ld.d, { w: o.w, h: o.h, tema: TEMA_CLARO }) };
+      return { ...o, svg: svgDoGraficoDoLivro(c, motor, idA, o.g, { w: o.w, h: o.h }) };
     }
     /* v0.6.8 (Grok): o texto das formas também vai como texto (invisível, por cima da imagem) para dar para pesquisar no PDF */
     if (o.tipo === 'forma') {
@@ -66,7 +73,8 @@ export function fonteImpressao(c, motor, idA, nomeArquivo) {
   });
   return {
     tamCol: (k) => ec.tam(k), tamLin: (k) => el.tam(k),
-    celula: (l, k) => { const tc = textoCelula(motor, c, idA, l, k); return { t: tc.t, al: tc.al, e: tc.e, v: tc.v, cor: tc.cor }; },
+    /* v0.6.18 (D-45): a barra de dados vai junto; "só a barra" esconde o número */
+    celula: (l, k) => { const tc = textoCelula(motor, c, idA, l, k); const barra = comBarras && typeof tc.v === 'number' ? barraDeDados(motor, c, idA, l, k) : null; return { t: barra && barra.semValor ? '' : tc.t, al: tc.al, e: tc.e, v: tc.v, cor: tc.cor, ...(barra ? { barra } : {}) }; },
     mescla: (l, k) => mesclaEm(ms, l, k),
     objetos, aba: A.nome, arquivo: nomeArquivo || 'Planilha', agora: new Date(),
   };

@@ -3,6 +3,7 @@
    (retângulo, linha, texto, imagem) que serve para a prévia (SVG), para Imprimir (SVG) e para o PDF (vetor). */
 import { PX_PT, textoCampos, CM } from './impressao.js';
 import { letraCol } from './ref.js';
+import { opsDaBarra } from './regras.js';
 import { larguraHelvetica } from './impressaoPdf.js';
 
 const largTexto = (t, pt, b) => larguraHelvetica(t, pt, b);
@@ -59,6 +60,7 @@ export function desenharPaginas(pg, fonte) {
       const cel = fonte.celula(L, C);
       const e = cel.e || {};
       if (corOk(e.fundo)) ops.push({ k: 'rect', x: cx, y: cy, w: cw, h: ch, fill: e.fundo });
+      if (cel.barra) ops.push(...opsDaBarra(cel.barra, cx, cy, cw, ch, esc));
       if (imp.grade) ops.push({ k: 'rectL', x: cx, y: cy, w: cw, h: ch, cor: '#c9d1d9', w2: 0.4 });
       if (e.bd) bordas.push({ e, x: cx, y: cy, w: cw, h: ch });
       const cantoAqui = !m || (p.lins.includes(m.l1) && p.cols.includes(m.c1));

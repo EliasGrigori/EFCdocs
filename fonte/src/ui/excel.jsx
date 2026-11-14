@@ -52,6 +52,10 @@ export function RelatorioExcel({ rel }) {
   if (ex.validacoes > 0) veio.push(<><b>Listas suspensas e validação de dados</b>: <Dest tom="verde">{n(ex.validacoes)} {plural(ex.validacoes, 'regra', 'regras')}</Dest>{ex.listas > 0 ? <> ({n(ex.listas)} {plural(ex.listas, 'lista suspensa', 'listas suspensas')})</> : null}.</>);
   if (ex.condicionais > 0) veio.push(<><b>Cores por regra (formatação condicional)</b>: <Dest tom="verde">{n(ex.condicionais)} {plural(ex.condicionais, 'regra', 'regras')}</Dest>.</>);
   if (ex.graficos > 0) veio.push(<><b>Gráficos</b>: <Dest tom="verde">{n(ex.graficos)} {plural(ex.graficos, 'gráfico', 'gráficos')}</Dest> (desenhados pelo Vértice Docs; ao salvar, voltam como gráficos do Excel).</>);
+  /* v0.6.18: abas de gráfico, gráficos do Excel 2016 e barras de dados */
+  if (ex.abasGrafico > 0) veio.push(<><b>Abas de gráfico</b>: <Dest tom="verde">{n(ex.abasGrafico)} {plural(ex.abasGrafico, 'aba', 'abas')}</Dest> (aqui, uma aba com o gráfico e sem linhas de grade; ao salvar, {plural(ex.abasGrafico, 'volta', 'voltam')} como aba de gráfico).</>);
+  if (ex.graficosCx > 0) veio.push(<><b>Gráficos do Excel 2016</b>: <Dest tom="verde">{n(ex.graficosCx)} {plural(ex.graficosCx, 'gráfico', 'gráficos')}</Dest> (cascata e funil desenhados aqui; os outros tipos aparecem como um quadro. Ainda não se editam aqui; ao salvar, voltam iguais).</>);
+  if (ex.barras > 0) veio.push(<><b>Barras de dados</b>: <Dest tom="verde">{n(ex.barras)} {plural(ex.barras, 'regra', 'regras')}</Dest> (na grade, na impressão e no PDF; ao salvar, voltam para o Excel).</>);
   if (ex.formas > 0) veio.push(<><b>Formas</b>: <Dest tom="verde">{n(ex.formas)} {plural(ex.formas, 'forma ou grupo', 'formas e grupos')}</Dest> (painéis, setas, caixas de texto e botões com link; ao salvar, voltam para o Excel).</>);
   /* v0.6.8 (Grok): o total junta anotações e conversas ("12 comentários (9 eram conversas do Excel 365...)") */
   const totCom = (ex.notas || 0) + (ex.conversas || 0);

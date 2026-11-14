@@ -12,7 +12,7 @@ export const TIPOS_GRAFICO = [
   ['pareto', 'Pareto'], ['controle', 'Carta de controle'], ['histograma', 'Histograma'], ['dispersao', 'Dispersão'],
   ['velocimetro', 'Velocímetro'],
 ];
-export const NOME_TIPO = { ...Object.fromEntries(TIPOS_GRAFICO), excel: 'Gráfico do Excel' };
+export const NOME_TIPO = { ...Object.fromEntries(TIPOS_GRAFICO), excel: 'Gráfico do Excel', cx: 'Gráfico do Excel 2016' };
 /* paleta segura para daltonismo (base Okabe-Ito, ajustada ao tom do EFCdocs) */
 export const PALETA_GRAFICO = ['#0f6e8c', '#e09b2d', '#2e8b57', '#c0504d', '#7b5ea7', '#5aa9c9', '#a5762a', '#6b7a86'];
 export const COR_FORA = '#c0392b';
@@ -153,7 +153,7 @@ function copiaJson(x, max = 400000) {
 
 /** Limpa o que veio de arquivo ou de colar. */
 export function normalizarG(g) {
-  const tipos = new Set([...TIPOS_GRAFICO.map((t) => t[0]), 'excel']);
+  const tipos = new Set([...TIPOS_GRAFICO.map((t) => t[0]), 'excel', 'cx']);
   const o = g && typeof g === 'object' ? g : {};
   const op = o.op && typeof o.op === 'object' ? o.op : {};
   const num = (v) => (ehNum(v) ? v : undefined);
@@ -180,6 +180,11 @@ export function normalizarG(g) {
   /* v0.6.1: formatação do editor (fx), estilo rápido e o plano do gráfico que veio do Excel (com o XML original) */
   const fx = copiaJson(o.fx); if (fx) out.fx = fx;
   if (typeof o.estilo === 'string') out.estilo = o.estilo.slice(0, 20);
+  /* v0.6.18 (D-44): gráfico novo do Excel (cascata, funil...): o XML guardado e o que o desenho usa */
+  if (out.t === 'cx') {
+    const cx = copiaJson(o.cx, 3000000);
+    if (!cx || typeof cx.xml !== 'string' || !Array.isArray(cx.dados)) out.t = 'colunas'; else out.cx = cx;
+  }
   if (out.t === 'excel') {
     const plano = copiaJson(o.plano, 2000000);
     if (!plano || !Array.isArray(plano.grupos)) { out.t = 'colunas'; }

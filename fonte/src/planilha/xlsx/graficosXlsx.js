@@ -6,6 +6,7 @@
    Gravar: se o gráfico que veio do Excel não foi mexido aqui, ele volta EXATAMENTE como veio (o XML original).
      Senão, o plano vira XML de novo (com toda a formatação). Os gráficos do EFCdocs levam também uma extensão com as escolhas
      do EFCdocs (o Excel ignora; ao abrir de volta, o gráfico volta igual). */
+import { ehCxXml, lerCx } from './cxXlsx.js';
 import { tags, tag, escapar, XML_CAB } from './xml.js';
 import { arvore, filho, filhos, em, val, valNum, valBool, textoDe, busca } from './xmlArvore.js';
 import { letraCol, lerChave } from '../ref.js';
@@ -537,6 +538,14 @@ async function graficoDoRid(zip, relsD, rid, tema, geo, lerRelsDe = null, fontes
   if (!rc || !rc.alvo) return null;
   const xml = await zip.texto(rc.alvo);
   if (!xml) return null;
+  /* v0.6.18 (D-44): gráfico novo do Excel 2016 (cascata, funil...): o XML fica guardado, com o estilo e as cores */
+  if (ehCxXml(xml)) {
+    const extras = {};
+    if (lerRelsDe) { try { for (const r of (await lerRelsDe(rc.alvo)).values()) { if (/chartStyle$/.test(r.tipo) && r.alvo) extras.estilo = await zip.texto(r.alvo); else if (/chartColorStyle$/.test(r.tipo) && r.alvo) extras.cores = await zip.texto(r.alvo); } } catch { /* sem estilo */ } }
+    const rx = lerCx(xml, extras);
+    if (rx.fora) return { fora: rx.fora };
+    return { obj: { tipo: 'grafico', ...geo, w: Math.max(60, Math.round(geo.w)), h: Math.max(40, Math.round(geo.h)), g: normalizarG(rx.g), nomeAbaDados: null, avisos: [] } };
+  }
   const r2 = gDoXml(xml, tema);
   if (r2.fora) return { fora: r2.fora };
   /* v0.6.6: caixas de texto e formas desenhadas por cima do gráfico (userShapes) */
@@ -575,9 +584,9 @@ export async function lerGraficosAba(zip, relsAba, aba, lerRelsDe, tema, fontes 
       /* v0.6.5: bloco "AlternateContent" no topo: segmentação de dados fica fora; o resto usa a versão compatível */
       if (tipo === 'AlternateContent') {
         if (/slicer|timeslicer/i.test(el)) continue; /* v0.6.13 (D-29): a segmentação não aparece aqui, mas volta ao salvar (o relatório conta pelas partes do arquivo) */
-        if (/<cx:chart\b|chartex/i.test(el)) { fora.push({ motivo: 'tipo novo do Excel (cascata, funil, mapa...)' }); continue; }
         const fb = /<(?:\w+:)?Fallback\b[^>]*>([\s\S]*?)<\/(?:\w+:)?Fallback>/.exec(el);
         const ch = /<(?:\w+:)?Choice\b[^>]*>([\s\S]*?)<\/(?:\w+:)?Choice>/.exec(el);
+        /* v0.6.18 (D-44): o gráfico novo (cx) usa o quadro do Choice; os outros, o do Choice se o app entende, senão o Fallback */
         el = ((ch && /^\s*<(?:\w+:)?(sp|grpSp|cxnSp|pic|graphicFrame)\b/.test(ch[1]) && !/contentPart/.test(ch[1]) ? ch[1] : fb ? fb[1] : '') || '').trim();
         tipo = tipoDoElemento(el);
         if (!el) { fora.push({ item: 'Objetos do desenho', motivo: 'tipo que o Vértice Docs não abre' }); continue; }
@@ -1086,31 +1095,5 @@ function lerPlanoDaPlanilha(c, motor, plano, abaDoGrafico, ocultosTambem) {
   if (P.titulo && P.titulo.ref) { const r = ler(P.titulo.ref); if (r && r.txt) P.titulo.texto = r.txt.filter(Boolean).join(' ') || P.titulo.texto; }
   return P;
 }
-/** ref → { num:[...], txt:[...] } lido do livro (pulando linhas/colunas ocultas, como o Excel). */
-export function lerFaixaDoLivro(c, motor, abaDoGrafico, ocultosTambem = false) {
-  return (ref) => {
-    if (!ref || typeof ref !== 'object') return null;
-    const id = ref.aba || abaDoGrafico;
-    const A = c.abas[id];
-    const fs = faixasDe(ref.fx || '');
-    if (!A || !fs.length) return null;
-    const f = fs[0];
-    if ((f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1) > 20000) return null;
-    const num = [], txt = [];
-    for (let l = f.l1; l <= f.l2; l++) {
-      if (!ocultosTambem && A.ocL && A.ocL[l] && f.l2 > f.l1) continue;
-      for (let cc = f.c1; cc <= f.c2; cc++) {
-        if (!ocultosTambem && A.ocC && A.ocC[cc] && f.c2 > f.c1) continue;
-        let v; try { v = motor.valor(id, l, cc); } catch { v = null; }
-        if (v && typeof v === 'object') v = null;
-        num.push(typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'boolean' ? +v : null);
-        const cel = A.cel && A.cel[letraCol(cc) + (l + 1)];
-        let t = '';
-        if (v != null && v !== '') { try { t = formatar(v, estiloDe(c, cel || {}).nf).t; } catch { t = String(v); } }
-        txt.push(t);
-      }
-    }
-    return { num, txt };
-  };
-}
+import { lerFaixaDoLivro } from './faixaDoLivro.js'; export { lerFaixaDoLivro }; /* v0.6.18: mudou de arquivo (este passou de 1.100 linhas) */
 void refsDoPlano;

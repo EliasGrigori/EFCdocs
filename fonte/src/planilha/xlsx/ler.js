@@ -16,6 +16,8 @@ import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
 import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js';
+import { ligarCx } from './cxXlsx.js';
+import { noCantoDaAbaDeGrafico } from './abaGraficoXlsx.js';
 import { ligarFormaAoLivro } from './formasXlsx.js';
 import { lerImpressaoAba, lerNomesImpressao } from './impressaoXlsx.js';
 import { idObjeto } from '../objetos.js';
@@ -134,7 +136,8 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     idxFolha++;
     const r = relsWb.get(s.a['r:id'] || s.a.id);
     if (!r || !r.alvo) continue;
-    if (/chartsheet$/.test(r.tipo)) { juntarFora('Abas de gráfico', 1, s.a.name); continue; }
+    /* v0.6.18 (D-43): aba de gráfico (chartsheet) vem como aba com o gráfico e sem linhas de grade; volta como aba de gráfico */
+    if (/chartsheet$/.test(r.tipo)) { folhas.push({ nome: s.a.name, parte: r.alvo, oculta: s.a.state === 'hidden' || s.a.state === 'veryHidden', idx: idxFolha, grafico: true }); continue; }
     if (!/worksheet$/.test(r.tipo)) { juntarFora('Abas de outro tipo (macro antiga ou diálogo)', 1, s.a.name); continue; }
     folhas.push({ nome: s.a.name, parte: r.alvo, oculta: s.a.state === 'hidden' || s.a.state === 'veryHidden', idx: idxFolha });
   }
@@ -284,7 +287,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     aoProgresso({ fase: 'aba', aba: F.nome, i: fi + 1, n: folhas.length, linha: 0 });
     const aba = { id, nome: F.nome, cel: {} };
     aba.org = F.parte; /* v0.6.13 (D-29): de que parte do original veio (para devolver ao salvar o que o app não edita) */
-    if (F.oculta) aba.oculta = true;
+    if (F.oculta) aba.oculta = true; if (F.grafico) { aba.grafico = 1; aba.semGrade = 1; rel.extras.abasGrafico = (rel.extras.abasGrafico || 0) + 1; }
     const ra = { nome: F.nome, celulas: 0, formulas: 0, linhas: 0, cortes: [] };
     let cab = '', resto = '', estado = 0, buf = '';
     let ultimaReal = -1;
@@ -563,6 +566,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     /* v0.6.0: gráficos da aba */
     if (F.rels && [...F.rels.values()].some((r) => /drawing$/.test(r.tipo))) {
       const gr = await lerGraficosAba(zip, F.rels, aba, async (parte) => lerRels(await zip.texto(relsDe(parte)), parte), tema, fontesTema);
+      if (F.grafico) gr.objs.forEach(noCantoDaAbaDeGrafico);
       for (const o of gr.objs) {
         if (o.tipo === 'imagem') { (aba.objs || (aba.objs = [])).push({ id: idObjeto(), ...o }); imgLidas++; continue; }
         /* v0.6.5: formas e grupos (painéis, setas, botões com link, caixas de texto) */
@@ -601,7 +605,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     }
     if (resto.indexOf('onditionalFormatting') >= 0) {
       const cf = lerCondicionais(resto, est.dxfs || [], conv, F.nome, est.corFn);
-      if (cf.regras.length) { aba.cf = cf.regras; rel.extras.condicionais += cf.regras.length; }
+      if (cf.regras.length) { aba.cf = cf.regras; const nb = cf.regras.filter((r) => r.t === 'dataBar').length; rel.extras.condicionais += cf.regras.length - nb; if (nb) rel.extras.barras = (rel.extras.barras || 0) + nb; }
       if (cf.fora.escalas) juntarFora('Escalas de cor (formatação condicional)', cf.fora.escalas, 'chegam numa versão próxima; as outras regras da aba vieram');
       if (cf.fora.barras) juntarFora('Barras de dados (formatação condicional)', cf.fora.barras, 'chegam numa versão próxima');
       if (cf.fora.icones) juntarFora('Conjuntos de ícones (formatação condicional)', cf.fora.icones, 'chegam numa versão próxima');
@@ -737,6 +741,13 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     for (const { aba, o } of graficosLidos) {
       const { nomeAbaDados, avisos, ...resto } = o; void nomeAbaDados;
       for (const a of avisos || []) avisosG.add(a);
+      if (o.g.t === 'cx') {
+        /* v0.6.18 (D-44): gráfico novo do Excel: as fórmulas passam a apontar para o id da aba */
+        const g = { ...o.g, cx: { ...o.g.cx } };
+        soGuardado += ligarCx(g, (nome) => porNome.get(String(nome).toLowerCase()) || null, aba.id);
+        (aba.objs || (aba.objs = [])).push({ id: idObjeto(), ...resto, g }); rel.extras.graficosCx = (rel.extras.graficosCx || 0) + 1;
+        continue;
+      }
       if (o.g.t === 'excel') {
         /* v0.6.1: gráfico do Excel com a formatação toda; as referências passam a apontar para o id da aba */
         const g = { ...o.g };

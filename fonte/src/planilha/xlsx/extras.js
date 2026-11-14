@@ -49,14 +49,61 @@ export function lerValidacoes(resto, conv, nomeAba) {
 }
 
 /* ---------- formatação condicional ---------- */
+const CFVO_BARRA = new Set(['min', 'max', 'num', 'percent', 'percentile', 'formula', 'autoMin', 'autoMax']);
+/** Uma barra de dados: velha = <dataBar> da regra comum (ou null), nova = miolo do <x14:cfRule> (ou null). */
+function lerBarra(velha, nova, corFn, conv, nomeAba, lin) {
+  const db = (x, pre) => { const m = new RegExp(`<${pre}dataBar\\b([^>]*?)(?:/>|>([\\s\\S]*?)</${pre}dataBar>)`).exec(x || ''); return m ? { a: atributos(m[1]), dentro: m[2] || '' } : null; };
+  const v = velha != null ? db(velha, '') : null, n = nova != null ? db(nova, 'x14:') : null;
+  if (!v && !n) return null;
+  const cfvos = (x, novo) => [...String(x || '').matchAll(novo ? /<x14:cfvo\b([^>]*?)(?:\/>|>([\s\S]*?)<\/x14:cfvo>)/g : /<cfvo\b([^>]*?)(?:\/>|>[\s\S]*?<\/cfvo>)/g)].map((m) => {
+    const a = atributos(m[1]); const t = CFVO_BARRA.has(a.type) ? a.type : 'min';
+    const f = novo ? ((/<xm:f>([\s\S]*?)<\/xm:f>/.exec(m[2] || '') || [])[1]) : a.val;
+    const o = { t }; if (f != null && f !== '' && t !== 'min' && t !== 'max' && t !== 'autoMin' && t !== 'autoMax') { const ff = desescapar(f).trim(); o.v = /^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(ff) ? +ff : conv(ff, nomeAba, lin); }
+    return o;
+  });
+  const cv = cfvos(n ? n.dentro : v.dentro, !!n);
+  const b = { min: cv[0] || { t: n ? 'autoMin' : 'min' }, max: cv[1] || { t: n ? 'autoMax' : 'max' } };
+  const cor = (v && corFn(v.dentro, 'color')) || (n && corFn(n.dentro, 'fillColor')) || '#638ec6';
+  b.cor = cor;
+  const at = (n && n.a) || {}, av = (v && v.a) || {};
+  const num = (x, p) => (x != null && x !== '' && Number.isFinite(+x) ? Math.max(0, Math.min(100, +x)) : p);
+  b.minL = num(at.minLength ?? av.minLength, 10); b.maxL = num(at.maxLength ?? av.maxLength, 90);
+  if (av.showValue === '0' || av.showValue === 'false' || at.showValue === '0' || at.showValue === 'false') b.semValor = 1;
+  if (n) {
+    b.x14 = 1;
+    if (at.gradient === '0' || at.gradient === 'false') b.lisa = 1;
+    const borda = corFn(n.dentro, 'borderColor');
+    if (at.border === '1' || at.border === 'true') b.borda = borda || cor;
+    if (!(at.negativeBarColorSameAsPositive === '1' || at.negativeBarColorSameAsPositive === 'true')) b.neg = corFn(n.dentro, 'negativeFillColor') || '#ff0000';
+    const nb = corFn(n.dentro, 'negativeBorderColor'); if (b.borda && nb && (at.negativeBarBorderColorSameAsPositive === '0' || at.negativeBarBorderColorSameAsPositive === 'false')) b.negBorda = nb;
+    b.eixo = at.axisPosition === 'middle' ? 'meio' : at.axisPosition === 'none' ? 'nao' : 'auto';
+    const ce = corFn(n.dentro, 'axisColor'); if (ce) b.corEixo = ce;
+    if (at.direction === 'rightToLeft') b.dir = 'rtl'; else if (at.direction === 'leftToRight') b.dir = 'ltr';
+  }
+  return b;
+}
+
 /** Lê as regras da aba na ordem de força (a de cima ganha). dxfs vem do styles.xml. */
 export function lerCondicionais(resto, dxfs, conv, nomeAba, corFn) {
   const regras = [];
   const fora = { escalas: 0, barras: 0, icones: 0, periodo: 0, outras: 0 };
+  /* v0.6.18 (D-45): barras de dados. A regra antiga guarda o básico; o bloco do Excel 2010 (x14), ligado pelo id, guarda o resto
+     (lisa ou com degradê, borda, cor dos negativos, eixo). Uma barra só conta uma vez. */
+  const x14Barras = new Map();
+  for (const m of resto.matchAll(/<x14:cfRule\b([^>]*?)>([\s\S]*?)<\/x14:cfRule>/g)) { const a = atributos(m[1]); if (a.type === 'dataBar' && a.id) x14Barras.set(a.id, m[2]); }
+  const ligadas = new Set();
   const um = (fx, a, dentro, x14) => {
     const tipo = a.type;
     if (tipo === 'colorScale') { fora.escalas++; return; }
-    if (tipo === 'dataBar') { fora.barras++; return; }
+    if (tipo === 'dataBar') {
+      if (x14 && a.id && ligadas.has(a.id)) return;
+      let x = null;
+      if (!x14) { const id = (/<x14:id>([^<]*)<\/x14:id>/.exec(dentro) || [])[1]; if (id && x14Barras.has(id)) { x = x14Barras.get(id); ligadas.add(id); } }
+      const b = lerBarra(x14 ? null : dentro, x14 ? dentro : x, corFn, conv, nomeAba, ancoraDe(faixasDe(fx)).l);
+      if (!b) { fora.barras++; return; }
+      regras.push({ id: novoIdRegra(), fx, t: 'dataBar', b, e: {}, _p: +a.priority || 0 });
+      return;
+    }
     if (tipo === 'iconSet') { fora.icones++; return; }
     if (tipo === 'timePeriod') { fora.periodo++; return; }
     if (!TIPOS_CF.has(tipo) || a.stdDev) { fora.outras++; return; }
@@ -204,13 +251,40 @@ export function gravarValidacoes(val) {
 }
 
 /** Regras → <conditionalFormatting>. dxfs: lista que cresce (cada estilo único vira um dxf). */
-export function gravarCondicionais(cf, dxfs) {
+const NS_X14 = 'http://schemas.microsoft.com/office/spreadsheetml/2009/9/main';
+const NS_XM = 'http://schemas.microsoft.com/office/excel/2006/main';
+let seqBarra = 0;
+const guidBarra = () => `{EFC0B000-0618-4000-8000-${(++seqBarra).toString(16).padStart(12, '0').toUpperCase()}}`;
+const argb = (h) => 'FF' + String(h || '#638ec6').replace('#', '').slice(0, 6).toUpperCase();
+/** v0.6.18 (D-45): uma barra de dados → [regra comum, bloco do Excel 2010 ou ''] */
+function gravarBarra(r, prio) {
+  const b = r.b || {};
+  const valCfvo = (o) => (o.v == null ? '' : typeof o.v === 'number' ? String(o.v) : porPrefixos(String(o.v)));
+  const velho = (o, padrao) => { const t = o && o.t === 'autoMin' ? 'min' : o && o.t === 'autoMax' ? 'max' : (o && o.t) || padrao; const v = t === 'min' || t === 'max' ? '' : valCfvo(o); return `<cfvo type="${t}"${v !== '' ? ` val="${escapar(v, true)}"` : ''}/>`; };
+  const novo = (o, padrao) => { const t = (o && o.t) || padrao; const v = t === 'min' || t === 'max' || t === 'autoMin' || t === 'autoMax' ? '' : valCfvo(o); return v !== '' ? `<x14:cfvo type="${t}"><xm:f>${escapar(v)}</xm:f></x14:cfvo>` : `<x14:cfvo type="${t}"/>`; };
+  const minL = Number.isFinite(b.minL) ? b.minL : 10, maxL = Number.isFinite(b.maxL) ? b.maxL : 90;
+  const atv = `${b.x14 ? '' : `${minL !== 10 ? ` minLength="${minL}"` : ''}${maxL !== 90 ? ` maxLength="${maxL}"` : ''}`}${b.semValor ? ' showValue="0"' : ''}`;
+  if (!b.x14) return [`<cfRule type="dataBar" priority="${prio}"><dataBar${atv}>${velho(b.min, 'min')}${velho(b.max, 'max')}<color rgb="${argb(b.cor)}"/></dataBar></cfRule>`, ''];
+  const id = guidBarra();
+  const principal = `<cfRule type="dataBar" priority="${prio}"><dataBar${atv}>${velho(b.min, 'autoMin')}${velho(b.max, 'autoMax')}<color rgb="${argb(b.cor)}"/></dataBar>` +
+    `<extLst><ext uri="{B025F937-C7B1-47D3-B67F-A62EFF666E3E}" xmlns:x14="${NS_X14}"><x14:id>${id}</x14:id></ext></extLst></cfRule>`;
+  const at = ` minLength="${minL}" maxLength="${maxL}"${b.semValor ? ' showValue="0"' : ''}${b.borda ? ' border="1"' : ''}${b.lisa ? ' gradient="0"' : ''}${b.dir === 'rtl' ? ' direction="rightToLeft"' : b.dir === 'ltr' ? ' direction="leftToRight"' : ''}` +
+    `${b.neg ? '' : ' negativeBarColorSameAsPositive="1"'}${b.borda && b.negBorda ? ' negativeBarBorderColorSameAsPositive="0"' : ''}${b.eixo === 'meio' ? ' axisPosition="middle"' : b.eixo === 'nao' ? ' axisPosition="none"' : ''}`;
+  const filhos = `${novo(b.min, 'autoMin')}${novo(b.max, 'autoMax')}${b.borda ? `<x14:borderColor rgb="${argb(b.borda)}"/>` : ''}${b.neg ? `<x14:negativeFillColor rgb="${argb(b.neg)}"/>` : ''}` +
+    `${b.borda && b.negBorda ? `<x14:negativeBorderColor rgb="${argb(b.negBorda)}"/>` : ''}<x14:axisColor rgb="${argb(b.corEixo || '#000000')}"/>`;
+  return [principal, `<x14:conditionalFormatting xmlns:xm="${NS_XM}"><x14:cfRule type="dataBar" id="${id}"><x14:dataBar${at}>${filhos}</x14:dataBar></x14:cfRule><xm:sqref>${escapar(r.fx)}</xm:sqref></x14:conditionalFormatting>`];
+}
+
+/** Regras da aba → <conditionalFormatting>. exts (lista) recebe o bloco do Excel 2010 das barras de dados, para o extLst da aba. */
+export function gravarCondicionais(cf, dxfs, exts = null) {
   if (!cf || !cf.length) return '';
+  const novos = [];
   const chaveDxf = new Map(dxfs.map((d, i) => [JSON.stringify(d), i]));
   const idDxf = (e) => { const k = JSON.stringify(e || {}); let i = chaveDxf.get(k); if (i == null) { i = dxfs.length; dxfs.push(e || {}); chaveDxf.set(k, i); } return i; };
   let prio = 1;
   const out = [];
   for (const r of cf) {
+    if (r.t === 'dataBar') { const [p1, p2] = gravarBarra(r, prio++); out.push(`<conditionalFormatting sqref="${escapar(r.fx, true)}">${p1}</conditionalFormatting>`); if (p2) novos.push(p2); continue; }
     if (!r.t || !TIPOS_CF.has(r.t)) continue;
     const anc = ancoraDe(faixasDe(r.fx));
     const A1 = chave(anc.l, anc.c);
@@ -238,6 +312,7 @@ export function gravarCondicionais(cf, dxfs) {
     out.push(`<conditionalFormatting sqref="${escapar(r.fx, true)}"><cfRule${a}>${fx}</cfRule></conditionalFormatting>`);
   }
   void NOME_ARQUIVO_OP;
+  if (novos.length && exts) exts.push(`<ext uri="{78C0D931-6437-407d-A8EE-F0AAD7539E65}" xmlns:x14="${NS_X14}"><x14:conditionalFormattings>${novos.join('')}</x14:conditionalFormattings></ext>`);
   return out.join('');
 }
 

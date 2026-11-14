@@ -4,7 +4,7 @@ import { Icone, Janela } from '../ui/comum.jsx';
 import { paraGuardar, paraMostrar } from './formula.js';
 import { lerEntrada } from './entrada.js';
 import { formatar } from './formato.js';
-import { faixasDe, textoDoComentario, TIPOS_VALIDACAO, ESTILOS_ERRO, OPERADORES, TIPOS_REGRA, descreverRegra, descreverValidacao, novoIdRegra } from './regras.js';
+import { faixasDe, textoDoComentario, TIPOS_VALIDACAO, ESTILOS_ERRO, OPERADORES, TIPOS_REGRA, descreverRegra, descreverValidacao, novoIdRegra, BARRA_NOVA, corClaraDaBarra } from './regras.js';
 import { PainelCores } from './cores.jsx';
 
 const SEM_DOIS = new Set(['between', 'notBetween']);
@@ -291,6 +291,13 @@ const REALCES = [
   ['Cinza (inativo)', { fundo: '#e7e6e6', cor: '#7f7f7f' }],
 ];
 
+/** v0.6.18 (D-45): amostra de barra de dados (lista de regras e prévia) */
+function AmostraBarra({ b, texto = '' }) {
+  const cor = (b && b.cor) || '#638ec6';
+  const fundo = b && b.lisa ? cor : `linear-gradient(90deg, ${cor}, ${corClaraDaBarra(cor)})`;
+  return <span className="rg-amostra rg-amostra-barra"><span style={{ background: fundo, borderColor: (b && b.borda) || 'transparent' }} />{texto && !(b && b.semValor) ? <i>{texto}</i> : null}</span>;
+}
+
 function Amostra({ e, texto = 'Aa 123' }) {
   return <span className="rg-amostra" style={{ background: e.fundo || undefined, color: e.cor || undefined, fontWeight: e.b ? 700 : undefined, fontStyle: e.i ? 'italic' : undefined, textDecoration: [e.u ? 'underline' : '', e.st ? 'line-through' : ''].filter(Boolean).join(' ') || undefined }}>{texto}</span>;
 }
@@ -311,11 +318,14 @@ function FormRegra({ regra, faixaTexto, aoOk, aoVoltar, cores, aoPegar }) {
   const [fx, setFx] = useState(r0.fx || faixaTexto);
   const [erro, setErro] = useState('');
   const [qualCor, setQualCor] = useState('fundo');
+  const [barra, setBarra] = useState(() => ({ ...BARRA_NOVA, ...(r0.t === 'dataBar' ? r0.b : {}) }));
+  const ehBarra = t === 'dataBar';
   const mudaE = (p) => setE((x) => { const o = { ...x, ...p }; for (const k of Object.keys(o)) if (o[k] === undefined || o[k] === false) delete o[k]; return o; });
   const textoT = ['containsText', 'notContainsText', 'beginsWith', 'endsWith'].includes(t);
   const ok = () => {
     const r = { id: r0.id || novoIdRegra(), fx: fx.trim().toUpperCase().replace(/\s+/g, ' '), t, e: { ...e } };
     if (!faixasDe(r.fx).length) { setErro('Diga onde vale, por exemplo A2:A100 ou B:B.'); return; }
+    if (t === 'dataBar') { const b = { ...barra }; for (const k of ['lisa', 'semValor']) if (!b[k]) delete b[k]; aoOk({ id: r.id, fx: r.fx, t, b, e: {} }); return; }
     if (!Object.keys(r.e).length) { setErro('Escolha pelo menos uma cor ou um destaque (negrito, itálico...).'); return; }
     if (t === 'cellIs') {
       r.op = op;
@@ -361,13 +371,24 @@ function FormRegra({ regra, faixaTexto, aoOk, aoVoltar, cores, aoPegar }) {
           {t === 'aboveAverage' && <label className="rg-campo"><span>Quais</span><select value={ab ? 'a' : 'b'} onChange={(ev) => setAb(ev.target.value === 'a')}><option value="a">Acima da média</option><option value="b">Abaixo da média</option></select></label>}
           <label className="rg-campo"><span>Vale em</span><input value={fx} data-cond-fx spellCheck={false} onChange={(ev) => { setFx(ev.target.value); setErro(''); }} /></label>
         </section>
-        <section className="rg-cartao">
+        {ehBarra && (
+          <section className="rg-cartao" data-cond-barra>
+            <span className="rg-cab">Barra</span>
+            <PainelCores key="b" valor={barra.cor} semCor={null} cores={cores} aoPegar={undefined} aoMudar={(v) => v && setBarra((x) => ({ ...x, cor: v }))} />
+            <div className="rg-linha rg-estilos">
+              <label className="rg-chk"><input type="checkbox" data-cond-lisa checked={!!barra.lisa} onChange={(ev) => setBarra((x) => ({ ...x, lisa: ev.target.checked ? 1 : 0 }))} /> Lisa (sem degradê)</label>
+              <label className="rg-chk"><input type="checkbox" data-cond-sovalor checked={!!barra.semValor} onChange={(ev) => setBarra((x) => ({ ...x, semValor: ev.target.checked ? 1 : 0 }))} /> Mostrar só a barra</label>
+            </div>
+            <small className="rg-dica">A barra cresce com o número da célula; os negativos vão para a esquerda, em vermelho.</small>
+          </section>
+        )}
+        {!ehBarra && <section className="rg-cartao">
           <span className="rg-cab">Modelos prontos</span>
           <div className="rg-realces" role="group" aria-label="Modelos de destaque">
             {REALCES.map(([nome, est]) => <button key={nome} type="button" className={'rg-realce' + (JSON.stringify(est) === JSON.stringify(e) ? ' on' : '')} title={nome} data-realce={nome} onClick={() => setE({ ...est })}><Amostra e={est} texto="Aa" /><span>{nome}</span></button>)}
           </div>
-        </section>
-        <section className="rg-cartao">
+        </section>}
+        {!ehBarra && <section className="rg-cartao">
           <div className="rg-linha rg-topo">
             <span className="rg-cab">Cores</span>
             <div className="rg-seg" role="group" aria-label="Qual cor">
@@ -384,14 +405,14 @@ function FormRegra({ regra, faixaTexto, aoOk, aoVoltar, cores, aoPegar }) {
             <label className="rg-chk"><input type="checkbox" checked={!!e.u} onChange={(ev) => mudaE({ u: ev.target.checked })} /> <u>Sublinhado</u></label>
             <label className="rg-chk"><input type="checkbox" checked={!!e.st} onChange={(ev) => mudaE({ st: ev.target.checked })} /> <s>Riscado</s></label>
           </div>
-        </section>
+        </section>}
       </div>
       <div className="rg-col">
         <section className="rg-cartao rg-previa-c">
           <span className="rg-cab">Como fica</span>
-          <div className="rg-previa"><Amostra e={e} texto="Rede 1   0,70" /></div>
-          <p className="rg-dica">Assim ficam as células de {fx || 'a área'} onde a regra valer.</p>
-          <label className="rg-chk"><input type="checkbox" checked={par} onChange={(ev) => setPar(ev.target.checked)} /> Se esta regra valer, não olhar as de baixo</label>
+          <div className="rg-previa">{ehBarra ? <AmostraBarra b={barra} texto="0,70" /> : <Amostra e={e} texto="Rede 1   0,70" />}</div>
+          <p className="rg-dica">Assim ficam as células de {fx || 'a área'}{ehBarra ? '.' : ' onde a regra valer.'}</p>
+          {!ehBarra && <label className="rg-chk"><input type="checkbox" checked={par} onChange={(ev) => setPar(ev.target.checked)} /> Se esta regra valer, não olhar as de baixo</label>}
         </section>
         {erro && <p className="rg-erro" role="alert">{erro}</p>}
         <div className="rg-linha rg-botoes">
@@ -435,7 +456,7 @@ export function JanelaCondicional({ lista, faixaTexto, selecao, aoSalvar, aoFech
                   const i = regras.findIndex((x) => x.id === r.id);
                   return (
                     <li key={r.id} data-regra={r.id} className="rg-regra">
-                      <Amostra e={r.e || {}} />
+                      {r.t === 'dataBar' ? <AmostraBarra b={r.b} /> : <Amostra e={r.e || {}} />}
                       <div className="rg-regra-t"><b>{descreverRegra(r)}</b><span>vale em {r.fx}{r.par ? ' · para aqui se valer' : ''}</span></div>
                       <div className="rg-regra-b">
                         <button type="button" className="iconbtn" aria-label="Mais força (sobe)" title="Mais força: sobe" disabled={i === 0} onClick={() => mover(r.id, -1)}><Icone n="setaCima" /></button>

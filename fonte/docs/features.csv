@@ -355,3 +355,8 @@ F353;App;ponte;"Painel Campos do Cwork: marcar e tirar campos (nomes efc_), com 
 F354;App;ponte;"Compartilhar leva preenche e campos na ficha; avisa nome efc_ desconhecido e excesso de 32";funciona;"v0.6.17 (Ponte 2)";manter;v0.6.17
 F355;App;ponte;"Resumo do envio: número da ficha diferente do envio e Preencher e imprimir";funciona;"v0.6.17 (D03 aprovado em 13/11)";manter;v0.6.17
 F356;Planilha;impressao;"Imprimir e PDF fora da tela (planilha/imprimirLivro.js), mesmo resultado";funciona;"v0.6.17: Planilha.jsx de 3.699 para 3.600 linhas";manter;v0.6.17
+F357;Planilha;regras;"Barras de dados (formatação condicional): ler, desenhar na grade, imprimir e regravar (antiga e Excel 2010: lisa, degradê, borda, negativos com eixo, só a barra)";funciona;"v0.6.18 (D-45)";manter;v0.6.18
+F358;Planilha;regras;"Nova regra Barras de dados na janela de formatação condicional (cor, lisa, só a barra)";funciona;"v0.6.18";manter;v0.6.18
+F359;Planilha;abas;"Aba de gráfico (chartsheet): vem como aba com o gráfico e sem grade; volta como aba de gráfico (ou comum, se ganhou células)";funciona;"v0.6.18 (D-43)";manter;v0.6.18
+F360;Planilha;graficos;"Gráficos do Excel 2016 (cascata e funil desenhados; os outros tipos como quadro): acompanham as células e voltam iguais ao salvar";parcial;"v0.6.18 (D-44): não se editam aqui; mapa de árvore, explosão solar, caixa, histograma, Pareto e mapa ainda sem desenho";manter;v0.6.18
+F361;Planilha;graficos;"Grupo do Excel com gráfico do Excel 2016 dentro continua grupo (sem a caixa de aviso do Excel antigo)";funciona;"v0.6.18 (D-44)";manter;v0.6.18

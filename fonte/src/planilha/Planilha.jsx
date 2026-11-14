@@ -39,7 +39,7 @@ import { ehPainel, painelVazio, novaPeca, arrumar, textoDoNumero, textoDaMeta, N
 import { PainelView, JanelaPeca, JanelaGraficoPainel } from './painelUi.jsx';
 import { refsDoPlano, pacoteDoGrafico } from './graficoPlano.js';
 import { lerFaixaDoLivro } from './xlsx/graficosXlsx.js';
-import { svgDoGrafico } from './desenhoGrafico.js';
+import { NOMES_CX } from './xlsx/cxXlsx.js';
 import { normalizarImp, impParaGuardar, sugestaoPainel } from './impressao.js';
 import * as IL from './imprimirLivro.js';
 import { pdfDasPaginas, imagensDasPaginas, baixarBytes } from './impressaoPdf.js';
@@ -835,13 +835,8 @@ export function Planilha({ arquivo, cx }) {
     }
     return { linhas, cab: p.cab !== 0, cortou };
   };
-  const svgDaPeca = (p, w, h, tema = temaGrafico) => {
-    const g = p.g;
-    /* v0.6.8 (Grok): gráfico do Excel leva as cores dele: no tema escuro fica no claro (senão o número escuro do meio do velocímetro sumia) */
-    if (g.t === 'excel') return svgDoGrafico(g, null, { w, h, tema: TEMA_CLARO, lerFaixa: lerFaixaDoLivro(c, motor, abaId, g.plano && g.plano.soVisiveis === false) });
-    const ld = lerDadosGrafico(g.dados.fx, !!g.porLinhas, g.dados.aba && c.abas[g.dados.aba] ? g.dados.aba : abaId, !!(g.op && g.op.ocultos));
-    return svgDoGrafico(g, ld.d, { w, h, tema });
-  };
+  /* v0.6.8 (Grok): gráfico do Excel leva as cores dele: no tema escuro fica no claro (senão o número escuro do meio do velocímetro sumia) */
+  const svgDaPeca = (p, w, h, tema = temaGrafico) => IL.svgDoGraficoDoLivro(c, motor, abaId, p.g, { w, h, tema, temaXl: TEMA_CLARO });
   /** o gráfico copiado para o painel continua lendo a aba de onde veio (o "" das referências vira o id dela) */
   const graficoParaPainel = (g0, abaOrigem) => {
     const g = JSON.parse(JSON.stringify(g0));
@@ -993,13 +988,11 @@ export function Planilha({ arquivo, cx }) {
   const salvarImp = (imp) => mudar({ [`conteudo.abas.${abaId}.imp`]: impParaGuardar(imp) }, 'Configurar página');
   const mudarImp = (fn, rotulo) => { const atual = normalizarImp(aba.imp); mudar({ [`conteudo.abas.${abaId}.imp`]: impParaGuardar(fn(atual)) }, rotulo); };
 
-  const abrirGrafico = (o) => { setObjSel(o.id); setJanela({ tipo: 'grafico', id: o.id }); };
+  /* v0.6.18 (D-44): o gráfico novo do Excel 2016 (cascata, funil...) ainda não se edita aqui; move, muda de tamanho, apaga e volta igual */
+  const avisarCx = (o) => cx.avisar(`Este gráfico do Excel 2016 (${NOMES_CX[o.g.cx && o.g.cx.tipo] || 'tipo novo'}) acompanha as células, mas ainda não se edita aqui: dá para mover, mudar o tamanho e apagar. Ao salvar como Excel, ele volta igual.`, { ic: 'info', longo: true });
+  const abrirGrafico = (o) => { setObjSel(o.id); if (o.g && o.g.t === 'cx') { avisarCx(o); return; } setJanela({ tipo: 'grafico', id: o.id }); };
   /* ---------- v0.6.7: aba Gráfico: baixar imagem, duplicar e meus estilos ---------- */
-  const svgDoObjGrafico = (o, tema = TEMA_CLARO, k = 1) => {
-    if (o.g.t === 'excel') return svgDoGrafico(o.g, null, { w: o.w * k, h: o.h * k, tema, lerFaixa: lerFaixaDoLivro(c, motor, abaId, o.g.plano && o.g.plano.soVisiveis === false) });
-    const ld = lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : abaId, !!o.g.op.ocultos);
-    return svgDoGrafico(o.g, ld.d, { w: o.w, h: o.h, tema });
-  };
+  const svgDoObjGrafico = (o, tema = TEMA_CLARO, k = 1) => IL.svgDoGraficoDoLivro(c, motor, abaId, o.g, { w: o.w, h: o.h, tema, k });
   const baixarImagemGrafico = async (o) => {
     const svg = svgDoObjGrafico(o);
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
@@ -2264,6 +2257,7 @@ export function Planilha({ arquivo, cx }) {
         if (id === 'grafico.excluir') return ed(() => excluirObjeto(og));
         const sec = { 'grafico.estilo': 'estilo', 'grafico.cores': 'cores', 'grafico.semaforo': 'semaforo' }[id];
         setObjSel(og.id);
+        if (og.g && og.g.t === 'cx') { avisarCx(og); return true; }
         setJanela(sec ? { tipo: 'grafico', id: og.id, aba: 'estilo', secao: sec } : { tipo: 'grafico', id: og.id });
         return true;
       }
@@ -3098,7 +3092,7 @@ export function Planilha({ arquivo, cx }) {
               if (!rc.visivel) return null;
               const escolhida = objSel === o.id;
               if (o.tipo === 'grafico') {
-                const xl = o.g.t === 'excel';
+                const xl = o.g.t === 'excel' || o.g.t === 'cx';
                 const ld = xl ? { d: null } : lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : abaId, !!o.g.op.ocultos);
                 return (
                   <div key={o.id} className={'pl-obj pl-obj-gr' + (xl ? ' pl-obj-xl' : '') + (escolhida ? ' sel' : '')} data-obj={o.id} data-grafico={o.g.t} role="img" aria-label={'Gráfico' + (o.g.titulo ? ': ' + o.g.titulo : '')}
