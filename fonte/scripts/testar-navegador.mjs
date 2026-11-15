@@ -57,7 +57,10 @@ const contar = async (p) => {
   const n = t.match(/(\d+) post-its? · (\d+) formas? · (\d+) setas?/);
   return { postits: +n[1], formas: +n[2], setas: +n[3] };
 };
-const cmd = (p, id) => p.locator(`[data-cmd="${id}"]`).first().click();
+/* v0.6.21 (faixa igual ao Excel): na Página Inicial, inserir/excluir/ocultar/reexibir ficam nas listas de Inserir, Excluir e Formatar */
+const NA_LISTA = { 'planilha.inserirLinha': 'inserir', 'planilha.inserirColuna': 'inserir', 'planilha.excluirLinha': 'excluir', 'planilha.excluirColuna': 'excluir', 'planilha.reexibir': 'formatar', 'planilha.reexibirColuna': 'formatar' };
+const abreLista = async (p, id) => { const m = NA_LISTA[id]; if (m && !(await p.locator(`[data-cmd="${id}"]`).count()) && await p.locator(`[data-menu-faixa=${m}]`).count()) { await p.click(`[data-menu-faixa=${m}]`); await p.waitForSelector(`.rb-lista [data-cmd="${id}"]`); return true; } return false; };
+const cmd = async (p, id) => { await abreLista(p, id); await p.locator(`[data-cmd="${id}"]`).first().click(); };
 const caixa = async (p, sel) => p.locator(sel).first().boundingBox();
 async function escreverNoItem(p, texto) {
   const ta = p.locator('textarea.qd-edita');
@@ -87,10 +90,12 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, rodapé mostra Vértice Docs v0.6.18', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.21', async () => {
   await p.goto(BASE);
-  await p.waitForSelector('.foot');
-  certo((await p.locator('.foot').innerText()).includes('Vértice Docs v0.6.18'), 'rodapé sem v0.6.9');
+  await p.waitForSelector('[data-versao]');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.21'), 'menu sem v0.6.21');
+  /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
+  igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
   igual(await p.locator('#abertura').count(), 0, 'tela de abertura não saiu');
 });
@@ -100,6 +105,7 @@ await caso('menu: Pastas e Documentos externos com "em breve" explicado', async 
   igual((await em.first().innerText()).trim(), 'em breve');
   certo((await p.locator('.rail a[href="#/pastas"]').getAttribute('title')).includes('v0.8.0'));
   await p.click('.rail a[href="#/pastas"]');
+  await p.locator('.aviso-breve').waitFor({ timeout: 5000 }).catch(() => {});
   certo(await p.locator('.aviso-breve').isVisible(), 'página de pastas sem aviso');
   await print(p, '01-pastas-em-breve');
 });
@@ -371,7 +377,7 @@ await ctx.close();
 ({ ctx, p } = await novaPagina());
 await caso('demonstração: no máximo 3 arquivos e marca no topo', async () => {
   await p.goto(BASE + '?demo=1');
-  await p.waitForSelector('.selo.demo-selo');
+  await p.waitForSelector('.demo-selo');
   igual(await p.locator('.faixa-aviso.demo').count(), 0, 'faixa de demonstração repetida');
   for (let i = 0; i < 3; i++) {
     await p.goto(BASE + '?demo=1#/postits');
@@ -423,7 +429,7 @@ await ctx.close();
 ({ ctx, p } = await novaPagina());
 await caso('v0.3.1: barra de ferramentas vertical cria forma e esconde', async () => {
   await p.goto(BASE);
-  await p.waitForSelector('.foot');
+  await p.waitForSelector('#conteudo .pagina, .foot');
   await p.click('.rail a[href="#/postits"]');
   await p.click('[data-novo=postits]');
   await p.waitForSelector('.qd-vazio');
@@ -1851,7 +1857,7 @@ await caso('v0.4.4: Início sem título repetido nem parágrafo; Novo compacto; 
   await p.locator('.filtro-p select').first().selectOption('postits');
   await p.waitForTimeout(100);
   igual(await p.locator('.arq').count(), 1);
-  certo((await p.locator('.secao .cont').innerText()).includes('1 de 2'), await p.locator('.secao .cont').innerText());
+  certo((await p.locator('[data-cont]').innerText()).includes('1 arquivo · total filtrado'), await p.locator('[data-cont]').innerText());
   certo((await p.locator('.filtro-b').innerText()).includes('Quadro'), 'resumo sem o tipo: ' + await p.locator('.filtro-b').innerText());
   await p.locator('.filtro-p input').fill('nada disso');
   await p.waitForTimeout(100);
@@ -1883,7 +1889,7 @@ await caso('v0.4.4: lista de Planilhas com um botão Nova planilha e o filtro; D
   await p.click('.rail a[href="#/docx"]');
   await p.waitForSelector('[data-novo=docx]');
   const t = await p.locator('.pagina').innerText();
-  igual((t.match(/v0\.7\.0/g) || []).length, 2, 'a versão do editor aparece demais: ' + t); // aviso + selo do botão
+  igual((t.match(/v0\.7\.0/g) || []).length, 1, 'a versão do editor aparece demais: ' + t); // v0.6.20 (R5 da família): só o selo "Editor na v0.7.0" na linha de pílulas
 });
 await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o que está escolhido; "Tema" abre direto na seção', async () => {
   await p.goto(BASE + '#/');
@@ -1894,7 +1900,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.18'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.21'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -1967,7 +1973,7 @@ await caso('v0.4.4.1: a barra da esquerda do quadro começa escondida e o comand
 await ctx.close();
 
 ({ ctx, p } = await novaPagina());
-await caso('v0.4.4.1: planilhas em cartões (3 colunas no computador, 2 em 800 px), sem título repetido; contagem ao lado do filtro', async () => {
+await caso('v0.6.20 (R1 e R5 da família; antes v0.4.4.1, em cartões): planilhas em tabela, uma por linha, com título grande na página e a contagem no selo', async () => {
   for (let i = 0; i < 4; i++) {
     await p.goto(BASE + '#/planilha');
     await p.click('[data-novo=planilha]');
@@ -1975,17 +1981,20 @@ await caso('v0.4.4.1: planilhas em cartões (3 colunas no computador, 2 em 800 p
   }
   await p.goto(BASE + '#/planilha');
   await p.waitForSelector('.arq');
-  igual(await p.locator('.pagina h3').count(), 0, 'título "Planilhas" repetido na página');
-  certo((await p.locator('.secao .cont').innerText()).includes('4 planilhas'), await p.locator('.secao .cont').innerText());
+  igual(await p.locator('.pagina .pg-tit').count(), 1, 'um título só na página');
+  igual((await p.locator('.pagina .pg-tit').innerText()).trim(), 'Planilhas');
+  certo((await p.locator('[data-trilha]').innerText()).includes('Meus arquivos'), 'a barra de cima devia mostrar o caminho');
+  certo((await p.locator('[data-cont]').innerText()).includes('4 planilhas'), await p.locator('[data-cont]').innerText());
+  igual((await p.locator('.tb-arq thead th').allInnerTexts()).slice(0, 2).join('|'), 'Nome|Alterado em');
   const ys = [];
   for (const a of await p.locator('.arq').all()) ys.push(Math.round((await a.boundingBox()).y));
-  igual(ys.filter((y) => y === ys[0]).length, 3, 'devia haver 3 cartões na primeira linha: ' + ys);
-  await print(p, '70-planilhas-cartoes');
+  igual(new Set(ys).size, 4, 'devia haver uma planilha por linha: ' + ys);
+  await print(p, '70-planilhas-tabela');
   await p.setViewportSize({ width: 800, height: 800 });
   await p.waitForTimeout(250);
   const ys2 = [];
   for (const a of await p.locator('.arq').all()) ys2.push(Math.round((await a.boundingBox()).y));
-  igual(ys2.filter((y) => y === ys2[0]).length, 2, 'em 800 px devia haver 2 cartões na linha: ' + ys2);
+  igual(new Set(ys2).size, 4, 'em 800 px continua uma por linha: ' + ys2);
   await p.setViewportSize({ width: 1366, height: 800 });
 });
 await caso('v0.4.4.1: Lixeira com "Apagar para sempre" que pergunta antes (sem o X solto)', async () => {
@@ -1994,7 +2003,7 @@ await caso('v0.4.4.1: Lixeira com "Apagar para sempre" que pergunta antes (sem o
   await p.locator('.arq .iconbtn[aria-label^="Mandar para a lixeira"]').first().click();
   await p.goto(BASE + '#/lixeira');
   await p.waitForSelector('.arq');
-  igual(await p.locator('.arq .iconbtn').count(), 0, 'sobrou botão só com X');
+  igual(await p.locator('.arq .iconbtn:not([data-detalhes])').count(), 0, 'sobrou botão só com X');
   const b = p.locator('.arq .btn.apagar');
   certo((await b.innerText()).includes('Apagar para sempre'));
   await b.click();
@@ -2033,11 +2042,11 @@ await ctx.close();
 ({ ctx, p } = await novaPagina());
 await caso('v0.4.4.1: Demonstração aparece uma vez só (o selo ao lado de Novo), que explica ao tocar', async () => {
   await p.goto(BASE + '?demo=1#/');
-  await p.waitForSelector('.selo.demo-selo');
+  await p.waitForSelector('.demo-selo');
   igual(await p.locator('.faixa-aviso.demo').count(), 0);
   const tudo = await p.locator('body').innerText();
   igual((tudo.match(/Demonstra[çc][ãa]o/g) || []).length, 1, 'Demonstração repetida: ' + (tudo.match(/Demonstra[çc][ãa]o/g) || []).length);
-  await p.locator('.selo.demo-selo').click();
+  await p.locator('.demo-selo').click();
   await p.waitForSelector('.toast');
   certo((await p.locator('.toast').last().innerText()).includes('DEMO · EFC'));
 });
@@ -2159,17 +2168,19 @@ await caso('v0.4.4.2: aviso com Desfazer some ao trocar de página; fica atrás 
   }
   await p.click('[data-novo=planilha]'); await p.waitForSelector('.pl-cv');
   await p.goto(BASE + '#/planilha'); await p.waitForSelector('.arq');
-  /* datas no pé: na mesma linha de cartões, o bottom da data é igual */
-  const fundos = [];
-  for (const a of await p.locator('.arq').all()) { const b = await a.locator('.txt > span').boundingBox(); const c = await a.boundingBox(); fundos.push(Math.round(b.y + b.height - c.y - c.height)); }
-  certo(new Set(fundos).size === 1, 'datas em alturas diferentes: ' + fundos);
+  /* v0.6.20 (R1 da família): a data é uma coluna; fica alinhada em todas as linhas e o nome comprido não quebra a linha */
+  const fundos = [], alturas = [];
+  for (const a of await p.locator('.arq').all()) { const b = await a.locator('.c-quando').boundingBox(); const c = await a.boundingBox(); fundos.push(Math.round(b.x)); alturas.push(Math.round(c.height)); }
+  certo(new Set(fundos).size === 1, 'datas desalinhadas: ' + fundos);
+  certo(new Set(alturas).size === 1, 'linhas com alturas diferentes: ' + alturas);
   /* contagem */
-  certo((await p.locator('.secao .cont').innerText()).includes('3 planilhas'), await p.locator('.secao .cont').innerText());
+  certo((await p.locator('[data-cont]').innerText()).includes('3 planilhas'), await p.locator('[data-cont]').innerText());
   await p.goto(BASE + '#/');
-  await p.waitForSelector('.secao .cont');
-  certo((await p.locator('.secao .cont').innerText()).includes('3 arquivos'), await p.locator('.secao .cont').innerText());
-  const cx1 = (await p.locator('.secao .cont').boundingBox()), fx = (await p.locator('.filtro-b').boundingBox());
-  certo(cx1.x + cx1.width <= fx.x + 1 && fx.x - (cx1.x + cx1.width) < 40, 'a contagem devia ficar ao lado do filtro');
+  await p.waitForSelector('[data-cont]');
+  certo((await p.locator('[data-cont]').innerText()).includes('3 arquivos'), await p.locator('[data-cont]').innerText());
+  const cx1 = (await p.locator('[data-cont]').boundingBox()), fx = (await p.locator('.filtro-b').boundingBox());
+  /* v0.6.20 (R3 e R4 da família): a contagem é o selo ao lado do título "Recentes"; o filtro fica na ponta direita da mesma linha */
+  certo(Math.abs((cx1.y + cx1.height / 2) - (fx.y + fx.height / 2)) <= 6 && cx1.x + cx1.width < fx.x, 'a contagem e o filtro deviam ficar na mesma linha');
   /* aviso com Desfazer: some ao trocar de página, depois de um tempo na tela */
   await p.goto(BASE + '#/planilha'); await p.waitForSelector('.arq');
   await p.locator('.arq .iconbtn[aria-label^="Mandar para a lixeira"]').first().click();
@@ -2244,7 +2255,7 @@ const contarPixels = (p, src, corAlvo) => p.evaluate(async ([src, corAlvo]) => {
 ({ ctx, p } = await novaPagina());
 await caso('v0.4.5 quadro: Assinatura pela faixa Inserir: nome é obrigatório, uma palavra só avisa, desenhar mostra a prévia e Inserir põe a peça', async () => {
   await p.goto(BASE);
-  await p.waitForSelector('.foot');
+  await p.waitForSelector('#conteudo .pagina, .foot');
   await p.click('.rail a[href="#/postits"]');
   await p.click('[data-novo=postits]');
   await p.waitForSelector('.qd-vazio');
@@ -2546,7 +2557,7 @@ await caso('v0.4.6: o autocompletar oferece as funções novas e a lista de fun�
 ({ ctx, p } = await novaPagina());
 await caso('v0.4.6.1 quadro: depois de recarregar, o Ctrl+V cola a assinatura (com a rubrica, v0.4.9) ao lado da original, e não um post-it', async () => {
   await p.goto(BASE);
-  await p.waitForSelector('.foot');
+  await p.waitForSelector('#conteudo .pagina, .foot');
   await p.click('.rail a[href="#/postits"]');
   await p.click('[data-novo=postits]');
   await p.waitForSelector('.qd-vazio');
@@ -2588,7 +2599,7 @@ await caso('v0.4.6.1 planilha: ao digitar =TET não aparece o "Não sei o que é
 });
 await caso('v0.4.6.1 o aviso com Desfazer some quando a pessoa segue em frente (clica em outro lugar), sem esperar o temporizador', async () => {
   await p.goto(BASE);
-  await p.waitForSelector('.foot');
+  await p.waitForSelector('#conteudo .pagina, .foot');
   await p.click('.rail a[href="#/postits"]');
   await p.click('[data-novo=postits]');
   await p.waitForSelector('.qd-vazio');
@@ -2611,7 +2622,7 @@ await caso('v0.4.6.1 o aviso com Desfazer some quando a pessoa segue em frente (
 ({ ctx, p } = await novaPagina());
 await caso('v0.4.8: abre no tema Papel, com "Papel sobre a mesa" ligado; o menu diz Quadros', async () => {
   await p.goto(BASE);
-  await p.waitForSelector('.foot');
+  await p.waitForSelector('#conteudo .pagina, .foot');
   igual(await p.evaluate(() => document.body.dataset.theme), 'papel');
   certo(await p.evaluate(() => document.body.classList.contains('mesa')), 'sem a classe mesa');
   certo((await p.locator('.rail').innerText()).includes('Quadros'), 'o menu devia dizer Quadros');
@@ -2680,7 +2691,7 @@ await caso('v0.4.8 U03: a alça do menu escondido é uma aba de pelo menos 24 x 
 });
 await caso('v0.4.8 B02: cópias coladas depois de recarregar nunca caem uma em cima da outra', async () => {
   await p.goto(BASE);
-  await p.waitForSelector('.foot');
+  await p.waitForSelector('#conteudo .pagina, .foot');
   await p.click('.rail a[href="#/postits"]');
   await p.click('[data-novo=postits]');
   await p.waitForSelector('.qd-vazio');
@@ -2750,7 +2761,7 @@ await caso('v0.4.9: o painel se chama Verificação; a dica da função diz que 
 });
 await caso('v0.4.9: a cópia leva a rubrica, mesmo depois de recarregar, e as colagens ficam sempre dentro da tela', async () => {
   await p.goto(BASE);
-  await p.waitForSelector('.foot');
+  await p.waitForSelector('#conteudo .pagina, .foot');
   await p.click('.rail a[href="#/postits"]');
   await p.click('[data-novo=postits]');
   await p.waitForSelector('.qd-vazio');
@@ -3716,7 +3727,7 @@ await caso('v0.6.3: Formatar como tabela: estilo, nome, cabeçalho colorido, fil
   await cmd(p, 'inserir.tabela');
   await p.waitForSelector('.pl-jtab');
   igual(await p.locator('[data-tab-nome]').inputValue(), 'Tabela1');
-  await p.locator('[data-tab-estilo="verde"]').click();
+  await p.locator('[data-tab-estilo="TableStyleMedium7"]').click(); /* v0.6.19: os estilos do Excel (Médio 7 = verde do acento 6) */
   await p.waitForTimeout(350);
   await print(p, 'v063-tabela');
   await p.locator('[data-tab-nome]').fill('Com espaço');
@@ -3727,7 +3738,7 @@ await caso('v0.6.3: Formatar como tabela: estilo, nome, cabeçalho colorido, fil
   await p.waitForTimeout(300);
   igual(await p.locator('[data-seta-filtro]').count(), 2, 'setas de filtro nos títulos');
   const cor = await p.evaluate(() => { const cv = document.querySelector('.pl-cv'); const r = cv.getBoundingClientRect(); const x = cv.getContext('2d').getImageData(Math.round(50 * devicePixelRatio), Math.round(30 * devicePixelRatio), 1, 1).data; return [x[0], x[1], x[2]]; });
-  certo(Math.abs(cor[0] - 0x2e) < 12 && Math.abs(cor[1] - 0x6b) < 12 && Math.abs(cor[2] - 0x4f) < 12, 'cabeçalho verde da tabela: ' + cor);
+  certo(Math.abs(cor[0] - 0x70) < 12 && Math.abs(cor[1] - 0xad) < 12 && Math.abs(cor[2] - 0x47) < 12, 'cabeçalho verde da tabela: ' + cor);
   await print(p, 'v063-tabela-pronta');
   await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
   igual(await p.locator('[data-seta-filtro]').count(), 0, 'desfazer tira a tabela inteira');
@@ -3848,11 +3859,11 @@ await caso('v0.6.3: aba contextual Gráfico: aparece só com o gráfico selecion
   await p.click('[data-gr-aplicar]');
   await p.waitForSelector('.pl-obj-gr');
   await p.waitForTimeout(250);
-  igual(await p.locator('.tabs .tab.ctx').count(), 1, 'o gráfico recém-criado já vem selecionado');
+  igual(await p.locator('.tabs .tab.ctx:has-text("Gráfico")').count(), 1, 'o gráfico recém-criado já vem selecionado');
   await p.locator('canvas.pl-cv').click({ position: { x: 70, y: 330 } }); await p.waitForTimeout(250);
-  igual(await p.locator('.tabs .tab.ctx').count(), 0, 'sem gráfico selecionado a aba não aparece');
+  igual(await p.locator('.tabs .tab.ctx:has-text("Gráfico")').count(), 0, 'sem gráfico selecionado a aba não aparece');
   await p.locator('.pl-obj-gr').click({ position: { x: 40, y: 24 } }); await p.waitForTimeout(250);
-  igual(await p.locator('.tabs .tab.ctx').innerText(), 'Gráfico');
+  igual(await p.locator('.tabs .tab.ctx:has-text("Gráfico")').innerText(), 'Gráfico');
   igual(await p.locator('.tabs .tab.active').innerText(), 'Gráfico', 'abre sozinha');
   for (const id of ['editar', 'estilo', 'cores', 'semaforo', 'excluir']) igual(await p.locator(`[data-cmd="grafico.${id}"]`).count(), 1, 'botão ' + id);
   await print(p, 'v063-aba-grafico');
@@ -3864,12 +3875,12 @@ await caso('v0.6.3: aba contextual Gráfico: aparece só com o gráfico selecion
   certo(await p.locator('[data-grafico-janela]').count() === 0, 'Esc fecha a janela');
   await cmd(p, 'grafico.excluir'); await p.waitForTimeout(250);
   igual(await p.locator('.pl-obj-gr').count(), 0, 'gráfico excluído');
-  igual(await p.locator('.tabs .tab.ctx').count(), 0, 'aba some junto');
+  igual(await p.locator('.tabs .tab.ctx:has-text("Gráfico")').count(), 0, 'aba some junto');
   await p.keyboard.press('Control+z'); await p.waitForTimeout(300);
   igual(await p.locator('.pl-obj-gr').count(), 1, 'desfazer traz o gráfico');
   await p.locator('.pl-obj-gr').click({ position: { x: 40, y: 24 } }); await p.waitForTimeout(200);
   await p.locator('canvas.pl-cv').click({ position: { x: 70, y: 330 } }); await p.waitForTimeout(250);
-  igual(await p.locator('.tabs .tab.ctx').count(), 0, 'clicar numa célula tira a aba');
+  igual(await p.locator('.tabs .tab.ctx:has-text("Gráfico")').count(), 0, 'clicar numa célula tira a aba');
   igual(await p.locator('.tabs .tab.active').innerText(), 'Inserir', 'volta para a aba de antes');
 });
 await caso('v0.6.15: menu da faixa mostra o Claro e o Escuro; escolher troca o tema; "Mais opções" abre a seção Tema', async () => {
@@ -3890,7 +3901,7 @@ await caso('v0.6.3: Início › linhas e colunas: cada botão tem ícone própri
   await p.click('.tabs .tab:has-text("Página Inicial")'); await p.waitForTimeout(150);
   const ids = ['planilha.inserirLinha', 'planilha.inserirColuna', 'planilha.excluirLinha', 'planilha.excluirColuna'];
   const svgs = [];
-  for (const id of ids) svgs.push(await p.locator(`[data-cmd="${id}"] svg`).first().innerHTML());
+  for (const id of ids) { const abriu = await abreLista(p, id); svgs.push(await p.locator(`[data-cmd="${id}"] svg`).first().innerHTML()); if (abriu) { await p.keyboard.press('Escape'); await p.waitForTimeout(80); } }
   igual(new Set(svgs).size, 4, 'quatro desenhos diferentes');
   await print(p, 'v063-icones-linhas');
 });
@@ -3944,10 +3955,10 @@ await caso('v0.6.4: Exibir › Aba Gráfico liga e desliga o aparecimento da aba
   await p.waitForSelector('[data-grafico-janela]');
   await p.click('[data-gr-aplicar]');
   await p.waitForSelector('.pl-obj-gr'); await p.waitForTimeout(300);
-  igual(await p.locator('.tabs .tab.ctx').count(), 0, 'com a opção desligada a aba não aparece');
+  igual(await p.locator('.tabs .tab.ctx:has-text("Gráfico")').count(), 0, 'com a opção desligada a aba não aparece');
   await p.click('.tabs .tab:has-text("Exibir")');
   await cmd(p, 'exibir.abaGrafico'); await p.waitForTimeout(250);
-  igual(await p.locator('.tabs .tab.ctx').count(), 1, 'ligando de novo a aba volta com o gráfico selecionado');
+  igual(await p.locator('.tabs .tab.ctx:has-text("Gráfico")').count(), 1, 'ligando de novo a aba volta com o gráfico selecionado');
 });
 await caso('v0.6.4: editor do gráfico: Ctrl+Z desfaz estilo rápido, "Tirar a formatação" e Cancelar pergunta', async () => {
   await abrirAmostraNaPlanilha(p);
@@ -4145,7 +4156,9 @@ await caso('v0.6.6: botões de ligar/desligar dizem aria-pressed true/false; os 
   const ic1 = await p.locator('[data-opcoes-faixa] svg').innerHTML(), ic2 = await p.locator('[data-faixa-recolher] svg').innerHTML();
   certo(ic1 !== ic2, 'desenhos diferentes');
   await p.click('.tabs .tab:has-text("Página Inicial")');
-  certo(await p.locator('[data-cmd="planilha.reexibir"]').first().isVisible(), 'Reexibir também na Página Inicial');
+  await abreLista(p, 'planilha.reexibir');
+  certo(await p.locator('[data-cmd="planilha.reexibir"]').first().isVisible(), 'Reexibir também na Página Inicial (lista do Formatar)');
+  await p.keyboard.press('Escape');
 });
 await caso('v0.6.6: Alt+Enter: a linha cresce para mostrar as duas linhas e a barra fx mostra "+1 linha"', async () => {
   await novaPlanilha(p);
@@ -4379,7 +4392,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.18'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.21'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4823,7 +4836,7 @@ await caso('v0.6.15 (R17): quem tinha um dos 16 temas antigos abre no Claro ou n
   for (const [antigo, novo, fundo] of [['ocean', 'dark', 'rgb(11, 13, 22)'], ['campo', 'papel', 'rgb(247, 245, 239)']]) {
     const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
     await ctx.addInitScript((t) => { try { localStorage.setItem('efcdocs:prefs', JSON.stringify({ tema: t, favTemas: ['campo', 'ouro'] })); } catch { /* */ } }, antigo);
-    await p.goto(BASE + '#/'); await p.waitForSelector('.foot');
+    await p.goto(BASE + '#/'); await p.waitForSelector('#conteudo .pagina, .foot');
     const r = await p.evaluate(() => ({ tema: document.body.dataset.theme, fundo: getComputedStyle(document.body).backgroundColor }));
     await ctx.close();
     igual(r.tema, novo, antigo + ' vira ' + novo);
@@ -4864,7 +4877,7 @@ await caso('v0.6.15 (R22): seta do filtro no desenho do Cwork (funil com seta); 
 await caso('v0.6.15 (Transitions.dev): janela, menu, aviso e seção das Opções entram com a receita e os tempos da escala; com "reduzir movimento" nada se move', async () => {
   for (const modo of ['no-preference', 'reduce']) {
     const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 }, reducedMotion: modo });
-    await p.goto(BASE + '#/'); await p.waitForSelector('.foot');
+    await p.goto(BASE + '#/'); await p.waitForSelector('#conteudo .pagina, .foot');
     const anim = (sel) => p.locator(sel).first().evaluate((el) => { const c = getComputedStyle(el); return c.animationName + ' ' + c.animationDuration; });
     await p.locator('.topbar [aria-label="Opções"]').click(); await p.waitForSelector('.janela');
     const jan = await anim('.janela');
@@ -4881,10 +4894,10 @@ await caso('v0.6.15 (Transitions.dev): janela, menu, aviso e seção das Opçõe
   }
 });
 
-await caso('v0.6.15 (F01 a F05 aprovados): contagem no relatório, brilho no botão de ouro, luz nos cartões, lista em cascata e certo ao salvar', async () => {
+await caso('v0.6.15 (F02 e F05): brilho no botão de ouro e certo ao salvar; v0.6.20: sem cascata na lista, sem luz nos cartões (F03) e sem contagem (F01), pela regra de fluidez', async () => {
   const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 }, reducedMotion: 'no-preference' });
   await p.goto(BASE + '#/'); await p.waitForSelector('.cartao-novo');
-  /* F03: a luz segue o mouse */
+  /* F03 saiu na v0.6.20: a luz não segue mais o mouse */
   await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(400);
   const c = p.locator('.cartao-novo').first();
   await c.hover({ position: { x: 40, y: 30 } }); await c.hover({ position: { x: 60, y: 50 } }); await p.waitForTimeout(300);
@@ -4892,7 +4905,7 @@ await caso('v0.6.15 (F01 a F05 aprovados): contagem no relatório, brilho no bot
   /* F02: o brilho do botão de ouro */
   await p.hover('.novo-drive-b'); await p.waitForTimeout(80);
   const brilho = await p.locator('.novo-drive-b').evaluate((el) => getComputedStyle(el, '::after').animationName);
-  /* F01: os números contam (no meio da contagem ainda não chegaram ao valor) */
+  /* F01 saiu na v0.6.20: o número aparece direto */
   await p.click('[data-abrir-excel]'); await p.setInputFiles('[data-excel-arquivo]', AMOSTRA_V069);
   await p.waitForSelector('.rel-num b'); await p.waitForTimeout(60);
   const cedo = await p.locator('.rel-num b').nth(1).innerText(); await p.waitForTimeout(900);
@@ -4901,15 +4914,15 @@ await caso('v0.6.15 (F01 a F05 aprovados): contagem no relatório, brilho no bot
   /* F05: o certo do Salvo */
   await celula(p, 'A30'); await p.keyboard.type('9'); await p.keyboard.press('Enter'); await p.waitForSelector('.foot-certo', { timeout: 8000 });
   const certoAnim = await p.locator('.foot-certo path').evaluate((el) => getComputedStyle(el).animationName);
-  /* F04: lista em cascata */
-  await p.goto(BASE + '#/planilha'); await p.waitForSelector('.lista.grade > .arq');
-  const cascata = await p.locator('.lista.grade > .arq').first().evaluate((el) => getComputedStyle(el).animationName);
+  /* F04 saiu na v0.6.20 (item 11): as linhas aparecem de uma vez */
+  await p.goto(BASE + '#/planilha'); await p.waitForSelector('.tb-arq tbody > tr.arq');
+  const cascata = await p.locator('.tb-arq tbody > tr.arq').first().evaluate((el) => getComputedStyle(el).animationName);
   await ctx.close();
-  certo(luz[0] && luz[0] !== '50%' && +luz[1] > 0, 'luz nos cartões: ' + luz);
+  certo(!luz[0], 'a luz nos cartões devia ter saído: ' + luz);
   igual(brilho, 'ef-brilho', 'brilho no botão de ouro');
-  certo(cedo !== fim && +fim.replace(/\D/g, '') > 0, `contagem: ${cedo} → ${fim}`);
+  certo(cedo === fim && +fim.replace(/\D/g, '') > 0, `o número devia aparecer direto, sem contar: ${cedo} → ${fim}`);
   igual(certoAnim, 'ef-certo', 'certo desenhado ao salvar');
-  igual(cascata, 'ef-cascata', 'lista em cascata');
+  igual(cascata, 'none', 'linhas da tabela sem cascata');
 });
 
 /* ---------- v0.6.16: Ponte 1 com o EFCwork (uma página no mesmo endereço faz o papel do EFCwork, como o confere-ponte.js dele) ---------- */
@@ -4956,7 +4969,7 @@ await caso('v0.6.16 (Ponte 1): o que o Cwork manda abrir chega com aviso, abre n
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
   const W = await cworkDeMentira(ctx);
   const xlsx = [...readFileSync(AMOSTRA_V069)];
-  await p.goto(BASE + '#/'); await p.waitForSelector('.foot');
+  await p.goto(BASE + '#/'); await p.waitForSelector('#conteudo .pagina, .foot');
   const pid = await W.evaluate(async (x) => { const docId = 'dteste00000001';
     await EFDPonte.por({ de: 'efcwork', para: 'docs', tipo: 'resumo', docId, titulo: 'Remessa de 12/11/2026 · Laboratório A', dados: { 'coleta.os': 'OS-0000-INEXISTENTE', 'envio.amostras': 6, 'coleta.data': '2026-11-12', 'coleta.coletor': 'Joana Silva', 'amostras[]': [{ n: 1, identificacao: 'A-01', data: '2026-11-12' }] } });
     return EFDPonte.por({ de: 'efcwork', para: 'docs', tipo: 'abrir', original: new Uint8Array(x).buffer, nomeArquivo: 'Cadeia de custódia - Lab A.xlsx', docId }); }, xlsx);
@@ -5092,7 +5105,7 @@ await caso('v0.6.17 (Ponte 2): pedido inválido responde o erro e não imprime (
     const pid = await W.evaluate((x) => EFDPonte.por({ de: 'efcwork', para: 'docs', tipo: 'pedido', copias: 1, ...x }), ped);
     await p.goto(BASE + '#/pedido/' + pid); await p.waitForSelector('[data-pedido="erro"]', { timeout: 15000 });
     erros.push((await p.locator('[data-pedido-erro]').innerText()).replace(/\s+/g, ' '));
-    await p.goto(BASE + '#/'); await p.waitForSelector('.foot');
+    await p.goto(BASE + '#/'); await p.waitForSelector('#conteudo .pagina, .foot');
   }
   await print(p, 'v0617-pedido-erro');
   const resp = (await respostas(W)).map((r) => `${r.ok}:${r.erro}`).join(' '), imprimiu = await p.evaluate(() => window.__imprimiu), sobrou = await W.evaluate(async () => (await EFDPonte.esperando('docs')).length);
@@ -5213,6 +5226,137 @@ await caso('v0.6.18: a prévia da impressão leva as barras de dados (lisa, com 
   certo(/fill="#ff[0-3][0-9a-f][0-3][0-9a-f]"/i.test(previa), 'barra negativa vermelha na prévia (o degradê começa no vermelho, junto do eixo)');
   const azuis = new Set([...previa.matchAll(/fill="#([0-9a-f]{6})"/gi)].map((m) => m[1].toLowerCase()).filter((h) => { const n = parseInt(h, 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return b > r + 20 && b >= g && r >= 0x60; }));
   certo(azuis.size >= 3, 'barra antiga em degradê (vários tons de azul que clareiam): ' + [...azuis].slice(0, 6).join(' '));
+});
+
+/* ---------- v0.6.19: Tabelas vivas (D-12, D-13, D-14, F296) ---------- */
+const AMOSTRA_V0619 = fileURLToPath(new URL('../testes/amostras/amostra-v0619.xlsx', import.meta.url));
+async function abrirV0619(p) {
+  await p.goto(BASE + '#/'); await p.click('[data-abrir-excel]'); await p.setInputFiles('[data-excel-arquivo]', AMOSTRA_V0619);
+  await p.waitForSelector('[data-excel-abrir]'); await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(700);
+}
+/* cor do pixel da grade num ponto da célula (fx, fy = fração da largura e da altura), sem rolar: escolhe a célula J5 antes de ler */
+async function corNaCelula(p, ref, fx = 0.15, fy = 0.25) {
+  await celula(p, ref);
+  const q = await p.evaluate(() => { const r = document.querySelector('.pl-cap').getBoundingClientRect(); return { x: r.left, y: r.top }; });
+  const prox = await (async () => { const m = /^([A-Z]+)(\d+)$/.exec(ref); const col = String.fromCharCode(m[1].charCodeAt(0) + 1); await celula(p, col + (+m[2] + 1)); return p.evaluate(() => { const r = document.querySelector('.pl-cap').getBoundingClientRect(); return { x: r.left, y: r.top }; }); })();
+  await celula(p, 'J5'); await p.waitForTimeout(80);
+  return p.evaluate(([x, y]) => { const c = document.querySelector('canvas.pl-cv'); const r = c.getBoundingClientRect(); const k = c.width / r.width; const d = c.getContext('2d').getImageData(Math.round((x - r.left) * k), Math.round((y - r.top) * k), 1, 1).data; return [d[0], d[1], d[2]]; }, [q.x + (prox.x - q.x) * fx, q.y + (prox.y - q.y) * fy]);
+}
+const perto = (a, hex, tol = 14) => { const n = parseInt(hex.slice(1), 16); return Math.abs(a[0] - (n >> 16)) < tol && Math.abs(a[1] - ((n >> 8) & 255)) < tol && Math.abs(a[2] - (n & 255)) < tol; };
+
+await caso('v0.6.19 (F296, D-12, D-13): estilo do Excel desenhado; digitar embaixo e Tab fazem a tabela crescer; Ctrl+Z desfaz', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirV0619(p);
+  const cab = await corNaCelula(p, 'A1', 0.08, 0.2), lis = await corNaCelula(p, 'A2', 0.85, 0.5), sem = await corNaCelula(p, 'A3', 0.85, 0.5);
+  await print(p, 'v0619-estilo');
+  /* Tab na última célula abre linha nova e vai para o começo dela */
+  await celula(p, 'E9'); await p.keyboard.press('Tab'); await p.waitForTimeout(150);
+  const foiPara = await p.locator('.pl-nome').inputValue();
+  const e10 = await celula(p, 'E10');
+  /* Tab no fim de uma linha do meio vai para o começo da próxima */
+  await celula(p, 'E4'); await p.keyboard.press('Tab'); await p.waitForTimeout(100);
+  const meio = await p.locator('.pl-nome').inputValue();
+  /* digitar logo abaixo (linha 11) cresce de novo, com aviso; Ctrl+Z desfaz a linha nova e o que foi digitado */
+  await digitarEm(p, 'A11', ['11/03/2026']);
+  const aviso = await p.locator('.toast').last().innerText().catch(() => '');
+  const e11 = await celula(p, 'E11');
+  const cor10 = await corNaCelula(p, 'B10', 0.85, 0.5), cor11 = await corNaCelula(p, 'B11', 0.85, 0.5);
+  await print(p, 'v0619-cresceu');
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
+  const e11depois = await celula(p, 'E11'), a11 = await celula(p, 'A11');
+  /* digitar ao lado do título cria uma coluna nova */
+  await digitarEm(p, 'F1', ['Obs']);
+  const corF1 = await corNaCelula(p, 'F1', 0.85, 0.5);
+  await ctx.close();
+  certo(perto(cab, '#4f81bd'), 'título com o acento 1 do tema do arquivo: ' + cab);
+  certo(lis[2] > lis[0] + 15 && lis[0] > 190, 'primeira linha de dados com a listra azul clara: ' + lis);
+  certo(sem[0] > 245 && sem[1] > 245, 'segunda linha sem listra: ' + sem);
+  igual(foiPara, 'A10', 'Tab na última célula vai para a linha nova:');
+  certo(/0/.test(e10), 'a coluna calculada (Total) foi para a linha nova: ' + e10);
+  igual(meio, 'A5', 'Tab no fim da linha 4 vai para A5:');
+  certo(/ganhou esta linha/.test(aviso), 'aviso de que a tabela cresceu: ' + aviso);
+  certo(/0/.test(e11), 'fórmula na linha digitada: ' + e11);
+  certo(cor10[2] > cor10[0] + 15 && cor11[0] > 245, 'as linhas novas seguem as listras (10 com cor, 11 sem): ' + cor10 + ' / ' + cor11);
+  igual(e11depois, '', 'Ctrl+Z tira a linha nova (sem a fórmula):');
+  igual(a11, '', 'e o que foi digitado:');
+  certo(perto(corF1, '#4f81bd'), 'a coluna nova tem o título no estilo da tabela: ' + corF1);
+});
+
+await caso('v0.6.19 (D-14): Design da Tabela (estilos, totais, primeira coluna, nome) e a alça do canto', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirV0619(p);
+  const antesAba = await p.locator('.tabs .tab:has-text("Design da Tabela")').count();
+  await celula(p, 'H3');
+  const fora = await p.locator('.tabs .tab:has-text("Design da Tabela")').count();
+  await celula(p, 'B3');
+  await p.click('.tabs .tab:has-text("Design da Tabela")'); await p.waitForTimeout(200);
+  await print(p, 'v0619-design');
+  await cmd(p, 'tabela.estilos'); await p.waitForSelector('.tv-jestilos');
+  const mini = await p.locator('.tv-jestilos [data-tab-estilo]').count();
+  await p.click('[data-tab-estilo="TableStyleMedium9"]'); await p.waitForTimeout(250);
+  await cmd(p, 'tabela.totais'); await p.waitForTimeout(250);
+  const totLigado = await p.locator('[data-cmd="tabela.totais"]').getAttribute('aria-pressed');
+  const a10 = await celula(p, 'A10'), e10 = await celula(p, 'E10');
+  await celula(p, 'C5'); await p.click('.tabs .tab:has-text("Design da Tabela")'); await cmd(p, 'tabela.totalColuna'); await p.waitForSelector('.tv-jtotal');
+  await p.click('[data-tv-total="media"]'); await p.waitForTimeout(200);
+  const c10 = await celula(p, 'C10');
+  await celula(p, 'B3'); await p.click('.tabs .tab:has-text("Design da Tabela")');
+  await cmd(p, 'tabela.nome'); await p.locator('[data-tv-campo="nome"]').fill('Amostras'); await p.click('[data-tv-ok]'); await p.waitForTimeout(200);
+  /* alça: arrasta do canto da tabela duas colunas para a direita (com totais, só as colunas mudam) */
+  const al = await p.locator('[data-tabela-alca]').boundingBox();
+  const g1 = await celula(p, 'G1').catch(() => '');
+  await celula(p, 'B3');
+  await p.mouse.move(al.x + 7, al.y + 7); await p.mouse.down(); await p.mouse.move(al.x + 80, al.y + 8, { steps: 6 }); await p.waitForTimeout(80);
+  const previa = await p.locator('.tv-alca-previa').count();
+  await p.mouse.up(); await p.waitForTimeout(250);
+  const f1 = await celula(p, 'F1'), g1b = await celula(p, 'G1');
+  await print(p, 'v0619-alca');
+  await p.click('.tabs .tab:has-text("Arquivo")');
+  const [dl] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarExcel')]);
+  const bytes = new Uint8Array(readFileSync(await dl.path()));
+  await ctx.close();
+  igual(antesAba, 1, 'abre em A1, dentro da tabela: a aba Design aparece (sem abrir sozinha):');
+  igual(fora, 0, 'em H3 (fora da tabela) a aba some:');
+  igual(mini, 61, '60 estilos do Excel e "Nenhum":');
+  igual(totLigado, 'true', 'Linha de totais ligada:');
+  igual(a10, 'Total');
+  certo(/320/.test(e10), 'soma na última coluna: ' + e10);
+  certo(/20,5/.test(c10), 'média do Volume (20,5): ' + c10);
+  igual(g1, '', 'G1 vazia antes da alça');
+  igual(previa, 1, 'a prévia tracejada aparece enquanto arrasta:');
+  igual(f1, 'Coluna6'); igual(g1b, 'Coluna7');
+  const { lerXlsx } = await import('../src/planilha/xlsx/ler.js');
+  const { conteudo } = await lerXlsx(bytes);
+  const t = conteudo.tabelas.amostras;
+  certo(t && t.l2 === 9 && t.c2 === 6 && t.tot === 1 && t.est.nome === 'TableStyleMedium9', 'a tabela volta do arquivo salvo: ' + JSON.stringify(t && { l2: t.l2, c2: t.c2, tot: t.tot, est: t.est }));
+});
+
+await caso('v0.6.19: Formatar como tabela usa a galeria do Excel; a impressão leva o estilo; converter em intervalo mantém a aparência', async () => {
+  const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
+  await abrirV0619(p);
+  await p.locator('.pl-abas [data-aba="Resumo"]').click(); await p.waitForTimeout(300);
+  const escuro = await corNaCelula(p, 'B3', 0.85, 0.5), claroCol = await corNaCelula(p, 'C3', 0.15, 0.5);
+  await digitarEm(p, 'F2', ['Item', 'a', 'b']); await digitarEm(p, 'G2', ['Qtd', '1', '2']);
+  await celula(p, 'F3'); await p.click('.tabs .tab:has-text("Inserir")'); await cmd(p, 'inserir.tabela'); await p.waitForSelector('.pl-jtab');
+  const galeria = await p.locator('.pl-jtab [data-tab-estilo]').count();
+  await p.click('.pl-jtab [data-tab-estilo="TableStyleLight10"]'); await p.click('[data-tab-ok]'); await p.waitForTimeout(300);
+  const novo = await corNaCelula(p, 'F2', 0.08, 0.2);
+  await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.imprimir'); await p.waitForSelector('[data-imp-alvo]'); await p.waitForTimeout(500);
+  const previa = await p.evaluate(() => [...document.querySelectorAll('[data-imp-previa] .imp-svg')].map((s) => s.innerHTML).join(''));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(250);
+  await celula(p, 'C4'); await p.click('.tabs .tab:has-text("Design da Tabela")'); await cmd(p, 'tabela.converter'); await p.waitForTimeout(300);
+  const aba = await p.locator('.tabs .tab:has-text("Design da Tabela")').count();
+  const depois = await corNaCelula(p, 'B3', 0.85, 0.5);
+  await print(p, 'v0619-convertida');
+  await ctx.close();
+  certo(escuro[0] < 120 && escuro[2] > escuro[0], 'Escuro 2 com colunas em tiras: B3 escuro ' + escuro + ' e C3 ' + claroCol);
+  certo(Math.abs(escuro[2] - claroCol[2]) > 10 || Math.abs(escuro[0] - claroCol[0]) > 10, 'colunas em tiras com tons diferentes');
+  igual(galeria, 61, 'a galeria do Excel na janela de criar:');
+  certo(perto(novo, '#c0504d'), 'tabela nova no Claro 10 (acento 2 do tema): ' + novo);
+  const tom = '#' + escuro.map((v) => v.toString(16).padStart(2, '0')).join('');
+  certo(new RegExp('fill="' + tom.slice(0, 5), 'i').test(previa) || /fill="#1f3[0-9a-f]{3}"|fill="#2[0-9a-f]{5}"|fill="#3[0-9a-f]{5}"/i.test(previa), 'a prévia da impressão tem o fundo escuro da tabela');
+  igual(aba, 0, 'depois de converter não há mais tabela (a aba Design some):');
+  certo(Math.abs(depois[0] - escuro[0]) < 8 && Math.abs(depois[2] - escuro[2]) < 8, 'a aparência ficou nas células: ' + depois);
 });
 
 await navegador.close();

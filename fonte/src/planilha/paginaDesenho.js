@@ -108,10 +108,12 @@ export function desenharPaginas(pg, fonte) {
     for (const b of bordas) {
       const cor = corOk(b.e.bdc) || '#000000';
       const ww = (k) => (b.e.bd[k] === 3 ? 2.2 : b.e.bd[k] === 2 ? 1.4 : 0.6) * Math.max(0.6, esc);
-      if (b.e.bd.t) ops.push({ k: 'line', x1: b.x, y1: b.y, x2: b.x + b.w, y2: b.y, cor, w: ww('t') });
-      if (b.e.bd.b) ops.push({ k: 'line', x1: b.x, y1: b.y + b.h, x2: b.x + b.w, y2: b.y + b.h, cor, w: ww('b') });
-      if (b.e.bd.l) ops.push({ k: 'line', x1: b.x, y1: b.y, x2: b.x, y2: b.y + b.h, cor, w: ww('l') });
-      if (b.e.bd.r) ops.push({ k: 'line', x1: b.x + b.w, y1: b.y, x2: b.x + b.w, y2: b.y + b.h, cor, w: ww('r') });
+      /* v0.6.19: cada lado com a cor dele (o estilo da tabela tem linhas de cores diferentes) */
+      const cl = (k) => (b.e.bdcs && corOk(b.e.bdcs[k])) || cor;
+      if (b.e.bd.t) ops.push({ k: 'line', x1: b.x, y1: b.y, x2: b.x + b.w, y2: b.y, cor: cl('t'), w: ww('t') });
+      if (b.e.bd.b) ops.push({ k: 'line', x1: b.x, y1: b.y + b.h, x2: b.x + b.w, y2: b.y + b.h, cor: cl('b'), w: ww('b') });
+      if (b.e.bd.l) ops.push({ k: 'line', x1: b.x, y1: b.y, x2: b.x, y2: b.y + b.h, cor: cl('l'), w: ww('l') });
+      if (b.e.bd.r) ops.push({ k: 'line', x1: b.x + b.w, y1: b.y, x2: b.x + b.w, y2: b.y + b.h, cor: cl('r'), w: ww('r') });
     }
     /* gráficos e assinaturas que caem nesta página (posição pela célula em que estão presos) */
     for (const o of fonte.objetos || []) {

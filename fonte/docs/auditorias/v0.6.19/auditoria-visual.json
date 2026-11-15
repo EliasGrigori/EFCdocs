@@ -1,0 +1,446 @@
+{
+ "metas": {
+  "letras": 7,
+  "cantos": 3,
+  "botaoMinPc": 28,
+  "botaoPc": 34,
+  "botaoToque": 44,
+  "maiusculasEspacadas": 0,
+  "emoji": 0,
+  "rolaDeLado": 0,
+  "errosConsole": 0,
+  "contraste": 4.5
+ },
+ "base": "/home/claude/EFCdocs-repo/fonte/docs/auditorias/base-v0.6.12",
+ "piorou": 0,
+ "telas": [
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Início",
+   "print": "pc-In_cio.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 10,
+   "menor": 34,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 3,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "letras 9→5",
+    "cantos 4→3",
+    "maiúsculas 2→0",
+    "contraste 5→0"
+   ],
+   "base": "melhorou: letras 9→5, cantos 4→3, maiúsculas 2→0, contraste 5→0"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Lista de planilhas",
+   "print": "pc-Lista_de_planilhas.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 7,
+   "menor": 34,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "letras 9→5",
+    "cantos 4→3",
+    "maiúsculas 2→0",
+    "contraste 5→0"
+   ],
+   "base": "melhorou: letras 9→5, cantos 4→3, maiúsculas 2→0, contraste 5→0"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Abrir Excel (relatório)",
+   "print": "pc-Abrir_Excel__relat_rio_.png",
+   "letras": 6,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16,
+    20
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 13,
+   "menor": 32,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 3,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "letras 11→6",
+    "cantos 5→3",
+    "maiúsculas 8→0",
+    "contraste 5→0"
+   ],
+   "base": "melhorou: letras 11→6, cantos 5→3, maiúsculas 8→0, contraste 5→0"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Página Inicial",
+   "print": "pc-Planilha___P_gina_Inicial.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 69,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "letras 10→5",
+    "cantos 4→3",
+    "botões 34→0",
+    "maiúsculas 2→0",
+    "contraste 8→0"
+   ],
+   "base": "melhorou: letras 10→5, cantos 4→3, botões 34→0, maiúsculas 2→0, contraste 8→0"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Inserir",
+   "print": "pc-Planilha___Inserir.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 48,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "letras 10→5",
+    "cantos 4→3",
+    "botões 4→0",
+    "maiúsculas 2→0",
+    "contraste 8→0"
+   ],
+   "base": "melhorou: letras 10→5, cantos 4→3, botões 4→0, maiúsculas 2→0, contraste 8→0"
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Dados",
+   "print": "pc-Planilha___Dados.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 39,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "letras 10→5",
+    "cantos 4→3",
+    "botões 4→0",
+    "maiúsculas 2→0",
+    "contraste 7→0"
+   ],
+   "base": "melhorou: letras 10→5, cantos 4→3, botões 4→0, maiúsculas 2→0, contraste 7→0"
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Início",
+   "print": "celular-In_cio.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 2,
+   "quaisCantos": [
+    "10px",
+    "7px"
+   ],
+   "botoes": 8,
+   "menor": 44,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "letras 7→5",
+    "cantos 3→2",
+    "botões 4→0",
+    "contraste 1→0"
+   ],
+   "base": "melhorou: letras 7→5, cantos 3→2, botões 4→0, contraste 1→0"
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Lista de planilhas",
+   "print": "celular-Lista_de_planilhas.png",
+   "letras": 4,
+   "tamanhos": [
+    11,
+    13,
+    14,
+    16
+   ],
+   "cantos": 2,
+   "quaisCantos": [
+    "7px",
+    "10px"
+   ],
+   "botoes": 5,
+   "menor": 44,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "cantos 3→2",
+    "botões 3→0",
+    "contraste 1→0"
+   ],
+   "base": "melhorou: cantos 3→2, botões 3→0, contraste 1→0"
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Abrir Excel (relatório)",
+   "print": "celular-Abrir_Excel__relat_rio_.png",
+   "letras": 6,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16,
+    20
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "10px",
+    "7px",
+    "4px"
+   ],
+   "botoes": 11,
+   "menor": 44,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "letras 10→6",
+    "cantos 5→3",
+    "botões 7→0",
+    "maiúsculas 6→0",
+    "contraste 1→0"
+   ],
+   "base": "melhorou: letras 10→6, cantos 5→3, botões 7→0, maiúsculas 6→0, contraste 1→0"
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Planilha · Página Inicial",
+   "print": "celular-Planilha___P_gina_Inicial.png",
+   "letras": 4,
+   "tamanhos": [
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 1,
+   "quaisCantos": [
+    "10px"
+   ],
+   "botoes": 25,
+   "menor": 44,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [],
+   "piorou": [],
+   "melhorou": [
+    "letras 6→4",
+    "botões 25→0",
+    "contraste 1→0"
+   ],
+   "base": "melhorou: letras 6→4, botões 25→0, contraste 1→0"
+  }
+ ]
+}

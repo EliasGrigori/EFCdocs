@@ -1,0 +1,102 @@
+/* Vértice Docs — telas de lista no layout da família (v0.6.20, docs/REGRAS-DE-LAYOUT.md).
+   As peças de base (.efl-*) estão em src/layout/efc-layout.css; aqui fica só o que é do HTML do Vértice. Cores só por token. */
+
+/* ---------- R5 · cabeçalho da página: título, linha de pílulas e ações ---------- */
+.pagina.pg-lista { display: flex; flex-direction: column; padding: 14px 24px 16px; }
+.pg-cab { flex: none; gap: 16px; margin-bottom: 12px; }
+.pg-cab .efl-cab-tx { min-width: 0; gap: 6px; }
+.pg-tit { margin: 0; font-size: 26px; line-height: 1.2; color: var(--text); position: relative; padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg-tit::after { content: ''; position: absolute; left: 0; bottom: 0; width: 38px; height: 2px; background: var(--a); }
+.pg-acoes { flex: none; display: flex; align-items: center; gap: 8px; padding-bottom: 2px; }
+.pg-acoes .btn, .pg-acoes .filtro-b { height: 36px; min-height: 36px; }
+.pg-acoes .filtro-b, .efl-ferramentas .filtro-b { margin-left: 0; max-width: 280px; flex: none; background: var(--surface); }
+.pg-novo svg { width: 16px; height: 16px; }
+.pg-lendo, .pg-nota { font-size: 13px; color: var(--text-dim); }
+/* o Vértice tem três cantos (4, 7 e 10 px) e o círculo: o selo da família (5 px) usa o canto pequeno daqui; a letra, um tamanho que o Vértice já tem */
+.efl-selo { border-radius: var(--r-miudo, 4px); font-size: 13px; }
+.efl-esq td i { border-radius: var(--r-miudo, 4px); }
+.pg-breve svg { width: 14px; height: 14px; flex: none; }
+.efl-meta .demo-selo { cursor: pointer; font: inherit; font-size: 13px; font-weight: 400; }
+.efl-meta .demo-selo.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); background: var(--warn-soft); color: var(--warn); }
+/* uma parte da tela (Recentes, no Início): cabeçalho menor, sem a altura reservada do título da página */
+.pg-cab.sub { min-height: 0; margin: 18px 0 10px; align-items: center; }
+.pg-cab.sub .efl-cab-tx { min-height: 0; flex-direction: row; align-items: center; gap: 10px; }
+.pg-cab.sub .pg-tit { font-size: 16px; padding-bottom: 0; }
+.pg-cab.sub .pg-tit::after { display: none; }
+.pg-inicio .cartoes-novos { flex: none; }
+/* a barra de cima mostra o caminho (o título grande fica na página) */
+.tb-trilha { margin: 0; font-size: 14px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-trilha b { font-weight: 600; color: var(--text); }
+
+/* ---------- R4 · ferramentas na linha das abas ---------- */
+.efl-abas-linha { flex: none; margin-bottom: 12px; }
+.efl-abas-linha .int-abas { margin: 0; flex-wrap: nowrap; overflow: hidden; }
+.efl-abas-linha .filtro-b { height: 32px; min-height: 32px; }
+.pg-lista > .filtro-p { flex: none; margin-bottom: 12px; }
+
+/* ---------- R1 · a tabela ---------- */
+.tb-fora { flex: none; min-width: 0; }
+.efl-tabela-rola:focus-visible { outline: none; box-shadow: var(--anel); }
+.tb-arq { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; table-layout: fixed; }
+.tb-arq th { height: 36px; padding: 0 12px; text-align: left; font-size: 13px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tb-arq td { height: 44px; padding: 0 12px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-arq th + th, .tb-arq td + td { border-left: 1px solid var(--border); }
+.tb-arq th.c-acoes, .tb-arq td.c-acoes { border-left: 0; }
+.tb-arq tr.arq { display: table-row; padding: 0; border: 0; border-radius: 0; background: none; }
+.tb-arq tr.arq:hover td { background: var(--surface-2); }
+.tb-arq .c-nome { padding: 0; }
+.tb-arq th.c-nome { padding: 0 12px; }
+.tb-arq .abre { display: flex; align-items: center; gap: 10px; width: 100%; height: 44px; padding: 0 12px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+.tb-arq .abre:focus-visible { outline: none; box-shadow: var(--anel) inset; }
+.tb-arq .abre .ri { width: 26px; height: 26px; flex: none; align-self: center; }
+.tb-arq .abre .ri svg { width: 16px; height: 16px; }
+.tb-arq .abre .txt { display: block; min-width: 0; flex: 1; }
+.tb-arq .abre b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.tb-arq .abre .txt .so-cel { display: none; }
+.tb-arq .abre b { color: var(--text); }
+.tb-arq .c-tipo { width: 130px; color: var(--text-muted); }
+.tb-arq .c-quando { width: 168px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.tb-arq .c-codigo { width: 110px; font-variant-numeric: tabular-nums; }
+.tb-arq .c-situacao { width: 250px; }
+.tb-arq .c-acoes { width: 92px; padding: 0 6px; text-align: right; }
+.pg-lixeira .tb-arq .c-acoes { width: 352px; padding: 0 10px; }
+/* botões lado a lado: mesma linha, altura e largura */
+.pg-lixeira .tb-arq .acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+.pg-lixeira .tb-arq .acoes .btn.sm { justify-content: center; }
+.internos .tb-arq .c-acoes { width: 52px; }
+.tb-arq .acoes { display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px; }
+.tb-arq .acoes .iconbtn { width: 36px; height: 36px; color: var(--text-dim); }
+.tb-arq tr.arq:hover .acoes .iconbtn, .tb-arq .acoes .iconbtn:focus-visible { color: var(--text); }
+.tb-arq .acoes .btn.sm { height: 32px; min-height: 32px; }
+.tb-vazio td { height: auto; padding: 0; white-space: normal; }
+.tb-vazio .vazio-lista { border: 0; background: none; padding: 28px 16px; text-align: center; color: var(--text-muted); }
+.efl-esq td { height: 44px; padding: 0 12px; }
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* com a tela parada, a página não rola: só a tabela */
+@media (min-width: 900px) { html.efl-tela-parada .pagina.pg-lista { overflow: hidden; } }
+
+/* ---------- celular: a página rola; a tabela vira lista de uma coluna ---------- */
+.app.cel .pagina.pg-lista { padding: 12px 12px 24px; }
+.app.cel .pg-cab { flex-wrap: wrap; row-gap: 10px; }
+.app.cel .pg-cab:not(.sub) .pg-tit { display: none; }
+.app.cel .pg-acoes { flex: 1 1 100%; flex-wrap: wrap; }
+.app.cel .pg-acoes .btn, .app.cel .pg-acoes .filtro-b { height: 44px; min-height: 44px; }
+.app.cel .pg-acoes > * { flex: 1 1 0; max-width: none; justify-content: center; }
+.app.cel .efl-abas-linha { flex-wrap: wrap; }
+.app.cel .efl-abas-linha .int-abas { flex: 1 1 100%; overflow-x: auto; scrollbar-width: none; }
+.app.cel .efl-abas-linha .filtro-b { height: 44px; min-height: 44px; }
+.app.cel .tb-arq thead { display: none; }
+.app.cel .tb-arq .c-tipo, .app.cel .tb-arq .c-quando, .app.cel .tb-arq .c-codigo { display: none; }
+.app.cel .tb-arq td { height: 56px; }
+.app.cel .tb-arq .abre { height: 56px; }
+.app.cel .tb-arq .abre .txt .so-cel { display: block; font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app.cel .tb-arq .c-acoes { width: 100px; padding: 0 4px; border-left: 0; }
+.app.cel .tb-arq .acoes .iconbtn { width: 44px; height: 44px; }
+.app.cel .internos .tb-arq .c-acoes { width: 52px; }
+.app.cel .tb-arq .c-situacao { width: 132px; white-space: normal; border-left: 0; padding: 0 4px; }
+.app.cel .tb-arq .c-situacao .int-estado { white-space: normal; display: inline-block; line-height: 1.2; }
+.app.cel .pg-lixeira .tb-arq, .app.cel .pg-lixeira .tb-arq tbody, .app.cel .pg-lixeira .tb-arq tr.arq, .app.cel .pg-lixeira .tb-arq td { display: block; width: auto; }
+.app.cel .pg-lixeira .tb-arq td.c-tipo, .app.cel .pg-lixeira .tb-arq td.c-quando { display: none; }
+.app.cel .pg-lixeira .tb-arq td { height: auto; border-bottom: 0; }
+.app.cel .pg-lixeira .tb-arq td.c-acoes { padding: 0 12px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+.app.cel .pg-lixeira .tb-arq .acoes .btn.sm { height: 44px; min-height: 44px; }

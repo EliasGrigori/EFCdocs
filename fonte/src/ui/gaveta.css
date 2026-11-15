@@ -1,0 +1,68 @@
+/* Vértice Docs v0.6.20 · layout da família, parte 2 (docs/REGRAS-DE-LAYOUT.md): R6 situação, R7 sem tarja colorida,
+   R8 gaveta, R9 histórico com a gota. Só tokens do Vértice; nenhuma cor solta. */
+
+/* ---------- R6 · situação: ponto + texto; caixa só no vermelho ---------- */
+.efl-pilula { line-height: 1.3; }
+.efl-pilula.cr { border-radius: var(--r-miudo, 4px); }
+.tb-arq .c-situacao .efl-pilula { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.app.cel .tb-arq .c-situacao .efl-pilula { white-space: normal; align-items: flex-start; }
+.app.cel .tb-arq .c-situacao .efl-pilula::before { margin-top: 5px; }
+
+/* ---------- R8 · gaveta ---------- */
+.efl-gv-cab.gv-cab { padding: 12px 10px 0 16px; flex: none; }
+.gv-cab > .efl-gv-sub { font-size: 13px; color: var(--text-muted); }
+.gv-cab .efl-gv-acoes { align-items: center; gap: 2px; }
+.gv-cab .gv-nav { display: inline-flex; gap: 2px; }
+.gv-cab .efl-gv-acoes .iconbtn { width: 32px; height: 32px; color: var(--text-muted); }
+.gv-cab .efl-gv-acoes .iconbtn:hover:not(:disabled) { color: var(--text); }
+.gv-cab .efl-gv-acoes .iconbtn svg { width: 18px; height: 18px; }
+.gv-cab > h2 { margin: 4px 6px 2px 0; font-family: var(--fh); font-size: 20px; font-weight: 600; line-height: 1.3; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gv-sit { margin: 0; padding: 2px 16px 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; flex: none; }
+.side.efl-gaveta .side-h { display: none; }
+
+/* a gaveta das listas: ao lado, por cima da tabela; a tabela continua parada no lugar */
+.side.gv-lista { position: absolute; top: 0; right: 0; bottom: 0; width: 380px; z-index: 30; box-shadow: -10px 0 28px -16px rgba(20, 14, 4, .35); }
+.side.gv-lista:focus { outline: none; }
+.gv-corpo { flex: 1; min-height: 0; overflow: auto; }
+.gv-corpo .side-s:first-child { border-top: 1px solid var(--border); }
+.gv-pe { flex: none; display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface); }
+.gv-pe .btn { flex: 1 1 0; justify-content: center; min-width: 0; height: 36px; white-space: nowrap; }
+.tb-arq tr.arq.na-gaveta td { background: var(--primary-soft); }
+.tb-arq .acoes .iconbtn[aria-pressed="true"] { color: var(--primary); }
+.app.cel .side.gv-lista { position: fixed; top: auto; width: auto; max-height: 78%; }
+.app.cel .gv-pe .btn { height: 44px; }
+.app.cel .gv-cab .efl-gv-acoes .iconbtn { width: 44px; height: 44px; }
+
+/* ---------- R9 · histórico com a gota ---------- */
+.gv-hist { padding: 2px 0 2px; }
+.gv-hist .efl-tl b { font-size: 14px; }
+.gv-hist .efl-tl span { font-size: 13px; }
+.gv-hist-simples { margin: 0; padding-left: 18px; font-size: 13px; }
+
+/* ---------- R7 · nada de faixa colorida na lateral: borda inteira e neutra; a gravidade vai no ícone e no ponto ---------- */
+.aviso-breve { border-left-width: 1px; border-left-color: var(--border-light); background: var(--surface-2); }
+.aviso-breve > svg { color: var(--warn); }
+.rel-caixa { border: 1px solid var(--border); border-left-width: 1px; box-shadow: var(--sh-1); }
+.rel-caixa header { background: var(--surface-2); border-bottom-color: var(--border); }
+.rel-caixa .rel-qtd { color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-miudo, 4px); }
+.rel-caixa.vermelho .rel-qtd { color: var(--on-primary); background: var(--crit); border-color: var(--crit); }
+.pl-frase { border-left-width: 1px; border: 1px solid var(--border); border-radius: var(--r-ctl); background: var(--surface-2); }
+.pl-balao.com { box-shadow: var(--sh-2); }
+.pl-balao.aviso { border-left: 1px solid var(--border); box-shadow: var(--sh-2); }
+.rg-resps { border-left: 0; border: 1px solid var(--border); border-radius: var(--r-ctl); }
+
+/* o botão Detalhes entra como primeiro das ações: as colunas de ações crescem para caber */
+.tb-arq .c-acoes { width: 130px; } /* v0.6.20 parte 3: com 92 px o terceiro botão (lixeira) ficava cortado fora da coluna */
+.pg-lixeira .tb-arq .c-acoes { width: 396px; }
+.pg-lixeira .tb-arq .acoes { grid-template-columns: auto 1fr 1fr; }
+.internos .tb-arq .c-acoes { width: 92px; }
+.app.cel .internos .tb-arq .c-acoes { width: 100px; }
+.app.cel .tb-arq .c-acoes { width: 144px; }
+.app.cel .pg-lixeira .tb-arq .acoes { grid-template-columns: 44px 1fr 1fr; }
+/* no celular a situação dos documentos internos desce para a linha de baixo do nome (o nome ganha a largura) */
+.app.cel .internos .tb-arq .c-situacao { display: none; }
+.app.cel .internos .tb-arq .so-cel .efl-pilula { font-size: inherit; gap: 5px; }
+.app.cel .internos .tb-arq .so-cel .efl-pilula::before { width: 7px; height: 7px; }
+.app.cel .internos .tb-arq .abre .txt .so-cel { display: flex; align-items: center; gap: 4px; }
+.app.cel .internos .tb-arq .abre .txt .so-cel .efl-pilula { display: inline-flex; min-width: 0; overflow: hidden; text-overflow: ellipsis; }

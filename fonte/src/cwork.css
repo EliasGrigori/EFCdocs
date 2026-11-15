@@ -61,8 +61,10 @@ kbd { font-family: var(--f); }
 /* ---------- botões ---------- */
 .btn.primary, .btn.primary:hover {
   background: var(--ouro); color: var(--ouro-tx); border-color: #b4862f;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .45) inset, 0 4px 14px rgba(180, 134, 47, .28);
+  /* v0.6.20 (R11 da família): sombra curta e nítida, sem brilho borrado em volta; os mesmos valores de .efl-bt-ouro */
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 0 0 1px rgba(122, 86, 20, .18), 0 1px 2px rgba(60, 42, 8, .28);
 }
+.btn.primary:hover:not(:disabled) { box-shadow: 0 1px 0 rgba(255, 255, 255, .45) inset, 0 0 0 1px rgba(122, 86, 20, .26), 0 2px 4px rgba(60, 42, 8, .24), 0 6px 12px -4px rgba(60, 42, 8, .3); }
 .btn.primary svg { color: var(--ouro-tx); }
 .btn.primary:hover { filter: brightness(1.03); }
 :focus-visible { outline: none; box-shadow: var(--anel); }

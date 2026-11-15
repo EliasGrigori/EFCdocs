@@ -39,6 +39,12 @@ export const NOVOS = {
   corfonte: '<path d="M7 16.5L12 4.5l5 12M8.9 12.2h6.2"/><path class="barra b-letra" d="M4.5 20.6h15" stroke-width="2.4"/>',
   fonte: '<path d="M3.5 17.5L8 6.5l4.5 11M5.2 13.5h5.6"/><circle class="t" cx="16.5" cy="14.5" r="2.6"/><path d="M19.1 11v6.5"/>',
   /* Alinhamento */
+  /* v0.6.21 (faixa igual ao Excel): alinhar em cima, no meio e embaixo; aumentar e diminuir a letra */
+  acima: '<path d="M4 5h16"/><path d="M7.5 9h9M7.5 12.5h9M7.5 16h9"/>',
+  ameio: '<path d="M4 12h16"/><path d="M7.5 7.5h9M7.5 16.5h9"/>',
+  abaixo: '<path d="M4 19h16"/><path d="M7.5 8h9M7.5 11.5h9M7.5 15h9"/>',
+  letraMais: '<path d="M3.5 19.5 9 6l5.5 13.5M5.5 14.5h7"/><path d="M18 11V4.5M15.5 7 18 4.5 20.5 7"/>',
+  letraMenos: '<path d="M4.5 19.5 8.5 9.5l4 10M6 16h5"/><path d="M18 4.5V11M15.5 8.5 18 11l2.5-2.5"/>',
   aesq: '<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>',
   acen: '<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>',
   adir: '<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>',
@@ -195,6 +201,18 @@ export const NOVOS = {
   minimapa: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><rect class="t" x="12" y="11.5" width="6.5" height="6" rx="1.2"/>',
   codigos: '<rect class="t" x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><path d="M14 14h3v3h-3zM19.5 14.5V20M14 19.5h3"/>',
   ferramentas: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M5.5 4.5H9v15H5.5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z"/><path d="M9 4.5v15"/><path d="M6.2 8.5h.01M6.2 12h.01M6.2 15.5h.01" stroke-width="1.8"/>',
+  /* v0.6.19: Design da Tabela */
+  tabRedim: '<rect x="3.5" y="4.5" width="13" height="11" rx="2"/><path class="t" d="M3.5 8.5h13"/><path d="M10 8.5v7"/><path d="M14 20.5h6.5V14M20.5 20.5l-4-4"/>',
+  tabConverter: '<rect class="t" x="3.5" y="4.5" width="17" height="4" rx="1.5"/><path d="M3.5 12.5h17M3.5 16.5h17M3.5 20.5h17M9 8.5v12M15 8.5v12" stroke-dasharray="2 2"/>',
+  tabTotais: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M3.5 15h17v2.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M3.5 15h17M8 8.5h3.5L9.5 10.5l2 2H8"/>',
+  tabTotalColuna: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M9.5 4.5h5v15h-5z"/><path d="M10.7 13.5h2.6l-1.6 1.6 1.6 1.6h-2.6"/>',
+  tabListras: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M3.5 9h17v3.5h-17zM3.5 16h17v1.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+  tabListrasCol: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M7.8 4.5h4v15h-4zM16 4.5h2.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H16z"/>',
+  tabPrimeira: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M5.5 4.5h3.5v15H5.5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z"/><path d="M9 4.5v15M9 9.5h11.5M9 14.5h11.5"/>',
+  tabUltima: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M15 4.5h3.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H15z"/><path d="M15 4.5v15M3.5 9.5H15M3.5 14.5H15"/>',
+  tabFiltro: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M3.5 6.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v3h-17z"/><path d="M13.5 13h5l-2 2.3V18l-1 .6v-3.3z"/>',
+  tabEstilos: '<rect class="t" x="3.5" y="4.5" width="7.5" height="6.5" rx="1.5"/><rect x="13" y="4.5" width="7.5" height="6.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="6.5" rx="1.5"/><rect class="t" x="13" y="13" width="7.5" height="6.5" rx="1.5"/><path d="M3.5 7h7.5M13 15.5h7.5"/>',
+  tabNome: '<path class="t" d="M3.5 7.5A1.5 1.5 0 0 1 5 6h9l4.5 6-4.5 6H5a1.5 1.5 0 0 1-1.5-1.5z"/><circle class="f" cx="7.5" cy="12" r="1.2"/><path d="M10.5 12h3.5"/>',
   assistente: '<path d="M9.5 18.8h5M10.5 21h3"/><path class="t" d="M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2v.4h5v-.4c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5z"/>',
 };
 
@@ -206,6 +224,7 @@ export const MAPA = {
   'editar.colar': 'colar', 'editar.recortar': 'recortar', 'editar.copiar': 'copiar', 'editar.pincel': 'pincel',
   'formatar.negrito': 'negrito', 'formatar.italico': 'italico', 'formatar.sublinhado': 'sublinhado', 'formatar.bordas': 'bordas',
   'formatar.preenchimento': 'balde', 'formatar.corFonte': 'corfonte', 'formatar.fonte': 'fonte',
+  'formatar.cima': 'acima', 'formatar.meio': 'ameio', 'formatar.baixo': 'abaixo', 'formatar.aumentarFonte': 'letraMais', 'formatar.diminuirFonte': 'letraMenos',
   'formatar.esquerda': 'aesq', 'formatar.centro': 'acen', 'formatar.direita': 'adir', 'formatar.quebrar': 'quebrar', 'formatar.mesclar': 'mesclar',
   'formatar.moeda': 'moeda', 'formatar.porcentagem': 'pct', 'formatar.milhar': 'milhar', 'formatar.maisCasas': 'maisdec', 'formatar.menosCasas': 'menosdec', 'formatar.formatoNumero': 'formatoNum',
   'planilha.inserirLinha': 'linhaMais', 'planilha.inserirColuna': 'colunaMais', 'planilha.excluirLinha': 'linhaMenos', 'planilha.excluirColuna': 'colunaMenos',
@@ -214,6 +233,8 @@ export const MAPA = {
   'planilha.novaAba': 'novaAba', 'inserir.status': 'status', 'inserir.foto': 'foto', 'inserir.imagem': 'imagem', 'inserir.grafico': 'grafico',
   'grafico.editar': 'graficoEditar', 'grafico.estilo': 'graficoEstilo', 'grafico.cores': 'graficoCores', 'grafico.semaforo': 'graficoSemaforo', 'grafico.excluir': 'graficoExcluir',
   'grafico.imagem': 'graficoImagem', 'grafico.duplicar': 'graficoDuplicar', 'grafico.modelo': 'graficoModelo', 'grafico.erro': 'graficoErro',
+  'tabela.nome': 'tabNome', 'tabela.redimensionar': 'tabRedim', 'tabela.converter': 'tabConverter', 'tabela.totais': 'tabTotais', 'tabela.totalColuna': 'tabTotalColuna',
+  'tabela.listras': 'tabListras', 'tabela.listrasCol': 'tabListrasCol', 'tabela.primeira': 'tabPrimeira', 'tabela.ultima': 'tabUltima', 'tabela.filtro': 'tabFiltro', 'tabela.estilos': 'tabEstilos',
   'inserir.painel': 'painelNovo', 'painel.grafico': 'painelGrafico', 'painel.numero': 'painelNumero', 'painel.texto': 'painelTexto', 'painel.tabela': 'painelTabela',
   'painel.arrumar': 'painelArrumar', 'painel.pdf': 'painelPdf', 'painel.mudar': 'painelMudar', 'painel.excluir': 'painelExcluir',
   'inserir.assinatura': 'assinatura', 'inserir.link': 'link', 'inserir.tirarLink': 'linkTirar', 'inserir.botao': 'botao', 'inserir.formas': 'formas', 'editar.comentar': 'comentar',

@@ -8,10 +8,21 @@ import './planilha/planilha.css';
 import './ui/assinatura.css';
 import './camadas.css';
 import './cwork.css';
+import './layout/efc-movimento.css';
 import './movimento.css';
+import './layout/efc-layout.css';
+import './layout/efc-layout.js';
+import './ui/listas.css';
+import './ui/gaveta.css';
+import './ui/fluidez.css';
+import './quadro/kanban.css';
+import './ui/parte4.css';
+import './ui/faixa-excel.css';
+import { instalarFluidez } from './ui/fluidez.js';
 
 createRoot(document.getElementById('raiz')).render(<App />);
 iniciarPwa();
+instalarFluidez();
 
 /* tira a tela de abertura (fica pelo menos 450 ms para não piscar) */
 const abertura = document.getElementById('abertura');

@@ -6,20 +6,8 @@ import { lerArquivoExcel } from '../planilha/xlsx/abrir.js';
 const n = (x) => Number(x || 0).toLocaleString('pt-BR');
 const kb = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
 
-/** v0.6.15 (F01 aprovado): o número conta de 0 até o valor em 0,6 s, uma vez, ao abrir o relatório (código próprio,
-    ideia do Count Up do React Bits). Quem pediu menos movimento vê o número direto. */
-function Contagem({ valor, fmt = n }) {
-  const parado = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const [v, setV] = useState(parado ? valor : 0);
-  useEffect(() => {
-    if (parado || !valor) { setV(valor); return undefined; }
-    let id = 0, t0 = 0;
-    const passo = (t) => { if (!t0) t0 = t; const k = Math.min(1, (t - t0) / 600); setV(valor * (1 - Math.pow(1 - k, 3))); if (k < 1) id = requestAnimationFrame(passo); };
-    id = requestAnimationFrame(passo);
-    return () => cancelAnimationFrame(id);
-  }, [valor, parado]);
-  return <b>{fmt(Math.round(v))}</b>;
-}
+/* v0.6.20: a contagem dos números (F01) saiu; a regra de fluidez da família não quer Count Up. */
+const Contagem = ({ valor, fmt = n }) => <b>{fmt(valor)}</b>;
 
 /** Caixa do relatório: borda, faixa de título e cor própria (verde = veio, vermelho = ficou de fora, amarelo = bom saber, azul = nota). */
 function Caixa({ tom, icone, titulo, qtd, children, dados }) {
@@ -68,6 +56,18 @@ export function RelatorioExcel({ rel }) {
         <div className="rel-num"><span>Células</span><Contagem valor={rel.celulas || 0} /></div>
         <div className="rel-num azul"><span>Fórmulas</span><Contagem valor={rel.formulas || 0} /></div>
         {rel.bytes ? <div className="rel-num"><span>Arquivo</span><Contagem valor={rel.bytes} fmt={kb} /></div> : null}
+      </div>
+      {/* v0.6.20 (parte 4): uma régua mostra de relance quanto veio, quanto ficou guardado, o que é bom saber e o que ficou de fora */}
+      <div className="rel-regua" data-rel-regua role="img" aria-label={`Veio ${veio.length}; guardado para voltar ${volta.length}; bom saber ${bom}; ficou de fora ${fora.length}`}>
+        <div className="rel-regua-b">
+          {[['verde', veio.length], ['azul', volta.length], ['amarelo', bom], ['vermelho', fora.length]].filter((x) => x[1] > 0).map(([t, q]) => <i key={t} className={t} style={{ flexGrow: q }} />)}
+        </div>
+        <div className="rel-regua-l">
+          <span className="efl-pilula ok">Veio {n(veio.length)}</span>
+          {volta.length > 0 && <span className="efl-pilula az">Guardado {n(volta.length)}</span>}
+          {bom > 0 && <span className="efl-pilula wa">Bom saber {n(bom)}</span>}
+          {fora.length > 0 && <span className="efl-pilula cr">Ficou de fora {n(fora.length)}</span>}
+        </div>
       </div>
       <Caixa tom="verde" icone="check" titulo="Veio" qtd={veio.length} dados={{ 'data-rel': 'veio' }}>
         <ul className="rel-lista">{veio.map((t, i) => <li key={i}>{t}</li>)}</ul>
@@ -170,7 +170,7 @@ export function JanelaAbrirExcel({ aoFechar, aoAbrir }) {
         {etapa.tipo === 'lendo' && (
           <div className="lendo-excel" role="status" aria-live="polite">
             <p><b>Lendo {etapa.nome}…</b></p>
-            <div className="barra-prog"><i style={{ width: Math.max(4, pct) + '%' }} /></div>
+            <div className="barra-prog"><i style={{ transform: `scaleX(${Math.max(4, pct) / 100})` }} /></div>
             <p className="sub">{p && p.fase === 'aba' ? `Aba ${p.i} de ${p.n}: ${p.aba}${p.linha ? ` (linha ${n(p.linha)})` : ''}` : 'Abrindo o pacote do Excel…'}</p>
             <p className="sub">Arquivo grande pode levar alguns segundos. A tela continua funcionando.</p>
           </div>

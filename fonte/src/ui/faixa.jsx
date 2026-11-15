@@ -1,11 +1,15 @@
 /* EFCdocs — topo: nome do arquivo, busca, faixa tipo Excel (opção A) e barra curta (opção B). */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { FONTES, TAMANHOS_LETRA } from '../planilha/fontes.js';
+import { FORMATOS } from '../planilha/formato.js';
 import { TEMAS, AMOSTRAS } from '../nucleo/prefs.js';
 import { PorId, chegaNa, valeNoModulo, textoChega } from '../nucleo/comandos.js';
 import { ROTULOS, DICA_ESTILO, estiloDaFaixa } from '../nucleo/prefs.js';
 import { MAPA as ICONE_FAIXA } from './iconesFaixa.js';
 import { validarNome } from '../nucleo/modelo.js';
 import { Icone, usarEsc } from './comum.jsx';
+import { Letras } from './letras.jsx';
 import { dicaDoComando } from '../nucleo/dicas.js';
 
 /* item: ['g', id] botão grande · ['col', [ids]] coluna de pequenos · ['lin', [ids]] linha de ícones */
@@ -33,13 +37,20 @@ const PRINCIPAL = {
 
 const FAIXAS = {
   planilha: [ABA_ARQUIVO,
+    /* v0.6.21 (R25): Página Inicial nos lugares do Excel — mesma ordem de grupos, mesma posição dos botões dentro de cada grupo */
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
-      { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.bordas', 'formatar.preenchimento', 'formatar.corFonte', 'formatar.fonte'], 4]] },
-      { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita', 'formatar.quebrar', 'formatar.mesclar']]] },
-      { nome: 'Número', itens: [['lin', ['formatar.moeda', 'formatar.porcentagem', 'formatar.milhar', 'formatar.maisCasas', 'formatar.menosCasas', 'formatar.formatoNumero']]] },
-      { nome: 'Células', itens: [['lin', ['planilha.inserirLinha', 'planilha.inserirColuna', 'planilha.excluirLinha', 'planilha.excluirColuna', 'planilha.reexibir', 'planilha.reexibirColuna'], 3]] }, /* v0.6.6 (Grok): Reexibir também aqui, como no Formatar do Excel */
+      { nome: 'Fonte', itens: [['pilha', [
+        [['cx', 'fonte'], ['cx', 'tamanho'], 'formatar.aumentarFonte', 'formatar.diminuirFonte'],
+        ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', '|', 'formatar.bordas', '|', 'formatar.preenchimento', 'formatar.corFonte']]]] },
+      { nome: 'Alinhamento', itens: [['pilha', [
+        ['formatar.cima', 'formatar.meio', 'formatar.baixo', '|', ['t', 'formatar.quebrar']],
+        ['formatar.esquerda', 'formatar.centro', 'formatar.direita', '|', ['t', 'formatar.mesclar']]]]] },
+      { nome: 'Número', itens: [['pilha', [
+        [['cx', 'numero']],
+        ['formatar.moeda', 'formatar.porcentagem', 'formatar.milhar', '|', 'formatar.maisCasas', 'formatar.menosCasas']]]] },
       { nome: 'Estilos', itens: [['g', 'formatar.condicional'], ['g', 'inserir.tabela']] },
-      { nome: 'Edição', itens: [['g', 'formula.autosoma'], ['lin', ['planilha.limparConteudo', 'formatar.limpar', 'editar.historico'], 3], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
+      { nome: 'Células', itens: [['col', [['menu', 'inserir'], ['menu', 'excluir'], ['menu', 'formatar']]]] },
+      { nome: 'Edição', itens: [['col', ['formula.autosoma', ['menu', 'preencher'], ['menu', 'limpar']]], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
     { id: 'inserir', nome: 'Inserir', grupos: [
       { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['g', 'inserir.painel'], ['g', 'planilha.inserirLinha'], ['g', 'planilha.inserirColuna']] }, /* v0.6.3 (R02): botões grandes com nome, para não confundir com Nova aba; v0.6.7: Painel */
       { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
@@ -117,15 +128,25 @@ export const ABA_PAINEL = { id: 'painel', nome: 'Painel', contextual: true, grup
   { nome: 'Peça', itens: [['g', 'painel.mudar'], ['g', 'painel.excluir']] },
   { nome: 'Painel', itens: [['g', 'painel.arrumar'], ['g', 'painel.pdf']] }] };
 
+/** v0.6.19: aba que aparece com a célula dentro de uma tabela (como a "Design da Tabela" do Excel; não abre sozinha) */
+export const ABA_TABELA = { id: 'tabela', nome: 'Design da Tabela', contextual: true, grupos: [
+  { nome: 'Propriedades', itens: [['g', 'tabela.nome'], ['g', 'tabela.redimensionar']] },
+  { nome: 'Ferramentas', itens: [['g', 'tabela.converter']] },
+  { nome: 'Opções de estilo', itens: [['col', ['tabela.totais', 'tabela.listras', 'tabela.listrasCol']], ['col', ['tabela.primeira', 'tabela.ultima', 'tabela.filtro']]] },
+  { nome: 'Totais', itens: [['g', 'tabela.totalColuna']] },
+  { nome: 'Estilos', itens: [['g', 'tabela.estilos']] }] };
+
 /** Abas da faixa do módulo, só com o que vale nele. ctx.grafico: há um gráfico selecionado; ctx.painel: a aba é um Painel. */
 export function abasDoModulo(mod, ctx = {}) {
   const vale = (id) => PorId[id] && valeNoModulo(PorId[id], mod);
-  const base = [...(FAIXAS[mod] || []), ...(mod === 'planilha' && ctx.painel ? [ABA_PAINEL] : []), ...(mod === 'planilha' && ctx.grafico ? [ABA_GRAFICO] : [])];
+  const base = [...(FAIXAS[mod] || []), ...(mod === 'planilha' && ctx.painel ? [ABA_PAINEL] : []), ...(mod === 'planilha' && ctx.tabela && !ctx.grafico ? [ABA_TABELA] : []), ...(mod === 'planilha' && ctx.grafico ? [ABA_GRAFICO] : [])];
   return base.map((aba) => ({
     ...aba,
     grupos: aba.grupos.map((g) => ({
       ...g,
-      itens: g.itens.map(([tipo, x]) => [tipo, Array.isArray(x) ? x.filter(vale) : x])
+      itens: g.itens.map(([tipo, x]) => [tipo, tipo === 'pilha'
+        ? x.map((fila) => fila.filter((i) => i === '|' || (typeof i === 'string' ? vale(i) : i[0] === 'cx' || vale(i[1])))).filter((fila) => fila.length)
+        : Array.isArray(x) ? x.filter((i) => (typeof i === 'string' ? vale(i) : true)) : x])
         .filter(([, x]) => (Array.isArray(x) ? x.length : vale(x))),
     })).filter((g) => g.itens.length),
   }));
@@ -133,10 +154,12 @@ export function abasDoModulo(mod, ctx = {}) {
 
 /* Rótulos curtos na faixa (o nome completo fica no "title" e na busca) */
 export const ROTULO_CURTO = {
+  'formatar.quebrar': 'Quebrar texto', 'formatar.mesclar': 'Mesclar', 'editar.pincel': 'Pincel',
   'exibir.abaGrafico': 'Aba Gráfico',
   'inserir.tirarLink': 'Tirar link',
   'grafico.editar': 'Editar', 'grafico.estilo': 'Estilo rápido', 'grafico.cores': 'Cores', 'grafico.semaforo': 'Semáforo', 'grafico.excluir': 'Excluir',
   'grafico.imagem': 'Baixar imagem', 'grafico.duplicar': 'Duplicar', 'grafico.modelo': 'Guardar estilo', 'grafico.erro': 'Barras de erro',
+  'tabela.nome': 'Nome', 'tabela.redimensionar': 'Redimensionar', 'tabela.converter': 'Converter em intervalo', 'tabela.totalColuna': 'Total da coluna', 'tabela.estilos': 'Estilos',
   'inserir.painel': 'Painel', 'painel.grafico': 'Gráfico', 'painel.numero': 'Número', 'painel.texto': 'Texto', 'painel.tabela': 'Tabela',
   'painel.arrumar': 'Arrumar', 'painel.pdf': 'PDF', 'painel.mudar': 'Mudar', 'painel.excluir': 'Excluir',
   'exibir.faixaTudo': 'Mostrar tudo', 'exibir.faixaAbas': 'Só as abas', 'exibir.faixaOculta': 'Esconder',
@@ -187,6 +210,155 @@ export function BotaoCmd({ id, tipo = 'g', cx, rotulo, prim, soIcone }) {
   );
 }
 
+/* ---------- v0.6.21 (R25): peças da faixa igual ao Excel ---------- */
+
+/* Botões que abrem uma lista de comandos (Inserir, Excluir, Formatar, Preencher, Limpar), como no Excel */
+const MENUS_FAIXA = {
+  inserir: { nome: 'Inserir', ic: 'inserir', dica: 'Inserir|Põe uma linha, uma coluna ou uma aba nova na planilha.', itens: ['planilha.inserirLinha', 'planilha.inserirColuna', '-', 'planilha.novaAba'] },
+  excluir: { nome: 'Excluir', ic: 'lixeira', dica: 'Excluir|Tira a linha ou a coluna da célula escolhida.', itens: ['planilha.excluirLinha', 'planilha.excluirColuna'] },
+  formatar: { nome: 'Formatar', ic: 'ver', dica: 'Formatar|Esconde e mostra de novo linhas e colunas.', itens: ['planilha.ocultarLinha', 'planilha.ocultarColuna', '-', 'planilha.reexibir', 'planilha.reexibirColuna'] },
+  preencher: { nome: 'Preencher', ic: 'setaBaixo', dica: 'Preencher|Copia a célula de cima ou a do lado para as células escolhidas.', itens: ['editar.preencherBaixo', 'editar.preencherDireita'] },
+  limpar: { nome: 'Limpar', ic: 'n:limparFormato', dica: 'Limpar|Apaga só o que está escrito ou só a aparência da célula.', itens: ['planilha.limparConteudo', 'formatar.limpar'] },
+};
+
+/* Caixas que mostram o valor da célula ativa (letra, tamanho, formato do número) e abrem a lista para trocar */
+const CAIXAS_FAIXA = {
+  fonte: {
+    nome: 'Letra', cmd: 'formatar.fonte', valor: 'valor.fonte', largura: 124, dica: 'Letra|O tipo de letra da célula escolhida.',
+    mostra: (v) => v || 'Padrão',
+    opcoes: () => FONTES.map((f) => ({ id: 'formatar.fonte|f:' + f, v: f, nome: f || 'Padrão', estilo: f ? { fontFamily: `'${f}', var(--f)` } : undefined })),
+    fim: { id: 'formatar.fonte', nome: 'Mais opções de letra…' },
+  },
+  tamanho: {
+    nome: 'Tamanho da letra', cmd: 'formatar.fonte', valor: 'valor.tamanho', largura: 50, estreita: true, dica: 'Tamanho da letra|O tamanho da letra da célula escolhida.',
+    mostra: (v) => String(v || 11),
+    opcoes: () => TAMANHOS_LETRA.map((t) => ({ id: 'formatar.fonte|t:' + t, v: t, nome: String(t) })),
+  },
+  numero: {
+    nome: 'Formato do número', cmd: 'formatar.formatoNumero', valor: 'valor.numero', largura: 150, dica: 'Formato do número|Como o número aparece: moeda, data, porcentagem e outros.',
+    mostra: (v) => (FORMATOS.find((f) => f.id === v) || { nome: 'Personalizado' }).nome,
+    opcoes: () => FORMATOS.map((f) => ({ id: 'formatar.formatoNumero|' + f.id, v: f.id, nome: f.nome })),
+    fim: { id: 'formatar.formatoNumero', nome: 'Mais formatos de número…' },
+  },
+};
+
+/** Lista que nasce do botão (cresce a partir dele e fecha encolhendo — regra de fluidez, letra c).
+    Fecha com Esc (uma camada), com clique fora e ao escolher; as setas do teclado andam pelos itens. */
+function ListaFaixa({ ancora, fechar, rotulo, estreita, children }) {
+  const ref = useRef(null);
+  const [pos, setPos] = useState(null);
+  useLayoutEffect(() => {
+    const a = ancora.current;
+    if (!a) return;
+    const r = a.getBoundingClientRect(), larg = estreita ? 76 : 232;
+    const left = Math.max(8, Math.min(r.left, innerWidth - larg - 8));
+    setPos({ left, top: r.bottom + 4, minWidth: Math.max(larg, estreita ? 0 : r.width), maxHeight: Math.max(160, innerHeight - r.bottom - 16), origem: (r.left - left + 12) + 'px 0' });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!pos || !ref.current) return;
+    const alvo = ref.current.querySelector('[aria-checked=true]') || ref.current.querySelector('button:not(:disabled)');
+    if (alvo) alvo.focus({ preventScroll: true });
+    if (alvo && alvo.scrollIntoView) alvo.scrollIntoView({ block: 'nearest' });
+  }, [pos]);
+  useEffect(() => {
+    const fora = (ev) => { if (!ev.target.closest('.rb-lista') && !(ancora.current && ancora.current.contains(ev.target))) fechar(); };
+    const some = () => fechar();
+    addEventListener('mousedown', fora); addEventListener('resize', some);
+    return () => { removeEventListener('mousedown', fora); removeEventListener('resize', some); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  usarEsc(() => { fechar(); if (ancora.current) ancora.current.focus(); }, true);
+  const tecla = (ev) => {
+    if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp' && ev.key !== 'Home' && ev.key !== 'End') return;
+    ev.preventDefault();
+    const bs = [...ref.current.querySelectorAll('button:not(:disabled)')], i = bs.indexOf(document.activeElement);
+    const n = ev.key === 'Home' ? 0 : ev.key === 'End' ? bs.length - 1 : (i + (ev.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length;
+    if (bs[n]) bs[n].focus();
+  };
+  if (!pos) return null;
+  return createPortal(
+    <div ref={ref} className={'rb-lista' + (estreita ? ' estreita' : '')} role="menu" aria-label={rotulo} onKeyDown={tecla}
+      style={{ left: pos.left, top: pos.top, minWidth: pos.minWidth, maxHeight: pos.maxHeight, transformOrigin: pos.origem }}>{children}</div>,
+    document.querySelector('.app') || document.body);
+}
+
+/* Botão pequeno com seta: abre a lista de comandos de um grupo */
+function BotaoMenuFaixa({ chave, cx }) {
+  const m = MENUS_FAIXA[chave];
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef(null);
+  const cmds = m.itens.filter((id) => id !== '-');
+  const todosBloq = cmds.every((id) => cx.bloqueado(id));
+  return (
+    <>
+      <button ref={ref} type="button" className={'rbs rb-abre' + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-dica={m.dica} aria-haspopup="menu" aria-expanded={aberto}
+        disabled={todosBloq} title={todosBloq ? cx.bloqueado(cmds[0]) : undefined} onClick={() => setAberto(!aberto)}>
+        <Icone n={m.ic} /><span className="rot">{m.nome}</span><Icone n="chevronBaixo" className="rb-seta" />
+      </button>
+      {aberto && (
+        <ListaFaixa ancora={ref} fechar={() => setAberto(false)} rotulo={m.nome}>
+          {m.itens.map((id, i) => {
+            if (id === '-') return <span className="rb-lista-sep" key={'s' + i} />;
+            const cmd = PorId[id];
+            if (!cmd) return null;
+            const bloq = cx.bloqueado(id), info = dicaDoComando(cmd, cx.mod);
+            return (
+              <button key={id} type="button" role="menuitem" className="rb-lista-it" data-cmd={id} disabled={!!bloq} title={bloq || undefined}
+                onClick={() => { setAberto(false); cx.executar(id); }}>
+                <Icone n={ICONE_FAIXA[id] ? 'n:' + ICONE_FAIXA[id] : cmd.ic} /><span>{cmd.nome}</span>{info.atalho && <kbd>{info.atalho}</kbd>}
+              </button>
+            );
+          })}
+        </ListaFaixa>
+      )}
+    </>
+  );
+}
+
+/* Caixa com o valor da célula ativa; a lista troca o valor na hora */
+function CaixaFaixa({ chave, cx }) {
+  const c = CAIXAS_FAIXA[chave];
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef(null);
+  const bloq = cx.bloqueado(c.cmd);
+  const v = cx.valorDe ? cx.valorDe(c.valor) : undefined;
+  const texto = c.mostra(v);
+  return (
+    <>
+      <button ref={ref} type="button" className={'rb-cx' + (aberto ? ' aberto' : '')} data-cx={chave} data-dica={c.dica} style={{ width: c.largura }}
+        aria-haspopup="menu" aria-expanded={aberto} aria-label={c.nome + ': ' + texto} disabled={!!bloq} title={bloq || undefined} onClick={() => setAberto(!aberto)}>
+        <span className="rb-cx-v" key={texto}>{texto}</span><Icone n="chevronBaixo" className="rb-seta" />
+      </button>
+      {aberto && (
+        <ListaFaixa ancora={ref} fechar={() => setAberto(false)} rotulo={c.nome} estreita={c.estreita}>
+          {c.opcoes().map((o) => (
+            <button key={o.id} type="button" role="menuitemradio" aria-checked={o.v === (v ?? '')} className={'rb-lista-it' + (o.v === (v ?? '') ? ' on' : '')} data-valor={o.id} style={o.estilo}
+              onClick={() => { setAberto(false); cx.executar(o.id); }}>
+              <span>{o.nome}</span>{o.v === (v ?? '') && <Icone n="check" className="ok" />}
+            </button>
+          ))}
+          {c.fim && <span className="rb-lista-sep" />}
+          {c.fim && <button type="button" role="menuitem" className="rb-lista-it fim" data-cmd={c.fim.id} onClick={() => { setAberto(false); cx.executar(c.fim.id); }}><span>{c.fim.nome}</span></button>}
+        </ListaFaixa>
+      )}
+    </>
+  );
+}
+
+/* Uma linha da pilha: ícones, separadores, caixas de valor e botões com nome */
+function LinhaPilha({ itens, b }) {
+  return (
+    <div className="rb-fila">
+      {itens.map((x, k) => x === '|'
+        ? <span className="rb-div" key={k} aria-hidden="true" />
+        : typeof x === 'string'
+          ? <BotaoCmd key={x} id={x} tipo="i" {...b} />
+          : x[0] === 'cx'
+            ? <CaixaFaixa key={x[1]} chave={x[1]} cx={b.cx} />
+            : <BotaoCmd key={x[1]} id={x[1]} tipo="s" {...b} rotulo={ROTULO_CURTO[x[1]]} />)}
+    </div>
+  );
+}
+
 function GrupoFaixa({ g, cx, prim, soIcone }) {
   const b = { cx, prim: undefined, soIcone };
   return (
@@ -194,11 +366,15 @@ function GrupoFaixa({ g, cx, prim, soIcone }) {
       <div className="rb-i">
         {g.itens.map(([tipo, x, colunas], j) => tipo === 'g'
           ? <BotaoCmd key={j} id={x} {...b} prim={x === prim} rotulo={ROTULO_CURTO[x]} />
-          : tipo === 'col'
-            ? <div className="rb-col" key={j}>{x.map((id) => <BotaoCmd key={id} id={id} tipo="s" {...b} rotulo={ROTULO_CURTO[id]} />)}</div>
-            : <div className="rb-lin" key={j} style={{ gridTemplateColumns: `repeat(${colunas || (x.length <= 4 ? x.length : Math.ceil(x.length / 2))}, 28px)` }}>
-              {x.map((id) => <BotaoCmd key={id} id={id} tipo="i" {...b} />)}
-            </div>)}
+          : tipo === 'pilha'
+            ? <div className="rb-pilha" key={j}>{x.map((fila, k) => <LinhaPilha key={k} itens={fila} b={b} />)}</div>
+            : tipo === 'col'
+              ? <div className="rb-col" key={j}>{x.map((id) => (typeof id === 'string'
+                ? <BotaoCmd key={id} id={id} tipo="s" {...b} rotulo={ROTULO_CURTO[id]} />
+                : <BotaoMenuFaixa key={id[1]} chave={id[1]} cx={cx} />))}</div>
+              : <div className="rb-lin" key={j} style={{ gridTemplateColumns: `repeat(${colunas || (x.length <= 4 ? x.length : Math.ceil(x.length / 2))}, 28px)` }}>
+                {x.map((id) => <BotaoCmd key={id} id={id} tipo="i" {...b} />)}
+              </div>)}
       </div>
       <div className="rb-n">{g.nome}</div>
     </div>
@@ -213,7 +389,7 @@ function Faixa({ aba, cx, flutua, cel, estilo }) {
   const ref = useRef(null);
   const larguras = useRef({});
   const [larg, setLarg] = useState(0);
-  const [est, setEst] = useState({ corte: null, medir: true });
+  const [est, setEst] = useState({ corte: null, medir: true, aperto: 0 }); /* v0.6.21: aperto 1 = antes de mandar grupo para o "Mais", os botões de linha ficam só com o ícone (o Excel faz igual) */
   const [maisAberto, setMaisAberto] = useState(false);
   /* tela estreita (celular ou janela pequena): a faixa rola de lado; setas mostram que tem mais */
   const [lados, setLados] = useState({ esq: false, dir: false });
@@ -232,22 +408,26 @@ function Faixa({ aba, cx, flutua, cel, estilo }) {
     ro.observe(el);
     return () => ro.disconnect();
   }, [flutua]);
-  useLayoutEffect(() => { setEst({ corte: null, medir: true }); setMaisAberto(false); }, [atual.id, cx.mod, larg, cel, estilo]);
+  useLayoutEffect(() => { setEst({ corte: null, medir: true, aperto: 0 }); setMaisAberto(false); }, [atual.id, cx.mod, larg, cel, estilo]);
   useLayoutEffect(() => {
     if (!est.medir || !ref.current) return;
-    if (cel) { setEst({ corte: null, medir: false }); return; }
+    if (cel) { setEst({ corte: null, medir: false, aperto: 0 }); return; }
     const gs = [...ref.current.querySelectorAll(':scope > .rb-g')];
-    gs.forEach((g, i) => { larguras.current[atual.id + ':' + estilo + ':' + i] = g.offsetWidth; });
-    const w = gs.map((_, i) => larguras.current[atual.id + ':' + estilo + ':' + i] || 0);
-    const disp = ref.current.clientWidth - 16;
+    const ch = atual.id + ':' + estilo + ':' + est.aperto + ':';
+    gs.forEach((g, i) => { larguras.current[ch + i] = g.offsetWidth; });
+    const w = gs.map((_, i) => larguras.current[ch + i] || 0);
+    /* v0.6.21: o espaço entre os grupos também conta (antes ficava de fora e o último grupo podia passar da tela) */
+    const vao = (parseFloat(getComputedStyle(ref.current).columnGap) || 0) * Math.max(0, gs.length - 1);
+    const disp = ref.current.clientWidth - 16 - vao;
     let corte = null;
+    if (w.reduce((a, b) => a + b, 0) > disp && !est.aperto && ref.current.querySelector('.rb-pilha')) { setEst({ corte: null, medir: true, aperto: 1 }); return; }
     if (w.reduce((a, b) => a + b, 0) > disp) {
       let acc = 0, n = 0;
       for (const x of w) { if (acc + x > disp - 100) break; /* v0.6.4 (R02): sobra lugar para o "Mais" e para o botão de recolher, também no estilo E */ acc += x; n++; }
       corte = Math.max(1, n);
     }
-    setEst({ corte, medir: false });
-  }, [est.medir]); // eslint-disable-line react-hooks/exhaustive-deps
+    setEst({ corte, medir: false, aperto: est.aperto });
+  }, [est.medir, est.aperto]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!maisAberto) return undefined;
     const fora = (ev) => { if (!ev.target.closest('.rb-mais-area')) setMaisAberto(false); };
@@ -259,7 +439,7 @@ function Faixa({ aba, cx, flutua, cel, estilo }) {
   const naFaixa = corte == null ? atual.grupos : atual.grupos.slice(0, corte);
   const noMais = corte == null ? [] : atual.grupos.slice(corte);
   return (
-    <div className={'ribbon' + (flutua ? ' flutua' : '') + (cel ? '' : ' ajustada')} data-estilo={estilo} role="toolbar" aria-label={'Faixa ' + atual.nome} data-aba={atual.id} ref={ref} onScroll={cel ? medirLados : undefined}>
+    <div className={'ribbon' + (flutua ? ' flutua' : '') + (cel ? '' : ' ajustada')} data-estilo={estilo} data-aperto={est.aperto || undefined} role="toolbar" aria-label={'Faixa ' + atual.nome} data-aba={atual.id} ref={ref} onScroll={cel ? medirLados : undefined}>
       {cel && lados.esq && <button type="button" className="rb-rolar esq" aria-label="Ver os botões anteriores" onClick={() => rolar(-1)}><Icone n="setaEsq" /></button>}
       {naFaixa.map((g, i) => <GrupoFaixa g={g} cx={cx} prim={prim} soIcone={estilo === 'E'} key={atual.id + i} />)}
       {cel && lados.dir && <button type="button" className="rb-rolar dir" aria-label="Tem mais botões: ver os próximos" data-dica="Tem mais|Arraste a faixa para o lado ou toque aqui para ver os outros botões." onClick={() => rolar(1)}><Icone n="setaDir" /></button>}
@@ -419,11 +599,25 @@ function NomeArquivo({ ficha, cx }) {
   );
 }
 
-export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaTemp, setFaixaTemp, abrirGaveta }) {
+/** v0.6.20 (fluidez, item j): botão de tema na barra de cima; o ícone novo entra no lugar do antigo. */
+function BotaoTema({ prefs, cx }) {
+  const escuro = prefs.tema === 'dark';
+  const [troca, setTroca] = useState(0);
+  const rot = escuro ? 'Mudar para o tema Claro' : 'Mudar para o tema Escuro';
+  return (
+    <button type="button" className={'iconbtn' + (troca ? ' fz-tema' : '')} data-tema-botao={escuro ? 'dark' : 'papel'} aria-label={rot} title={rot}
+      onClick={() => { cx.setPref('tema', escuro ? 'papel' : 'dark'); setTroca((n) => n + 1); }}>
+      <Icone key={troca} n={escuro ? 'sol' : 'lua'} />
+    </button>
+  );
+}
+
+export function Topo({ titulo, trilha, ficha, salvo, prefs, cx, cel, aba, setAba, faixaTemp, setFaixaTemp, abrirGaveta }) {
   const temArquivo = !!ficha;
   /* v0.6.3: a aba "Gráfico" abre sozinha quando um gráfico é selecionado e volta para a anterior quando deixa de ser */
   const temGrafico = !!(cx.contexto && cx.contexto.grafico);
   const temPainel = !!(cx.contexto && cx.contexto.painel); // v0.6.7
+  const temTabela = !!(cx.contexto && cx.contexto.tabela); // v0.6.19
   const antesDoGrafico = useRef('inicio');
   const abaAtual = useRef(aba);
   abaAtual.current = aba;
@@ -431,6 +625,8 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
     if (temGrafico) { if (abaAtual.current !== 'grafico') { antesDoGrafico.current = abaAtual.current; setAba('grafico'); } }
     else if (abaAtual.current === 'grafico') setAba(temPainel ? 'painel' : antesDoGrafico.current || 'inicio');
   }, [temGrafico]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* v0.6.19: a aba "Design da Tabela" não abre sozinha; ao sair da tabela com ela aberta, volta para a Página Inicial */
+  useEffect(() => { if (!temTabela && abaAtual.current === 'tabela') setAba(temPainel ? 'painel' : 'inicio'); }, [temTabela]); // eslint-disable-line react-hooks/exhaustive-deps
   /* v0.6.7: na aba Painel a faixa abre a aba "Painel"; ao sair dela volta para a anterior */
   const antesDoPainel = useRef('inicio');
   useEffect(() => {
@@ -485,7 +681,7 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
       <div className="topbar-row">
         {mostraMenu && <button type="button" className="iconbtn" aria-label="Abrir menu" onClick={abrirGaveta}><Icone n="menu" /></button>}
         <div className="tb-tit">
-          {temArquivo ? <NomeArquivo ficha={ficha} cx={cx} /> : <h1>{titulo}</h1>}
+          {temArquivo ? <NomeArquivo ficha={ficha} cx={cx} /> : trilha !== undefined && !cel ? <p className="tb-trilha" data-trilha>{trilha ? <span>{trilha} / </span> : null}<b><Letras texto={titulo} canal="topo" /></b></p> : <h1><Letras texto={titulo} canal="topo" /></h1>}
           {temArquivo && <span className={'salvo' + (salvo.sujo ? ' sujo' : '')} aria-live="polite"><i />{salvo.texto}</span>}
         </div>
         {temArquivo && <BotaoCmd id="editar.desfazer" tipo="i" cx={cx} />}
@@ -499,6 +695,7 @@ export function Topo({ titulo, ficha, salvo, prefs, cx, cel, aba, setAba, faixaT
           <button type="button" className="iconbtn" aria-label="Mostrar a faixa por um momento" title="Mostrar a faixa" onClick={() => setFaixaTemp(true)}><Icone n="faixaTudo" /></button>
         )}
         {temArquivo && (layoutA || prefs.faixa === 'oculta') && <BotaoCmd id="exibir.painel" tipo="i" cx={cx} />}
+        <BotaoTema prefs={prefs} cx={cx} />
         <button type="button" className="iconbtn" aria-label="Opções" title="Opções" onClick={() => cx.executar('app.opcoes')}><Icone n="gear" /></button>
       </div>
       )}

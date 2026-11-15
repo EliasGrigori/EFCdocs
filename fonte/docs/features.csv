@@ -132,7 +132,7 @@ F130;Planilha;formatar;Formatação condicional;funciona;;manter;catálogo de co
 F131;Documento;formatar;Lista com marcadores;ainda não feito;previsto: v0.7.0;;catálogo de comandos
 F132;Documento;formatar;Lista numerada;ainda não feito;previsto: v0.7.0;;catálogo de comandos
 F133;Documento;formatar;Estilo título;ainda não feito;previsto: v0.7.0;;catálogo de comandos
-F134;Planilha;inserir;Tabela;com defeito;"D-12/D-13/D-14 e P-01: tabela é só pintura; não cresce, Tab não abre linha, sem alça, sem Design; estilo de tabela do Excel não é desenhado";B3;catálogo de comandos
+F134;Planilha;inserir;Tabela;funciona;"v0.6.19: tabela viva (cresce ao digitar, Tab abre linha, alça, Design da Tabela); D-12, D-13, D-14 corrigidos";manter;catálogo de comandos
 F135;Documento;inserir;Tabela;ainda não feito;previsto: v0.7.0;;catálogo de comandos
 F136;Planilha;inserir;Imagem;parcial;"P-01: janela só com largura e texto alternativo; sem cortar, girar, moldura";B4;catálogo de comandos
 F137;Documento;inserir;Imagem;ainda não feito;previsto: v0.7.0;;catálogo de comandos
@@ -294,7 +294,7 @@ F292;Planilha;grade;Rolar com painel congelado (mouse e toque);funciona;fluido: 
 F293;Planilha;grade;Bordas de células mescladas;com defeito;D-11 (reproduzido com amostra inventada);B1;varredura da Fase 0
 F294;Planilha;grade;Rolagem que encaixa em linha inteira no toque;funciona;"a hipótese do D-15 não se confirmou: a causa eram as setas do filtro (F325)";manter;varredura da Fase 0
 F295;Planilha;grade;Texto que invade a célula vizinha vazia;funciona;D-05 em aberto (não reproduzido);B1;varredura da Fase 0
-F296;Planilha;grade;"Estilo de tabela do Excel (listras, cabeçalho)";falta;"o nome do estilo é lido e devolvido, mas não é desenhado";B3;varredura da Fase 0
+F296;Planilha;grade;"Estilo de tabela do Excel (listras, cabeçalho)";funciona;"v0.6.19: os 60 estilos de fábrica desenhados (parecidos, L-19); estilo próprio do arquivo não é desenhado, volta igual";manter;varredura da Fase 0
 F297;Planilha;grade;"Seleção, cópia, preenchimento, alças no toque";funciona;;manter;varredura da Fase 0
 F298;Planilha;excel;Abrir .xlsx/.xlsm com relatório de compatibilidade;funciona;;manter;varredura da Fase 0
 F299;Planilha;excel;"Salvar como Excel (tabelas, gráficos nativos, formas, imagens, validação, condicional, comentários)";funciona;"rede de fidelidade v0.6.10: 15 amostras e a planilha anonimizada sem diferença nova; achou D-20, D-22, D-23, D-24 (linhas F312 a F315); falta confirmar no Excel de verdade (pendência do Elias)";manter;varredura da Fase 0
@@ -360,3 +360,26 @@ F358;Planilha;regras;"Nova regra Barras de dados na janela de formatação condi
 F359;Planilha;abas;"Aba de gráfico (chartsheet): vem como aba com o gráfico e sem grade; volta como aba de gráfico (ou comum, se ganhou células)";funciona;"v0.6.18 (D-43)";manter;v0.6.18
 F360;Planilha;graficos;"Gráficos do Excel 2016 (cascata e funil desenhados; os outros tipos como quadro): acompanham as células e voltam iguais ao salvar";parcial;"v0.6.18 (D-44): não se editam aqui; mapa de árvore, explosão solar, caixa, histograma, Pareto e mapa ainda sem desenho";manter;v0.6.18
 F361;Planilha;graficos;"Grupo do Excel com gráfico do Excel 2016 dentro continua grupo (sem a caixa de aviso do Excel antigo)";funciona;"v0.6.18 (D-44)";manter;v0.6.18
+F362;Planilha;tabela;"Tabela cresce ao digitar logo abaixo ou à direita (formato, coluna calculada, filtro e regras acompanham)";funciona;"v0.6.19 (D-12)";manter;v0.6.19
+F363;Planilha;tabela;"Tab na tabela: no fim da linha vai para a próxima; na última célula abre linha nova (antes dos totais)";funciona;"v0.6.19 (D-13)";manter;v0.6.19
+F364;Planilha;tabela;"Alça no canto da tabela para esticar ou encolher, com prévia";funciona;"v0.6.19 (D-14): com totais, só as colunas";manter;v0.6.19
+F365;Planilha;tabela;"Aba Design da Tabela: nome, redimensionar, converter em intervalo, opções de estilo, botão de filtro, estilos";funciona;"v0.6.19";manter;v0.6.19
+F366;Planilha;tabela;"Linha de totais com conta por coluna (soma, média, contagem, máximo, mínimo, desvio padrão, variância)";funciona;"v0.6.19";manter;v0.6.19
+F367;Planilha;tabela;"Coluna calculada: fórmula numa coluna vazia da tabela preenche a coluna";funciona;"v0.6.19";manter;v0.6.19
+F368;Planilha;tabela;"Galeria com os 60 estilos de tabela do Excel (Formatar como tabela e Design)";funciona;"v0.6.19";manter;v0.6.19
+F369;Arquivos;listas;"Listas em tabela com a tela parada: só a tabela rola, cabeçalho das colunas fixo, mais 100 linhas sozinhas no fim";funciona;"v0.6.20";manter;v0.6.20 (layout da família R1 e R2)
+F370;Arquivos;listas;"Selo do total no cabeçalho da lista; com filtro, total filtrado";funciona;"v0.6.20";manter;v0.6.20 (layout da família R3)
+F371;Arquivos;documentos internos;"Filtro único (nome e ordem) nos Documentos internos, na linha das sub-abas";funciona;"v0.6.20";manter;v0.6.20 (layout da família R4)
+F372;Arquivos;listas;"Esqueleto (linhas cinzas) enquanto os arquivos do aparelho não chegam";funciona;"v0.6.20";manter;v0.6.20 (layout da família R10)
+F373;Arquivos;listas;"Situação com ponto colorido e texto (caixa só no vermelho) nos Documentos internos e no painel";funciona;"v0.6.20";manter;v0.6.20 (layout da família R6)
+F374;Arquivos;listas;"Botão Detalhes na linha: gaveta ao lado sem abrir o arquivo, com anterior e próximo (setas e Alt + seta) e Esc";funciona;"v0.6.20";manter;v0.6.20 (layout da família R8)
+F375;Arquivos;painel;"Painel do arquivo aberto com o cabeçalho da gaveta (texto pequeno, X em cima, nome grande)";funciona;"v0.6.20";manter;v0.6.20 (layout da família R8)
+F376;Arquivos;histórico;"Histórico do arquivo em linha do tempo com a gota (criado, alterado, envio ao Cwork, lixeira), na gaveta e no painel";funciona;"v0.6.20";manter;v0.6.20 (layout da família R9)
+F377;Aparência;movimento;"Regra fixa de fluidez: trocar de área e de aba com o conteúdo deslizando, traço que desliza e título letra por letra";funciona;"v0.6.20";manter;v0.6.20 (regra de fluidez 1a)
+F378;Aparência;movimento;"Gaveta, menus, janelas e avisos entram e saem com movimento (nada some de uma vez); visto no sucesso; faíscas no botão dourado";funciona;"v0.6.20";manter;v0.6.20 (regra de fluidez 1b a 1k)
+F379;Arquivos;listas;"Menu da coluna: filtro e ordem no título de cada coluna das listas; filtro também na Lixeira";funciona;"v0.6.20";manter;v0.6.20 (layout da família R13)
+F380;Aparência;tema;"Botão de tema (Claro/Escuro) na barra de cima";funciona;"v0.6.20";manter;v0.6.20 (regra de fluidez 1j)
+F381;Quadro;kanban;"Kanban com desenho novo: cartão em papel da cor do post-it, andamento do quadro, parte de cada coluna, tarefa com iniciais, prazo e prioridade em barrinhas; cartões deslizam ao mover";funciona;"v0.6.20";manter;v0.6.20 (parte 4)
+F382;Aparência;telas;"Visual novo das páginas que vão chegar, do relatório do Excel, do balão da célula e do Explicar esta conta";funciona;"v0.6.20";manter;v0.6.20 (parte 4)
+F383;Planilha;faixa;"Página Inicial nos lugares do Excel: sete grupos na ordem do Excel, duas linhas por grupo; caixas da letra, do tamanho e do formato do número; Inserir, Excluir, Formatar, Preencher e Limpar com lista";aprovação;"v0.6.21";manter;v0.6.21 (R25, faixa parte 1)
+F384;Planilha;formatar;"Alinhar em cima, no meio e embaixo; aumentar e diminuir a letra um degrau";aprovação;"v0.6.21";manter;v0.6.21 (R25, faixa parte 1)

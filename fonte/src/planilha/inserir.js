@@ -8,8 +8,10 @@ import { mescladas } from './modelo.js';
 import { novoIdRegra, faixasDe, textoFaixas, tirarDeFaixas } from './regras.js';
 import { novoFiltro } from './dados.js';
 import { trocarTabelas } from './xlsx/formulas.js';
+import { ESTILO_PADRAO } from './tabelaEstilo.js';
 
 /* ---------------- Tabela ---------------- */
+/* as 5 cores das tabelas antes da v0.6.19 (pintadas nas células): servem para reconhecer e tirar essa pintura */
 export const ESTILOS_TABELA = [
   { id: 'azul', nome: 'Azul', cab: '#1f4e79', letra: '#ffffff', faixa: '#e6eef7' },
   { id: 'verde', nome: 'Verde', cab: '#2e6b4f', letra: '#ffffff', faixa: '#e7f3ec' },
@@ -46,13 +48,13 @@ export function titulosDaTabela(brutos) {
 }
 
 /**
- * Formata a área como tabela. Opções: { nome, estilo (id), cabecalho, listras, filtro }.
- * Devolve { mud (mudanças já prontas) } ou { erro }.
+ * Formata a área como tabela. Opções: { nome, estilo (nome do Excel, ex. TableStyleMedium2; null = nenhum), cabecalho, listras, filtro }.
+ * v0.6.19 (Tabelas vivas): o estilo fica no objeto da tabela e é desenhado (não é mais pintado nas células); só tira a pintura
+ * que uma tabela antiga do app tinha posto. Devolve { mud } ou { erro }.
  */
 export function formatarComoTabela(c, abaId, faixa, op, valorDe) {
   const aba = c.abas[abaId];
   const f = normalFaixa(faixa);
-  const est = ESTILOS_TABELA.find((e) => e.id === op.estilo) || ESTILOS_TABELA[0];
   if (!nomeDeTabelaValido(op.nome)) return { erro: 'O nome da tabela só pode ter letras, números e _ (sem espaço) e não pode começar com número.' };
   const outra = Object.entries(c.tabelas || {}).find(([, t]) => String(t.nome).toLowerCase() === op.nome.toLowerCase());
   const nomeEmUso = Object.values(c.nomes || {}).some((x) => x && x.n && String(x.n).toLowerCase() === op.nome.toLowerCase());
@@ -60,41 +62,38 @@ export function formatarComoTabela(c, abaId, faixa, op, valorDe) {
   if ((outra && !nomeAntigo) || nomeEmUso) return { erro: 'Já existe uma tabela ou nome com esse nome. Escolha outro.' };
   if (f.l2 - f.l1 < (op.cabecalho ? 1 : 0)) return { erro: 'Escolha uma área com pelo menos uma linha de dados.' };
   if (mescladas(aba).some((m) => m.l1 <= f.l2 && m.l2 >= f.l1 && m.c1 <= f.c2 && m.c2 >= f.c1)) return { erro: 'Tem células mescladas nesta área. Desfaça a mescla antes.' };
+  const sobre = Object.entries(c.tabelas || {}).find(([k, t]) => t && t.aba === abaId && (!outra || k !== outra[0]) && !(t.l2 < f.l1 || t.l1 > f.l2 || t.c2 < f.c1 || t.c1 > f.c2));
+  if (sobre) return { erro: `Esta área encosta na tabela "${sobre[1].nome}". Escolha outra área.` };
   const lote = new Lote(c);
-  const dados0 = f.l1 + (op.cabecalho ? 1 : 0);
-  /* títulos */
   let cols = [];
-  if (op.cabecalho) {
-    cols = titulosDaTabela(Array.from({ length: f.c2 - f.c1 + 1 }, (_, i) => valorDe(f.l1, f.c1 + i)));
-  } else cols = Array.from({ length: f.c2 - f.c1 + 1 }, (_, i) => 'Coluna' + (i + 1));
+  if (op.cabecalho) cols = titulosDaTabela(Array.from({ length: f.c2 - f.c1 + 1 }, (_, i) => valorDe(f.l1, f.c1 + i)));
+  else cols = Array.from({ length: f.c2 - f.c1 + 1 }, (_, i) => 'Coluna' + (i + 1));
   for (let l = f.l1; l <= f.l2; l++) {
     for (let cc = f.c1; cc <= f.c2; cc++) {
       const k = chave(l, cc);
       const x = aba.cel[k] || {};
-      const e = { ...(c.estilos[x.s] || {}) };
+      const e0 = c.estilos[x.s] || {};
+      const e = { ...e0 };
+      /* tira só o que uma tabela antiga do app pôs (listra, título em cor de tabela, linha fina); o que a pessoa pintou fica */
+      if (ESTILOS_TABELA.some((t) => t.faixa === e.fundo || t.cab === e.fundo)) { delete e.fundo; if (ESTILOS_TABELA.some((t) => t.letra === e.cor)) delete e.cor; if (op.cabecalho && l === f.l1) delete e.b; }
+      if (e.bdc === LINHA_TABELA && e.bd && e.bd.b && !e.bd.t && !e.bd.l && !e.bd.r) { delete e.bd; delete e.bdc; }
       const cab = op.cabecalho && l === f.l1;
-      if (cab) { e.fundo = est.cab; e.cor = est.letra; e.b = true; }
-      else {
-        /* corpo: tira só o que uma tabela anterior pôs (listra, título em cor de tabela); o que a pessoa pintou fica */
-        if (ESTILOS_TABELA.some((t) => t.faixa === e.fundo || t.cab === e.fundo)) { delete e.fundo; if (ESTILOS_TABELA.some((t) => t.letra === e.cor)) delete e.cor; }
-        if (op.listras && (l - dados0) % 2 === 1 && !e.fundo) e.fundo = est.faixa;
-        e.bd = { ...(e.bd || {}), b: 1 }; if (!e.bdc) e.bdc = LINHA_TABELA;
-      }
       const nova = { ...x };
-      if (cab && op.cabecalho && (x.v === undefined || x.v === '') && x.f == null) nova.v = cols[cc - f.c1];
+      if (cab && (x.v === undefined || x.v === '') && x.f == null) nova.v = cols[cc - f.c1];
       else if (cab && typeof x.v === 'string') nova.v = cols[cc - f.c1];
-      nova.s = lote.estilo(e) || undefined;
-      lote.por(abaId, k, nova);
+      if (Object.keys(e).length !== Object.keys(e0).length) nova.s = lote.estilo(e) || undefined;
+      if (nova.v !== x.v || nova.s !== x.s) lote.por(abaId, k, nova);
     }
   }
   const mud = lote.mudancas();
   const chaveT = op.nome.toLowerCase();
   const tabelas = { ...(c.tabelas || {}) };
   if (outra) delete tabelas[outra[0]];
-  tabelas[chaveT] = { nome: op.nome, aba: abaId, l1: f.l1, c1: f.c1, l2: f.l2, c2: f.c2, cols, cab: op.cabecalho ? 1 : 0, tot: 0 };
+  const est = op.estilo === null ? { sem: 1, ll: op.listras ? 1 : 0, lc: 0, pc: 0, uc: 0 } : { nome: op.estilo || ESTILO_PADRAO, ll: op.listras ? 1 : 0, lc: 0, pc: 0, uc: 0 };
+  tabelas[chaveT] = { nome: op.nome, aba: abaId, l1: f.l1, c1: f.c1, l2: f.l2, c2: f.c2, cols, cab: op.cabecalho ? 1 : 0, tot: 0, est };
   mud['conteudo.tabelas'] = tabelas;
   if (op.filtro && op.cabecalho) mud[`conteudo.abas.${abaId}.fil`] = novoFiltro(f);
-  return { mud, colunas: cols.length, linhas: f.l2 - dados0 + 1 };
+  return { mud, colunas: cols.length, linhas: f.l2 - f.l1 + 1 - (op.cabecalho ? 1 : 0) };
 }
 
 /* ---------------- Coluna de status ---------------- */

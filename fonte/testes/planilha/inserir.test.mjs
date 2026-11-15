@@ -39,36 +39,44 @@ test('tabela: nome válido, nome novo e títulos únicos', () => {
   assert.deepEqual(titulosDaTabela(['Nome', '', 'Nome', null]), ['Nome', 'Coluna2', 'Nome2', 'Coluna4']);
 });
 
-test('tabela: cabeçalho colorido, listras, filtro e registro em c.tabelas', () => {
+test('tabela (v0.6.19): estilo vivo guardado no objeto, filtro e registro em c.tabelas; tira a pintura antiga', () => {
   const { c, valorDe } = montar([['Nome', 'Qtd'], ['a', 1], ['b', 2], ['c', 3]]);
-  const r = formatarComoTabela(c, 'a1', { l1: 0, c1: 0, l2: 3, c2: 1 }, { nome: 'Pedidos', estilo: 'azul', cabecalho: true, listras: true, filtro: true }, valorDe);
+  const r = formatarComoTabela(c, 'a1', { l1: 0, c1: 0, l2: 3, c2: 1 }, { nome: 'Pedidos', estilo: 'TableStyleMedium2', cabecalho: true, listras: true, filtro: true }, valorDe);
   assert.ok(r.mud, r.erro);
   const n = aplicar(c, r.mud);
-  const cab = n.estilos[n.abas.a1.cel.A1.s];
-  assert.equal(cab.fundo, '#1f4e79'); assert.equal(cab.b, true); assert.equal(cab.cor, '#ffffff');
-  assert.equal(n.estilos[n.abas.a1.cel.A2.s].fundo, undefined, 'primeira linha de dados sem listra');
-  assert.equal(n.estilos[n.abas.a1.cel.A3.s].fundo, '#e6eef7', 'segunda linha listrada');
+  assert.equal(n.abas.a1.cel.A1.s, undefined, 'nada pintado nas células');
+  assert.deepEqual(n.tabelas.pedidos.est, { nome: 'TableStyleMedium2', ll: 1, lc: 0, pc: 0, uc: 0 });
   assert.deepEqual(n.abas.a1.fil, { fx: 'A1:B4', cr: {} });
   assert.deepEqual(n.tabelas.pedidos.cols, ['Nome', 'Qtd']);
   assert.equal(n.tabelas.pedidos.l2, 3);
-  /* refazer com outro estilo troca as cores sem empilhar */
-  const r2 = formatarComoTabela(n, 'a1', { l1: 0, c1: 0, l2: 3, c2: 1 }, { nome: 'Pedidos', estilo: 'verde', cabecalho: true, listras: true, filtro: false }, (l, cc) => n.abas.a1.cel[String.fromCharCode(65 + cc) + (l + 1)].v);
+  /* refazer com outro estilo troca o estilo sem empilhar */
+  const r2 = formatarComoTabela(n, 'a1', { l1: 0, c1: 0, l2: 3, c2: 1 }, { nome: 'Pedidos', estilo: 'TableStyleLight9', cabecalho: true, listras: false, filtro: false }, (l, cc) => n.abas.a1.cel[String.fromCharCode(65 + cc) + (l + 1)].v);
   assert.ok(r2.mud, r2.erro);
   const n2 = aplicar(n, r2.mud);
-  assert.equal(n2.estilos[n2.abas.a1.cel.A1.s].fundo, '#2e6b4f');
-  assert.equal(n2.estilos[n2.abas.a1.cel.A3.s].fundo, '#e7f3ec');
+  assert.equal(n2.tabelas.pedidos.est.nome, 'TableStyleLight9');
+  assert.equal(n2.tabelas.pedidos.est.ll, 0);
   assert.equal(Object.keys(n2.tabelas).length, 1);
+  /* tabela feita antes da v0.6.19 (cores pintadas): a pintura de tabela sai, a da pessoa fica */
+  const velha = aplicar(c, { 'conteudo.estilos': [...c.estilos, { fundo: '#1f4e79', cor: '#ffffff', b: true }, { fundo: '#e6eef7', bd: { b: 1 }, bdc: '#cfd6de' }, { fundo: '#ff0000' }] });
+  const ns = velha.estilos.length;
+  velha.abas.a1.cel.A1.s = ns - 3; velha.abas.a1.cel.A3.s = ns - 2; velha.abas.a1.cel.B3.s = ns - 1;
+  const r3 = formatarComoTabela(velha, 'a1', { l1: 0, c1: 0, l2: 3, c2: 1 }, { nome: 'Pedidos', cabecalho: true, listras: true }, valorDe);
+  const n3 = aplicar(velha, r3.mud);
+  assert.equal(n3.abas.a1.cel.A1.s, undefined);
+  assert.equal(n3.abas.a1.cel.A3.s, undefined);
+  assert.equal(n3.estilos[n3.abas.a1.cel.B3.s].fundo, '#ff0000');
+  assert.equal(n3.tabelas.pedidos.est.nome, 'TableStyleMedium2');
 });
 
 test('tabela: recusa nome ruim, nome repetido, mescladas e área de uma linha', () => {
   const { c, valorDe } = montar([['a'], ['b']]);
   const f = { l1: 0, c1: 0, l2: 1, c2: 0 };
-  assert.match(formatarComoTabela(c, 'a1', f, { nome: 'a b', estilo: 'azul', cabecalho: true }, valorDe).erro, /nome/i);
+  assert.match(formatarComoTabela(c, 'a1', f, { nome: 'a b', cabecalho: true }, valorDe).erro, /nome/i);
   c.tabelas = { x: { nome: 'X', aba: 'a2', l1: 0, c1: 0, l2: 1, c2: 0 } };
-  assert.match(formatarComoTabela(c, 'a1', f, { nome: 'x', estilo: 'azul', cabecalho: true }, valorDe).erro, /Já existe/);
-  assert.ok(formatarComoTabela(c, 'a1', { l1: 0, c1: 0, l2: 0, c2: 0 }, { nome: 'Y', estilo: 'azul', cabecalho: true }, valorDe).erro);
+  assert.match(formatarComoTabela(c, 'a1', f, { nome: 'x', cabecalho: true }, valorDe).erro, /Já existe/);
+  assert.ok(formatarComoTabela(c, 'a1', { l1: 0, c1: 0, l2: 0, c2: 0 }, { nome: 'Y', cabecalho: true }, valorDe).erro);
   c.abas.a1.mesc = ['A1:B1'];
-  assert.match(formatarComoTabela(c, 'a1', f, { nome: 'Y', estilo: 'azul', cabecalho: true }, valorDe).erro, /mescl/i);
+  assert.match(formatarComoTabela(c, 'a1', f, { nome: 'Y', cabecalho: true }, valorDe).erro, /mescl/i);
 });
 
 test('status: lista suspensa + uma cor por opção, refazer não empilha', () => {

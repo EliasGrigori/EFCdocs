@@ -3,6 +3,8 @@ import { TIPOS, ativos, naLixeira, maisRecentes } from '../nucleo/modelo.js';
 import { LIMITE_DEMO } from '../nucleo/banco.js';
 import { useEffect, useState } from 'react';
 import { Icone, dataHora, usarEsc } from './comum.jsx';
+import { CabPagina, SeloTotal, TabelaArquivos } from './listas.jsx';
+import { dadosDoArquivo } from './gaveta.jsx';
 
 const CMD_NOVO = { planilha: 'arquivo.novaPlanilha', docx: 'arquivo.novoDocumento', postits: 'arquivo.novoQuadro' };
 /* o que cada botão "Novo" faz: vai na dica (parar o mouse em cima), não na tela */
@@ -16,19 +18,17 @@ const NOME_CURTO = { planilha: 'Planilha', docx: 'Documento', postits: 'Quadro' 
 /** Botões de "Novo": compactos, ícone e nome; a descrição fica na dica. */
 function BotoesNovo({ tipos, cx }) {
   return (
-    <div className={'novos' + (tipos.length === 1 ? ' um' : '')}>
+    <>
       {tipos.map((t) => {
         const bloq = cx.bloqueado(CMD_NOVO[t]);
         const dica = `${TIPOS[t].novo}|${bloq || DESCRICAO[t] + (TIPOS[t].chega ? ` Editor na ${TIPOS[t].chega}.` : '')}`;
         return (
-          <button key={t} type="button" className="novo" disabled={!!bloq} data-dica={dica} aria-label={TIPOS[t].novo} data-novo={t} onClick={() => cx.executar(CMD_NOVO[t])}>
-            <span className="ri"><Icone n={t} /><i className="mais"><Icone n="plus" /></i></span>
-            <b>{tipos.length === 1 ? TIPOS[t].novo : NOME_CURTO[t]}</b>
-            {TIPOS[t].chega && <span className="em">{TIPOS[t].chega}</span>}
+          <button key={t} type="button" className="btn pg-novo" disabled={!!bloq} data-dica={dica} aria-label={TIPOS[t].novo} data-novo={t} onClick={() => cx.executar(CMD_NOVO[t])}>
+            <Icone n="plus" />{tipos.length === 1 ? TIPOS[t].novo : NOME_CURTO[t]}
           </button>
         );
       })}
-    </div>
+    </>
   );
 }
 
@@ -46,13 +46,13 @@ export function aplicarFiltro(lista, f) {
   return out;
 }
 
-function useFiltro(chave) {
+export function useFiltro(chave) {
   const [f, setF] = useState(() => filtrosGuardados[chave] || FILTRO_PADRAO);
   const mudar = (novo) => { filtrosGuardados[chave] = novo; setF(novo); };
   return [f, mudar];
 }
 
-function Filtro({ f, mudar, tipos, aberto, setAberto }) {
+export function Filtro({ f, mudar, tipos, aberto, setAberto }) {
   const ativo = f.q || f.tipo !== 'todos' || f.ordem !== 'recentes';
   const resumo = [f.q ? `"${f.q}"` : null, tipos && f.tipo !== 'todos' ? TIPOS[f.tipo].nome : null, ORDENS[f.ordem]].filter(Boolean).join(' · ');
   return (
@@ -62,7 +62,7 @@ function Filtro({ f, mudar, tipos, aberto, setAberto }) {
   );
 }
 
-function PainelFiltro({ f, mudar, tipos, fechar }) {
+export function PainelFiltro({ f, mudar, tipos, fechar }) {
   const ativo = f.q || f.tipo !== 'todos' || f.ordem !== 'recentes';
   return (
     <div className="filtro-p" id="filtro-painel" onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); fechar(); } }}>
@@ -87,51 +87,76 @@ function PainelFiltro({ f, mudar, tipos, fechar }) {
   );
 }
 
-/** Cabeçalho de uma lista (título, quantos, filtro) e as linhas filtradas. */
-function ListaFiltrada({ chave, titulo, unidade, todos, tipos, cx, vazio }) {
+const COL_NOME = { id: 'nome', rot: 'Nome', cls: 'c-nome' };
+const COL_TIPO = { id: 'tipo', rot: 'Tipo', cls: 'c-tipo' };
+const COL_QUANDO = { id: 'quando', rot: 'Alterado em', cls: 'c-quando' };
+const COL_ACOES = { id: 'acoes', rot: <span className="so-leitor">Ações</span>, cls: 'c-acoes' };
+
+/**
+ * Uma tela de lista no layout da família: cabeçalho (título, selo do total, ações), filtro único e a tabela.
+ * sub = a lista é uma parte da tela (Recentes, no Início): o cabeçalho dela é menor e não repete o título da página.
+ */
+function ListaFiltrada({ chave, titulo, unidade, todos, tipos, cx, vazio, lendo, meta, acoes, sub, lixeira }) {
   const [f, mudar] = useFiltro(chave);
   const [aberto, setAberto] = useState(false);
   const lista = aplicarFiltro(todos, f);
   /* Esc fecha o painel do filtro, esteja o foco onde estiver */
   usarEsc(() => setAberto(false), aberto);
+  const semTipo = unidade[1] !== 'arquivos';
+  const colunas = lixeira ? COLUNAS_LIXEIRA : semTipo ? [COL_NOME, COL_QUANDO, COL_ACOES] : [COL_NOME, COL_TIPO, COL_QUANDO, COL_ACOES];
   return (
     <>
-      <div className="secao">
-        {titulo && <h3>{titulo}</h3>}
-        <span className="cont" data-cont>{lista.length === todos.length ? todos.length : `${lista.length} de ${todos.length}`}{unidade ? ' ' + (todos.length === 1 && lista.length === todos.length ? unidade[0] : unidade[1]) : ''}</span>
+      <CabPagina titulo={titulo} sub={sub} meta={<><SeloTotal n={lista.length} total={todos.length} unidade={unidade} lendo={lendo} />{meta}</>}>
         {todos.length > 0 && <Filtro f={f} mudar={mudar} tipos={tipos} aberto={aberto} setAberto={setAberto} />}
-      </div>
+        {acoes}
+      </CabPagina>
       {aberto && todos.length > 0 && <PainelFiltro f={f} mudar={mudar} tipos={tipos} fechar={() => setAberto(false)} />}
-      {lista.length
-        ? <div className="lista grade">{lista.map((x) => <LinhaArquivo key={x.id} f={x} cx={cx} semTipo={!!unidade && unidade[1] !== 'arquivos'} />)}</div>
-        : <div className="vazio-lista">{todos.length ? 'Nenhum arquivo com esse filtro.' : vazio}</div>}
+      <TabelaArquivos nome={chave || 'lista'} rotulo={titulo} colunas={colunas} itens={lista} lendo={lendo} reinicia={f.q + '|' + f.tipo + '|' + f.ordem}
+        vazio={todos.length ? 'Nenhum arquivo com esse filtro.' : vazio}
+        detalhe={(x) => dadosDoArquivo(x, cx)} filtro={{ f, mudar, tipos }}
+        linha={(x, extra) => <LinhaArquivo key={x.id} f={x} cx={cx} semTipo={semTipo} lixeira={lixeira} extra={extra} />} />
     </>
   );
 }
 
-export function LinhaArquivo({ f, cx, lixeira, semTipo }) {
+/** O botão que abre a gaveta da linha (R8): o primeiro das ações, em todas as listas. */
+export function BotaoDetalhes({ nome, extra }) {
+  if (!extra || !extra.detalhar) return null;
+  return <button type="button" className="iconbtn" data-detalhes aria-label={'Detalhes: ' + nome} aria-pressed={extra.naGaveta} title="Detalhes (abre ao lado, sem abrir o arquivo)" onClick={extra.detalhar}><Icone n="painel" /></button>;
+}
+
+export function LinhaArquivo({ f, cx, lixeira, semTipo, extra }) {
   const bloq = (acao) => cx.bloqueado(acao, f);
+  const quando = lixeira ? dataHora(f.lixeiraEm) : dataHora(f.alteradoEm);
   return (
-    <div className="arq" data-id={f.id}>
-      <button type="button" className="abre" onClick={() => (lixeira ? null : cx.abrir(f.id))} disabled={lixeira} title={f.nome} style={lixeira ? { cursor: 'default' } : undefined}>
-        <span className="ri"><Icone n={f.tipo} /></span>
-        <span className="txt">
-          <b>{f.nome}</b>
-          <span>{semTipo ? '' : TIPOS[f.tipo].nome + ' · '}{lixeira ? 'na lixeira desde ' + dataHora(f.lixeiraEm) : dataHora(f.alteradoEm)}</span>
-        </span>
-      </button>
-      {lixeira ? (
-        <span className="acoes">
-          <button type="button" className="btn sm" disabled={!!bloq('arquivo.restaurar')} onClick={() => cx.restaurar(f)}><Icone n="restaurar" />Restaurar</button>
-          <button type="button" className="btn sm apagar" aria-label={'Apagar para sempre: ' + f.nome} title={bloq('arquivo.excluirDeVez') || 'Apagar para sempre'} disabled={!!bloq('arquivo.excluirDeVez')} onClick={() => cx.excluirDeVez(f)}><Icone n="lixeira" />Apagar para sempre</button>
-        </span>
-      ) : (
-        <span className="acoes">
-          <button type="button" className="iconbtn" aria-label={'Renomear: ' + f.nome} title={bloq('arquivo.renomear') || 'Renomear'} disabled={!!bloq('arquivo.renomear')} onClick={() => cx.perguntarNome(f)}><Icone n="renomear" /></button>
-          <button type="button" className="iconbtn" aria-label={'Mandar para a lixeira: ' + f.nome} title={bloq('arquivo.lixeira') || 'Mandar para a lixeira'} disabled={!!bloq('arquivo.lixeira')} onClick={() => cx.lixeira(f)}><Icone n="lixeira" /></button>
-        </span>
-      )}
-    </div>
+    <tr className={'arq' + (extra && extra.naGaveta ? ' na-gaveta' : '')} data-id={f.id}>
+      <td className="c-nome">
+        <button type="button" className="abre" onClick={() => (lixeira ? null : cx.abrir(f.id))} disabled={lixeira} title={f.nome} style={lixeira ? { cursor: 'default' } : undefined}>
+          <span className="ri"><Icone n={f.tipo} /></span>
+          <span className="txt">
+            <b>{f.nome}</b>
+            <span className="so-cel">{semTipo ? '' : TIPOS[f.tipo].nome + ' · '}{lixeira ? 'na lixeira desde ' + quando : quando}</span>
+          </span>
+        </button>
+      </td>
+      {!semTipo && <td className="c-tipo">{TIPOS[f.tipo].nome}</td>}
+      <td className="c-quando">{quando}</td>
+      <td className="c-acoes">
+        {lixeira ? (
+          <span className="acoes">
+            <BotaoDetalhes nome={f.nome} extra={extra} />
+            <button type="button" className="btn sm" disabled={!!bloq('arquivo.restaurar')} onClick={() => cx.restaurar(f)}><Icone n="restaurar" />Restaurar</button>
+            <button type="button" className="btn sm apagar" aria-label={'Apagar para sempre: ' + f.nome} title={bloq('arquivo.excluirDeVez') || 'Apagar para sempre'} disabled={!!bloq('arquivo.excluirDeVez')} onClick={() => cx.excluirDeVez(f)}><Icone n="lixeira" />Apagar para sempre</button>
+          </span>
+        ) : (
+          <span className="acoes">
+            <BotaoDetalhes nome={f.nome} extra={extra} />
+            <button type="button" className="iconbtn" aria-label={'Renomear: ' + f.nome} title={bloq('arquivo.renomear') || 'Renomear'} disabled={!!bloq('arquivo.renomear')} onClick={() => cx.perguntarNome(f)}><Icone n="renomear" /></button>
+            <button type="button" className="iconbtn" aria-label={'Mandar para a lixeira: ' + f.nome} title={bloq('arquivo.lixeira') || 'Mandar para a lixeira'} disabled={!!bloq('arquivo.lixeira')} onClick={() => cx.lixeira(f)}><Icone n="lixeira" /></button>
+          </span>
+        )}
+      </td>
+    </tr>
   );
 }
 
@@ -139,7 +164,7 @@ function SeloDemo({ fichas, demo, cx }) {
   if (!demo) return null;
   const n = ativos(fichas).length;
   const explicar = () => cx.avisar(`Demonstração: até ${LIMITE_DEMO} arquivos, guardados só neste aparelho. O que você exportar sai com a marca DEMO · EFC.`, { ic: 'info', longo: true });
-  return <button type="button" className={'selo demo-selo ' + (n >= LIMITE_DEMO ? 'warn' : '')} onClick={explicar} title="O que é a demonstração?">Demonstração: {n} de {LIMITE_DEMO} arquivos</button>;
+  return <button type="button" className={'efl-selo demo-selo ' + (n >= LIMITE_DEMO ? 'warn' : '')} onClick={explicar} title="O que é a demonstração?">Demonstração: {n} de {LIMITE_DEMO} arquivos</button>;
 }
 
 /* v0.4.9 (L02/L05): cartões grandes de criar; cada um é uma prévia em branco do próprio arquivo (papel claro, em qualquer tema) */
@@ -156,8 +181,7 @@ function CartoesInicio({ cx }) {
         const bloq = cx.bloqueado(CMD_NOVO[t]);
         const dica = `${TIPOS[t].novo}|${bloq || DESCRICAO[t] + (TIPOS[t].chega ? ` Editor na ${TIPOS[t].chega}.` : '')}`;
         return (
-          <button key={t} type="button" className="cartao-novo" disabled={!!bloq} data-novo={t} data-dica={dica} aria-label={TIPOS[t].novo} onClick={() => cx.executar(CMD_NOVO[t])}
-            onPointerMove={(ev) => { if (ev.pointerType !== 'mouse') return; const r = ev.currentTarget.getBoundingClientRect(); ev.currentTarget.style.setProperty('--luz-x', ev.clientX - r.left + 'px'); ev.currentTarget.style.setProperty('--luz-y', ev.clientY - r.top + 'px'); }}>
+          <button key={t} type="button" className="cartao-novo" disabled={!!bloq} data-novo={t} data-dica={dica} aria-label={TIPOS[t].novo} onClick={() => cx.executar(CMD_NOVO[t])}>
             {PREVIA[t]}
             <span className="cn-rod">
               <span className="ri"><Icone n={t} /></span>
@@ -171,76 +195,84 @@ function CartoesInicio({ cx }) {
   );
 }
 
-export function Inicio({ fichas, cx, demo }) {
+export function Inicio({ fichas, cx, demo, lendo }) {
   const lista = maisRecentes(ativos(fichas));
   return (
-    <div className="pagina">
-      <div className="secao topo"><h3>Novo</h3><SeloDemo fichas={fichas} demo={demo} cx={cx} /></div>
+    <div className="pagina pg-lista pg-inicio">
+      <CabPagina titulo="Início" meta={<SeloDemo fichas={fichas} demo={demo} cx={cx} />}>
+        <button type="button" className="btn" data-abrir-excel data-dica="Abrir do Excel|Traz uma cópia de um arquivo .xlsx ou .xlsm como planilha nova. O original não muda." onClick={() => cx.executar('arquivo.abrir')}><Icone n="excel" />Abrir arquivo do Excel</button>
+        {cx.instalar && <button type="button" className="btn instalar" onClick={cx.instalar}><Icone n="instalar" />Instalar</button>}
+      </CabPagina>
       <CartoesInicio cx={cx} />
-      <div className="abrir-excel-linha">
-        <button type="button" className="btn sm" data-abrir-excel data-dica="Abrir do Excel|Traz uma cópia de um arquivo .xlsx ou .xlsm como planilha nova. O original não muda." onClick={() => cx.executar('arquivo.abrir')}><Icone n="excel" />Abrir arquivo do Excel (.xlsx ou .xlsm)</button>
-      </div>
-      <ListaFiltrada chave="inicio" titulo="Recentes" unidade={['arquivo', 'arquivos']} todos={lista} tipos={['planilha', 'docx', 'postits']} cx={cx}
+      <ListaFiltrada chave="inicio" titulo="Recentes" sub unidade={['arquivo', 'arquivos']} todos={lista} tipos={['planilha', 'docx', 'postits']} cx={cx} lendo={lendo}
         vazio="Comece criando uma planilha. Tudo fica salvo neste aparelho." />
-      {cx.instalar && <button type="button" className="btn sm instalar" onClick={cx.instalar}><Icone n="instalar" />Instalar o Vértice Docs neste aparelho</button>}
     </div>
   );
 }
 
-export function ListaDoTipo({ tipo, fichas, cx, demo }) {
+const TITULO_TIPO = { planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros' };
+export function ListaDoTipo({ tipo, fichas, cx, demo, lendo }) {
   const lista = maisRecentes(ativos(fichas).filter((f) => f.tipo === tipo));
   const unidade = { planilha: ['planilha', 'planilhas'], docx: ['documento', 'documentos'], postits: ['quadro', 'quadros'] }[tipo];
+  const chega = TIPOS[tipo].chega;
   return (
-    <div className="pagina">
-      {TIPOS[tipo].chega && <div className="aviso-breve"><Icone n="info" /><span>O editor de {TIPOS[tipo].nome.toLowerCase()} chega na {TIPOS[tipo].chega}. Já dá para criar, renomear e organizar.</span></div>}
-      <div className="secao topo"><BotoesNovo tipos={[tipo]} cx={cx} /><SeloDemo fichas={fichas} demo={demo} cx={cx} /></div>
-      <ListaFiltrada chave={tipo} unidade={unidade} todos={lista} cx={cx} vazio={`Nenhum${tipo === 'postits' ? ' quadro' : tipo === 'docx' ? ' documento' : 'a planilha'} ainda.`} />
+    <div className="pagina pg-lista">
+      <ListaFiltrada chave={tipo} titulo={TITULO_TIPO[tipo]} unidade={unidade} todos={lista} cx={cx} lendo={lendo}
+        meta={<>
+          {chega && <span className="efl-selo pg-breve" title={`O editor de ${TIPOS[tipo].nome.toLowerCase()} chega na ${chega}. Já dá para criar, renomear e organizar.`}><Icone n="info" />Editor na {chega}</span>}
+          <SeloDemo fichas={fichas} demo={demo} cx={cx} />
+        </>}
+        acoes={<BotoesNovo tipos={[tipo]} cx={cx} />}
+        vazio={`Nenhum${tipo === 'postits' ? ' quadro' : tipo === 'docx' ? ' documento' : 'a planilha'} ainda.`} />
     </div>
   );
 }
 
-export function Lixeira({ fichas, cx }) {
+const COLUNAS_LIXEIRA = [COL_NOME, COL_TIPO, { id: 'quando', rot: 'Na lixeira desde', cls: 'c-quando' }, COL_ACOES];
+export function Lixeira({ fichas, cx, lendo }) {
   const lista = maisRecentes(naLixeira(fichas));
   return (
-    <div className="pagina">
-      <p className="sub">Aqui ficam os arquivos apagados. Restaure ou apague para sempre.</p>
-      {lista.length
-        ? <div className="lista">{lista.map((f) => <LinhaArquivo key={f.id} f={f} cx={cx} lixeira />)}</div>
-        : <div className="vazio-lista">A lixeira está vazia.</div>}
+    <div className="pagina pg-lista pg-lixeira">
+      <ListaFiltrada chave="lixeira" titulo="Lixeira" unidade={['arquivo', 'arquivos']} todos={lista} tipos={['planilha', 'docx', 'postits']} cx={cx} lendo={lendo} lixeira
+        vazio="A lixeira está vazia." meta={<span className="pg-nota">Restaure ou apague para sempre.</span>} />
     </div>
   );
 }
 
 const PASTAS_INICIAIS = ['Treinamentos', 'Avaliação de Eficácia', 'Documentos Internos', 'Formulários', 'Fluxogramas'];
-const Cartao = ({ ic, titulo, children }) => <div className="card plano"><b><Icone n={ic} />{titulo}</b><span>{children}</span></div>;
+/* v0.6.20 (parte 4): as páginas que ainda vão chegar ganharam o cabeçalho da família e viraram um plano em linhas
+   (título à esquerda, explicação à direita), no lugar do aviso em caixa e da grade de cartões. */
+const Linha = ({ ic, titulo, children }) => <div className="plano-l"><dt><Icone n={ic} />{titulo}</dt><dd>{children}</dd></div>;
+const Plano = ({ titulo, children }) => <section className="plano-s">{titulo && <h2>{titulo}</h2>}<dl>{children}</dl></section>;
+const SeloChega = () => <span className="efl-selo pg-breve aviso-breve" title="Esta página mostra como vai ficar, combinado no PLANO v2."><Icone n="info" />Chega na v0.8.0</span>;
 
 export function EmBreve({ qual }) {
   if (qual === 'pastas') {
     return (
-      <div className="pagina">
-        <div className="aviso-breve"><Icone n="info" /><span><b>Chega na v0.8.0.</b> Esta página mostra como vai ficar, combinado no PLANO v2.</span></div>
-        <p className="sub">Pastas criadas e excluídas por Principais e Estrela; cada uma com Arquivados; subpastas por ano e mês; lançamento com número sequencial (ex.: TRE-2026-0001); depois de lançado, só Cancelar com motivo.</p>
-        <div className="secao"><h3>Pastas iniciais</h3></div>
-        <div className="planos">{PASTAS_INICIAIS.map((p) => <Cartao key={p} ic="pasta" titulo={p}>Arquivados · subpastas por ano e mês</Cartao>)}</div>
-        <div className="secao"><h3>Regras</h3></div>
-        <div className="planos">
-          <Cartao ic="lixeira" titulo="Excluir pasta">Só vazia, com motivo. Com lançamentos, só arquivar.</Cartao>
-          <Cartao ic="historico" titulo="Revisões de formulário">Rev. 00, 01…; aprovação por um Principal; antigas só para consulta.</Cartao>
-          <Cartao ic="foto" titulo="Fotos">Apagam 15 dias depois de concluído o registro, 45 se não concluído. Aviso antes e "Baixar fotos".</Cartao>
-        </div>
+      <div className="pagina pg-plano">
+        <CabPagina titulo="Pastas" meta={<SeloChega />} />
+        <p className="plano-intro">Pastas criadas e excluídas por Principais e Estrela; cada uma com Arquivados; subpastas por ano e mês; lançamento com número sequencial (ex.: TRE-2026-0001); depois de lançado, só Cancelar com motivo.</p>
+        <Plano titulo="Pastas iniciais">
+          {PASTAS_INICIAIS.map((p) => <Linha key={p} ic="pasta" titulo={p}>Arquivados · subpastas por ano e mês</Linha>)}
+        </Plano>
+        <Plano titulo="Regras">
+          <Linha ic="lixeira" titulo="Excluir pasta">Só vazia, com motivo. Com lançamentos, só arquivar.</Linha>
+          <Linha ic="historico" titulo="Revisões de formulário">Rev. 00, 01…; aprovação por um Principal; antigas só para consulta.</Linha>
+          <Linha ic="foto" titulo="Fotos">Apagam 15 dias depois de concluído o registro, 45 se não concluído. Aviso antes e "Baixar fotos".</Linha>
+        </Plano>
       </div>
     );
   }
   return (
-    <div className="pagina">
-      <div className="aviso-breve"><Icone n="info" /><span><b>Chega na v0.8.0.</b> Esta página mostra como vai ficar, combinado no PLANO v2.</span></div>
-      <p className="sub">Documentos que vêm de fora e nunca são criados no app (alvará, licença ambiental, certificados, laudos de calibração, AVCB, contratos). Controle por validade, não por revisão.</p>
-      <div className="planos">
-        <Cartao ic="externo" titulo="Importar">PDF ou foto; não se edita; ficha com emissor, número, emissão, validade, responsável e unidade.</Cartao>
-        <Cartao ic="aviso" titulo="Avisos">A vencer: 60, 30 e 7 dias antes. Vencido em vermelho.</Cartao>
-        <Cartao ic="restaurar" titulo="Renovar">Novo arquivo e nova validade; o anterior vira Substituído e fica no histórico.</Cartao>
-        <Cartao ic="cadeado" titulo="Nunca se apagam sozinhos">A regra de prazo das fotos não vale para eles.</Cartao>
-      </div>
+    <div className="pagina pg-plano">
+      <CabPagina titulo="Documentos externos" meta={<SeloChega />} />
+      <p className="plano-intro">Documentos que vêm de fora e nunca são criados no app (alvará, licença ambiental, certificados, laudos de calibração, AVCB, contratos). Controle por validade, não por revisão.</p>
+      <Plano titulo="Como vai funcionar">
+        <Linha ic="externo" titulo="Importar">PDF ou foto; não se edita; ficha com emissor, número, emissão, validade, responsável e unidade.</Linha>
+        <Linha ic="aviso" titulo="Avisos">A vencer: 60, 30 e 7 dias antes. Vencido em vermelho.</Linha>
+        <Linha ic="restaurar" titulo="Renovar">Novo arquivo e nova validade; o anterior vira Substituído e fica no histórico.</Linha>
+        <Linha ic="cadeado" titulo="Nunca se apagam sozinhos">A regra de prazo das fotos não vale para eles.</Linha>
+      </Plano>
     </div>
   );
 }

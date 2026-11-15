@@ -1,0 +1,121 @@
+/* EFC · movimento — escala única de movimento da família EFClaudian (EFCwork, Sabiá, EFClaudian, Vértice Docs).
+   Um arquivo só para todos, como o Contrato EFD: qualquer mudança sobe a versão e entra nos apps no mesmo dia, com a ordem do Elias.
+   Versão 1 (13/11/2026). Tokens e receitas adaptados do Transitions.dev (github.com/Jakubantalik/transitions.dev), usados aqui
+   conforme a licença de uso dele (uso em projeto liberado; não redistribuir a biblioteca como material próprio).
+   Regras da família: nada de animação infinita que não informe nada (exceção aprovada: o reflexo do botão dourado);
+   toda animação respeita "movimento reduzido"; duração sempre de um token do MESMO USO. */
+:root{
+  /* durações (por uso) */
+  --duration-stagger:40ms;   /* atraso entre itens de uma lista que entra */
+  --duration-micro:80ms;     /* trecho de tremida, atraso de dica */
+  --duration-quick:150ms;    /* fechar lista retrátil ou confirmação, trocar texto, dica, hover */
+  --duration-fast:250ms;     /* abrir lista retrátil ou confirmação, trocar ícone, aba, fechar aviso */
+  --duration-medium:350ms;   /* fechar gaveta ou folha, abrir aviso */
+  --duration-slow:400ms;     /* abrir gaveta ou folha, revelar conteúdo carregado, barra que enche */
+  --duration-very-slow:500ms;/* momento de destaque: visto de salvo, número que importa */
+  /* curvas */
+  --ease-smooth-out:cubic-bezier(.22,1,.36,1); /* abrir e fechar superfícies, deslizar, mudar de tamanho ou lugar */
+  --ease-in-out:ease-in-out;                     /* trocar ícone ou texto */
+  --ease-out:ease-out;                           /* dica, borda, cor */
+  --ease-linear:linear;                          /* brilho que passa, carregando */
+  --ease-bounce:cubic-bezier(.34,1.36,.64,1);    /* selo que aparece, passo que acende */
+  /* distâncias, escalas e desfoque */
+  --distance-micro:4px;--distance-small:6px;--distance-base:8px;--distance-medium:12px;--distance-large:30px;
+  --scale-large:.96;--scale-medium:.97;--scale-small:.98;--scale-tiny:.99;
+  --blur-small:2px;--blur-medium:3px;--blur-large:8px;
+  /* receitas (cada uma lê a escala acima) */
+  --dropdown-open-dur:var(--duration-fast);--dropdown-close-dur:var(--duration-quick);--dropdown-pre-scale:var(--scale-medium);--dropdown-closing-scale:var(--scale-tiny);--dropdown-ease:var(--ease-smooth-out);
+  --modal-open-dur:var(--duration-fast);--modal-close-dur:var(--duration-quick);--modal-scale:var(--scale-large);--modal-ease:var(--ease-smooth-out);
+  --panel-open-dur:var(--duration-slow);--panel-close-dur:var(--duration-medium);--panel-blur:var(--blur-small);--panel-ease:var(--ease-smooth-out);
+  --toast-open:var(--duration-medium);--toast-close:var(--duration-fast);--toast-distance:16px;--toast-blur:var(--blur-small);--toast-scale:var(--scale-medium);--toast-ease:var(--ease-smooth-out);
+  --tabs-dur:var(--duration-fast);--tabs-ease:var(--ease-smooth-out);
+  --acc-expand:var(--duration-fast);--acc-collapse:var(--duration-fast);--acc-ease:var(--ease-smooth-out);
+  --icon-swap-dur:var(--duration-fast);--icon-swap-blur:var(--blur-small);--icon-swap-start-scale:.25;--icon-swap-ease:var(--ease-in-out);
+  --shake-distance:var(--distance-small);--shake-overshoot:var(--distance-micro);--shake-dur-a:var(--duration-micro);--shake-dur-b:60ms;--shake-ease:var(--ease-smooth-out);
+  --subtle-dur:455ms;--subtle-distance:.14em;--subtle-blur:.042em;--subtle-ease:var(--ease-smooth-out);
+  --check-dur:var(--duration-very-slow);--check-ease:var(--ease-smooth-out);--check-bob-ease:cubic-bezier(.34,1.35,.64,1);
+}
+
+/* lista retrátil, menu, folha de opções ancorada no botão (abre do botão) */
+.t-dropdown{transform-origin:top left;transform:scale(var(--dropdown-pre-scale));opacity:0;pointer-events:none;
+  transition:transform var(--dropdown-open-dur) var(--dropdown-ease),opacity var(--dropdown-open-dur) var(--dropdown-ease);will-change:transform,opacity}
+.t-dropdown[data-origin="top-right"]{transform-origin:top right}.t-dropdown[data-origin="top-center"]{transform-origin:top center}
+.t-dropdown[data-origin="bottom-left"]{transform-origin:bottom left}.t-dropdown[data-origin="bottom-right"]{transform-origin:bottom right}
+.t-dropdown.is-open{transform:scale(1);opacity:1;pointer-events:auto}
+.t-dropdown.is-closing{transform:scale(var(--dropdown-closing-scale));opacity:0;pointer-events:none;
+  transition:transform var(--dropdown-close-dur) var(--dropdown-ease),opacity var(--dropdown-close-dur) var(--dropdown-ease)}
+
+/* janela no centro (confirmação) + fundo que escurece */
+.t-modal{transform-origin:center;transform:scale(var(--modal-scale));opacity:0;pointer-events:none;
+  transition:transform var(--modal-open-dur) var(--modal-ease),opacity var(--modal-open-dur) var(--modal-ease);will-change:transform,opacity}
+.t-modal.is-open{transform:scale(1);opacity:1;pointer-events:auto}
+.t-modal.is-closing{transform:scale(var(--modal-scale));opacity:0;pointer-events:none;
+  transition:transform var(--modal-close-dur) var(--modal-ease),opacity var(--modal-close-dur) var(--modal-ease)}
+.t-fundo{opacity:0;transition:opacity var(--modal-close-dur) var(--ease-out)}
+.t-fundo.is-open{opacity:1;transition-duration:var(--modal-open-dur)}
+
+/* gaveta lateral (detalhe) — painel que desliza da direita; folha que sobe de baixo no celular */
+.t-gaveta{transform:translateX(100%);opacity:.6;filter:blur(var(--panel-blur));
+  transition:transform var(--panel-close-dur) var(--panel-ease),opacity var(--panel-close-dur) var(--panel-ease),filter var(--panel-close-dur) var(--panel-ease);will-change:transform,opacity}
+.t-gaveta.is-open{transform:none;opacity:1;filter:none;
+  transition:transform var(--panel-open-dur) var(--panel-ease),opacity var(--panel-open-dur) var(--panel-ease),filter var(--panel-open-dur) var(--panel-ease)}
+.t-folha{transform:translateY(100%);opacity:.6;transition:transform var(--panel-close-dur) var(--panel-ease),opacity var(--panel-close-dur) var(--panel-ease);will-change:transform}
+.t-folha.is-open{transform:none;opacity:1;transition:transform var(--panel-open-dur) var(--panel-ease),opacity var(--panel-open-dur) var(--panel-ease)}
+
+/* aviso que sobe de baixo (um por vez) */
+.t-toast{opacity:0;transform:translateY(var(--toast-distance)) scale(var(--toast-scale));filter:blur(var(--toast-blur));will-change:transform,opacity,filter;
+  transition:opacity var(--toast-close) var(--toast-ease),transform var(--toast-close) var(--toast-ease),filter var(--toast-close) var(--toast-ease)}
+.t-toast.is-open{opacity:1;transform:none;filter:none;
+  transition:opacity var(--toast-open) var(--toast-ease),transform var(--toast-open) var(--toast-ease),filter var(--toast-open) var(--toast-ease)}
+
+/* traço da aba que desliza até a aba escolhida (abas sublinhadas da família) */
+.t-abas{position:relative}
+.t-abas-linha{position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--a,currentColor);border-radius:2px;pointer-events:none;
+  transition:transform var(--tabs-dur) var(--tabs-ease),width var(--tabs-dur) var(--tabs-ease);will-change:transform,width}
+
+/* bloco que abre e recolhe (filtro, detalhes) */
+.t-acc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--acc-collapse) var(--acc-ease)}
+.t-acc[data-open="true"] .t-acc-panel{grid-template-rows:1fr;transition-duration:var(--acc-expand)}
+.t-acc-panel-inner{overflow:hidden;opacity:0;transition:opacity var(--acc-collapse) var(--acc-ease)}
+.t-acc[data-open="true"] .t-acc-panel-inner{opacity:1;transition-duration:var(--acc-expand)}
+
+/* dois ícones no mesmo lugar (tema claro/escuro, mostrar/ocultar) */
+.t-icon-swap{position:relative;display:inline-grid}
+.t-icon-swap .t-icon{grid-area:1/1;transition:opacity var(--icon-swap-dur) var(--icon-swap-ease),filter var(--icon-swap-dur) var(--icon-swap-ease),transform var(--icon-swap-dur) var(--icon-swap-ease)}
+.t-icon-swap[data-state="a"] .t-icon[data-icon="a"],.t-icon-swap[data-state="b"] .t-icon[data-icon="b"]{opacity:1;filter:none;transform:none}
+.t-icon-swap[data-state="a"] .t-icon[data-icon="b"],.t-icon-swap[data-state="b"] .t-icon[data-icon="a"]{opacity:0;filter:blur(var(--icon-swap-blur));transform:scale(var(--icon-swap-start-scale))}
+
+/* erro: tremida curta (280 ms, uma vez) */
+.t-shake.is-shaking{animation:t-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear}
+@keyframes t-shake{
+  0%{transform:translateX(0);animation-timing-function:var(--shake-ease)}
+  28.57%{transform:translateX(var(--shake-distance));animation-timing-function:var(--shake-ease)}
+  57.14%{transform:translateX(calc(var(--shake-distance) * -1));animation-timing-function:var(--shake-ease)}
+  78.57%{transform:translateX(var(--shake-overshoot));animation-timing-function:var(--shake-ease)}
+  100%{transform:translateX(0)}}
+
+/* número que mudou porque o dado mudou (discreto) */
+.t-subtle-number{display:inline-flex;align-items:baseline;font-variant-numeric:tabular-nums}
+.t-subtle-slot{position:relative;display:inline-block}.t-subtle-new{display:inline-block}
+.t-subtle-old{position:absolute;inset:0;text-align:center;pointer-events:none}
+.t-subtle-number.is-animating .t-subtle-new{animation:t-subtle-in var(--subtle-dur) var(--subtle-ease) both}
+.t-subtle-number.is-animating .t-subtle-old{animation:t-subtle-out var(--subtle-dur) var(--subtle-ease) both}
+@keyframes t-subtle-in{from{transform:translateY(calc(var(--subtle-distance) * var(--subtle-dir,1)));opacity:0;filter:blur(var(--subtle-blur))}}
+@keyframes t-subtle-out{to{transform:translateY(calc(var(--subtle-distance) * var(--subtle-dir,1) * -1));opacity:0;filter:blur(var(--subtle-blur))}}
+
+/* visto de "salvo" (desenha uma vez) */
+.t-success-check{display:inline-block;transform-origin:center;opacity:0}
+.t-success-check svg{display:block;overflow:visible}
+.t-success-check svg path{stroke-dasharray:var(--check-len,20);stroke-dashoffset:var(--check-len,20)}
+.t-success-check[data-state="in"]{animation:t-check-in var(--check-dur) var(--check-ease) forwards,t-check-bob var(--check-dur) var(--check-bob-ease) forwards}
+.t-success-check[data-state="in"] svg path{animation:t-check-draw var(--check-dur) var(--check-ease) var(--duration-micro) forwards}
+@keyframes t-check-in{from{opacity:0;transform:rotate(80deg);filter:blur(var(--blur-large))}to{opacity:1;transform:none;filter:none}}
+@keyframes t-check-bob{from{translate:0 var(--distance-medium)}to{translate:0 0}}
+@keyframes t-check-draw{to{stroke-dashoffset:0}}
+
+/* movimento reduzido: obrigatório — tudo para, o estado final aparece na hora */
+@media (prefers-reduced-motion:reduce){
+  .t-dropdown,.t-modal,.t-fundo,.t-gaveta,.t-folha,.t-toast,.t-abas-linha,.t-acc-panel,.t-acc-panel-inner,.t-icon-swap .t-icon{transition:none!important}
+  .t-shake.is-shaking,.t-subtle-number .t-subtle-new{animation:none!important}.t-subtle-number .t-subtle-old{display:none}
+  .t-success-check{animation:none!important;opacity:1}.t-success-check svg path{animation:none!important;stroke-dashoffset:0!important}
+}

@@ -1,0 +1,63 @@
+/* Vértice Docs — v0.6.21 (R25): a faixa nos lugares do Excel (Página Inicial).
+   Movimento só com os tokens de efc-movimento.css; anima só transform, opacity e filter. */
+
+/* duas linhas dentro do grupo, como Fonte, Alinhamento e Número no Excel */
+.rb-pilha { display: grid; grid-auto-rows: 28px; gap: 6px; align-content: center; align-self: center; padding: 0 2px; }
+.rb-fila { display: flex; align-items: center; gap: 1px; }
+.rb-div { flex: none; width: 1px; height: 18px; margin: 0 4px; background: var(--border); }
+.rb-fila .rbs { padding: 0 6px; }
+
+/* caixa de valor: fonte, tamanho, formato do número */
+.rb-cx { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 4px; height: 28px; padding: 0 4px 0 8px; margin-right: 3px;
+  border: 1px solid var(--border); border-radius: var(--r-miudo); background: var(--surface); color: var(--text); font-size: 13px; text-align: left; position: relative; overflow: hidden; }
+.rb-cx::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--primary); transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform var(--duration-fast) var(--ease-smooth-out); }
+.rb-cx:hover:not(:disabled)::after, .rb-cx.aberto::after, .rb-cx:focus-visible::after { transform: scaleX(1); }
+.rb-cx:disabled { color: var(--text-dim); }
+.rb-cx-v { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; animation: rbValor var(--duration-quick) var(--ease-smooth-out); }
+@keyframes rbValor { from { opacity: 0; transform: translateY(3px); } }
+.rb-seta { flex: none; width: 12px !important; height: 12px !important; color: var(--text-dim) !important; transition: transform var(--duration-quick) var(--ease-smooth-out); }
+.aberto > .rb-seta { transform: rotate(180deg); }
+.rbs.rb-abre .rb-seta { margin-left: auto; }
+.rbs.rb-abre.aberto { background: var(--surface-2); color: var(--text); }
+
+/* lista que nasce do botão */
+.rb-lista { position: fixed; z-index: 60; display: grid; gap: 1px; padding: 5px; overflow-y: auto; scrollbar-width: thin;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-ctl); box-shadow: var(--sh-2);
+  animation: t-dropdown-in var(--dropdown-open-dur) var(--dropdown-ease); }
+.rb-lista-it { display: flex; align-items: center; gap: 10px; min-height: 30px; padding: 0 10px; border-radius: var(--r-miudo); font-size: 13px; color: var(--text); text-align: left; white-space: nowrap; }
+.rb-lista-it:hover:not(:disabled), .rb-lista-it:focus-visible { background: var(--row-hover); outline: 0; }
+.rb-lista-it:disabled { color: var(--text-dim); }
+.rb-lista-it.on { background: var(--primary-soft); font-weight: 600; }
+.rb-lista-it svg { flex: none; width: 16px; height: 16px; color: var(--text-muted); }
+.rb-lista-it .ok { margin-left: auto; color: var(--primary); }
+.rb-lista-it kbd { margin-left: auto; padding-left: 16px; font: inherit; font-size: 12px; color: var(--text-dim); }
+.rb-lista-it.fim { color: var(--text-muted); }
+.rb-lista-sep { height: 1px; margin: 4px 6px; background: var(--border); }
+.rb-lista.estreita .rb-lista-it { justify-content: center; padding: 0 8px; }
+.rb-lista.estreita .rb-lista-it .ok { display: none; }
+
+/* tela apertada: antes de mandar um grupo para o "Mais", os botões de linha e os do lado do Colar ficam só com o ícone (o nome continua na dica e para o leitor de tela) */
+.ribbon[data-aperto] .rb-fila .rbs .rot, .ribbon[data-aperto] .rb-g:first-of-type .rb-col .rbs .rot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ribbon[data-aperto] .rb-fila .rbs, .ribbon[data-aperto] .rb-g:first-of-type .rb-col .rbs { width: 28px; padding: 0; justify-content: center; }
+.ribbon[data-aperto] .rb-cx[data-cx=fonte] { width: 86px !important; }
+.ribbon[data-aperto] .rb-cx[data-cx=numero] { width: 128px !important; }
+.ribbon[data-aperto] .rb-g { padding-left: 3px; padding-right: 3px; }
+.ribbon[data-aperto]:not([data-estilo=E]) { gap: 1px; }
+.ribbon[data-aperto] .rb-div { margin: 0 1px; background: transparent; }
+.ribbon[data-aperto] .rbs.rb-abre .rb-seta { display: none; }
+
+/* estilo E (uma linha só, só ícones): as duas linhas viram uma */
+.ribbon[data-estilo=E] .rb-pilha { display: flex; align-items: center; gap: 2px; }
+.ribbon[data-estilo=E] .rb-cx { height: 28px; }
+.ribbon[data-estilo=E] .rbs.rb-abre .rb-seta { display: none; }
+
+/* celular: dedo precisa de 44 px */
+.app.cel .rb-pilha { grid-auto-rows: 44px; gap: 2px; }
+.app.cel .rb-cx { height: 36px; font-size: 14px; }
+.app.cel .rb-lista-it { min-height: 44px; font-size: 15px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-lista, .rb-cx-v { animation: none !important; }
+  .rb-cx::after, .rb-seta { transition: none !important; }
+}

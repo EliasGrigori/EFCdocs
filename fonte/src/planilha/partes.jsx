@@ -1,5 +1,6 @@
 /* EFCdocs — Planilha: peças da tela (abas, barra de status, menus e janelas). */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { FONTES, TAMANHOS_LETRA } from './fontes.js';
 import { Icone, Janela, usarEsc } from '../ui/comum.jsx';
 import { PainelCores } from './cores.jsx';
 import { FORMATOS, codigoPt, codigoDePt, formatar } from './formato.js';
@@ -158,7 +159,6 @@ export function JanelaFormato({ atual, exemplo, aoAplicar, aoFechar }) {
 }
 
 /* ---------- fonte ---------- */
-const FONTES = ['', 'Calibri', 'Arial', 'Times New Roman', 'Verdana', 'Courier New'];
 export function JanelaFonte({ estilo, aoAplicar, aoFechar }) {
   const [fonte, setFonte] = useState(estilo.fonte || '');
   const [tam, setTam] = useState(estilo.tam || 11);
@@ -177,7 +177,7 @@ export function JanelaFonte({ estilo, aoAplicar, aoFechar }) {
         </label>
         <label className="campo">Tamanho
           <select value={tam} onChange={(ev) => setTam(ev.target.value)}>
-            {[8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36].map((t) => <option key={t} value={t}>{t}</option>)}
+            {TAMANHOS_LETRA.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
       </div>

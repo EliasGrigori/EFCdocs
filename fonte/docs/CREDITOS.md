@@ -49,6 +49,12 @@ O resto do app (grade, motor de fórmulas, leitura e gravação de .xlsx, ZIP, P
 | FortuneSheet | MIT | referência de comportamento (Fase 0). Nenhum código copiado |
 | SheetJS Community Edition | Apache-2.0 | previsto como leitor de .xls, .ods e .csv (pedido de 05/11). Ainda não entrou |
 
+## Peças da própria família
+
+| De onde | O que | Onde entrou |
+|---|---|---|
+| EFCwork v0.6.15 (pacote `vertice-layout-v0.6.15.zip`, do Elias) | `efc-layout.css` e `efc-layout.js`: tela parada, selo do total, ferramentas na linha das abas, esqueleto, botão dourado | `src/layout/` (v0.6.20) |
+
 ## Regra
 
 Antes de copiar qualquer trecho de código aberto para `src/`: conferir a licença, anotar aqui (projeto, arquivo de origem, licença, onde entrou) e manter o aviso de licença exigido (Apache-2.0 pede o aviso e o arquivo NOTICE quando houver). Código sem licença clara não entra.

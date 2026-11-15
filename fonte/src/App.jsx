@@ -32,6 +32,8 @@ import { DocsInternos, JanelaInterno, ResumoEnvio } from './ui/internos.jsx';
 import { PainelCampos, TelaPedido } from './ponte/camposUi.jsx';
 
 const AUTOR = 'neste aparelho';
+/* v0.6.20 (R5): nas telas de lista o título grande fica na página; a barra de cima mostra o caminho */
+const TRILHA = { '': '', planilha: 'Meus arquivos', docx: 'Meus arquivos', postits: 'Meus arquivos', internos: 'Organizar', pastas: 'Organizar', externos: 'Organizar', lixeira: '' };
 const TITULOS = { '': 'Início', planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros', lixeira: 'Lixeira', pastas: 'Pastas', externos: 'Documentos externos', internos: 'Documentos internos' };
 const NOVO_POR_CMD = { 'arquivo.novaPlanilha': 'planilha', 'arquivo.novoDocumento': 'docx', 'arquivo.novoQuadro': 'postits' };
 const DO_MODULO = { planilha: 'da planilha', docx: 'do documento', postits: 'do quadro' };
@@ -92,6 +94,8 @@ export function App() {
   const rota = useRota();
   const banco = useMemo(() => criarBanco({ demo }), [demo]);
   const [fichas, setFichas] = useState([]);
+  /* v0.6.20 (R10): enquanto a primeira leitura não chega, as listas mostram o esqueleto em vez de "nada ainda" */
+  const [lendo, setLendo] = useState(true);
 
   /* arquivo aberto: { arquivo, h (histórico), tamanho, sujo, salvoEm } — também num ref para os atalhos */
   const [aberto, setAbertoEstado] = useState(null);
@@ -160,6 +164,7 @@ export function App() {
 
   const recarregar = useCallback(async () => {
     try { setFichas(await banco.fichas()); } catch { avisar('Não foi possível ler os arquivos deste aparelho.', { ic: 'aviso' }); }
+    setLendo(false);
   }, [banco, avisar]);
   useEffect(() => { recarregar(); }, [recarregar]);
 
@@ -469,8 +474,9 @@ export function App() {
 
   const perguntarNome = useCallback((f) => setPergunta({
     titulo: 'Renomear', campo: 'Nome do arquivo', valor: f.nome, confirmar: 'Salvar nome', validar: validarNome,
-    aoConfirmar: (nome) => { if (nome !== f.nome) renomearArquivo(f, nome); },
-  }), [renomearArquivo]);
+    /* v0.6.20 (fluidez, item e): confirma com um aviso de sucesso, que traz o visto que se desenha */
+    aoConfirmar: (nome) => { if (nome !== f.nome) Promise.resolve(renomearArquivo(f, nome)).then(() => avisar(`Nome salvo: "${nome}".`, { ic: 'check' })); },
+  }), [renomearArquivo, avisar]);
 
   const excluirDeVez = useCallback((f) => setPergunta({
     titulo: `Apagar ${f.nome} para sempre?`, texto: 'Não dá para desfazer. O arquivo some deste aparelho e fica só anotado no histórico.',
@@ -512,7 +518,12 @@ export function App() {
     return v === undefined ? undefined : !!v;
   }, [prefs, statusEd]); // statusEd: o editor muda o que está ligado
 
-  const executar = useCallback((id) => {
+  /* v0.6.21 (faixa igual ao Excel): o valor que uma caixa da faixa mostra (fonte, tamanho, formato da célula ativa) */
+  const valorDe = useCallback((id) => { const ed = editorRef.current; return ed && ed.ligado ? ed.ligado(id) : undefined; }, [statusEd]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const executar = useCallback((idCheio) => {
+    /* "comando|valor": a escolha feita numa caixa da faixa; as regras (permissão, versão) são as do comando */
+    const id = idCheio.includes('|') ? idCheio.slice(0, idCheio.indexOf('|')) : idCheio;
     const cmd = PorId[id];
     if (!cmd) return;
     const chega = chegaNa(cmd, mod);
@@ -566,7 +577,7 @@ export function App() {
         /* v0.6.16: imprimir com o resumo do envio na tela tira o resumo da caixa (o painel fica até fechar) */
         if ((id === 'arquivo.imprimir' || id === 'arquivo.exportarPDF') && ponteRef.current.resumo) ponteRef.current.resumoUsado();
         const ed = editorRef.current;
-        if (ed && ed.trata && ed.trata(id)) return;
+        if (ed && ed.trata && ed.trata(idCheio)) return;
         avisar(`"${cmd.nome}" ainda não faz nada aqui.`, { ic: 'info' });
       }
     }
@@ -606,7 +617,7 @@ export function App() {
   }, [opcoes]);
 
   const cx = {
-    mod, executar, bloqueado, ligado, demo, setPref,
+    mod, executar, bloqueado, ligado, valorDe, demo, setPref,
     abrir: (id) => irPara('arq/' + id),
     perguntarNome, lixeira: mandarLixeira, restaurar, excluirDeVez, criarCom,
     renomear: (nome) => { const a = abertoRef.current; if (a && nome !== a.arquivo.ficha.nome) renomearArquivo(a.arquivo.ficha, nome); },
@@ -618,6 +629,8 @@ export function App() {
     registrarEditor: (ed) => { editorRef.current = ed; }, setStatus: setStatusEd, setContexto, contexto: contextoEd,
     alvoPainel, alvoRodape, abrirPainel: () => setPref('painel', true), painelAberto: prefs.painel, cel,
     compartilharCwork: (gerar) => { const a = abertoRef.current; if (a) ponte.compartilhar(a.arquivo.ficha, gerar); },
+    /* v0.6.20 (R9): o envio ao Cwork guardado no aparelho, para o histórico da gaveta e do painel */
+    envioDe: (id) => (ponte.estado || {})[id] || null,
   };
 
   const contagem = useMemo(() => {
@@ -638,11 +651,11 @@ export function App() {
         : <EditorEmBreve tipo={t} />;
   } else if (idRota || pidRota) conteudo = <div className="pagina" aria-busy="true" />;
   else if (pidPedido) conteudo = pidPedido === 'local' && !ponte.pedidoLocal ? <div className="pagina" aria-busy="true" /> : <TelaPedido key={pidPedido} pid={pidPedido} local={pidPedido === 'local' ? ponte.pedidoLocal : null} banco={banco} avisar={avisar} aoSair={() => irPara(pidPedido === 'local' ? 'arq/' + ponte.pedidoLocal.docId : '')} />;
-  else if (rota === 'internos') conteudo = <DocsInternos fichas={fichas} estado={ponte.estado} cx={cx} acrescentar={() => ponte.setJanela({})} editar={(f) => ponte.setJanela({ ficha: f })} />;
-  else if (TIPOS[rota]) conteudo = <ListaDoTipo tipo={rota} fichas={fichas} cx={cx} demo={demo} />;
-  else if (rota === 'lixeira') conteudo = <Lixeira fichas={fichas} cx={cx} />;
+  else if (rota === 'internos') conteudo = <DocsInternos fichas={fichas} lendo={lendo} estado={ponte.estado} cx={cx} acrescentar={() => ponte.setJanela({})} editar={(f) => ponte.setJanela({ ficha: f })} />;
+  else if (TIPOS[rota]) conteudo = <ListaDoTipo tipo={rota} fichas={fichas} lendo={lendo} cx={cx} demo={demo} />;
+  else if (rota === 'lixeira') conteudo = <Lixeira fichas={fichas} lendo={lendo} cx={cx} />;
   else if (rota === 'pastas' || rota === 'externos') conteudo = <EmBreve qual={rota} />;
-  else conteudo = <Inicio fichas={fichas} cx={cx} demo={demo} />;
+  else conteudo = <Inicio fichas={fichas} lendo={lendo} cx={cx} demo={demo} />;
 
   const salvo = aberto ? { sujo: aberto.sujo, texto: aberto.sujo ? 'Salvando…' : 'Salvo ' + hora(aberto.salvoEm) } : null;
   const ultimo = aberto && podeDesfazer(aberto.h) ? rotuloDesfazer(aberto.h) : '';
@@ -673,7 +686,7 @@ export function App() {
           </div>
         )}
         <DicasComandos mod={mod} />
-        <Topo titulo={TITULOS[rota] || 'Vértice Docs'} ficha={ficha} salvo={salvo} prefs={prefs} cx={cx} cel={cel}
+        <Topo titulo={TITULOS[rota] || 'Vértice Docs'} trilha={TRILHA[rota]} ficha={ficha} salvo={salvo} prefs={prefs} cx={cx} cel={cel}
           aba={aba} setAba={setAba} faixaTemp={faixaTemp} setFaixaTemp={setFaixaTemp} abrirGaveta={() => (!cel && prefs.menu === 'oculto' ? cx.executar('exibir.menuCompleto') : setGaveta(true))} />
         <div className="work">
           <main className="wk-main" id="conteudo">{conteudo}</main>
@@ -687,7 +700,7 @@ export function App() {
         </div>
         {cel && !aberto ? (
           <BarraCelular rota={rota} cont={contagem} abrirGaveta={() => setGaveta(true)} />
-        ) : (
+        ) : !aberto ? null : (
           <footer className={'foot' + (aberto && ficha.tipo === 'planilha' && !(st.planilha && st.planilha.calc) ? ' sem-conta' : '')} aria-label="Barra de status">
             {aberto ? (
               <>
@@ -709,14 +722,7 @@ export function App() {
                   {!cel && (ficha.tipo === 'planilha' || ficha.tipo === 'postits') && <span className="foot-verif" ref={setAlvoRodape} />}
                 </span>
               </>
-            ) : (
-              <>
-                <span><b>Vértice Docs</b> {VERSAO}</span>
-                <span className="sts">
-                  <span>{ativos(fichas).length} {ativos(fichas).length === 1 ? 'arquivo' : 'arquivos'} neste aparelho</span>
-                </span>
-              </>
-            )}
+            ) : null}
           </footer>
         )}
       </div>

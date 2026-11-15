@@ -11,6 +11,10 @@ export const CONHECIDAS = {
     { fonte: 'openpyxl', grupo: /^número virou o mesmo texto$/, id: 'L-08', motivo: 'título numérico de tabela volta como texto, como o Excel grava' },
     { fonte: 'openpyxl', grupo: /^fórmula: referência de tabela virou endereço$/, id: 'L-02', motivo: 'o motor trabalha com endereços; a conta é a mesma' },
   ],
+  /* v0.6.19 (gerar-amostra-v0619.py): o total da tabela de Estoque vem do Excel como Estoque[Qtd] */
+  'amostra-v0619.xlsx': [
+    { fonte: 'openpyxl', grupo: /^fórmula: referência de tabela virou endereço$/, id: 'L-02', motivo: 'o motor trabalha com endereços; a conta é a mesma' },
+  ],
   'amostra-v068.xlsx': [
     { fonte: 'idaVolta', grupo: /^AUX VEL · v$/, id: 'A-01', motivo: 'o gerador da amostra gravou de propósito um valor guardado errado (2) em C8; o EFCdocs calcula 9 e o LibreOffice confirma 9' },
   ],
@@ -41,9 +45,6 @@ export const CONHECIDAS = {
 export const CONHECIDAS_FORA = [
   { fonte: 'idaVolta', grupo: / · com \(conversa virou anotação\)$/, id: 'L-15', motivo: 'conversa de comentários do Excel 365 vai como anotação comum (o texto e as respostas juntos na mesma anotação)' },
   { fonte: 'openpyxl', grupo: /^não conferido: aba com mais de 60 MB$/, id: 'L-17', motivo: 'o openpyxl não abre aba com mais de 60 MB de XML (milhões de células de folga); ficam a ida e volta, a estrutura e as regras' },
-  { fonte: 'openpyxl', grupo: /^aba de gráfico não voltou$/, id: 'D-43', motivo: 'aba que é só um gráfico ainda não vem (aparece em "Ficou de fora" ao abrir); fica para o "Guardar e devolver 2"' },
-  { fonte: 'openpyxl', grupo: /^abas$/, id: 'D-43', motivo: 'uma aba a menos: a aba de gráfico que ainda não vem' },
-  { fonte: 'openpyxl', grupo: /^formatação condicional: barras de dados não voltaram$/, id: 'D-45', motivo: 'barras de dados ainda não vêm (aparecem em "Ficou de fora" ao abrir)' },
   { fonte: 'openpyxl', grupo: /^nome definido que aponta para outro arquivo$/, id: 'L-16', motivo: 'ligação com outra pasta de trabalho ([1]): o nome não vem (aparece em "Ficou de fora" ao abrir)' },
   { fonte: 'openpyxl', grupo: /^valor$/, id: 'L-12', motivo: 'cópia anonimizada: fórmula que monta um nome a partir de um texto trocado (INDIRETO) dá #REF! e a matriz encolhe; no arquivo real o nome existe' },
   { fonte: 'idaVolta', grupo: / · v$/, id: 'L-12', motivo: 'cópia anonimizada: o valor guardado pelo Excel é do dado real (ordem alfabética, contas e textos montados por fórmula, HOJE); o motor é conferido nas amostras pelo LibreOffice e nas planilhas reais antigas' },

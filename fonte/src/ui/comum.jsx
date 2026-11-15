@@ -161,7 +161,9 @@ export function Avisos({ lista, tirar, menu }) {
     <div className="toasts" aria-live="polite" data-menu={menu}>
       {lista.map((a) => (
         <div className="toast" role="status" key={a.id}>
-          <Icone n={a.ic || 'info'} />
+          {a.ic === 'check'
+            ? <span className="t-success-check" data-state="out" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>
+            : <Icone n={a.ic || 'info'} />}
           <span>{a.texto}</span>
           {a.acao && <button type="button" onClick={() => { a.acao.fazer(); tirar(a.id); }}>{a.acao.rotulo}</button>}
         </div>

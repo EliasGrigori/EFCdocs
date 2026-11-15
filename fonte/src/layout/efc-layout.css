@@ -1,0 +1,127 @@
+/* EFC · layout v0.6.15 — peças portáteis do layout aprovado pelo Elias no EFCwork em 14/11/2026.
+   Para o Vértice Docs (e qualquer app da família EFClaudian). Depende de efc-movimento.css (escala de movimento da família).
+   Cores: cada variável --efl-* lê o token do app quando existe e cai num valor padrão quando não existe.
+   Troque só a coluna da direita (os nomes dos tokens do Vértice) — nunca escreva cor solta nas regras abaixo.
+   Prefixo: efl-
+   No Vértice Docs (v0.6.20): só a coluna da direita do bloco :root foi trocada pelos tokens do Vértice (src/cwork.css). O resto é igual ao pacote. */
+:root,body{ /* no Vértice o tema fica no <body>: o bloco vale também nele, para ler as cores do tema escolhido */
+  --efl-fundo:var(--surface,#fffdf8);        /* cartão, tabela */
+  --efl-fundo2:var(--surface-2,#f1ece2);       /* pílula, cabeçalho da tabela, tubo vazio */
+  --efl-borda:var(--border,#e6dfd2);
+  --efl-borda2:var(--border-light,#d8cfbf);
+  --efl-texto:var(--text,#1f1b16);
+  --efl-texto2:var(--text-muted,#5a5246);
+  --efl-texto3:var(--text-dim,#8a8173);
+  --efl-ouro:var(--a,#b4862f);           /* dourado (acento) */
+  --efl-ouro-suave:var(--primary-soft,#f5ead2);
+  --efl-ouro-texto:var(--primary,#7a5614);
+  --efl-ok:var(--ok,#2f7a4a);
+  --efl-alerta:var(--warn,#9a6a0e);
+  --efl-alerta-suave:var(--warn-soft,#f7ecd4);
+  --efl-erro:var(--crit,#b3261e);
+  --efl-erro-suave:var(--crit-soft,#f9e1df);
+  --efl-raio:var(--r-ctl,8px);
+}
+
+/* ================= R1 · tela parada: do cabeçalho da tabela para cima nada rola; só a tabela rola (PC) =================
+   O JS (EFCLayout.fixarTela) mede a tabela e liga a classe no <html>. No celular a página rola normalmente. */
+@media(min-width:900px){html.efl-tela-parada,html.efl-tela-parada body{overflow:hidden;height:100%}}
+.efl-tabela-rola{overflow:auto;overscroll-behavior:contain;border:1px solid var(--efl-borda);border-radius:var(--efl-raio);background:var(--efl-fundo)}
+.efl-tabela-rola thead th{position:sticky;top:0;z-index:2;background:var(--efl-fundo2)} /* cabeçalho da tabela parado no alto */
+.efl-fim{padding:10px;text-align:center;color:var(--efl-texto3);font-size:13px} /* "Carregando mais…" no fim da lista */
+
+/* ================= R2 · sem "Mostrando X de Y" e sem rodapé do app debaixo da tabela ================= */
+.efl-sem-rodape{display:none!important}
+
+/* ================= R3 · total no selo do cabeçalho (some a caixa/linha de total da tabela) ================= */
+.efl-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:24px}
+.efl-selo{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border-radius:5px;background:var(--efl-fundo2);border:1px solid var(--efl-borda);font-size:13px;color:var(--efl-texto2);white-space:nowrap}
+.efl-selo b{font-weight:700;color:var(--efl-texto)}
+.efl-selo.efl-filtrado{border-color:color-mix(in srgb,var(--efl-ouro) 45%,var(--efl-borda));background:var(--efl-ouro-suave);color:var(--efl-ouro-texto)}
+
+/* ================= R4 · ícones da tabela (imprimir, planilha, colunas) na linha das abas (PC) ================= */
+.efl-abas-linha{display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--efl-borda)}
+.efl-abas-linha>:first-child{flex:1;min-width:0;border-bottom:0!important}
+.efl-abas-linha>.efl-ferramentas{flex:none;display:flex;align-items:center;flex-wrap:nowrap;gap:6px;padding-bottom:4px}
+
+/* ================= R5 · cabeçalhos com a mesma medida em todas as telas ================= */
+@media(min-width:900px){
+  .efl-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;min-height:66px}
+  .efl-cab-tx{min-height:66px;display:flex;flex-direction:column;justify-content:flex-end}
+}
+
+/* ================= R6 · situação: bolinha + texto; caixa colorida só no vermelho ================= */
+.efl-pilula{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:500;white-space:nowrap;color:var(--efl-texto)}
+.efl-pilula::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--efl-texto3)}
+.efl-pilula.ok::before{background:var(--efl-ok)}
+.efl-pilula.wa::before{background:var(--efl-alerta)}
+.efl-pilula.cr{padding:1px 8px;border-radius:5px;background:var(--efl-erro-suave);color:var(--efl-erro);font-weight:600}
+.efl-pilula.cr::before{display:none}
+
+/* ================= R7 · cartões sem faixa colorida na lateral (padrão de "app de IA") ================= */
+.efl-cartao{border:1px solid var(--efl-borda);border-radius:var(--efl-raio);background:var(--efl-fundo)} /* a gravidade vai na pílula, nunca na borda */
+
+/* ================= R8 · gaveta: setas e X na linha de cima; título com a largura toda, sem quebrar ================= */
+.efl-gv-cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px;row-gap:0}
+.efl-gv-cab>.efl-gv-sub{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--efl-texto2)}
+.efl-gv-cab>.efl-gv-acoes{flex:none;display:inline-flex;gap:2px}
+.efl-gv-cab>h2{flex:0 0 100%;margin:6px 0 4px}
+.efl-gv-acoes button[disabled]{opacity:.35;cursor:default}
+.efl-gv-troca{animation:eflTroca var(--duration-quick,150ms) var(--ease-smooth-out,cubic-bezier(.22,1,.36,1))}
+@keyframes eflTroca{from{opacity:.2;transform:translateY(calc(var(--efl-d,1) * 8px))}}
+
+/* ================= R9 · linha do tempo com a gota (Gota, escolhida pelo Elias em 06/11) ================= */
+.efl-tl-w{position:relative}
+.efl-tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.efl-tubo{position:absolute;left:12px;width:4px;border-radius:3px;background:var(--efl-fundo2);box-shadow:inset 0 1px 2px rgba(0,0,0,.12);overflow:hidden}
+.efl-fluido{position:absolute;left:0;right:0;top:0;height:0;border-radius:3px;background:linear-gradient(180deg,#f7df9e,#d9b46a 45%,#b4862f);overflow:hidden}
+.efl-fluido::after{content:"";position:absolute;left:0;right:0;height:46px;top:-46px;background:linear-gradient(180deg,transparent,rgba(255,250,230,.95),transparent);animation:eflBrilho var(--duration-very-slow,500ms) linear 1} /* um brilho só */
+@keyframes eflBrilho{to{top:100%}}
+.efl-tl li{display:flex;gap:12px;position:relative;padding-bottom:14px}
+.efl-tl li:last-child{padding-bottom:0}
+.efl-n{width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--efl-fundo);color:var(--efl-texto3);border:1px solid var(--efl-borda2);position:relative;z-index:1;transition:border-color var(--duration-fast,250ms) ease-out,box-shadow var(--duration-fast,250ms) ease-out}
+.efl-n svg{width:15px;height:15px;display:none;position:relative;z-index:1}
+.efl-n-b{position:absolute;inset:0;border-radius:50%;overflow:hidden}
+.efl-n-in{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,#e9c97f,#b4862f);transition:height var(--duration-very-slow,500ms) var(--ease-smooth-out,cubic-bezier(.22,1,.36,1))}
+.efl-n-nn{position:relative;z-index:1}
+.efl-tl li.ok:not(.esp) .efl-n{color:#fff;border-color:var(--efl-ouro);box-shadow:0 0 0 3px color-mix(in srgb,var(--efl-ouro) 22%,transparent)}
+.efl-tl li.ok:not(.esp) .efl-n-in{height:100%}
+.efl-tl li.ok:not(.esp) .efl-n svg{display:block}.efl-tl li.ok:not(.esp) .efl-n-nn{display:none}
+.efl-gota{position:absolute;left:11px;width:6px;height:9px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:var(--efl-ouro);z-index:2;animation:eflCai var(--duration-fast,250ms) cubic-bezier(.5,0,1,1) forwards;pointer-events:none}
+@keyframes eflCai{to{transform:translateY(16px);opacity:.2}}
+.efl-onda{position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--efl-ouro);animation:eflOnda var(--duration-very-slow,500ms) ease-out forwards;pointer-events:none}
+@keyframes eflOnda{from{transform:scale(.6);opacity:1}to{transform:scale(1.4);opacity:0}}
+.efl-tl li.acende .efl-n{animation:eflAcende var(--duration-very-slow,500ms) var(--ease-bounce,cubic-bezier(.34,1.36,.64,1))}
+@keyframes eflAcende{0%{transform:scale(.7)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+.efl-tl li.at .efl-n{background:var(--efl-alerta-suave);color:var(--efl-alerta);border-color:var(--efl-alerta)}
+.efl-tl li>div{display:flex;flex-direction:column;gap:1px;min-width:0;padding-top:3px;transition:opacity var(--duration-fast,250ms) ease-out}
+.efl-tl li.esp>div{opacity:.55}
+.efl-tl b{font-weight:600;font-size:15px}
+.efl-tl b em{font-style:normal;font-weight:500;color:var(--efl-texto2);font-size:13px;margin-left:4px}
+.efl-tl span{font-size:14px;color:var(--efl-texto2)}
+.efl-tl small{font-size:12px;color:var(--efl-texto3)}
+.efl-tl small.efl-alerta{color:var(--efl-erro);font-weight:600}
+
+/* ================= R10 · esqueleto enquanto a lista não chegou (nunca "Nada encontrado." antes da hora) ================= */
+.efl-esq td{padding:12px}
+.efl-esq i{display:block;height:10px;border-radius:5px;background:var(--efl-fundo2);animation:eflPulsa 1s ease-in-out infinite alternate} /* mov:ok — só enquanto carrega */
+@keyframes eflPulsa{to{opacity:.45}}
+
+/* ================= R11 · botão dourado com sombra nítida (sem brilho borrado em volta) ================= */
+.efl-bt-ouro{box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 0 0 1px rgba(122,86,20,.18),0 1px 2px rgba(60,42,8,.28)}
+.efl-bt-ouro:hover:not([disabled]){box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 0 0 1px rgba(122,86,20,.26),0 2px 4px rgba(60,42,8,.24),0 6px 12px -4px rgba(60,42,8,.3)}
+
+/* ================= R12 · busca/paleta: resultados mudam de altura sem pular ================= */
+.efl-altura-suave{transition:height var(--duration-quick,150ms) var(--ease-smooth-out,cubic-bezier(.22,1,.36,1));overflow:hidden}
+.efl-novo{animation:eflNovo var(--duration-quick,150ms) ease-out backwards;animation-delay:calc(var(--i,0) * 20ms)}
+@keyframes eflNovo{from{opacity:0;transform:translateY(3px)}}
+
+/* ================= R13 · menu da coluna sai com efeito ================= */
+.efl-sai{pointer-events:none!important;transform-origin:top center;animation:eflSai var(--duration-quick,150ms) var(--ease-smooth-out,cubic-bezier(.22,1,.36,1)) forwards;z-index:60}
+@keyframes eflSai{to{opacity:0;transform:translateY(-4px) scale(.98)}}
+
+@media (prefers-reduced-motion:reduce){
+  .efl-fluido::after,.efl-gota,.efl-onda{animation:none;display:none}
+  .efl-n,.efl-n-in,.efl-altura-suave{transition:none}
+  .efl-tl li.acende .efl-n,.efl-gv-troca,.efl-novo,.efl-sai,.efl-esq i{animation:none}
+}

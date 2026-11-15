@@ -1,0 +1,88 @@
+/* Vértice Docs v0.6.20 (parte 4) · visual novo: páginas que ainda vão chegar, relatório do Excel, balão da célula e
+   "Explicar esta conta". Sem caixa com faixa de lado (R7), situação com ponto e texto (R6), só tokens do Vértice,
+   movimento só da escala e só transform, opacity e filter (regra de fluidez). */
+
+/* ---------- páginas que ainda vão chegar (Pastas, Documentos externos): um plano em linhas ---------- */
+.pagina.pg-plano { padding: 14px 24px 28px; }
+.efl-selo.pg-breve.aviso-breve { margin: 0; padding: 2px 8px; border-width: 1px; border-left-width: 1px; background: var(--surface); }
+.plano-intro { max-width: 76ch; margin: 14px 0 22px; font-size: 16px; line-height: 1.55; color: var(--text-muted); }
+.plano-s { max-width: 920px; margin: 0 0 26px; }
+.plano-s h2 { margin: 0 0 4px; font-family: var(--fh); font-size: 18px; font-weight: 600; color: var(--text); }
+.plano-s dl { margin: 0; border-top: 1px solid var(--border); }
+.plano-l { display: grid; grid-template-columns: 260px 1fr; gap: 6px 24px; padding: 12px 4px; border-bottom: 1px solid var(--border); align-items: center;
+  animation: fzLi var(--duration-fast) var(--ease-smooth-out) backwards; }
+.plano-l:nth-child(2) { animation-delay: var(--duration-stagger); } .plano-l:nth-child(3) { animation-delay: calc(var(--duration-stagger) * 2); }
+.plano-l:nth-child(4) { animation-delay: calc(var(--duration-stagger) * 3); } .plano-l:nth-child(n+5) { animation-delay: calc(var(--duration-stagger) * 4); }
+.plano-l dt { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; color: var(--text); }
+.plano-l dt svg { width: 18px; height: 18px; flex: none; color: var(--primary); }
+.plano-l dd { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-muted); }
+.app.cel .pagina.pg-plano { padding: 12px 14px 24px; }
+.app.cel .plano-l { grid-template-columns: 1fr; }
+
+/* ---------- relatório ao abrir um Excel ---------- */
+.rel-excel { gap: 18px; font-size: 15px; }
+.rel-nums { display: flex; flex-wrap: wrap; gap: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.rel-num, .rel-num.azul { flex: 1 1 110px; padding: 10px 16px 10px 0; margin-right: 16px; border: 0; border-right: 1px solid var(--border); background: transparent; border-radius: 0; }
+.rel-num:last-child { border-right: 0; margin-right: 0; }
+.rel-num span { font-size: 13px; letter-spacing: 0; }
+.rel-num b { font-family: var(--fh); font-size: 26px; font-weight: 600; line-height: 1.15; }
+.rel-regua { display: grid; gap: 8px; }
+.rel-regua-b { display: flex; gap: 3px; height: 8px; border-radius: var(--r-miudo, 4px); overflow: hidden; }
+.rel-regua-b i { display: block; flex-basis: 0; min-width: 8px; transform-origin: left center; animation: relRegua var(--duration-very-slow) var(--ease-smooth-out) backwards; }
+.rel-regua-b i.verde { background: var(--ok); } .rel-regua-b i.azul { background: var(--info); } .rel-regua-b i.amarelo { background: var(--warn); } .rel-regua-b i.vermelho { background: var(--crit); }
+@keyframes relRegua { from { transform: scaleX(0); opacity: 0; } }
+.rel-regua-l { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.efl-pilula.az::before { background: var(--info); }
+.rel-caixa, .rel-caixa.azul, .rel-caixa.amarelo { border: 0; border-left-width: 0; box-shadow: none; background: transparent; overflow: visible; border-radius: var(--r-card);
+  animation: fzLi var(--duration-fast) var(--ease-smooth-out) backwards; }
+.rel-caixa:nth-of-type(2) { animation-delay: var(--duration-stagger); } .rel-caixa:nth-of-type(3) { animation-delay: calc(var(--duration-stagger) * 2); } .rel-caixa:nth-of-type(n+4) { animation-delay: calc(var(--duration-stagger) * 3); }
+.rel-caixa header { padding: 0 0 6px; background: transparent; border-bottom: 1px solid var(--border); gap: 8px; }
+.rel-caixa header svg { display: none; }
+.rel-caixa header::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--tom); }
+.rel-caixa h3 { font-family: var(--fh); font-size: 17px; font-weight: 600; letter-spacing: 0; }
+.rel-caixa .rel-qtd, .rel-caixa.vermelho .rel-qtd { margin-left: 0; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--text-dim); font-size: 14px; font-weight: 600; }
+.rel-corpo { padding: 0; }
+.rel-lista { gap: 0; }
+.rel-lista li { padding: 8px 2px 8px 0; line-height: 1.5; border-bottom: 1px solid var(--border); }
+.rel-lista li:last-child { border-bottom: 0; }
+.rel-lista li::before { display: none; }
+.rel-dest, .rel-dest.verde, .rel-dest.azul { padding: 0; background: transparent; box-shadow: none; font-weight: 600; color: var(--text); }
+.rel-dest.vermelho { padding: 0 5px; background: var(--crit-soft); box-shadow: none; border-radius: var(--r-miudo, 4px); color: var(--text); }
+/* só o que ficou de fora (o problema de verdade) ganha caixa */
+.rel-caixa.vermelho { padding: 12px 14px 4px; border: 1px solid color-mix(in srgb, var(--crit) 40%, transparent); background: color-mix(in srgb, var(--crit) 6%, var(--surface)); }
+.rel-caixa.vermelho header { border-bottom-color: color-mix(in srgb, var(--crit) 25%, transparent); }
+
+/* ---------- balão da célula: um post-it colado na célula (papel --papel, das cores dos post-its) ---------- */
+.pl-balao, .pl-balao.com, .pl-balao.aviso { padding: 12px 14px 14px; margin: 4px 0 0 12px; font-size: 14px; line-height: 1.45; background: var(--papel); color: #1f2328; border: 1px solid rgba(0, 0, 0, .10);
+  border-left: 1px solid rgba(0, 0, 0, .10); border-radius: 2px; box-shadow: 0 1px 1px rgba(16, 24, 40, .12), 0 12px 16px -10px rgba(16, 24, 40, .45);
+  transform: rotate(-1.2deg); transform-origin: left top; animation: plBilhete var(--duration-fast) var(--ease-smooth-out); }
+@keyframes plBilhete { from { opacity: 0; transform: rotate(-7deg) scale(.9); } }
+/* o fio que liga o bilhete ao canto da célula */
+.pl-balao-fio { position: absolute; left: -13px; top: 6px; width: 13px; height: 1px; background: rgba(31, 35, 40, .55); transform: rotate(-14deg); transform-origin: right center; }
+.pl-balao-fio::before { content: ""; position: absolute; left: -3px; top: -2px; width: 5px; height: 5px; border-radius: 50%; background: rgba(31, 35, 40, .7); }
+/* o canto dobrado do papel */
+.pl-balao-dobra { position: absolute; right: -1px; bottom: -1px; width: 16px; height: 16px; background: linear-gradient(135deg, rgba(0, 0, 0, .16) 0 50%, var(--surface-2) 50%); border-top-left-radius: 2px; box-shadow: -1px -1px 2px rgba(0, 0, 0, .10); }
+.pl-balao::before { display: none; }
+.pl-balao b { display: inline; font-size: 13px; margin: 0; }
+.pl-balao > b { display: block; margin-bottom: 3px; }
+.pl-balao-q { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.pl-balao-q i { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 700; background: rgba(31, 35, 40, .82); color: #fff; }
+.pl-balao p.resp { margin-top: 9px; padding-top: 9px; border-top: 1px dashed rgba(0, 0, 0, .28); }
+.pl-balao p.resp .pl-balao-q i { background: transparent; color: rgba(31, 35, 40, .8); border: 1px solid rgba(31, 35, 40, .5); }
+
+/* ---------- Explicar esta conta: primeiro em palavras, depois a conta em partes ---------- */
+.pl-rot { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+.pl-palavras { display: grid; gap: 4px; padding-bottom: 6px; }
+.pl-frase { margin: 0; padding: 0; border: 0; border-left: 0; border-radius: 0; background: transparent; font-family: var(--fh); font-size: 19px; font-weight: 500; line-height: 1.45; color: var(--text); }
+.pl-linhas { padding: 0; background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; font-size: 14px; }
+.pl-linhas li { padding: 7px 2px 7px 0; border-bottom: 1px solid var(--border); animation: fzLi var(--duration-fast) var(--ease-smooth-out) backwards; }
+.pl-linhas li:nth-child(2) { animation-delay: var(--duration-stagger); } .pl-linhas li:nth-child(3) { animation-delay: calc(var(--duration-stagger) * 2); }
+.pl-linhas li:nth-child(4) { animation-delay: calc(var(--duration-stagger) * 3); } .pl-linhas li:nth-child(5) { animation-delay: calc(var(--duration-stagger) * 4); } .pl-linhas li:nth-child(n+6) { animation-delay: calc(var(--duration-stagger) * 5); }
+.pl-linhas li.final { border-top: 0; margin-top: 0; padding-top: 7px; }
+.pl-linhas li:hover { background: var(--surface-2); }
+.pl-lv { padding: 0; border: 0; background: transparent; border-radius: 0; font-weight: 700; }
+.pl-lv::before { content: "dá "; font-family: var(--f, inherit); font-weight: 400; color: var(--text-dim); }
+.pl-linhas li.final .pl-lv { padding: 1px 9px; border-radius: var(--r-miudo, 4px); background: var(--primary-soft); color: var(--text); }
+.pl-linhas li.final .pl-lv::before { content: "resultado "; }
+
+@media (prefers-reduced-motion: reduce) { .plano-l, .rel-regua-b i, .rel-caixa, .pl-balao, .pl-linhas li { animation: none !important; } }

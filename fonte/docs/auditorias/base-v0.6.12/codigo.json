@@ -12,8 +12,8 @@
  },
  "avisosMontar": 4,
  "tamanhoApp": {
-  "bytes": 1769606,
-  "compactado": 569403,
-  "conta": "js, css e html da v0.6.13 publicada (commit d0c1d91), medida em 13/11 na v0.6.14 (a linha de base do tamanho anda com a versão publicada e aprovada, como na v0.6.12); compactado com o gzip do Node (zlib nível 9), o mesmo da auditoria. Antes: v0.6.12 (561155)"
+  "bytes": 1928796,
+  "compactado": 623574,
+  "conta": "js, css e html da v0.6.20 com o layout da família, a fluidez e o visual novo (partes 1 a 4). O Elias disse em 15/11/2026 para não se preocupar com o peso nesta versão; a referência passa a ser este número. Antes: parte 1 (609662)"
  }
 }

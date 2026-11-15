@@ -75,6 +75,12 @@ export const COMANDOS = [
   C('formatar.esquerda', 'Alinhar à esquerda', 'aesq', { chega: porModulo(V4, V7, null), acao: 'quadro.editar' }),
   C('formatar.centro', 'Centralizar', 'acen', { sin: ['meio'], chega: porModulo(V4, V7, null), acao: 'quadro.editar' }),
   C('formatar.direita', 'Alinhar à direita', 'adir', { chega: porModulo(V4, V7, null), acao: 'quadro.editar' }),
+  /* v0.6.21 (faixa igual ao Excel): alinhamento na vertical e o tamanho da letra direto na faixa */
+  C('formatar.cima', 'Alinhar em cima', 'acima', { sin: ['alinhar no topo', 'vertical'], mods: ['planilha'], acao: 'planilha.editar' }),
+  C('formatar.meio', 'Alinhar no meio', 'ameio', { sin: ['centralizar na vertical', 'vertical'], mods: ['planilha'], acao: 'planilha.editar' }),
+  C('formatar.baixo', 'Alinhar embaixo', 'abaixo', { sin: ['alinhar na base', 'vertical'], mods: ['planilha'], acao: 'planilha.editar' }),
+  C('formatar.aumentarFonte', 'Aumentar o tamanho da letra', 'letraMais', { sin: ['fonte maior', 'letra maior'], mods: ['planilha'], acao: 'planilha.editar' }),
+  C('formatar.diminuirFonte', 'Diminuir o tamanho da letra', 'letraMenos', { sin: ['fonte menor', 'letra menor'], mods: ['planilha'], acao: 'planilha.editar' }),
   C('formatar.quebrar', 'Quebrar texto', 'quebra', { sin: ['várias linhas na célula'], chega: V4, mods: ['planilha'] }),
   C('formatar.mesclar', 'Mesclar células', 'mesclar', { sin: ['juntar células', 'unir'], chega: V4, mods: ['planilha'] }),
   C('formatar.moeda', 'Formato moeda (R$)', 'moeda', { sin: ['dinheiro', 'reais', 'contábil'], chega: V4, mods: ['planilha'] }),
@@ -92,6 +98,18 @@ export const COMANDOS = [
 
   C('inserir.tabela', 'Tabela', 'tabela', { sin: ['formatar como tabela', 'grade'], chega: porModulo(V61, V7, null), mods: ['planilha', 'docx'] }),
   C('inserir.imagem', 'Imagem', 'imagem', { sin: ['foto', 'figura'], chega: porModulo(V61, V7, null), acao: 'quadro.editar' }),
+  /* v0.6.19 (Tabelas vivas): aba contextual "Design da Tabela" (aparece com a célula dentro de uma tabela) */
+  C('tabela.nome', 'Nome da tabela', 'renomear', { sin: ['renomear tabela', 'mudar nome da tabela'], mods: ['planilha'], ed: true }),
+  C('tabela.redimensionar', 'Redimensionar tabela', 'tabela', { sin: ['aumentar tabela', 'mudar tamanho da tabela', 'esticar tabela'], mods: ['planilha'], ed: true }),
+  C('tabela.converter', 'Converter em intervalo', 'tabela', { sin: ['desfazer tabela', 'tirar tabela', 'virar células comuns'], mods: ['planilha'], ed: true }),
+  C('tabela.totais', 'Linha de totais', 'soma', { sin: ['total da tabela', 'somar tabela', 'subtotal'], mods: ['planilha'], ed: true }),
+  C('tabela.totalColuna', 'Total da coluna', 'soma', { sin: ['média da coluna', 'contagem da coluna', 'função do total'], mods: ['planilha'], ed: true }),
+  C('tabela.listras', 'Linhas em tiras', 'tabela', { sin: ['linhas alternadas', 'zebrado', 'listras'], mods: ['planilha'], ed: true }),
+  C('tabela.listrasCol', 'Colunas em tiras', 'tabela', { sin: ['colunas alternadas'], mods: ['planilha'], ed: true }),
+  C('tabela.primeira', 'Primeira coluna', 'tabela', { sin: ['destacar primeira coluna'], mods: ['planilha'], ed: true }),
+  C('tabela.ultima', 'Última coluna', 'tabela', { sin: ['destacar última coluna'], mods: ['planilha'], ed: true }),
+  C('tabela.filtro', 'Botão de filtro', 'filtro', { sin: ['setas da tabela', 'filtro da tabela'], mods: ['planilha'], ed: true }),
+  C('tabela.estilos', 'Estilos de tabela', 'tabela', { sin: ['cor da tabela', 'mudar estilo da tabela', 'galeria de tabela'], mods: ['planilha'], ed: true }),
   /* v0.6.3: aba contextual "Gráfico" (aparece quando um gráfico está selecionado) */
   C('grafico.editar', 'Editar gráfico', 'grafico', { sin: ['mudar gráfico', 'dados do gráfico', 'tipo de gráfico'], mods: ['planilha'], ed: true }),
   C('grafico.estilo', 'Estilo rápido', 'grafico', { sin: ['estilo do gráfico', 'layout do gráfico', 'visual do gráfico'], mods: ['planilha'], ed: true }),

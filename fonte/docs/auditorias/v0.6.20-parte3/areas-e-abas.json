@@ -1,0 +1,266 @@
+[
+ {
+  "area": "Planilhas",
+  "aba": "(entrar na área)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o marcador do menu desliza (250 ms); o título entra letra por letra saindo do desfoque",
+  "ok": true
+ },
+ {
+  "area": "Documentos",
+  "aba": "(entrar na área)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o marcador do menu desliza (250 ms); o título entra letra por letra saindo do desfoque",
+  "ok": true
+ },
+ {
+  "area": "Quadros",
+  "aba": "(entrar na área)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o marcador do menu desliza (250 ms); o título entra letra por letra saindo do desfoque",
+  "ok": true
+ },
+ {
+  "area": "Documentos internos",
+  "aba": "(entrar na área)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o marcador do menu desliza (250 ms); o título entra letra por letra saindo do desfoque",
+  "ok": true
+ },
+ {
+  "area": "Pastas",
+  "aba": "(entrar na área)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o marcador do menu desliza (250 ms); o título entra letra por letra saindo do desfoque",
+  "ok": true
+ },
+ {
+  "area": "Documentos externos",
+  "aba": "(entrar na área)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o marcador do menu desliza (250 ms); o título entra letra por letra saindo do desfoque",
+  "ok": true
+ },
+ {
+  "area": "Lixeira",
+  "aba": "(entrar na área)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o marcador do menu desliza (250 ms); o título entra letra por letra saindo do desfoque",
+  "ok": true
+ },
+ {
+  "area": "Início",
+  "aba": "(entrar na área)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o marcador do menu desliza (250 ms); o título entra letra por letra saindo do desfoque",
+  "ok": true
+ },
+ {
+  "area": "Documentos internos",
+  "aba": "Fichas e custódias",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documentos internos",
+  "aba": "Formulários",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documentos internos",
+  "aba": "Fluxogramas",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documentos internos",
+  "aba": "POPs e procedimentos",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documentos internos",
+  "aba": "Etiquetas",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "(abrir o arquivo)",
+  "movimento": "o editor entra deslizando 12 px (250 ms); o nome do arquivo entra letra por letra",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "faixa · Exibir",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "faixa · Revisão",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "faixa · Dados",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "faixa · Fórmulas",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "faixa · Layout da Página",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "faixa · Inserir",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "faixa · Arquivo",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "faixa · Página Inicial",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "abas da planilha (embaixo)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Planilha (arquivo aberto)",
+  "aba": "abas da planilha (voltar)",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Janela Validação de dados",
+  "aba": "Aviso ao selecionar",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Janela Validação de dados",
+  "aba": "Alerta de erro",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Janela Validação de dados",
+  "aba": "Regra",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Janela Assinatura",
+  "aba": "rubrica · Só a linha",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Janela Assinatura",
+  "aba": "rubrica · Foto",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Janela Assinatura",
+  "aba": "rubrica · Desenhar",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Quadro (arquivo aberto)",
+  "aba": "faixa · Exibir",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Quadro (arquivo aberto)",
+  "aba": "faixa · Revisão",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Quadro (arquivo aberto)",
+  "aba": "faixa · Organizar",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Quadro (arquivo aberto)",
+  "aba": "faixa · Inserir",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Quadro (arquivo aberto)",
+  "aba": "faixa · Página Inicial",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Quadro (arquivo aberto)",
+  "aba": "faixa · Arquivo",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Quadro (arquivo aberto)",
+  "aba": "visão Kanban",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Quadro (arquivo aberto)",
+  "aba": "visão Quadro",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documento (arquivo aberto)",
+  "aba": "faixa · Exibir",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documento (arquivo aberto)",
+  "aba": "faixa · Revisão",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documento (arquivo aberto)",
+  "aba": "faixa · Layout",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documento (arquivo aberto)",
+  "aba": "faixa · Inserir",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documento (arquivo aberto)",
+  "aba": "faixa · Página Inicial",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ },
+ {
+  "area": "Documento (arquivo aberto)",
+  "aba": "faixa · Arquivo",
+  "movimento": "conteúdo desliza 12 px e aparece (250 ms); o traço da aba desliza (250 ms)",
+  "ok": true
+ }
+]

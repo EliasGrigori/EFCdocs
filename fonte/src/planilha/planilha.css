@@ -39,7 +39,7 @@
   position: absolute; left: 0; right: 0; bottom: -4px; height: 9px; cursor: ns-resize; z-index: 3; touch-action: none;
   display: grid; place-items: center; outline: none;
 }
-.pl-fx-alca i { width: 34px; height: 3px; border-radius: 4px; background: var(--border-strong, var(--border)); opacity: 0; transition: opacity .12s; }
+.pl-fx-alca i { width: 34px; height: 3px; border-radius: 4px; background: var(--border-strong, var(--border)); opacity: 0; transition: opacity var(--duration-quick); }
 .pl-fx:hover .pl-fx-alca i, .pl-fx.aberta .pl-fx-alca i, .pl-fx-alca:focus-visible i, .pl-fx.arrastando .pl-fx-alca i { opacity: 1; }
 .pl-fx-alca:hover i, .pl-fx.arrastando .pl-fx-alca i, .pl-fx-alca:focus-visible i { background: var(--primary); }
 .pl-fx.aberta { min-height: 0; overflow: hidden; }
@@ -429,3 +429,6 @@ body[data-theme=papel] .tk-num, .pl.clara .pl-edcel .tk-num { color: #1d5fae; }
 .rg-resps p { margin: 0; }
 .pl-cor.on { outline: 2px solid var(--primary); outline-offset: 1px; }
 @media (max-width: 560px) { .rg-campo { grid-template-columns: 1fr; } .rg-regra { grid-template-columns: 62px 1fr; } .rg-regra-b { grid-column: 1 / -1; justify-content: flex-end; } }
+
+/* v0.6.20 (regra de fluidez): todo arquivo com movimento desliga com "movimento reduzido" */
+@media (prefers-reduced-motion: reduce) { .pl-fx-alca i { transition: none !important; } }

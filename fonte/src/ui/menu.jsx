@@ -52,7 +52,7 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
         {gaveta && <button type="button" className="iconbtn" aria-label="Fechar menu" onClick={fechar}><Icone n="x" /></button>}
       </div>
       <div className="novo-drive">
-        <button type="button" className="btn primary novo-drive-b" aria-expanded={novoAberto} aria-haspopup="menu" title="Criar um arquivo novo" onClick={() => setNovoAberto(!novoAberto)}>
+        <button type="button" className="btn primary efl-bt-ouro novo-drive-b" aria-expanded={novoAberto} aria-haspopup="menu" title="Criar um arquivo novo" onClick={() => setNovoAberto(!novoAberto)}>
           <Icone n="plus" /><span>Novo</span>
         </button>
         {novoAberto && (

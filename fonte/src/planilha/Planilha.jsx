@@ -16,7 +16,8 @@ import { indiceDe } from './indice.js';
 import { esperaDeConferir } from '../nucleo/ritmo.js';
 import { eixo, ALT_PADRAO, LARG_PADRAO, largPadrao, altPadrao, estiloDe, celOuHerdada, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
 import { geometria, pintarGrade, mesmasCores, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, corDaGrade, estiloVisto } from './grade.js';
-import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData } from './formato.js';
+import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData, FORMATOS } from './formato.js';
+import { TAMANHOS_LETRA } from './fontes.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
 import { paraMostrar, refTexto, tokenizar, ler as lerFormula, paraGuardar, escrever } from './formula.js';
 import { explicarConta, numeroEmData, causaDaConta, causaCircular, problemasDaPlanilha, grafoDaConta, trocarNumeroPorNome } from './explicar.js';
@@ -32,6 +33,7 @@ import { FM, temLink, textoDaForma } from './formas.js';
 import { FormaView, JanelaForma, valoresLigados } from './formasUi.jsx';
 import * as I from './inserir.js';
 import { JanelaTabela, JanelaStatus, JanelaLink, JanelaBotao, JanelaImagem } from './inserirUi.jsx';
+import { usarTabelaViva } from './tabelaUi.jsx';
 import { lerImagem } from './imagem.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
 import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
@@ -419,6 +421,8 @@ export function Planilha({ arquivo, cx }) {
     return cx.aplicar(mud, rotulo, acao, opcoes);
   }, [somenteLeitura, cx, c, c.calcExcel]);
   const aplicarLote = (lote, rotulo) => (lote.vazio ? false : mudar(lote.mudancas(), rotulo));
+  /* v0.6.19: tabelas vivas (crescer ao digitar, Tab, alça, aba Design da Tabela) */
+  const tv = usarTabelaViva({ c, abaId, ativa: sel.ativa, mudar, selecionar, avisar: cx.avisar, somenteLeitura, desfazer: () => cx.executar('editar.desfazer') });
   const contaCelulas = (fs) => fs.reduce((n, f) => n + (f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1), 0);
   const nomeSel = () => (sel.faixas.length > 1 ? `${sel.faixas.length} faixas` : textoFaixa(faixa).replace(/:?\b[A-Z]+1048576\b/, '').replace(/^A(\d+):XFD\1$/, 'linha $1'));
 
@@ -535,7 +539,7 @@ export function Planilha({ arquivo, cx }) {
   };
 
   /** Grava o que foi digitado. mover: [dl, dc] ou null. Devolve false se a fórmula tem erro. */
-  const confirmar = (mover, { preencherTudo = false, zero = null, lembrar = false, numdata = null, validado = false } = {}) => {
+  const confirmar = (mover, { preencherTudo = false, zero = null, lembrar = false, numdata = null, validado = false, tab = false } = {}) => {
     let e = editRef.current;
     if (!e) return true;
     if (autoTextoRef.current && autoTextoRef.current.toLowerCase().startsWith(e.texto.toLowerCase())) e = { ...e, texto: autoTextoRef.current };
@@ -547,7 +551,7 @@ export function Planilha({ arquivo, cx }) {
       flushSync(() => setEdit(null));
       voltarFocoGrade();
       if (e.abaId !== abaId) trocarAba(e.abaId, true);
-      else if (mover) andar(mover[0], mover[1]);
+      else if (mover && !(tab && tv.aoTab(e.l, e.c, mover[1] < 0))) andar(mover[0], mover[1]);
       return true;
     }
     if (texto.startsWith('=') && texto.length > 1) {
@@ -634,6 +638,7 @@ export function Planilha({ arquivo, cx }) {
       if (h > altPadrao(abaE)) lote.outras[`conteudo.abas.${e.abaId}.alt`] = { ...(abaE.alt || {}), [e.l]: h };
     }
     /* grava e devolve o teclado para a grade na mesma hora (quem digita rápido não perde letra) */
+    let avisoTabela = '';
     flushSync(() => {
       setEdit(null);
       if (preencherTudo && sel.faixas.length) {
@@ -644,13 +649,15 @@ export function Planilha({ arquivo, cx }) {
         if (memoZero) lote.outras[`conteudo.abas.${e.abaId}.zeros`] = memoZero;
         lote.por(e.abaId, k, nova);
         if (nova.v !== undefined) alargar(lote, e.abaId, [{ col: e.c, v: nova.v, est: estiloDe({ estilos: lote.estilos }, nova) }]);
+        if (!r.vazio) avisoTabela = tv.aoConfirmar(lote, e.abaId, e.l, e.c);
         aplicarLote(lote, r.vazio ? `Apagar ${chave(e.l, e.c)}` : `Digitar em ${chave(e.l, e.c)}`);
       }
     });
     voltarFocoGrade();
     if (r.aviso) cx.avisar(r.aviso, { ic: 'info' });
+    else if (avisoTabela) cx.avisar(avisoTabela, { ic: 'tabela', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
     if (e.abaId !== abaId) trocarAba(e.abaId, true);
-    else if (mover) andar(mover[0], mover[1]);
+    else if (mover && !(tab && tv.aoTab(e.l, e.c, mover[1] < 0))) andar(mover[0], mover[1]);
     return true;
   };
   const confirmarRef = useRef(confirmar);
@@ -1305,7 +1312,7 @@ export function Planilha({ arquivo, cx }) {
     if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); cancelar(); return; }
     if (ev.key === 'Enter' && ev.altKey) { ev.preventDefault(); inserirNoCursor('\n'); return; }
     if (ev.key === 'Enter') { ev.preventDefault(); confirmar(ctrl ? null : [ev.shiftKey ? -1 : 1, 0], { preencherTudo: ctrl && contaCelulas(sel.faixas) > 1 }); return; }
-    if (ev.key === 'Tab') { ev.preventDefault(); confirmar([0, ev.shiftKey ? -1 : 1]); return; }
+    if (ev.key === 'Tab') { ev.preventDefault(); confirmar([0, ev.shiftKey ? -1 : 1], { tab: true }); return; }
     if (ev.key === 'F4' && e.texto.startsWith('=')) { ev.preventDefault(); alternarCifrao(); return; }
     if (ev.key === 'F2') { ev.preventDefault(); setEdit({ ...e, modo: e.modo === 'editar' ? 'entrar' : 'editar' }); return; }
     const setas = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
@@ -1358,7 +1365,7 @@ export function Planilha({ arquivo, cx }) {
     if (k === 'F2' && ev.shiftKey && !somenteLeitura) { ev.preventDefault(); setJanela({ tipo: 'comentario', l: sel.ativa.l, c: sel.ativa.c }); return; }
     const setas = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
     if (setas[k]) { ev.preventDefault(); andar(setas[k][0], setas[k][1], { estender: ev.shiftKey, pular: ctrl }); return; }
-    if (k === 'Tab') { ev.preventDefault(); andar(0, ev.shiftKey ? -1 : 1); return; }
+    if (k === 'Tab') { ev.preventDefault(); if (!tv.aoTab(sel.ativa.l, sel.ativa.c, ev.shiftKey)) andar(0, ev.shiftKey ? -1 : 1); return; }
     if (k === 'Enter') { ev.preventDefault(); andar(ev.shiftKey ? -1 : 1, 0); return; }
     if (k === 'PageDown' || k === 'PageUp') {
       ev.preventDefault();
@@ -2114,15 +2121,7 @@ export function Planilha({ arquivo, cx }) {
     if (f.l2 - f.l1 < 1) { cx.avisar('Clique numa célula dos dados (ou escolha a área) para formatar como tabela.', { ic: 'aviso' }); return; }
     setJanela({ tipo: 'tabela', f, cab: temCabecalho(f), nome: I.nomeNovoDeTabela(c) });
   };
-  const aplicarTabela = (f, op) => {
-    const r = I.formatarComoTabela(c, abaId, f, op, valorDeDados);
-    if (r.erro) return r.erro;
-    setJanela(null);
-    mudar(r.mud, 'Formatar como tabela');
-    cx.avisar(`Tabela ${op.nome} criada: ${r.colunas} colunas e ${r.linhas} linhas.`, { ic: 'tabela' });
-    setTimeout(voltarFocoGrade, 0);
-    return null;
-  };
+  const aplicarTabela = (f, op) => { const e = tv.criar(f, op, valorDeDados); if (!e) { setJanela(null); setTimeout(voltarFocoGrade, 0); } return e; };
   const abrirStatus = () => {
     const f = normalFaixa(faixa);
     const area = I.areaDeStatus(f, (f.l2 - f.l1 + 1) * (f.c2 - f.c1 + 1) > 1 ? null : regiaoAtual(f.l1, f.c1));
@@ -2172,6 +2171,15 @@ export function Planilha({ arquivo, cx }) {
         return true;
       }
     }
+    if (id.startsWith('tabela.')) return tv.executar(id);
+    /* v0.6.21 (faixa igual ao Excel): escolha feita nas caixas da faixa: "comando|valor" */
+    if (id.includes('|')) {
+      const [base, v] = [id.slice(0, id.indexOf('|')), id.slice(id.indexOf('|') + 1)];
+      if (base === 'formatar.fonte' && v.startsWith('f:')) return ed(() => formatarSel((e) => ({ ...e, fonte: v.slice(2) || undefined }), 'Fonte'));
+      if (base === 'formatar.fonte' && v.startsWith('t:')) return ed(() => { const t = Number(v.slice(2)); if (t >= 6 && t <= 96) formatarSel((e) => ({ ...e, tam: t === 11 ? undefined : t }), 'Tamanho da letra'); });
+      if (base === 'formatar.formatoNumero') return ed(() => { const f = FORMATOS.find((x) => x.id === v); if (f) formatarSel((e) => ({ ...e, nf: f.cod === 'General' ? undefined : f.cod }), 'Formato ' + f.nome); });
+      return false;
+    }
     switch (id) {
       case 'inserir.painel': return ed(novoPainel);
       case 'painel.grafico': return ed(() => adicionarPeca('grafico'));
@@ -2192,6 +2200,15 @@ export function Planilha({ arquivo, cx }) {
       case 'formatar.centro': return ed(() => alinharSel('c', 'Centralizar'));
       case 'formatar.direita': return ed(() => alinharSel('d', 'Alinhar à direita'));
       case 'formatar.quebrar': return ed(() => alternarEstilo('qb', 'Quebrar texto'));
+      /* v0.6.21 (faixa igual ao Excel) */
+      case 'formatar.cima': return ed(() => formatarSel((e) => ({ ...e, av: e.av === 't' ? undefined : 't' }), 'Alinhar em cima'));
+      case 'formatar.meio': return ed(() => formatarSel((e) => ({ ...e, av: e.av === 'm' || e.av === 'c' ? undefined : 'm' }), 'Alinhar no meio'));
+      case 'formatar.baixo': return ed(() => formatarSel((e) => { const n = { ...e }; delete n.av; return n; }, 'Alinhar embaixo'));
+      case 'formatar.aumentarFonte': case 'formatar.diminuirFonte': return ed(() => {
+        const atual = estiloAtivo.tam || 11, sobe = id === 'formatar.aumentarFonte';
+        const novo = sobe ? TAMANHOS_LETRA.find((t) => t > atual) : [...TAMANHOS_LETRA].reverse().find((t) => t < atual);
+        if (novo) formatarSel((e) => ({ ...e, tam: novo === 11 ? undefined : novo }), sobe ? 'Aumentar a letra' : 'Diminuir a letra');
+      });
       case 'formatar.mesclar': return ed(() => alternarMescla());
       case 'formatar.moeda': return ed(() => formatarSel((e) => ({ ...e, nf: FORMATO_MOEDA }), 'Formato moeda'));
       case 'formatar.porcentagem': return ed(() => formatarSel((e) => ({ ...e, nf: FORMATO_PCT }), 'Formato porcentagem'));
@@ -2333,6 +2350,7 @@ export function Planilha({ arquivo, cx }) {
     }
   };
   const ligado = (id) => {
+    if (id.startsWith('tabela.')) return tv.ligado(id);
     switch (id) {
       case 'formatar.negrito': return !!estiloAtivo.b;
       case 'formatar.italico': return !!estiloAtivo.i;
@@ -2341,6 +2359,13 @@ export function Planilha({ arquivo, cx }) {
       case 'formatar.centro': return estiloAtivo.al === 'c';
       case 'formatar.direita': return estiloAtivo.al === 'd';
       case 'formatar.quebrar': return !!estiloAtivo.qb;
+      case 'formatar.cima': return estiloAtivo.av === 't';
+      case 'formatar.meio': return estiloAtivo.av === 'm' || estiloAtivo.av === 'c';
+      case 'formatar.baixo': return !estiloAtivo.av || estiloAtivo.av === 'b';
+      /* o que as caixas da faixa mostram (v0.6.21) */
+      case 'valor.fonte': return estiloAtivo.fonte || '';
+      case 'valor.tamanho': return estiloAtivo.tam || 11;
+      case 'valor.numero': { const f = FORMATOS.find((x) => x.cod === (estiloAtivo.nf || 'General')); return f ? f.id : 'outro'; }
       case 'formatar.mesclar': return !!mesclaEm(mesc, sel.ativa.l, sel.ativa.c);
       case 'formatar.moeda': return (estiloAtivo.nf || '').includes('R$');
       case 'formatar.porcentagem': return (estiloAtivo.nf || '').includes('%');
@@ -2438,7 +2463,7 @@ export function Planilha({ arquivo, cx }) {
 
   /* v0.6.3: avisa a faixa quando um gráfico está selecionado (a aba "Gráfico" aparece) */
   const grafSel = !!(objSel && objs.some((x) => x.id === objSel && x.tipo === 'grafico'));
-  useEffect(() => { if (cx.setContexto) cx.setContexto({ grafico: grafSel && prefs.abaGrafico !== false, painel: painelAtivo }); }, [grafSel, prefs.abaGrafico, painelAtivo]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (cx.setContexto) cx.setContexto({ grafico: grafSel && prefs.abaGrafico !== false, painel: painelAtivo, tabela: !!tv.ativa && !painelAtivo }); }, [grafSel, prefs.abaGrafico, painelAtivo, !!tv.ativa]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { if (cx.setContexto) cx.setContexto({}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const maos = useRef({});
@@ -3294,6 +3319,7 @@ export function Planilha({ arquivo, cx }) {
         })()}
         {!cel && ajuda && <div className="pl-ajuda-ancora">{ajuda}</div>}
         {cel && !edit && !somenteLeitura && !painelAtivo && (<>{alcaCel('a')}{alcaCel('b')}</>)}
+        {!painelAtivo && tv.alca({ G, tam, ponto, rolarNaBorda, faixa, toque: cel, editando: !!edit })}
         {!cel || !edit ? <PainelProblemas alvo={cel ? null : cx.alvoRodape} lista={listaProb} aberto={probAberto} aoAlternar={() => { if (probAberto) setTimeout(voltarFocoGrade, 0); setProbAberto(!probAberto); }} somenteLeitura={somenteLeitura}
           aoIr={(p) => { if (cel) setProbAberto(false); /* no celular a lista cobre a grade */ irPara({ abaId: p.abaId, l: p.l, c: p.c }); }} aoAcao={fazerAcao} /> : null}
         {pincel && <div className="qd-modo pl-modo"><Icone n="pincel" />Toque onde vai o formato.<button type="button" className="btn sm" onClick={() => setPincel(null)}>Cancelar</button></div>}
@@ -3350,8 +3376,9 @@ export function Planilha({ arquivo, cx }) {
       {janela && janela.tipo === 'funcoes' && <JanelaFuncoes aoEscolher={(f) => { if (editRef.current && editRef.current.texto.startsWith('=')) inserirNoCursor(f.pt + '('); else comecarEdicao({ texto: '=' + f.pt + '(', modo: 'entrar' }); }} aoFechar={() => setJanela(null)} />}
       {janela && janela.tipo === 'numdata' && <JanelaNumeroData valor={janela.valor} mostra={janela.mostra} aoEscolher={janela.aoEscolher} aoFechar={janela.aoFechar} />}
       {janela && janela.tipo === 'tabela' && (
-        <JanelaTabela subtitulo={`Vale em ${textoFaixa(janela.f)}`} nomeInicial={janela.nome} cabecalho0={janela.cab} aoAplicar={(op) => aplicarTabela(janela.f, op)} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
+        <JanelaTabela c={c} subtitulo={`Vale em ${textoFaixa(janela.f)}`} nomeInicial={janela.nome} cabecalho0={janela.cab} aoAplicar={(op) => aplicarTabela(janela.f, op)} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
       )}
+      {tv.janela}
       {janela && janela.tipo === 'status' && (
         <JanelaStatus subtitulo={`Coluna ${letraCol(janela.col)}`} fx0={janela.fx} aoAplicar={aplicarStatus} aoFechar={() => { setJanela(null); setTimeout(voltarFocoGrade, 0); }} />
       )}

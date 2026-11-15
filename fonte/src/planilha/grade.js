@@ -6,11 +6,15 @@ import { estiloDe, mescladas, mesclaEm, celOuHerdada } from './modelo.js';
 import { faixaDoFiltro } from './dados.js';
 import { ehErro } from './valores.js';
 import { estiloCondicional, estiloComRegras, barraDeDados, temBarras, corClaraDaBarra } from './regras.js';
+import { estiloDeTabelaEm, juntarComTabela, tabelasVivasDaAba } from './tabelaEstilo.js';
 
 /** Estilo da célula com as regras de cor (formatação condicional) por cima. */
 export function estiloVisto(c, cel, motor, abaId, l, col) {
   const aba = c.abas[abaId];
-  const base = estiloDe(c, cel || (aba && (aba.estL || aba.estC || aba.estCFim) ? celOuHerdada(aba, l, col) : cel));
+  let base = estiloDe(c, cel || (aba && (aba.estL || aba.estC || aba.estCFim) ? celOuHerdada(aba, l, col) : cel));
+  /* v0.6.19 (F296): o estilo da tabela do Excel fica por baixo da formatação da célula */
+  const tb = c.tabelas ? estiloDeTabelaEm(c, abaId, l, col) : null;
+  if (tb) base = juntarComTabela(tb, base);
   if (!aba || !aba.cf || !aba.cf.length) return base;
   return estiloComRegras(base, estiloCondicional(motor, c, abaId, l, col));
 }
@@ -331,12 +335,15 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
   }
   /* bordas */
   const herda = !!(aba.estL || aba.estC || aba.estCFim);
+  const vivas = tabelasVivasDaAba(c, abaId); // v0.6.19: as linhas do estilo da tabela também são bordas
+  const naTabela = (l, col) => vivas && vivas.some((t) => l >= t.l1 && l <= t.l2 && col >= t.c1 && col <= t.c2);
   for (let l = la; l <= lb; l++) {
     if (!G.linhas.tam(l)) continue;
     for (let col = ca; col <= cb; col++) {
       const cel = herda ? celOuHerdada(aba, l, col, aba.cel[chave(l, col)]) : aba.cel[chave(l, col)];
-      if (!cel || !cel.s) continue;
-      const e = estiloDe(c, cel);
+      const tab = naTabela(l, col);
+      if (!tab && (!cel || !cel.s)) continue;
+      const e = tab ? juntarComTabela(estiloDeTabelaEm(c, abaId, l, col), estiloDe(c, cel)) : estiloDe(c, cel);
       if (!e.bd) continue;
       const x = G.xDe(col), y = G.yDe(l), w = G.colunas.tam(col) * z, h = G.linhas.tam(l) * z;
       ctx.strokeStyle = e.bdc || cores.borda;

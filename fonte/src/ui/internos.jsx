@@ -2,7 +2,10 @@
    e o painel "Resumo do envio" que vem do EFCwork junto com a ficha para preencher. */
 import { useMemo, useState } from 'react';
 import { TIPOS, ativos } from '../nucleo/modelo.js';
-import { Janela, Icone, dataHora } from './comum.jsx';
+import { Janela, Icone, dataHora, usarEsc } from './comum.jsx';
+import { CabPagina, SeloTotal, TabelaArquivos } from './listas.jsx';
+import { useFiltro, Filtro, PainelFiltro, aplicarFiltro, BotaoDetalhes } from './paginas.jsx';
+import { Situacao, dadosDoArquivo } from './gaveta.jsx';
 import './internos.css';
 import { SUBABAS, PODE_COMPARTILHAR, estadoDoc, linhasDoResumo, textoDoResumo, noDocumento } from '../ponte/ponte.js';
 import { camposDoLivro, divergencias } from '../ponte/campos.js';
@@ -11,49 +14,79 @@ const copiar = async (texto, avisar, oQue) => {
   try { await navigator.clipboard.writeText(texto); avisar(`${oQue} copiado.`, { ic: 'check' }); } catch { avisar('Não deu para copiar aqui. Selecione o texto e use Ctrl+C.', { ic: 'aviso' }); }
 };
 
+/** R6 · a situação de um documento interno: ponto e texto (verde = recebido; amarelo = na caixa; cinza = não foi). */
+function situacaoInterno(estado, x) {
+  if (!PODE_COMPARTILHAR[x.tipo]) return { tom: '', texto: `Compartilhar chega na ${TIPOS[x.tipo].chega || 'v0.7.0'}` };
+  return estadoDoc(estado, x.id);
+}
+
 /** Página "Documentos internos": uma aba por tipo de papel; cada linha diz se já foi para o Cwork. */
-export function DocsInternos({ fichas, estado, cx, acrescentar, editar }) {
-  const internos = useMemo(() => ativos(fichas).filter((f) => f.pastaNome), [fichas]);
+const COLUNAS_INTERNOS = [
+  { id: 'codigo', rot: 'Código', cls: 'c-codigo' }, { id: 'nome', rot: 'Nome', cls: 'c-nome' }, { id: 'tipo', rot: 'Tipo', cls: 'c-tipo' },
+  { id: 'quando', rot: 'Alterado em', cls: 'c-quando' }, { id: 'situacao', rot: 'Situação', cls: 'c-situacao' }, { id: 'acoes', rot: <span className="so-leitor">Ações</span>, cls: 'c-acoes' },
+];
+
+export function DocsInternos({ fichas, estado, cx, acrescentar, editar, lendo }) {
+  const todos = useMemo(() => ativos(fichas).filter((f) => f.pastaNome), [fichas]);
+  const [f, mudar] = useFiltro('internos');
+  const [aberto, setAberto] = useState(false);
+  usarEsc(() => setAberto(false), aberto);
+  /* o filtro (nome e ordem) vale para todas as sub-abas; os contadores das abas seguem o filtro */
+  const internos = aplicarFiltro([...todos].sort((a, b) => (b.alteradoEm || '').localeCompare(a.alteradoEm || '')), f);
   const [escolhida, setSub] = useState(null);
-  const abas = [...SUBABAS, ...new Set(internos.map((f) => f.pastaNome).filter((n) => !SUBABAS.includes(n)))];
-  const qt = (n) => internos.filter((f) => f.pastaNome === n).length;
+  const abas = [...SUBABAS, ...new Set(todos.map((x) => x.pastaNome).filter((n) => !SUBABAS.includes(n)))];
+  const qt = (n) => internos.filter((x) => x.pastaNome === n).length;
   /* sem a aba "Todas" (pedido do Elias em 13/11): abre na primeira sub-aba que tem documento */
   const sub = escolhida && abas.includes(escolhida) ? escolhida : abas.find(qt) || abas[0];
-  const lista = internos.filter((f) => f.pastaNome === sub).sort((a, b) => (b.alteradoEm || '').localeCompare(a.alteradoEm || ''));
+  const lista = internos.filter((x) => x.pastaNome === sub);
   return (
-    <div className="pagina internos">
-      <div className="secao">
-        <span className="cont" data-cont>{internos.length} {internos.length === 1 ? 'documento' : 'documentos'}</span>
-        <button type="button" className="btn sm" data-int-acrescentar onClick={acrescentar}><Icone n="plus" />Pôr um arquivo aqui</button>
-      </div>
-      <div className="int-abas" role="tablist" aria-label="Sub-abas dos documentos internos">
-        {abas.map((n) => (
-          <button key={n} type="button" role="tab" aria-selected={sub === n} className={'int-aba' + (sub === n ? ' on' : '')} data-int-sub={n} onClick={() => setSub(n)}>
-            {n}{qt(n) ? <span className="qt">{qt(n)}</span> : null}
-          </button>
-        ))}
-      </div>
-      {lista.length ? (
-        <div className="lista grade">
-          {lista.map((f) => {
-            const e = estadoDoc(estado, f.id);
-            return (
-              <div className="arq" key={f.id} data-id={f.id}>
-                <button type="button" className="abre" title={f.nome} onClick={() => cx.abrir(f.id)}>
-                  <span className="ri"><Icone n={f.tipo} /></span>
-                  <span className="txt"><b>{f.codigo ? f.codigo + ' · ' : ''}{f.nome}</b><span>{TIPOS[f.tipo].nome} · {dataHora(f.alteradoEm)}</span></span>
-                </button>
-                <span className={'int-estado ' + e.tom} data-int-estado={f.id}>{PODE_COMPARTILHAR[f.tipo] ? e.texto : `Compartilhar chega na ${TIPOS[f.tipo].chega || 'v0.7.0'}`}</span>
-                <span className="acoes">
-                  <button type="button" className="iconbtn" aria-label={'Sub-aba e código: ' + f.nome} title="Sub-aba e código" onClick={() => editar(f)}><Icone n="renomear" /></button>
-                </span>
-              </div>
-            );
-          })}
+    <div className="pagina pg-lista internos">
+      <CabPagina titulo="Documentos internos" meta={<SeloTotal n={internos.length} total={todos.length} unidade={['documento', 'documentos']} lendo={lendo} />}>
+        <button type="button" className="btn pg-novo" data-int-acrescentar onClick={acrescentar}><Icone n="plus" />Pôr um arquivo aqui</button>
+      </CabPagina>
+      <div className="efl-abas-linha">
+        <div className="int-abas" role="tablist" aria-label="Sub-abas dos documentos internos">
+          {abas.map((n) => (
+            <button key={n} type="button" role="tab" aria-selected={sub === n} className={'int-aba' + (sub === n ? ' on' : '')} data-int-sub={n} onClick={() => setSub(n)}>
+              {n}{qt(n) ? <span className="qt">{qt(n)}</span> : null}
+            </button>
+          ))}
         </div>
-      ) : (
-        <div className="vazio-lista">{internos.length ? `Nada em ${sub}.` : 'Ponha aqui as etiquetas, fichas, formulários, fluxogramas e POPs que vão para o Cwork: "Pôr um arquivo aqui" ou, com o arquivo aberto, Arquivo › Documento interno.'}</div>
-      )}
+        <div className="efl-ferramentas">
+          {todos.length > 0 && <Filtro f={f} mudar={mudar} aberto={aberto} setAberto={setAberto} />}
+        </div>
+      </div>
+      {aberto && todos.length > 0 && <PainelFiltro f={f} mudar={mudar} fechar={() => setAberto(false)} />}
+      <TabelaArquivos nome="internos" rotulo={'Documentos internos: ' + sub} colunas={COLUNAS_INTERNOS} itens={lista} lendo={lendo} reinicia={sub + '|' + f.q + '|' + f.ordem + '|' + f.tipo} filtro={{ f, mudar, tipos: ['planilha', 'docx', 'postits'] }}
+        vazio={todos.length ? (internos.length ? `Nada em ${sub}.` : 'Nenhum documento com esse filtro.') : 'Ponha aqui as etiquetas, fichas, formulários, fluxogramas e POPs que vão para o Cwork: "Pôr um arquivo aqui" ou, com o arquivo aberto, Arquivo › Documento interno.'}
+        detalhe={(x) => {
+          const e = situacaoInterno(estado, x);
+          return dadosDoArquivo(x, cx, { situacoes: [e], acoes: [
+            { id: 'abrir', rotulo: 'Abrir', ic: x.tipo, tipo: 'ouro', fazer: () => cx.abrir(x.id) },
+            { id: 'subaba', rotulo: 'Sub-aba e código', ic: 'renomear', fazer: () => editar(x) },
+          ] });
+        }}
+        linha={(x, extra) => {
+          const e = situacaoInterno(estado, x);
+          return (
+            <tr className={'arq' + (extra.naGaveta ? ' na-gaveta' : '')} key={x.id} data-id={x.id}>
+              <td className="c-codigo">{x.codigo || ''}</td>
+              <td className="c-nome">
+                <button type="button" className="abre" title={x.nome} onClick={() => cx.abrir(x.id)}>
+                  <span className="ri"><Icone n={x.tipo} /></span>
+                  <span className="txt"><b>{x.nome}</b><span className="so-cel">{x.codigo || ''}<Situacao tom={e.tom}>{e.texto}</Situacao></span></span>
+                </button>
+              </td>
+              <td className="c-tipo">{TIPOS[x.tipo].nome}</td>
+              <td className="c-quando">{dataHora(x.alteradoEm)}</td>
+              <td className="c-situacao"><Situacao tom={e.tom} data-int-estado={x.id}>{e.texto}</Situacao></td>
+              <td className="c-acoes"><span className="acoes">
+                <BotaoDetalhes nome={x.nome} extra={extra} />
+                <button type="button" className="iconbtn" aria-label={'Sub-aba e código: ' + x.nome} title="Sub-aba e código" onClick={() => editar(x)}><Icone n="renomear" /></button>
+              </span></td>
+            </tr>
+          );
+        }} />
     </div>
   );
 }

@@ -73,6 +73,9 @@ export function JanelaExplicar({ nomeCel, dados, causa, titulo, aoAcao, aoAplica
         ) : (
           <>
             <CaixaErro causa={causa} aoAcao={aoAcao} somenteLeitura={somenteLeitura} />
+            {/* v0.6.20 (parte 4): a frase em português vem primeiro, grande; a conta em partes fica embaixo */}
+            <div className="pl-palavras"><span className="pl-rot">Em palavras</span><p className="pl-frase">{dados.frase}</p></div>
+            <span className="pl-rot">A conta, parte por parte</span>
             {!editando ? (
               <ol className="pl-linhas" aria-label="A conta em linhas">
                 {dados.linhas.map((x, i) => (
@@ -89,7 +92,6 @@ export function JanelaExplicar({ nomeCel, dados, causa, titulo, aoAcao, aoAplica
                 <p className="qd-dica">As quebras de linha e os espaços são só para ler melhor. Ao aplicar, a fórmula volta para uma linha só (como o Excel guarda).</p>
               </>
             )}
-            <p className="pl-frase">{dados.frase}</p>
             {dados.faltam.length > 0 && <p className="qd-dica">{dados.faltam.join(', ')}: o Vértice Docs ainda não calcula. A fórmula fica guardada e funciona no Excel.</p>}
             {!somenteLeitura && (
               <div className="chips">

@@ -1,17 +1,19 @@
 /* EFCdocs — Planilha (v0.6.3): janelas de Tabela, Coluna de status, Link, Botão de aba e Imagem (estilo Camadas). */
 import { useMemo, useState } from 'react';
 import { Icone, Janela } from '../ui/comum.jsx';
-import { ESTILOS_TABELA, MODELOS_STATUS, TONS, MAX_STATUS, descreverLink } from './inserir.js';
+import { MODELOS_STATUS, TONS, MAX_STATUS, descreverLink } from './inserir.js';
+import { GaleriaTabela } from './tabelaUi.jsx';
+import { ESTILO_PADRAO, rotuloDoEstilo } from './tabelaEstilo.js';
 
-/* ---------- Tabela ---------- */
-export function JanelaTabela({ subtitulo, nomeInicial, cabecalho0, aoAplicar, aoFechar }) {
+/* ---------- Tabela (v0.6.19: estilos do Excel, guardados na tabela e desenhados; a tabela cresce sozinha) ---------- */
+export function JanelaTabela({ c, subtitulo, nomeInicial, cabecalho0, aoAplicar, aoFechar }) {
   const [nome, setNome] = useState(nomeInicial);
-  const [estilo, setEstilo] = useState('azul');
+  const [estilo, setEstilo] = useState(ESTILO_PADRAO);
   const [cab, setCab] = useState(cabecalho0);
   const [listras, setListras] = useState(true);
   const [filtro, setFiltro] = useState(true);
   const [erro, setErro] = useState('');
-  const est = ESTILOS_TABELA.find((e) => e.id === estilo);
+  const op = useMemo(() => ({ ll: listras ? 1 : 0 }), [listras]);
   const aplicar = () => { const e = aoAplicar({ nome: nome.trim(), estilo, cabecalho: cab, listras, filtro: filtro && cab }); if (e) setErro(e); };
   return (
     <Janela titulo="Formatar como tabela" icone="tabela" subtitulo={subtitulo} aoFechar={aoFechar} classe="pl-jdados pl-jtab" rodape={(
@@ -22,27 +24,14 @@ export function JanelaTabela({ subtitulo, nomeInicial, cabecalho0, aoAplicar, ao
     )}>
       <div className="janela-c rg-corpo">
         <section className="rg-cartao">
-          <span className="rg-cab">Estilo</span>
-          <div className="tb-estilos" role="group" aria-label="Estilo da tabela">
-            {ESTILOS_TABELA.map((e) => (
-              <button key={e.id} type="button" className="tb-estilo" aria-pressed={estilo === e.id} data-tab-estilo={e.id} title={e.nome} onClick={() => setEstilo(e.id)}>
-                <i style={{ background: e.cab }} /><i style={{ background: e.faixa }} /><b>{e.nome}</b>
-              </button>
-            ))}
-          </div>
-          <div className="tb-previa" aria-hidden="true">
-            {[0, 1, 2, 3].map((l) => (
-              <div key={l} className="tb-lin" style={{ background: l === 0 && cab ? est.cab : listras && l % 2 === (cab ? 0 : 1) ? est.faixa : 'transparent', color: l === 0 && cab ? est.letra : undefined, fontWeight: l === 0 && cab ? 700 : 400 }}>
-                <span>{l === 0 && cab ? 'Nome' : 'Item ' + l}</span><span>{l === 0 && cab ? 'Valor' : l * 10}</span><span>{l === 0 && cab ? 'Status' : 'OK'}</span>
-              </div>
-            ))}
-          </div>
+          <span className="rg-cab">Estilo · {rotuloDoEstilo(estilo)}</span>
+          <GaleriaTabela c={c || {}} atual={estilo} op={op} aoEscolher={(n, ja) => { setEstilo(n); if (ja) aoAplicar({ nome: nome.trim(), estilo: n, cabecalho: cab, listras, filtro: filtro && cab }); }} />
         </section>
         <label className="rg-campo"><span>Nome</span><input value={nome} maxLength={60} data-tab-nome spellCheck={false} onChange={(ev) => { setNome(ev.target.value); setErro(''); }} /></label>
         <label className="dd-cab"><input type="checkbox" checked={cab} onChange={(ev) => setCab(ev.target.checked)} /><span>A primeira linha tem os títulos das colunas</span></label>
-        <label className="dd-cab"><input type="checkbox" checked={listras} onChange={(ev) => setListras(ev.target.checked)} /><span>Linhas alternadas com cor</span></label>
+        <label className="dd-cab"><input type="checkbox" checked={listras} onChange={(ev) => setListras(ev.target.checked)} /><span>Linhas em tiras</span></label>
         <label className="dd-cab"><input type="checkbox" checked={filtro && cab} disabled={!cab} onChange={(ev) => setFiltro(ev.target.checked)} /><span>Setas de filtro nos títulos</span></label>
-        <p className="dd-dica">O formato fica nas células (linhas novas embaixo não ganham a cor sozinhas). Dá para usar o nome em listas suspensas, como Tabela1[Coluna]. Dá para desfazer.</p>
+        <p className="dd-dica">A tabela cresce sozinha quando você digita logo embaixo ou aperta Tab na última célula. Depois, a aba Design da Tabela muda o estilo, os totais e o tamanho. O estilo vai junto para o Excel.</p>
         {erro && <p className="rg-erro" role="alert">{erro}</p>}
       </div>
     </Janela>

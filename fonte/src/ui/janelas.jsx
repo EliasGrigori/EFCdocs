@@ -5,6 +5,7 @@ import { TEMAS, AMOSTRAS, ROTULOS } from '../nucleo/prefs.js';
 import { PERFIS } from '../nucleo/perfis.js';
 import { TIPOS } from '../nucleo/modelo.js';
 import { Icone, Janela } from './comum.jsx';
+import { CabGaveta, Situacao, Historico, situacaoArquivo, subDoArquivo, etapasDoArquivo } from './gaveta.jsx';
 import { ROTULO_CURTO } from './faixa.jsx';
 
 export function Paleta({ mod, cx, aoFechar }) {
@@ -134,34 +135,32 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
   );
 }
 
-const SITUACAO = { rascunho: ['warn', 'Rascunho'] };
-
-/** Painel lateral: detalhes do arquivo; o editor do quadro põe a seleção no topo (extra). */
+/** Painel lateral: detalhes do arquivo; o editor do quadro põe a seleção no topo (extra).
+    v0.6.20 (layout da família): cabeçalho da gaveta (R8), situação com ponto e texto (R6) e o histórico com a gota (R9). */
 export function Painel({ aberto, cx, fechar, extra }) {
   if (!aberto) return null;
   const f = aberto.arquivo.ficha;
   const tam = aberto.tamanho;
-  const [cls, txt] = SITUACAO[f.status] || ['warn', 'Rascunho'];
+  const sit = situacaoArquivo(f);
   return (
-    <aside className="side" aria-label="Painel lateral">
+    <aside className="side efl-gaveta" aria-label="Painel lateral">
       <span className="alca" />
-      <div className="side-h">
-        <span>{extra ? 'Detalhes' : 'Detalhes do arquivo'}</span>
-        <button type="button" className="iconbtn" aria-label="Fechar o painel" onClick={fechar}><Icone n="x" /></button>
-      </div>
+      <CabGaveta sub={'Detalhes · ' + subDoArquivo(f)} titulo={f.nome} fechar={fechar} rotuloFechar="Fechar o painel" />
+      <p className="gv-sit" data-gv-sit><Situacao tom={sit.tom}>{sit.texto}</Situacao></p>
       {extra}
       <div className="side-s">
         <h4>Arquivo</h4>
         <dl>
-          <dt>Nome</dt><dd>{f.nome}</dd>
-          <dt>Tipo</dt><dd>{TIPOS[f.tipo].nome}</dd>
           {f.pastaNome && <><dt>Documento interno</dt><dd data-painel-interno>{f.pastaNome}{f.codigo ? ' · ' + f.codigo : ''}</dd></>}
-          <dt>Situação</dt><dd><span className={'selo ' + cls}>{txt}</span></dd>
           <dt>Versão do arquivo</dt><dd>{String(f.rev).padStart(2, '0')}</dd>
           <dt>Criado</dt><dd>{cx.dataHora(f.criadoEm)}</dd>
           <dt>Alterado</dt><dd>{cx.dataHora(f.alteradoEm)}</dd>
           {tam && <><dt>Tamanho</dt><dd>{cx.tamanho(tam.bytesFinal)} {tam.fmt === 'gzip' ? `(compactado de ${cx.tamanho(tam.bytesOriginal)})` : ''}</dd></>}
         </dl>
+      </div>
+      <div className="side-s">
+        <h4>Histórico</h4>
+        <Historico id={f.id} etapas={etapasDoArquivo(f, cx.envioDe ? cx.envioDe(f.id) : null)} />
       </div>
       <div className="side-s">
         <h4>Ações</h4>

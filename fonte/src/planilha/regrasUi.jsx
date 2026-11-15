@@ -1,5 +1,6 @@
 /* EFCdocs — Planilha (v0.5.1): telas da lista suspensa / validação de dados, da formatação condicional e dos comentários. */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { COR as COR_PAPEL } from '../quadro/modelo.js';
 import { Icone, Janela } from '../ui/comum.jsx';
 import { paraGuardar, paraMostrar } from './formula.js';
 import { lerEntrada } from './entrada.js';
@@ -209,13 +210,20 @@ export function ListaSuspensa({ x, y, w, itens, atual, aoEscolher, aoFechar, avi
   );
 }
 
-/** Balão de comentário (ou de aviso da validação). */
+/** Balão de comentário (ou de aviso da validação).
+    v0.6.20 (parte 4, segunda versão; a primeira foi reprovada como "muito genérica"): o comentário é um post-it colado
+    na célula, com o papel amarelo do quadro, um canto dobrado e as iniciais de quem escreveu. O aviso da validação é o
+    mesmo bilhete em papel cinza. As cores de papel são as dos post-its (quadro/modelo.js). */
+const iniciaisDe = (nome) => String(nome || '').trim().split(/\s+/).filter(Boolean).map((x) => x[0]).slice(0, 2).join('').toUpperCase() || '?';
 export function Balao({ x, y, titulo, texto, respostas, tipo = 'com', maxW = 260 }) {
+  const com = tipo === 'com';
   return (
-    <div className={'pl-balao ' + tipo} data-balao={tipo} style={{ left: x, top: y, maxWidth: maxW }} role="note">
-      {titulo ? <b>{titulo}</b> : null}
+    <div className={'pl-balao ' + tipo} data-balao={tipo} style={{ left: x, top: y, maxWidth: Math.max(maxW, com ? 280 : maxW), '--papel': com ? COR_PAPEL.amarelo : COR_PAPEL.cinza }} role="note">
+      <span className="pl-balao-fio" aria-hidden="true" />
+      {titulo ? (com ? <span className="pl-balao-q"><i aria-hidden="true">{iniciaisDe(titulo)}</i><b>{titulo}</b></span> : <b>{titulo}</b>) : null}
       {texto ? <p>{texto}</p> : null}
-      {(respostas || []).map((r, k) => <p key={k} className="resp"><b>{r.a || 'Resposta'}</b> {r.t}</p>)}
+      {(respostas || []).map((r, k) => <p key={k} className="resp"><span className="pl-balao-q"><i aria-hidden="true">{iniciaisDe(r.a)}</i><b>{r.a || 'Resposta'}</b></span>{r.t}</p>)}
+      <span className="pl-balao-dobra" aria-hidden="true" />
     </div>
   );
 }
