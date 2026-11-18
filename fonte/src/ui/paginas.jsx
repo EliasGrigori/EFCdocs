@@ -3,8 +3,10 @@ import { TIPOS, ativos, naLixeira, maisRecentes } from '../nucleo/modelo.js';
 import { LIMITE_DEMO } from '../nucleo/banco.js';
 import { useEffect, useState } from 'react';
 import { Icone, dataHora, usarEsc } from './comum.jsx';
-import { CabPagina, SeloTotal, TabelaArquivos } from './listas.jsx';
+import { CabPagina, SeloTotal, TabelaArquivos, Tr } from './listas.jsx';
 import { dadosDoArquivo } from './gaveta.jsx';
+import { usarTabela } from './colunas.jsx';
+import { filtrarPorColunas, temFiltroDeColuna, temAlgoParaLimpar, mudarTabela, limparColunasSoltas } from './tabelaColunas.js';
 
 const CMD_NOVO = { planilha: 'arquivo.novaPlanilha', docx: 'arquivo.novoDocumento', postits: 'arquivo.novoQuadro' };
 /* o que cada botão "Novo" faz: vai na dica (parar o mouse em cima), não na tela */
@@ -34,7 +36,7 @@ function BotoesNovo({ tipos, cx }) {
 
 /* ---------- filtro único, recolhível: um botão com o resumo que abre um painel ---------- */
 const ORDENS = { recentes: 'Mais recentes', antigos: 'Mais antigos', nome: 'Nome (A a Z)' };
-const FILTRO_PADRAO = { q: '', tipo: 'todos', ordem: 'recentes' };
+export const FILTRO_PADRAO = { q: '', tipo: 'todos', ordem: 'recentes' };
 const filtrosGuardados = {}; // o filtro de cada página continua igual ao voltar para ela
 const semAcento = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
@@ -52,9 +54,13 @@ export function useFiltro(chave) {
   return [f, mudar];
 }
 
-export function Filtro({ f, mudar, tipos, aberto, setAberto }) {
-  const ativo = f.q || f.tipo !== 'todos' || f.ordem !== 'recentes';
-  const resumo = [f.q ? `"${f.q}"` : null, tipos && f.tipo !== 'todos' ? TIPOS[f.tipo].nome : null, ORDENS[f.ordem]].filter(Boolean).join(' · ');
+/** v0.6.24 · no lugar do botão Filtro: aparece só quando alguma coluna está filtrada ou ordenada (as travadas ficam). */
+export function LimparFiltros({ tabela }) {
+  return <button type="button" className="pg-limpar" data-limpar-filtros onClick={() => mudarTabela(tabela, limparColunasSoltas)}><Icone n="x" />Limpar filtros</button>;
+}
+export function Filtro({ f, mudar, tipos, aberto, setAberto, colunas }) {
+  const ativo = f.q || f.tipo !== 'todos' || f.ordem !== 'recentes' || colunas;
+  const resumo = [f.q ? `"${f.q}"` : null, tipos && f.tipo !== 'todos' ? TIPOS[f.tipo].nome : null, ORDENS[f.ordem], colunas ? 'filtro nas colunas' : null].filter(Boolean).join(' · ');
   return (
     <button type="button" className={'filtro-b' + (ativo ? ' on' : '') + (aberto ? ' aberto' : '')} aria-expanded={aberto} aria-controls="filtro-painel" onClick={() => setAberto(!aberto)}>
       <Icone n="filtro" /><span className="res">{resumo}</span><Icone n="chevronBaixo" />
@@ -62,8 +68,8 @@ export function Filtro({ f, mudar, tipos, aberto, setAberto }) {
   );
 }
 
-export function PainelFiltro({ f, mudar, tipos, fechar }) {
-  const ativo = f.q || f.tipo !== 'todos' || f.ordem !== 'recentes';
+export function PainelFiltro({ f, mudar, tipos, fechar, tabela, colunas }) {
+  const ativo = f.q || f.tipo !== 'todos' || f.ordem !== 'recentes' || colunas;
   return (
     <div className="filtro-p" id="filtro-painel" onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); fechar(); } }}>
       <label className="campo"><span>Nome</span>
@@ -82,15 +88,18 @@ export function PainelFiltro({ f, mudar, tipos, fechar }) {
           {Object.entries(ORDENS).map(([k, n]) => <option key={k} value={k}>{n}</option>)}
         </select>
       </label>
-      <button type="button" className="btn sm" disabled={!ativo} onClick={() => mudar(FILTRO_PADRAO)}>Limpar</button>
+      <button type="button" className="btn sm" data-filtro-limpar disabled={!ativo} onClick={() => { mudar(FILTRO_PADRAO); if (tabela) mudarTabela(tabela, limparColunasSoltas); }}>Limpar</button>
     </div>
   );
 }
 
-const COL_NOME = { id: 'nome', rot: 'Nome', cls: 'c-nome' };
-const COL_TIPO = { id: 'tipo', rot: 'Tipo', cls: 'c-tipo' };
-const COL_QUANDO = { id: 'quando', rot: 'Alterado em', cls: 'c-quando' };
-const COL_ACOES = { id: 'acoes', rot: <span className="so-leitor">Ações</span>, cls: 'c-acoes' };
+/* v0.6.24 · cada coluna diz o valor dela (v) e o texto da lista de valores (txt) para o menu da coluna */
+const dia = (iso) => { const t = Date.parse(iso); return Number.isFinite(t) ? new Date(t).toLocaleDateString('pt-BR') : ''; };
+const hora = (iso) => { const t = Date.parse(iso); return Number.isFinite(t) ? t : ''; };
+export const COL_NOME = { id: 'nome', rot: 'Nome', cls: 'c-nome', v: (x) => x.nome || '' };
+export const COL_TIPO = { id: 'tipo', rot: 'Tipo', cls: 'c-tipo', v: (x) => (TIPOS[x.tipo] ? TIPOS[x.tipo].nome : '') };
+export const COL_QUANDO = { id: 'quando', rot: 'Alterado em', cls: 'c-quando', tipo: 'data', v: (x) => hora(x.alteradoEm), txt: (x) => dia(x.alteradoEm) };
+export const COL_ACOES = { id: 'acoes', rot: <span className="so-leitor">Ações</span>, cls: 'c-acoes', fixa: true };
 
 /**
  * Uma tela de lista no layout da família: cabeçalho (título, selo do total, ações), filtro único e a tabela.
@@ -98,22 +107,23 @@ const COL_ACOES = { id: 'acoes', rot: <span className="so-leitor">Ações</span>
  */
 function ListaFiltrada({ chave, titulo, unidade, todos, tipos, cx, vazio, lendo, meta, acoes, sub, lixeira }) {
   const [f, mudar] = useFiltro(chave);
-  const [aberto, setAberto] = useState(false);
-  const lista = aplicarFiltro(todos, f);
-  /* Esc fecha o painel do filtro, esteja o foco onde estiver */
-  usarEsc(() => setAberto(false), aberto);
+  const tabela = chave || 'lista';
+  const st = usarTabela(tabela);
   const semTipo = unidade[1] !== 'arquivos';
   const colunas = lixeira ? COLUNAS_LIXEIRA : semTipo ? [COL_NOME, COL_QUANDO, COL_ACOES] : [COL_NOME, COL_TIPO, COL_QUANDO, COL_ACOES];
+  /* v0.6.24: o botão Filtro da tela saiu (os filtros moram no cabeçalho das colunas); um filtro antigo guardado não vale mais */
+  const base = aplicarFiltro(todos, FILTRO_PADRAO);
+  const lista = filtrarPorColunas(base, colunas, st);
+  const comColunas = temFiltroDeColuna(st);
   return (
     <>
       <CabPagina titulo={titulo} sub={sub} meta={<><SeloTotal n={lista.length} total={todos.length} unidade={unidade} lendo={lendo} />{meta}</>}>
-        {todos.length > 0 && <Filtro f={f} mudar={mudar} tipos={tipos} aberto={aberto} setAberto={setAberto} />}
+        {temAlgoParaLimpar(st) && <LimparFiltros tabela={tabela} />}
         {acoes}
       </CabPagina>
-      {aberto && todos.length > 0 && <PainelFiltro f={f} mudar={mudar} tipos={tipos} fechar={() => setAberto(false)} />}
-      <TabelaArquivos nome={chave || 'lista'} rotulo={titulo} colunas={colunas} itens={lista} lendo={lendo} reinicia={f.q + '|' + f.tipo + '|' + f.ordem}
+      <TabelaArquivos nome={tabela} rotulo={titulo} colunas={colunas} itens={lista} base={base} unidade={unidade} lendo={lendo} reinicia={f.q + '|' + f.tipo + '|' + f.ordem}
         vazio={todos.length ? 'Nenhum arquivo com esse filtro.' : vazio}
-        detalhe={(x) => dadosDoArquivo(x, cx)} filtro={{ f, mudar, tipos }}
+        detalhe={(x) => dadosDoArquivo(x, cx)}
         linha={(x, extra) => <LinhaArquivo key={x.id} f={x} cx={cx} semTipo={semTipo} lixeira={lixeira} extra={extra} />} />
     </>
   );
@@ -129,7 +139,7 @@ export function LinhaArquivo({ f, cx, lixeira, semTipo, extra }) {
   const bloq = (acao) => cx.bloqueado(acao, f);
   const quando = lixeira ? dataHora(f.lixeiraEm) : dataHora(f.alteradoEm);
   return (
-    <tr className={'arq' + (extra && extra.naGaveta ? ' na-gaveta' : '')} data-id={f.id}>
+    <Tr className={'arq' + (extra && extra.naGaveta ? ' na-gaveta' : '')} data-id={f.id}>
       <td className="c-nome">
         <button type="button" className="abre" onClick={() => (lixeira ? null : cx.abrir(f.id))} disabled={lixeira} title={f.nome} style={lixeira ? { cursor: 'default' } : undefined}>
           <span className="ri"><Icone n={f.tipo} /></span>
@@ -156,7 +166,7 @@ export function LinhaArquivo({ f, cx, lixeira, semTipo, extra }) {
           </span>
         )}
       </td>
-    </tr>
+    </Tr>
   );
 }
 
@@ -228,7 +238,7 @@ export function ListaDoTipo({ tipo, fichas, cx, demo, lendo }) {
   );
 }
 
-const COLUNAS_LIXEIRA = [COL_NOME, COL_TIPO, { id: 'quando', rot: 'Na lixeira desde', cls: 'c-quando' }, COL_ACOES];
+const COLUNAS_LIXEIRA = [COL_NOME, COL_TIPO, { id: 'quando', rot: 'Na lixeira desde', cls: 'c-quando', tipo: 'data', v: (x) => hora(x.lixeiraEm), txt: (x) => dia(x.lixeiraEm) }, COL_ACOES];
 export function Lixeira({ fichas, cx, lendo }) {
   const lista = maisRecentes(naLixeira(fichas));
   return (

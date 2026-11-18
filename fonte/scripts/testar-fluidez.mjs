@@ -84,10 +84,10 @@ await caso('a) trocar de ÁREA pelo menu: o conteúdo entra deslizando, o marcad
 });
 await caso('a) redesenho por dado NÃO anima: filtrar a lista não refaz a entrada da tela nem o título', async () => {
   await p.goto(BASE + '#/planilha'); await espera(900);
-  await p.click('.filtro-b'); await p.fill('.filtro-p input', 'co'); await espera(45);
+  await p.click('[data-col-menu=nome]'); await p.fill('[data-col-busca]', 'co'); await espera(45);
   const c = await anims('.wk-main > *'); certo(!tem(c, 'fz-entra'), 'a tela entrou de novo'); certo(await p.locator('[data-fz-tt]').count() === 0, 'o título animou');
   certo(tem(await anims('.tb-arq tbody'), 'fz-troca', 150), 'f) o resultado não trocou suave (150 ms)');
-  await p.fill('.filtro-p input', ''); await p.keyboard.press('Escape'); await espera(300);
+  await p.fill('[data-col-busca]', ''); await p.keyboard.press('Escape'); await espera(300);
 });
 await caso('a) Documentos internos: cada sub-aba (5)', async () => {
   await p.goto(BASE + '#/internos'); await espera(900);
@@ -142,8 +142,8 @@ await caso('b) gaveta: abre em 400 ms com desfoque, os blocos entram em sequênc
   certo(tem(await anims('[data-fz-fant=gaveta]'), 'fz-sai', 350), 'fechar: ' + JSON.stringify(await anims('[data-fz-fant=gaveta]')));
   await espera(450); certo(await p.locator('[data-fz-fant]').count() === 0, 'a gaveta que saiu ficou na página');
 });
-await caso('c) menus crescem do botão (250 ms) e fecham encolhendo (150 ms): Novo, filtro e menu da coluna', async () => {
-  for (const [abre, sel] of [['.novo-drive-b', '.novo-drive-m'], ['.filtro-b', '.filtro-p'], ['[data-col-menu=nome]', '.col-menu']]) {
+await caso('c) menus crescem do botão (250 ms) e fecham encolhendo (150 ms): Novo e menu da coluna (o botão Filtro saiu na v0.6.24)', async () => {
+  for (const [abre, sel] of [['.novo-drive-b', '.novo-drive-m'], ['[data-col-menu=nome]', '.col-menu']]) {
     await p.click(abre); await espera(45);
     certo(tem(await anims(sel), 't-dropdown-in', 250), `${sel} abrir: ` + JSON.stringify(await anims(sel)));
     await espera(350); await p.keyboard.press('Escape'); await espera(45);
@@ -156,7 +156,8 @@ await caso('R13 · menu da coluna: com ele aberto, tocar em outra coluna faz o m
   await p.click('[data-col-menu=nome]'); await espera(400);
   await p.click('[data-col-menu=tipo]'); await espera(45);
   certo(tem(await anims('.col-menu'), 'fz-desliza', 250), JSON.stringify(await anims('.col-menu'))); certo(await p.locator('.col-menu').count() === 1, 'dois menus');
-  await espera(300); await p.locator('.col-op:has-text("Documento")').click(); await espera(300);
+  /* v0.6.24: o menu da coluna é o do EFCwork: ficar só com Documento = desmarcar os outros valores */
+  await espera(300); for (const v of ['Planilha', 'Quadro']) await p.locator(`[data-col-valor="${v}"]`).uncheck(); await espera(300);
   certo((await p.locator('[data-cont]').first().innerText()).includes('total filtrado'), 'o filtro da coluna não filtrou');
   await p.locator('.col-limpa').click(); await p.keyboard.press('Escape'); await espera(300);
 });

@@ -3,8 +3,10 @@
 import { useMemo, useState } from 'react';
 import { TIPOS, ativos } from '../nucleo/modelo.js';
 import { Janela, Icone, dataHora, usarEsc } from './comum.jsx';
-import { CabPagina, SeloTotal, TabelaArquivos } from './listas.jsx';
-import { useFiltro, Filtro, PainelFiltro, aplicarFiltro, BotaoDetalhes } from './paginas.jsx';
+import { CabPagina, SeloTotal, TabelaArquivos, Tr } from './listas.jsx';
+import { useFiltro, LimparFiltros, aplicarFiltro, FILTRO_PADRAO, BotaoDetalhes, COL_NOME, COL_TIPO, COL_QUANDO, COL_ACOES } from './paginas.jsx';
+import { usarTabela } from './colunas.jsx';
+import { filtrarPorColunas, temFiltroDeColuna, temAlgoParaLimpar } from './tabelaColunas.js';
 import { Situacao, dadosDoArquivo } from './gaveta.jsx';
 import './internos.css';
 import { SUBABAS, PODE_COMPARTILHAR, estadoDoc, linhasDoResumo, textoDoResumo, noDocumento } from '../ponte/ponte.js';
@@ -21,18 +23,21 @@ function situacaoInterno(estado, x) {
 }
 
 /** Página "Documentos internos": uma aba por tipo de papel; cada linha diz se já foi para o Cwork. */
-const COLUNAS_INTERNOS = [
-  { id: 'codigo', rot: 'Código', cls: 'c-codigo' }, { id: 'nome', rot: 'Nome', cls: 'c-nome' }, { id: 'tipo', rot: 'Tipo', cls: 'c-tipo' },
-  { id: 'quando', rot: 'Alterado em', cls: 'c-quando' }, { id: 'situacao', rot: 'Situação', cls: 'c-situacao' }, { id: 'acoes', rot: <span className="so-leitor">Ações</span>, cls: 'c-acoes' },
+const colunasInternos = (estado) => [
+  { id: 'codigo', rot: 'Código', cls: 'c-codigo', v: (x) => x.codigo || '' }, COL_NOME, COL_TIPO, COL_QUANDO,
+  { id: 'situacao', rot: 'Situação', cls: 'c-situacao', v: (x) => situacaoInterno(estado, x).texto || '' }, COL_ACOES,
 ];
 
 export function DocsInternos({ fichas, estado, cx, acrescentar, editar, lendo }) {
   const todos = useMemo(() => ativos(fichas).filter((f) => f.pastaNome), [fichas]);
   const [f, mudar] = useFiltro('internos');
-  const [aberto, setAberto] = useState(false);
-  usarEsc(() => setAberto(false), aberto);
   /* o filtro (nome e ordem) vale para todas as sub-abas; os contadores das abas seguem o filtro */
-  const internos = aplicarFiltro([...todos].sort((a, b) => (b.alteradoEm || '').localeCompare(a.alteradoEm || '')), f);
+  const colunas = colunasInternos(estado);
+  const st = usarTabela('internos');
+  /* v0.6.24 · os filtros das colunas valem como o da tela: para todas as sub-abas e nos contadores delas */
+  const base = aplicarFiltro([...todos].sort((a, b) => (b.alteradoEm || '').localeCompare(a.alteradoEm || '')), FILTRO_PADRAO);
+  const internos = filtrarPorColunas(base, colunas, st);
+  const comColunas = temFiltroDeColuna(st);
   const [escolhida, setSub] = useState(null);
   const abas = [...SUBABAS, ...new Set(todos.map((x) => x.pastaNome).filter((n) => !SUBABAS.includes(n)))];
   const qt = (n) => internos.filter((x) => x.pastaNome === n).length;
@@ -53,11 +58,10 @@ export function DocsInternos({ fichas, estado, cx, acrescentar, editar, lendo })
           ))}
         </div>
         <div className="efl-ferramentas">
-          {todos.length > 0 && <Filtro f={f} mudar={mudar} aberto={aberto} setAberto={setAberto} />}
+          {temAlgoParaLimpar(st) && <LimparFiltros tabela="internos" />}
         </div>
       </div>
-      {aberto && todos.length > 0 && <PainelFiltro f={f} mudar={mudar} fechar={() => setAberto(false)} />}
-      <TabelaArquivos nome="internos" rotulo={'Documentos internos: ' + sub} colunas={COLUNAS_INTERNOS} itens={lista} lendo={lendo} reinicia={sub + '|' + f.q + '|' + f.ordem + '|' + f.tipo} filtro={{ f, mudar, tipos: ['planilha', 'docx', 'postits'] }}
+      <TabelaArquivos nome="internos" rotulo={'Documentos internos: ' + sub} colunas={colunas} itens={lista} base={base.filter((x) => x.pastaNome === sub)} unidade={['documento', 'documentos']} lendo={lendo} reinicia={sub + '|' + f.q + '|' + f.ordem + '|' + f.tipo}
         vazio={todos.length ? (internos.length ? `Nada em ${sub}.` : 'Nenhum documento com esse filtro.') : 'Ponha aqui as etiquetas, fichas, formulários, fluxogramas e POPs que vão para o Cwork: "Pôr um arquivo aqui" ou, com o arquivo aberto, Arquivo › Documento interno.'}
         detalhe={(x) => {
           const e = situacaoInterno(estado, x);
@@ -69,7 +73,7 @@ export function DocsInternos({ fichas, estado, cx, acrescentar, editar, lendo })
         linha={(x, extra) => {
           const e = situacaoInterno(estado, x);
           return (
-            <tr className={'arq' + (extra.naGaveta ? ' na-gaveta' : '')} key={x.id} data-id={x.id}>
+            <Tr className={'arq' + (extra.naGaveta ? ' na-gaveta' : '')} key={x.id} data-id={x.id}>
               <td className="c-codigo">{x.codigo || ''}</td>
               <td className="c-nome">
                 <button type="button" className="abre" title={x.nome} onClick={() => cx.abrir(x.id)}>
@@ -84,7 +88,7 @@ export function DocsInternos({ fichas, estado, cx, acrescentar, editar, lendo })
                 <BotaoDetalhes nome={x.nome} extra={extra} />
                 <button type="button" className="iconbtn" aria-label={'Sub-aba e código: ' + x.nome} title="Sub-aba e código" onClick={() => editar(x)}><Icone n="renomear" /></button>
               </span></td>
-            </tr>
+            </Tr>
           );
         }} />
     </div>

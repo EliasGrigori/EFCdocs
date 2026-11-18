@@ -403,3 +403,8 @@ F401;Planilha;formatar;"Tachado (Ctrl+5)";funciona;"v0.6.23";manter;v0.6.23 (apr
 F402;Planilha;preencher;"Alça reconhece letras, texto terminado em letra, romanos, multiplicação e dias úteis";funciona;"v0.6.23";manter;v0.6.23 (aprovada 18/11)
 F403;Planilha;toque;"Pinça aproxima no ponto entre os dedos";funciona;"v0.6.23";manter;v0.6.23 (D10) (aprovada 18/11)
 F404;Planilha;grafico;"Arrastar a linha da meta na prévia do editor (segue a prévia redesenhada)";funciona;"D-63 em observação: falha rara da suíte não reproduzida";manter;v0.6.23.1 (aprovada 18/11)
+F405;Listas;listas;"Menu da coluna no padrão do EFCwork (ordem em ciclo, busca, valores com contagem e caixas)";funciona;"v0.6.24 parte 1";manter;v0.6.24 parte 1 (aprovada 18/11)
+F406;Listas;listas;"Mover e arrastar colunas, ordem lembrada no aparelho";funciona;"v0.6.24 parte 1";manter;v0.6.24 parte 1 (aprovada 18/11)
+F407;Listas;listas;"Travar coluna (ordem e filtro guardados até destravar)";funciona;"v0.6.24 parte 1";manter;v0.6.24 parte 1 (aprovada 18/11)
+F408;Listas;listas;"Celular: barra com as colunas e menu de baixo";funciona;"v0.6.24 parte 1";manter;v0.6.24 parte 1 (aprovada 18/11)
+F409;Listas;listas;"Menu em Código, Situação e Na lixeira desde";funciona;"v0.6.24 parte 1";manter;v0.6.24 parte 1 (aprovada 18/11)

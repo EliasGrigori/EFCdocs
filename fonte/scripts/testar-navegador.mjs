@@ -93,10 +93,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.23.1', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.24', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.23.1'), 'menu sem v0.6.23.1');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24'), 'menu sem v0.6.24');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -1851,33 +1851,32 @@ await caso('v0.4.4: Início sem título repetido nem parágrafo; Novo compacto; 
   igual(await p.locator('.arq').count(), 2);
   const altNovo = (await p.locator('[data-novo=planilha]').boundingBox()).height;
   certo(altNovo >= 120 && altNovo <= 260, 'v0.4.9: o cartão de Novo devia ser grande (prévia em branco): ' + altNovo);
-  igual(await p.locator('.filtro-p').count(), 0, 'o painel do filtro devia começar fechado');
-  certo((await p.locator('.filtro-b').innerText()).includes('Mais recentes'), await p.locator('.filtro-b').innerText());
-  await p.click('.filtro-b');
-  await p.waitForSelector('.filtro-p');
-  await p.locator('.filtro-p select').first().selectOption('postits');
+  /* v0.6.24: o botão Filtro da tela saiu; os filtros moram no menu do título de cada coluna (padrão do EFCwork) */
+  igual(await p.locator('.filtro-b').count(), 0, 'o botão Filtro antigo voltou');
+  igual(await p.locator('[data-limpar-filtros]').count(), 0, '"Limpar filtros" sem filtro');
+  await p.click('[data-col-menu=tipo]'); await p.waitForSelector('.col-menu');
+  await p.locator('[data-col-valor="Planilha"]').uncheck();
   await p.waitForTimeout(100);
   igual(await p.locator('.arq').count(), 1);
   certo((await p.locator('[data-cont]').innerText()).includes('1 arquivo · total filtrado'), await p.locator('[data-cont]').innerText());
-  certo((await p.locator('.filtro-b').innerText()).includes('Quadro'), 'resumo sem o tipo: ' + await p.locator('.filtro-b').innerText());
-  await p.locator('.filtro-p input').fill('nada disso');
+  await p.fill('[data-col-busca]', 'nada disso');
   await p.waitForTimeout(100);
   igual(await p.locator('.arq').count(), 0);
   certo((await p.locator('.vazio-lista').innerText()).includes('Nenhum arquivo com esse filtro'));
-  await p.click('.filtro-p button:has-text("Limpar")');
-  await p.waitForTimeout(100);
-  igual(await p.locator('.arq').count(), 2);
-  await p.locator('.filtro-p select').nth(1).selectOption('nome');
   await p.keyboard.press('Escape');
   await p.waitForTimeout(100);
-  igual(await p.locator('.filtro-p').count(), 0, 'Esc devia fechar o painel do filtro');
-  /* o filtro continua igual ao voltar para a página */
+  igual(await p.locator('.col-menu').count(), 0, 'Esc devia fechar o menu da coluna');
+  await p.click('[data-limpar-filtros]');
+  await p.waitForTimeout(100);
+  igual(await p.locator('.arq').count(), 2);
+  await p.click('[data-col-menu=nome]'); await p.click('[data-col-ordem]'); await p.keyboard.press('Escape');
+  /* a ordem continua igual ao voltar para a página */
   await p.click('.rail a[href="#/planilha"]');
   await p.waitForFunction(() => document.querySelectorAll('[data-novo]').length === 1);
   await p.click('.rail a[href="#/"]');
   await p.waitForFunction(() => document.querySelectorAll('[data-novo]').length === 3);
-  await p.waitForSelector('.filtro-b');
-  certo((await p.locator('.filtro-b').innerText()).includes('Nome (A a Z)'), await p.locator('.filtro-b').innerText());
+  await p.waitForSelector('th[data-col=nome][aria-sort=ascending]');
+  await p.click('[data-limpar-filtros]');
   await print(p, '60-inicio-compacto');
 });
 await caso('v0.4.4: lista de Planilhas com um botão Nova planilha e o filtro; Documentos com o aviso numa linha só', async () => {
@@ -1901,7 +1900,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.23'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.24'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -2179,9 +2178,10 @@ await caso('v0.4.4.2: aviso com Desfazer some ao trocar de página; fica atrás 
   await p.goto(BASE + '#/');
   await p.waitForSelector('[data-cont]');
   certo((await p.locator('[data-cont]').innerText()).includes('3 arquivos'), await p.locator('[data-cont]').innerText());
-  const cx1 = (await p.locator('[data-cont]').boundingBox()), fx = (await p.locator('.filtro-b').boundingBox());
-  /* v0.6.20 (R3 e R4 da família): a contagem é o selo ao lado do título "Recentes"; o filtro fica na ponta direita da mesma linha */
-  certo(Math.abs((cx1.y + cx1.height / 2) - (fx.y + fx.height / 2)) <= 6 && cx1.x + cx1.width < fx.x, 'a contagem e o filtro deviam ficar na mesma linha');
+  /* v0.6.24: a contagem é texto ao lado do título "Recentes", sem caixa; o botão Filtro saiu */
+  const cx1 = (await p.locator('[data-cont]').boundingBox()), tt = (await p.locator('.pg-cab.sub .pg-tit').boundingBox());
+  certo(Math.abs((cx1.y + cx1.height / 2) - (tt.y + tt.height / 2)) <= 8 && tt.x + tt.width < cx1.x, 'a contagem devia ficar ao lado de Recentes');
+  igual(await p.locator('[data-cont]').evaluate((e) => getComputedStyle(e).borderTopWidth), '0px', 'a contagem continua numa caixa');
   /* aviso com Desfazer: some ao trocar de página, depois de um tempo na tela */
   await p.goto(BASE + '#/planilha'); await p.waitForSelector('.arq');
   await p.locator('.arq .iconbtn[aria-label^="Mandar para a lixeira"]').first().click();
@@ -4406,7 +4406,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.23'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

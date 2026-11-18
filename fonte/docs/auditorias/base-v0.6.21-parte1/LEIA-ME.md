@@ -28,3 +28,5 @@ Regra de barrar (uma só): **nenhuma medida de programa pode piorar contra esta 
 - "Abrir abaixo de 3 s" e "rolar a 50 quadros por segundo" continuam medidas de olho.
 
 Quem troca a linha de base: só o dono, ao aprovar uma versão que melhorou.
+
+- 18/11/2026: o tamanho de referência do app passou a 628 KB compactado (aprovação do Elias, v0.6.24 parte 1, item 8). As outras medidas não mudaram.

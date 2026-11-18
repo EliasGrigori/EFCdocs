@@ -1,0 +1,108 @@
+/* Vértice Docs v0.6.24 · título e menu da coluna das listas, no padrão do EFCwork, com as medidas do Camadas.
+   Movimento só com transform e opacity e os tempos da escala (R32). */
+.tb-arq th.col-th { padding: 0; }
+.col-thi { display: flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 4px 0 0; }
+th.c-acoes .col-thi { justify-content: flex-end; }
+.col-thr { all: unset; box-sizing: border-box; flex: 0 1 auto; min-width: 0; height: 36px; display: flex; align-items: center; padding: 0 4px 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.col-thr:focus-visible, .col-hm:focus-visible { box-shadow: var(--anel); border-radius: var(--r-chip); }
+.col-hm { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 2px; height: 28px; min-width: 28px; padding: 0 5px; border-radius: var(--r-chip); color: var(--text-dim); cursor: pointer; opacity: 0; transition: opacity var(--duration-quick) var(--ease-smooth-out); }
+.col-hm i { display: inline-flex; }
+.col-hm svg { width: 14px; height: 14px; }
+.col-hm .col-mt svg { width: 12px; height: 12px; }
+.tb-arq th:hover .col-hm, .tb-arq th.col-ab .col-hm, .col-hm:focus-visible, .col-hm.on { opacity: 1; }
+/* 18/11: sem caixa em volta (atrapalhava ler o título); só a cor muda */
+.col-hm:hover, .tb-arq th.col-ab .col-hm { color: var(--text); }
+.col-hm.on { color: var(--gold-ink); }
+.col-hm.on .col-hv { display: none; }
+.tb-arq th:hover .col-hm.on .col-hv, .tb-arq th.col-ab .col-hm.on .col-hv { display: inline-flex; }
+.tb-arq th[aria-sort], .tb-arq th:has(.col-hm.on) { color: var(--text); box-shadow: inset 0 -2px 0 var(--gold); }
+@media (hover: none) { .col-hm { opacity: .6; } }
+/* arrastar o título: a coluna de destino mostra de que lado ela vai entrar */
+.col-arrastando, .col-arrastando * { cursor: grabbing !important; }
+.tb-arq th[data-col-alvo="antes"] { box-shadow: inset 3px 0 0 var(--gold); }
+.tb-arq th[data-col-alvo="depois"] { box-shadow: inset -3px 0 0 var(--gold); }
+
+.col-menu { position: fixed; z-index: 60; width: 300px; max-height: calc(100vh - 16px); display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--sh-2);
+  transform-origin: top left; animation: t-dropdown-in var(--dropdown-open-dur) var(--dropdown-ease); }
+.col-pt { position: absolute; top: -6px; left: var(--col-pt, 24px); width: 11px; height: 11px; margin-left: -5.5px; transform: rotate(45deg); background: var(--surface); border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
+.col-menu.col-cima { transform-origin: bottom left; }
+.col-cima .col-pt { top: auto; bottom: -6px; border: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.col-cab { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 12px 10px 14px; border-bottom: 1px solid var(--border-light); }
+.col-t { display: flex; flex-direction: column; min-width: 0; }
+.col-t b { font-family: var(--fh); font-size: 17px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-t small { font-size: 12px; color: var(--text-muted); }
+.col-tr { all: unset; box-sizing: border-box; flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--r-ctl); font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
+.col-tr svg { width: 14px; height: 14px; }
+.col-tr:hover { color: var(--text); border-color: var(--gold); }
+.col-tr.on { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.col-tr:focus-visible { box-shadow: var(--anel); }
+.col-av { flex: none; display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 14px; font-size: 12.5px; color: var(--gold-ink); background: var(--gold-soft); border-bottom: 1px solid var(--border-light); }
+.col-av svg { width: 13px; height: 13px; flex: none; }
+.col-corpo { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; display: flex; flex-direction: column; animation: fzCol var(--duration-quick) var(--ease-out); }
+@keyframes fzCol { from { opacity: 0; } }
+.col-g { flex: none; display: flex; flex-direction: column; gap: 2px; padding: 10px 8px 8px; border-bottom: 1px solid var(--border-light); }
+.col-g:last-child { border-bottom: 0; }
+.col-fg { flex: 1 1 auto; min-height: 0; }
+.col-hh { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.col-h { font-size: 12.5px; font-weight: 600; color: var(--text-muted); padding: 0 6px 4px; }
+.col-hh .col-h { padding-bottom: 0; }
+.col-limpa { all: unset; box-sizing: border-box; height: 28px; padding: 0 8px; border-radius: var(--r-chip); font-size: 13px; color: var(--primary); cursor: pointer; }
+.col-limpa:hover:not(:disabled) { background: var(--surface-2); }
+.col-limpa:disabled { color: var(--text-dim); cursor: default; }
+.col-limpa:focus-visible { box-shadow: var(--anel); }
+.col-op { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 8px; border-radius: var(--r-chip); color: var(--text-muted); cursor: pointer; }
+.col-op svg { width: 16px; height: 16px; flex: none; color: var(--text-dim); }
+.col-op span { flex: 1; }
+.col-op em { font-style: normal; font-size: 12px; color: var(--text-dim); }
+.col-op:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+.col-op:focus-visible { box-shadow: var(--anel); }
+.col-op.on { color: var(--text); font-weight: 600; }
+.col-op.on > svg { color: var(--gold-ink); }
+.col-op:disabled, .col-menu input:disabled { opacity: .5; cursor: default; }
+.col-mover { display: flex; align-items: center; gap: 4px; padding: 2px 0 0; }
+.col-mover .col-h { flex: 1; padding-bottom: 0; }
+.col-bs { flex: none; display: flex; align-items: center; gap: 7px; height: 36px; margin: 0 6px 6px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--r-ctl); background: var(--surface-2); color: var(--text-dim); }
+.col-bs:focus-within { border-color: var(--gold); box-shadow: var(--anel); }
+.col-bs svg { width: 15px; height: 15px; flex: none; }
+.col-bs input { all: unset; flex: 1; min-width: 0; color: var(--text); font-size: 14px; }
+.col-nr { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0 6px 6px; }
+.col-nr label { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 8px; border: 1px solid var(--border); border-radius: var(--r-ctl); background: var(--surface-2); }
+.col-nr small { font-size: 12px; color: var(--text-muted); }
+.col-nr input { all: unset; width: 100%; min-width: 0; font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; }
+.col-l { flex: 1 1 auto; min-height: 96px; max-height: 260px; overflow: auto; overscroll-behavior: contain; padding: 0 2px; }
+.col-li { display: flex; align-items: center; gap: 9px; min-height: 34px; padding: 0 6px; border-radius: var(--r-chip); cursor: pointer; }
+.col-li:hover { background: var(--surface-2); }
+.col-li input { accent-color: var(--primary); width: 16px; height: 16px; margin: 0; flex: none; }
+.col-li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-li em { font-style: normal; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 22px; text-align: right; }
+.col-all { font-weight: 600; border-bottom: 1px dashed var(--border); border-radius: var(--r-chip) var(--r-chip) 0 0; margin-bottom: 2px; }
+.col-vz { color: var(--text-muted); font-style: italic; }
+.col-nd { margin: 6px; font-size: 13px; color: var(--text-muted); }
+
+/* celular: o menu sobe de baixo, com o fundo escurecendo */
+.col-fundo { position: fixed; inset: 0; z-index: 59; background: rgba(12, 26, 36, .30); animation: fzFundoCol var(--duration-fast) var(--ease-out); }
+@keyframes fzFundoCol { from { opacity: 0; } }
+.col-menu.col-folha { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 82vh; border-radius: var(--r-jan) var(--r-jan) 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); transform-origin: bottom center; animation: fzFolhaCol var(--duration-medium) var(--ease-out); }
+@keyframes fzFolhaCol { from { transform: translateY(100%); } }
+.col-folha .col-li, .col-folha .col-op, .col-folha .col-tr, .col-folha .iconbtn { min-height: 44px; }
+.col-folha .col-bs, .col-folha .col-nr label { height: 44px; }
+.col-folha .col-limpa { height: 44px; }
+.col-folha .col-li input { width: 20px; height: 20px; }
+@media (prefers-reduced-motion: reduce) { .col-menu, .col-corpo, .col-fundo, .col-menu.col-folha { animation: none !important; } .col-hm { transition: none !important; } }
+
+/* v0.6.24 · 18/11: o total da lista é só texto (sem caixa); "Limpar filtros" aparece no lugar do antigo botão Filtro */
+.efl-selo.efl-selo-total { padding: 0; border: 0; background: none; font-size: 14px; color: var(--text-muted); }
+.efl-selo.efl-selo-total.efl-filtrado { background: none; color: var(--gold-ink); }
+.pg-limpar { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border-radius: var(--r-ctl); font-size: 14px; color: var(--gold-ink); cursor: pointer;
+  animation: fzFundoCol var(--duration-fast) var(--ease-out); }
+.pg-limpar svg { width: 14px; height: 14px; }
+.pg-limpar:hover { background: var(--gold-soft); }
+.pg-limpar:focus-visible { box-shadow: var(--anel); }
+.app.cel .pg-cab:not(.sub) { display: flex; flex-wrap: nowrap; align-items: center; gap: 12px; }
+.app.cel .pg-cab:not(.sub) .efl-cab-tx { min-height: 0; flex: 0 1 auto; min-width: 0; }
+.app.cel .pg-cab:not(.sub) .efl-meta { flex-wrap: wrap; row-gap: 4px; }
+.app.cel .pg-cab:not(.sub) .pg-acoes { flex: 1 0 auto; justify-content: flex-end; }
+.app.cel .pg-limpar { height: 44px; }
+.app.cel .tb-arq thead th.col-th { width: auto !important; min-width: 0; }
+.app.cel .tb-arq thead .col-thr { overflow: visible; }
+.app.cel .tb-arq:has(th.col-th) thead, .app.cel .tb-arq:has(th.col-th) thead tr { width: 100%; box-sizing: border-box; }

@@ -86,6 +86,13 @@
 .app.cel .efl-abas-linha .int-abas { flex: 1 1 100%; overflow-x: auto; scrollbar-width: none; }
 .app.cel .efl-abas-linha .filtro-b { height: 44px; min-height: 44px; }
 .app.cel .tb-arq thead { display: none; }
+/* v0.6.24: no celular o cabeçalho vira uma barra fina com o nome de cada coluna; cada um abre o menu da coluna de baixo para cima */
+.app.cel .tb-arq:has(th.col-th) thead { display: table-caption; caption-side: top; position: sticky; top: 0; z-index: 2; }
+.app.cel .tb-arq:has(th.col-th) thead tr { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 4px; }
+.app.cel .tb-arq thead th { display: none; }
+.app.cel .tb-arq thead th.col-th { display: block; flex: none; width: auto; border: 0; padding: 0; background: transparent; }
+.app.cel .tb-arq thead .col-thr { height: 44px; min-width: 44px; padding: 0 4px 0 12px; }
+.app.cel .tb-arq thead .col-hm { opacity: 1; height: 44px; min-width: 44px; justify-content: center; }
 .app.cel .tb-arq .c-tipo, .app.cel .tb-arq .c-quando, .app.cel .tb-arq .c-codigo { display: none; }
 .app.cel .tb-arq td { height: 56px; }
 .app.cel .tb-arq .abre { height: 56px; }

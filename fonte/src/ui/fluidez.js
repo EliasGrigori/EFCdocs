@@ -141,6 +141,8 @@ function aoDigitar(ev) {
     });
   }
   else if (t.closest('.filtro-p')) { const p = t.closest('.pagina'); resultadoSuave(p && p.querySelector('.tb-arq tbody')); }
+  /* v0.6.24: busca e caixas do menu da coluna (padrão do EFCwork) trocam a tabela suave, como o filtro antigo */
+  else if (t.closest('.col-menu')) { const p = t.closest('.pagina') || document; resultadoSuave(p.querySelector('.tb-arq tbody')); }
   else if (t.closest('.pl-fmenu')) resultadoSuave(t.closest('.pl-fmenu').querySelector('.pl-fm-lista, ul'));
 }
 

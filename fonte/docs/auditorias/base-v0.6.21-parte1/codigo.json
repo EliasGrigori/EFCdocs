@@ -12,8 +12,8 @@
  },
  "avisosMontar": 0,
  "tamanhoApp": {
-  "bytes": 1943396,
-  "compactado": 627413,
-  "conta": "js, css e html da v0.6.21 parte 1 (faixa da Página Inicial), aprovada em 15/11/2026; medido na definição da linha de base do Sabiá 2.1"
+  "bytes": 1992704,
+  "compactado": 643072,
+  "conta": "Referência aprovada pelo Elias em 18/11/2026 (v0.6.24 parte 1, item 8): 628 KB compactado. Antes: 627413 bytes (613 KB) da v0.6.21 parte 1. As outras medidas desta pasta não mudaram."
  }
 }

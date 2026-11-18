@@ -1,10 +1,11 @@
 /* Vértice Docs — peças das telas de lista (v0.6.20), no layout da família (docs/REGRAS-DE-LAYOUT.md):
    R1 tela parada, só a tabela rola · R2 sem rodapé e mais linhas sozinhas · R3 total no selo do cabeçalho ·
    R5 cabeçalho com a mesma medida · R8 a gaveta da linha · R10 esqueleto enquanto carrega. As peças de base estão em src/layout/. */
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { Children, cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useLayoutEffect, useState } from 'react';
 import { GavetaLista } from './gaveta.jsx';
 import { Letras } from './letras.jsx';
-import { MENUS, BotaoColuna, MenuColuna } from './colunas.jsx';
+import { CabColuna, MenuColuna, usarTabela } from './colunas.jsx';
+import { colunasEmOrdem } from './tabelaColunas.js';
 
 const peca = () => (typeof window !== 'undefined' ? window.EFCLayout : null);
 export const PASSO_LINHAS = 100;
@@ -70,14 +71,28 @@ const LARGURAS = [62, 38, 54, 30, 46, 58];
  * reinicia = texto que muda quando o filtro muda (a lista volta às primeiras 100 linhas).
  * detalhe(x) = os dados da gaveta daquela linha (R8); com ele, extra = { detalhar, naGaveta } e a tabela cuida da gaveta:
  * qual linha está aberta, anterior e próximo na ordem da tabela, e fechar quando a linha sai da lista.
+ * v0.6.24 · base = a lista antes dos filtros das colunas (com ela, toda coluna com v(x) ganha o menu do EFCwork);
+ * a ordem das colunas vem do estado da tabela e as células de cada linha acompanham (linha(x) devolve um <td> por coluna, na ordem de colunas).
  */
-export function TabelaArquivos({ nome, rotulo, colunas, itens, linha, vazio, lendo, reinicia = '', detalhe, filtro }) {
-  /* R13 · filtro = { f, mudar, tipos }: as colunas Nome, Tipo e Data ganham o menu da coluna */
+const OrdemColunas = createContext(null);
+/** A linha de uma lista: as células saem na ordem das colunas que o usuário escolheu (use no lugar de <tr>). */
+export function Tr(props) { return reordenar(<tr {...props} />, useContext(OrdemColunas)); }
+function reordenar(tr, perm) {
+  if (!perm || !isValidElement(tr)) return tr;
+  const tds = Children.toArray(tr.props.children).filter(Boolean);
+  if (tds.length !== perm.length) return tr;
+  return cloneElement(tr, undefined, perm.map((i) => tds[i]));
+}
+export function TabelaArquivos({ nome, rotulo, colunas, itens, base, unidade, linha, vazio, lendo, reinicia = '', detalhe }) {
   const [colAberta, setColAberta] = useState(null);
   const fecharCol = useCallback(() => setColAberta(null), []);
-  const temMenu = (c) => filtro && MENUS[c.id] && (c.id !== 'tipo' || (filtro.tipos && filtro.tipos.length));
+  const st = usarTabela(nome);
+  const temMenu = (c) => !!base && typeof c.v === 'function' && !c.fixa;
+  const cols = base ? colunasEmOrdem(colunas, st.colOrd) : colunas;
+  const perm = cols === colunas ? null : cols.map((c) => colunas.indexOf(c));
   const [limite, setLimite] = useState(PASSO_LINHAS);
-  useEffect(() => { setLimite(PASSO_LINHAS); }, [reinicia]);
+  const chaveCols = JSON.stringify([st.cf, st.ordem]);
+  useEffect(() => { setLimite(PASSO_LINHAS); }, [reinicia, chaveCols]);
   const esqueleto = usarEsqueleto(lendo);
   usarTelaParada();
   const temMais = !lendo && itens.length > limite;
@@ -103,22 +118,29 @@ export function TabelaArquivos({ nome, rotulo, colunas, itens, linha, vazio, len
     <div className="tb-fora" data-efl-tabela={nome}>
       <div className="efl-tabela-rola" role="region" aria-label={rotulo} tabIndex={0}>
         <table className="tb-arq" aria-busy={lendo ? 'true' : undefined}>
-          <thead><tr>{colunas.map((c) => <th key={c.id} scope="col" className={c.cls}>{temMenu(c) ? <span className="col-th"><span>{c.rot}</span><BotaoColuna id={c.id} rot={c.rot} f={filtro.f} aberta={colAberta === c.id} abrir={setColAberta} /></span> : c.rot}</th>)}</tr></thead>
+          <thead><tr>{cols.map((c) => (
+            <th key={c.id} scope="col" className={c.cls + (temMenu(c) ? ' col-th' : '') + (colAberta === c.id ? ' col-ab' : '')} data-col={c.id} data-col-fixa={c.fixa ? '1' : undefined}
+              aria-sort={st.ordem && st.ordem.k === c.id ? (st.ordem.dir === 'asc' ? 'ascending' : 'descending') : undefined}>
+              {temMenu(c) ? <CabColuna nome={nome} col={c} cols={colunas} aberta={colAberta === c.id} abrir={setColAberta} /> : c.rot}
+            </th>
+          ))}</tr></thead>
           {esqueleto ? (
             <tbody className="efl-esq" data-esqueleto>
-              {LARGURAS.map((w, i) => <tr key={i}>{colunas.map((c, j) => <td key={c.id} className={c.cls}>{c.id === 'acoes' ? null : <i style={{ width: (j === 0 ? w : Math.max(24, w - 14 * j)) + '%' }} />}</td>)}</tr>)}
+              {LARGURAS.map((w, i) => <tr key={i}>{cols.map((c, j) => <td key={c.id} className={c.cls}>{c.id === 'acoes' ? null : <i style={{ width: (j === 0 ? w : Math.max(24, w - 14 * j)) + '%' }} />}</td>)}</tr>)}
             </tbody>
           ) : (
             <tbody>
+              <OrdemColunas.Provider value={perm}>
               {lendo ? null : itens.length
                 ? itens.slice(0, limite).map((x) => linha(x, extra(x)))
                 : <tr className="tb-vazio"><td colSpan={colunas.length}><div className="vazio-lista">{vazio}</div></td></tr>}
+              </OrdemColunas.Provider>
             </tbody>
           )}
         </table>
         {temMais && <div className="efl-fim" data-efl-tabela={nome}>Carregando mais…</div>}
       </div>
-      {colAberta && filtro && <MenuColuna id={colAberta} f={filtro.f} mudar={filtro.mudar} tipos={filtro.tipos} fechar={fecharCol} tabela={nome} />}
+      {colAberta && base && <MenuColuna nome={nome} cols={colunas} base={base} k={colAberta} fechar={fecharCol} unidade={unidade} />}
       {aberto && <GavetaLista id={aberto.id} dados={detalhe(aberto, fechar)} ids={itens.map((x) => x.id)} abrir={setNaGaveta} fechar={fechar} />}
     </div>
   );

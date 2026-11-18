@@ -69,15 +69,18 @@ await caso('R3 · o total fica no selo do cabeçalho; com filtro vira "· total 
   certo(await limpo(selo) === '6 documentos', await limpo(selo));
   certo(!(await selo.getAttribute('class')).includes('efl-filtrado'), 'sem filtro e já dourado');
   certo(await p.locator('.secao .cont').count() === 0, 'o contador antigo continua');
-  await p.click('.filtro-b'); await p.fill('.filtro-p input', 'reuni'); await espera(200);
+  await p.click('[data-col-menu=nome]'); await p.fill('[data-col-busca]', 'reuni'); await espera(200);
   certo(await limpo(selo) === '1 documento · total filtrado', await limpo(selo));
   certo((await selo.getAttribute('class')).includes('efl-filtrado'), 'filtrado sem o dourado suave');
   certo(await p.locator('.tb-arq tr.arq').count() === 1, 'a tabela não seguiu o filtro');
-  await p.click('.filtro-p button:has-text("Limpar")'); await p.keyboard.press('Escape');
+  await p.keyboard.press('Escape'); await p.click('[data-limpar-filtros]');
 });
 await caso('R4 · as ferramentas ficam na linha das abas (Documentos internos)', async () => {
   await ir(p, 'internos');
-  const m = await p.evaluate(() => { const a = document.querySelector('.efl-abas-linha').getBoundingClientRect(), f = document.querySelector('.efl-ferramentas .filtro-b').getBoundingClientRect(), t = document.querySelector('.int-abas').getBoundingClientRect(); return { a: [a.top, a.bottom], f: [f.top, f.bottom, f.right], t: [t.top, t.bottom], dir: a.right }; });
+  /* v0.6.24: o botão Filtro saiu; com filtro nas colunas, "Limpar filtros" aparece nesse lugar */
+  await p.click('[data-col-menu=nome]'); await p.fill('[data-col-busca]', 'a'); await p.keyboard.press('Escape'); await espera(200);
+  const m = await p.evaluate(() => { const a = document.querySelector('.efl-abas-linha').getBoundingClientRect(), f = document.querySelector('.efl-ferramentas [data-limpar-filtros]').getBoundingClientRect(), t = document.querySelector('.int-abas').getBoundingClientRect(); return { a: [a.top, a.bottom], f: [f.top, f.bottom, f.right], t: [t.top, t.bottom], dir: a.right }; });
+  await p.click('[data-limpar-filtros]');
   certo(m.f[0] >= m.a[0] - 2 && m.f[1] <= m.a[1] + 2, 'ferramentas fora da faixa das abas: ' + JSON.stringify(m));
   perto(m.f[2], m.dir, 2, 'ferramentas à direita');
 });
