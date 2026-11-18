@@ -332,7 +332,8 @@ export function App() {
     if (!f.desde) f.desde = Date.now();
     let espera = forcar || Date.now() - f.desde > 20000 ? 0 : esperaDeGravar(f.custo);
     /* diário de segurança (nucleo/pendencias.js): a mudança que vai esperar fica anotada na hora; se não der para anotar, grava já */
-    if ((espera || f.seguro.lotes.length || f.seguro.furo) && !anotarPendencia(f.seguro, idArq, f.gravado.get(idArq) || null, f.seq, novo.arquivo.ficha.alteradoEm, ops)) espera = 0;
+    /* v0.6.26 (PL03): mudança feita enquanto a página sai ou fica escondida também vai para o diário (a gravação no banco pode não terminar) */
+    if ((espera || f.seguro.lotes.length || f.seguro.furo || f.saindo) && !anotarPendencia(f.seguro, idArq, f.gravado.get(idArq) || null, f.seq, novo.arquivo.ficha.alteradoEm, ops)) espera = 0;
     if (!espera) rodarFila(); else f.relogio = setTimeout(() => { f.relogio = null; rodarFila(); }, espera);
   }, [setAberto, rodarFila]);
 
@@ -344,9 +345,10 @@ export function App() {
   /** Grava agora o que estiver esperando (sair da página, esconder a aba do navegador, fechar o arquivo). */
   const gravarJa = useCallback(() => { const f = fila.current; if (f.relogio) { clearTimeout(f.relogio); f.relogio = null; } if (f.pendente) rodarFila(); }, [rodarFila]);
   useEffect(() => {
-    const oculto = () => { if (document.visibilityState === 'hidden') gravarJa(); };
-    addEventListener('pagehide', gravarJa); document.addEventListener('visibilitychange', oculto);
-    return () => { removeEventListener('pagehide', gravarJa); document.removeEventListener('visibilitychange', oculto); };
+    const oculto = () => { fila.current.saindo = document.visibilityState === 'hidden'; if (fila.current.saindo) gravarJa(); };
+    const sai = () => { fila.current.saindo = true; gravarJa(); };
+    addEventListener('pagehide', sai); document.addEventListener('visibilitychange', oculto);
+    return () => { removeEventListener('pagehide', sai); document.removeEventListener('visibilitychange', oculto); };
   }, [gravarJa]);
   useEffect(() => gravarJa, [idRota, gravarJa]);
 
@@ -512,6 +514,8 @@ export function App() {
     if (id === 'arquivo.novo' && !mod) return '';
     return cmd.acao && cmd.acao !== 'exportar' ? semPermissao(cmd.acao, ficha) : '';
   }, [aberto, semPermissao, mod]);
+  /* v0.6.26: o "Desfazer" de um aviso guarda o executar daquela hora; ele pergunta ao bloqueado de agora (senão a 1ª exclusão dizia "Nada para desfazer") */
+  const bloqueadoRef = useRef(bloqueado); bloqueadoRef.current = bloqueado;
 
   const ligado = useCallback((id) => {
     const geral = {
@@ -540,7 +544,7 @@ export function App() {
       avisar(`"${cmd.nome}"${mod && DO_MODULO[mod] ? ' ' + DO_MODULO[mod] : ''} ${textoChega(chega)}.`, { ic: 'info' });
       return;
     }
-    const bloq = bloqueado(id);
+    const bloq = bloqueadoRef.current(id);
     if (bloq) { avisar(bloq, { ic: 'aviso' }); return; }
     if (faixaTemp && !id.startsWith('exibir.faixa')) setFaixaTemp(false);
     const atual = abertoRef.current;

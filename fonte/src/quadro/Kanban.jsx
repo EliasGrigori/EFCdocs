@@ -2,12 +2,12 @@
    Arrastar um cartão muda a coluna (e a ordem); o post-it continua no mesmo lugar no quadro livre.
    v0.6.20 (parte 4): desenho novo. O cartão é o próprio post-it (papel da cor que a pessoa escolheu, sem faixa de lado);
    em cima, o andamento do quadro; cada coluna mostra quanto do quadro está nela; ao mover, os cartões deslizam até o lugar. */
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Mov } from '../ui/fluidez.js';
 import { vencida, concluida } from './tarefa.js';
 import { Icone } from '../ui/comum.jsx';
 import { resumoTarefa } from './tarefa.js';
-import { COR, porColuna, mudancasMoverKanban, adicionarColuna, renomearColuna, removerColuna, moverColuna, novoItem, vagaKanban, mudancasCampo } from './modelo.js';
+import { COR, porColuna, mudancasMoverKanban, adicionarColuna, renomearColuna, removerColuna, moverColuna, novoItem, vagaKanban, mudancasCampo, mudancasExcluir } from './modelo.js';
 
 /** As iniciais de quem responde, para a bolinha do cartão ("Ana Lima" → "AL"). */
 const iniciais = (nome) => String(nome).trim().split(/\s+/).filter(Boolean).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
@@ -120,6 +120,20 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
     }
     setEditando(null);
   };
+  /* v0.6.26 (PL03): sair da página ou esconder o app no meio da edição guarda o texto (o app anota e recupera ao abrir) */
+  const fimRef = useRef(null); fimRef.current = () => terminarEdicao(true);
+  useEffect(() => {
+    const sair = (ev) => { if (ev.type === 'pagehide' || document.visibilityState === 'hidden') fimRef.current(); };
+    addEventListener('pagehide', sair); document.addEventListener('visibilitychange', sair);
+    return () => { removeEventListener('pagehide', sair); document.removeEventListener('visibilitychange', sair); };
+  }, []);
+
+  /* v0.6.26 (Elias, 18/11 18:22: "não consigo excluir com facilidade um post-it" no Kanban do celular): lixeira no canto de cima do cartão escolhido */
+  const excluirCartao = (it) => {
+    aplicarQ(mudancasExcluir(c, [it.id]), 'Excluir post-it', 'excluiu');
+    setSel({ itens: [], seta: null });
+    cx.avisar('Post-it excluído.', { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
+  };
 
   const menuColuna = (k, i) => {
     cx.perguntar({
@@ -169,12 +183,16 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
                     onPointerDown={(ev) => baixo(ev, it)}
                     onDoubleClick={() => { if (!somenteLeitura) setEditando({ id: it.id, valor: it.texto }); }}>
                     {!somenteLeitura && <span className="kb-alca" title="Arraste para outra coluna" aria-hidden="true"><Icone n="mao" /></span>}
+                    {!somenteLeitura && sel.itens.includes(it.id) && !(editando && editando.id === it.id) && (
+                      <button type="button" className="kb-lixo" title="Excluir o post-it" aria-label={'Excluir o post-it ' + (it.cod || '')} data-kb-excluir={it.id}
+                        onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); excluirCartao(it); }}><Icone n="lixeira" /></button>
+                    )}
                     {codigos && <span className="kb-cod">{it.cod}</span>}
                     {editando && editando.id === it.id ? (
                       <textarea className="kb-edita" autoFocus value={editando.valor} aria-label="Texto do post-it"
                         onChange={(ev) => setEditando({ ...editando, valor: ev.target.value })}
                         onPointerDown={(ev) => ev.stopPropagation()}
-                        onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); terminarEdicao(false); } if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) terminarEdicao(true); }}
+                        onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); terminarEdicao(true); } /* v0.6.26 (D15) */ if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) terminarEdicao(true); }}
                         onBlur={() => terminarEdicao(true)} />
                     ) : <p style={{ fontWeight: it.fonte && it.fonte.n ? 700 : undefined, fontStyle: it.fonte && it.fonte.i ? 'italic' : undefined, color: it.fonte && it.fonte.cor }}>{it.texto || <span className="kb-vazio">Sem texto. Toque duas vezes para escrever.</span>}</p>}
                     {(() => { const r = resumoTarefa(c, it, hoje); return r && <TarefaCartao t={r} />; })()}

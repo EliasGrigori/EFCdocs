@@ -425,3 +425,7 @@ F423;Planilha;filtro;"Ordenar do filtro num botão só, em ciclo (ordem padrão,
 F424;Planilha;dados;"Circular dados inválidos e Limpar círculos (Dados › Ferramentas de dados; até 255, como o Excel; corrigiu, o círculo some)";funciona;"v0.6.25";manter;v0.6.25 (ideia I02 do Grok, aprovada 18/11)
 F425;Planilha;analise;"Estatística descritiva numa aba nova, com fórmulas ligadas aos dados (média, erro padrão, mediana, moda, desvio, variância, CV, mín., máx., amplitude, soma, contagem)";funciona;"v0.6.25";manter;v0.6.25 (ideia I01 do Grok, aprovada 18/11)
 F426;Planilha;analise;"Amostragem: sorteio aleatório sem repetir ou uma a cada k, numa aba nova com a linha de origem e a data do sorteio";funciona;"v0.6.25";manter;v0.6.25 (ideia I04 do Grok, aprovada 18/11)
+F427;Quadro;postits;"Post-it novo pelo botão procura vaga em volta do centro, na parte da tela que aparece (sem empilhar; a tela vai até ele se não houver vaga)";funciona;"v0.6.26";manter;v0.6.26 (PL01 e PL04 do Grok)
+F428;Quadro;postits;"Esc guarda o texto do post-it, do cartão do Kanban e da seta; Ctrl+Z desfaz";funciona;"v0.6.26";manter;v0.6.26 (D15 do Elias, PL02)
+F429;Quadro;postits;"Texto em edição não se perde ao recarregar, fechar ou esconder o app (vai para o diário de segurança e volta ao abrir)";funciona;"v0.6.26";manter;v0.6.26 (PL03 do Grok)
+F430;Quadro;kanban;"Lixeira no canto de cima do cartão escolhido do Kanban (44 px no celular), com Desfazer no aviso";funciona;"v0.6.26";manter;v0.6.26 (pedido do Elias, 18/11 18:22)

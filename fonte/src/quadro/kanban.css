@@ -60,4 +60,11 @@
 .app.cel .kb .kb-and-barra { width: 120px; }
 .app.cel .kb-and-pct { display: none; }
 .app.cel .kb-acoes { opacity: 1; }
+/* v0.6.26: lixeira do cartão escolhido, no canto de cima, ao lado da alça (excluir é sempre lixeira no canto de cima) */
+.kb-lixo { position: absolute; right: 32px; top: 2px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r-chip, 6px); color: var(--danger, #b42318); background: transparent; animation: kb-lixo-entra var(--duration-quick) var(--ease-out); }
+.kb-lixo svg { width: 16px; height: 16px; }
+.kb-lixo:hover, .kb-lixo:focus-visible { background: rgba(180, 35, 24, .12); }
+.app.cel .kb-lixo { width: 44px; height: 44px; top: -8px; right: 28px; }
+@keyframes kb-lixo-entra { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .kb-lixo { animation: none; } }
 @media (prefers-reduced-motion: reduce) { .kb-card, .kb-acoes, .kb-alca, .kb-and-barra i, .kb-parte i { transition: none !important; } .kb-card:hover { transform: none; } .kb-vaga { animation: none !important; } }

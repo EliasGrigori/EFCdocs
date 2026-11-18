@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { ler, gravar } from '../nucleo/armazem.js';
 import { Icone, Janela } from '../ui/comum.jsx';
 import * as Q from './modelo.js';
-import { itemNoPonto, itensNoRet, normalizarRet, enquadrar, ancora, limites } from './geometria.js';
+import { itemNoPonto, itensNoRet, normalizarRet, enquadrar, ancora, limites, areaLivre } from './geometria.js';
 import { limitesDoQuadro } from './desenho.js';
 import { exportarPdf, exportarPng, imprimir, quadroVazio, pdfDoQuadro } from './exportar.js';
 import { ItemView, CamadaSetas, PontosLigacao, Alca, BarraSelecao, Minimapa, Temporizador, JanelaCores, JanelaFormas, JanelaLocalizar, JanelaModelos, Ferramentas, CoresCelular, Assistente, PainelTarefa, PainelLegenda, PortalPainel } from './partes.jsx';
@@ -94,8 +94,7 @@ export function Quadro({ arquivo, cx }) {
     itens: sel.itens.filter((id) => c.itens[id]),
     seta: sel.seta && c.setas[sel.seta] ? sel.seta : null,
   }), [sel, c]);
-  const setSel = setSelEstado;
-  const umItem = selValida.itens.length === 1 ? c.itens[selValida.itens[0]] : null;
+  const setSel = setSelEstado; const umItem = selValida.itens.length === 1 ? c.itens[selValida.itens[0]] : null;
 
   /* criouRef: item recém-criado; o primeiro texto dele entra na mesma ação do desfazer (um Ctrl+Z desfaz criar + escrever) */
   const criouRef = useRef(null);
@@ -191,7 +190,7 @@ export function Quadro({ arquivo, cx }) {
     if (vista === 'kanban' && tipo !== 'postit') setVista('quadro');
     const t = Q.TIPOS_ITEM[tipo];
     const ctr = centroVisivel();
-    let v = Q.vagaLivre(c, ctr.x - (extra.w || t.w) / 2, ctr.y - (extra.h || t.h) / 2, extra.w || t.w, extra.h || t.h);
+    let v = Q.vagaLivre(c, ctr.x - (extra.w || t.w) / 2, ctr.y - (extra.h || t.h) / 2, extra.w || t.w, extra.h || t.h, 28, areaRef.current ? areaLivre(areaRef.current, viewRef.current) : null); /* v0.6.26 (PL01): vaga que cabe na parte da tela que aparece */
     let campos = tipo === 'pagina' ? { texto: 'Página ' + (Q.contagem(c).paginas + 1) } : {};
     if (tipo === 'pagina') {
       /* página nova não cai em cima de outra: vai para a direita da última, e desce quando a fileira enche */
@@ -214,7 +213,7 @@ export function Quadro({ arquivo, cx }) {
     }
     const r = Q.novoItem(c, tipo, { ...v, ...campos, ...extra });
     aplicarQ(r.mudancas, 'Novo: ' + t.nome.toLowerCase(), 'criou item', { criou: r.item.id });
-    setSel({ itens: [r.item.id], seta: null });
+    setSel({ itens: [r.item.id], seta: null }); mostrarItem(r.item); /* v0.6.26 (PL01): sem vaga na tela, a tela vai até o novo */
     if (COM_TEXTO(r.item) && tipo !== 'raia') setEditando({ id: r.item.id, valor: r.item.texto || '' });
     return r.item;
   }, [c, vista, aplicarQ]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -505,11 +504,11 @@ export function Quadro({ arquivo, cx }) {
     }
   };
 
-  const maos = useRef({});
-  maos.current = { trata, ligado };
+  const maos = useRef({}); maos.current = { trata, ligado, guardar: () => guardarTexto() };
   useEffect(() => {
     cx.registrarEditor({ trata: (id) => maos.current.trata(id), ligado: (id) => maos.current.ligado(id) });
-    return () => cx.registrarEditor(null);
+    const sair = (ev) => { if (ev.type === 'pagehide' || document.visibilityState === 'hidden') maos.current.guardar(); }; addEventListener('pagehide', sair); document.addEventListener('visibilitychange', sair); /* v0.6.26 (PL03): sair da página ou esconder o app no meio da edição passa o texto para o arquivo (o app guarda e recupera ao abrir) */
+    return () => { cx.registrarEditor(null); removeEventListener('pagehide', sair); document.removeEventListener('visibilitychange', sair); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* status no rodapé (e avisa o topo que o que está ligado mudou) */
@@ -526,6 +525,7 @@ export function Quadro({ arquivo, cx }) {
     setSel({ itens: [it.id], seta: null });
     setEditando({ id: it.id, valor: it.texto || '' });
   };
+  const guardarTexto = () => { const e = editando, it = e && !e.seta && c.itens[e.id]; if (it && it.texto !== e.valor) aplicarQ(Q.mudancasCampo(c, [it.id], { texto: e.valor.slice(0, 2000) }), 'Editar texto', 'editou texto', { juntar: criouRef.current === it.id, criou: criouRef.current }); };
   const terminarEdicao = (salvar) => {
     const e = editando;
     setEditando(null);
@@ -1011,7 +1011,7 @@ export function Quadro({ arquivo, cx }) {
                 onChange={(ev) => setEditando({ ...editando, valor: ev.target.value })}
                 onPointerDown={(ev) => ev.stopPropagation()}
                 onKeyDown={(ev) => {
-                  if (ev.key === 'Escape') { ev.stopPropagation(); terminarEdicao(false); }
+                  if (ev.key === 'Escape') { ev.stopPropagation(); terminarEdicao(true); } /* v0.6.26 (D15): o Esc guarda o texto; o Ctrl+Z desfaz */
                   if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); terminarEdicao(true); }
                   if (ev.key === 'Tab') { ev.preventDefault(); terminarEdicao(true); proximo(editItem.id, ev.shiftKey ? 'b' : 'r'); }
                 }}
@@ -1024,7 +1024,7 @@ export function Quadro({ arquivo, cx }) {
                 <input className="qd-edita-seta" autoFocus value={editando.valor} maxLength={60} aria-label="Texto da seta" placeholder="Ex.: Sim"
                   style={{ left: m.x - 80, top: m.y - 16 }} onChange={(ev) => setEditando({ ...editando, valor: ev.target.value })}
                   onPointerDown={(ev) => ev.stopPropagation()}
-                  onKeyDown={(ev) => { if (ev.key === 'Enter') terminarEdicao(true); if (ev.key === 'Escape') { ev.stopPropagation(); terminarEdicao(false); } }}
+                  onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === 'Escape') { if (ev.key === 'Escape') ev.stopPropagation(); terminarEdicao(true); } }}
                   onBlur={() => terminarEdicao(true)} />
               );
             })()}

@@ -254,12 +254,38 @@ export function proximoPasso(c, id, direcao = 'r', espaco = 70) {
   return { item: novo.item, seta: s.seta, mudancas: { ...novo.mudancas, ...s.mudancas } };
 }
 
-/** Primeira vaga livre perto do ponto (para não pôr um post-it em cima do outro). */
-export function vagaLivre(c, x, y, w, h, passo = 28) {
-  const ocupado = (px, py) => listaItens(c).some((o) => !ehFundo(o) && px < o.x + o.w && px + w > o.x && py < o.y + o.h && py + h > o.y);
+/**
+ * Primeira vaga livre perto do ponto (para não pôr um post-it em cima do outro).
+ * v0.6.26 (PL01 e PL04, Grok): antes andava na diagonal de 28 em 28 px; como o post-it é maior que o passo, cada novo
+ * precisava de mais passos e, do 9º em diante, os 40 acabavam e todos caíam no mesmo lugar (e fora da tela).
+ * Agora procura em anéis em volta do ponto, de um post-it em um post-it, e prefere o lugar que cabe inteiro na parte do
+ * quadro que aparece (dentro = { x, y, w, h } no quadro). Sem "dentro" (Kanban), fica o passo diagonal de antes.
+ */
+export function vagaLivre(c, x, y, w, h, passo = 28, dentro = null) {
+  const obst = listaItens(c).filter((o) => !ehFundo(o));
+  const ocupado = (px, py) => obst.some((o) => px < o.x + o.w && px + w > o.x && py < o.y + o.h && py + h > o.y);
   let px = Math.round(x), py = Math.round(y);
-  for (let i = 0; i < 40 && ocupado(px, py); i++) { px += passo; py += passo; }
-  return { x: px, y: py };
+  if (!dentro) {
+    for (let i = 0; i < 40 && ocupado(px, py); i++) { px += passo; py += passo; }
+    return { x: px, y: py };
+  }
+  if (!ocupado(px, py)) return { x: px, y: py };
+  const m = 8, gx = w + 24, gy = h + 24;
+  const cabe = (a, b) => a >= dentro.x + m && b >= dentro.y + m && a + w <= dentro.x + dentro.w - m && b + h <= dentro.y + dentro.h - m;
+  let fora = null;
+  for (let r = 1; r <= 40; r++) {
+    const anel = [];
+    for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) if (Math.max(Math.abs(i), Math.abs(j)) === r) anel.push([px + i * gx, py + j * gy]);
+    anel.sort((a, b) => Math.hypot(a[0] - px, a[1] - py) - Math.hypot(b[0] - px, b[1] - py));
+    for (const [a, b] of anel) {
+      if (ocupado(a, b)) continue;
+      if (cabe(a, b)) return { x: a, y: b };
+      if (!fora) fora = { x: a, y: b };
+    }
+    /* o anel já saiu inteiro da tela e há vaga fora: fica com a mais perto (a tela vai até ela) */
+    if (fora && (px - r * gx > dentro.x + dentro.w || px + r * gx + w < dentro.x) && (py - r * gy > dentro.y + dentro.h || py + r * gy + h < dentro.y)) break;
+  }
+  return fora || { x: px, y: py };
 }
 
 /** Lugar para um post-it criado pelo Kanban: abaixo dos outros da mesma coluna, no quadro livre. */

@@ -162,3 +162,19 @@ export function contornoForma(it) {
   if (it.tipo === 'dados') { const d = Math.min(18, w * 0.15); return [{ x: x + d, y }, { x: x + w, y }, { x: x + w - d, y: y + h }, { x, y: y + h }]; }
   return null;
 }
+
+/**
+ * v0.6.26 (PL01 e PL04): a parte do quadro que aparece de verdade, em coordenadas do quadro: a área tirando as barras que
+ * ficam por cima dela (Quadro/Kanban em cima; no pé, a barra do item escolhido e as cores do celular).
+ */
+export function areaLivre(el, v) {
+  const a = el.getBoundingClientRect();
+  let cima = a.top, baixo = a.bottom;
+  for (const b of (el.ownerDocument || document).querySelectorAll('.qd-vistas, .qd-barra, .qd-cores-cel')) {
+    const r = b.getBoundingClientRect();
+    if (!r.width || !r.height || r.right <= a.left || r.left >= a.right || r.bottom <= a.top || r.top >= a.bottom) continue;
+    if (r.bottom <= a.top + a.height / 3) cima = Math.max(cima, r.bottom); else if (r.top >= a.top + a.height * 2 / 3) baixo = Math.min(baixo, r.top);
+  }
+  return { x: -v.x / v.z, y: (cima - a.top - v.y) / v.z, w: a.width / v.z, h: Math.max(40, baixo - cima) / v.z };
+}
+
