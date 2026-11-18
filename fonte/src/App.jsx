@@ -27,6 +27,7 @@ import { normalizarPlanilha } from './planilha/modelo.js';
 import { StatusPlanilha } from './planilha/partes.jsx';
 import { LinhaDoTempo } from './ui/historico.jsx';
 import { JanelaAbrirExcel } from './ui/excel.jsx';
+import { SoltarArquivo } from './ui/soltar.jsx';
 import { usarPonte } from './ponte/usarPonte.js';
 import { DocsInternos, JanelaInterno, ResumoEnvio } from './ui/internos.jsx';
 import { PainelCampos, TelaPedido } from './ponte/camposUi.jsx';
@@ -91,6 +92,8 @@ export function App() {
   const [prefs, setPrefs] = useState(() => normalizarPrefs(ler('prefs', null, { demo }), escuro));
   const setPref = useCallback((k, v) => setPrefs((p) => ({ ...p, [k]: v })), []);
   const cel = useMedia('(max-width: 899px)');
+  const media = useMedia('(min-width: 900px) and (max-width: 1499px)'); /* v0.6.22 (D3): tela média */
+  const [menuNaPlanilha, setMenuNaPlanilha] = useState(false); /* a pessoa abriu o menu com a planilha aberta */
   const rota = useRota();
   const banco = useMemo(() => criarBanco({ demo }), [demo]);
   const [fichas, setFichas] = useState([]);
@@ -124,6 +127,7 @@ export function App() {
   const [alvoRodape, setAlvoRodape] = useState(null); /* v0.4.8 (L11): a Verificação mora no rodapé, igual em todos os arquivos */
   const [linhaTempo, setLinhaTempo] = useState(false);
   const [abrirExcel, setAbrirExcel] = useState(false);
+  const [arquivoSolto, setArquivoSolto] = useState(null); /* v0.6.22 (D-62): Excel solto em cima do app */
   const [camposAbertos, setCamposAbertos] = useState(false); // v0.6.17 (Ponte 2): painel Campos do Cwork
   const editorRef = useRef(null);
 
@@ -485,6 +489,11 @@ export function App() {
   }), [banco, recarregar, avisar]);
 
   const mod = aberto ? aberto.arquivo.ficha.tipo : TIPOS[rota] ? rota : null;
+  /* v0.6.22 (D3): em tela média, com a planilha aberta, o menu lateral se esconde sozinho (a escolha guardada não muda) */
+  const planilhaAberta = !!aberto && aberto.arquivo.ficha.tipo === 'planilha'; /* só com o arquivo aberto (a lista de planilhas não conta) */
+  useEffect(() => { if (!planilhaAberta) setMenuNaPlanilha(false); }, [planilhaAberta]);
+  const menuAuto = !globalThis.EFC_MENU_FIXO && media && !cel && planilhaAberta && prefs.menu !== 'oculto' && !menuNaPlanilha;
+  const menuEf = menuAuto ? 'oculto' : prefs.menu;
 
   const semPermissao = useCallback((acao, ficha) => {
     const f = ficha || (abertoRef.current && abertoRef.current.arquivo.ficha);
@@ -558,8 +567,8 @@ export function App() {
         return;
       case 'exibir.topoCompleto': setPref('topo', 'completo'); return;
       case 'exibir.topoCompacto': setPref('topo', 'compacto'); return;
-      case 'exibir.menuCompleto': setPref('menu', 'completo'); return;
-      case 'exibir.menuIcones': setPref('menu', 'icones'); return;
+      case 'exibir.menuCompleto': setPref('menu', 'completo'); setMenuNaPlanilha(true); return;
+      case 'exibir.menuIcones': setPref('menu', 'icones'); setMenuNaPlanilha(true); return;
       case 'exibir.menuOculto': setPref('menu', 'oculto'); return;
       case 'exibir.painel': setPref('painel', !prefs.painel); return;
       case 'exibir.layoutA': setPref('layout', 'A'); return;
@@ -663,10 +672,10 @@ export function App() {
   const st = statusEd || {};
 
   return (
-    <div className={'app' + (cel ? ' cel' : '')} data-menu={prefs.menu} data-layout={prefs.layout} data-faixa={prefs.faixa}>
-      {!cel && prefs.menu !== 'oculto' && <Menu rota={rota} modAtual={mod} cont={contagem} prefs={prefs} cx={cx} />}
-      {!cel && prefs.menu === 'oculto' && (
-        <AlcaMenu aoAbrir={() => cx.executar('exibir.menuCompleto')} />
+    <div className={'app' + (cel ? ' cel' : '')} data-menu={menuEf} data-menu-auto={menuAuto ? '' : undefined} data-layout={prefs.layout} data-faixa={prefs.faixa}>
+      {!cel && menuEf !== 'oculto' && <Menu rota={rota} modAtual={mod} cont={contagem} prefs={prefs} cx={cx} />}
+      {!cel && menuEf === 'oculto' && (
+        <AlcaMenu aoAbrir={() => (menuAuto ? setMenuNaPlanilha(true) : cx.executar('exibir.menuCompleto'))} />
       )}
       <div className="col">
         {estadoPwa.aviso && (
@@ -687,7 +696,7 @@ export function App() {
         )}
         <DicasComandos mod={mod} />
         <Topo titulo={TITULOS[rota] || 'Vértice Docs'} trilha={TRILHA[rota]} ficha={ficha} salvo={salvo} prefs={prefs} cx={cx} cel={cel}
-          aba={aba} setAba={setAba} faixaTemp={faixaTemp} setFaixaTemp={setFaixaTemp} abrirGaveta={() => (!cel && prefs.menu === 'oculto' ? cx.executar('exibir.menuCompleto') : setGaveta(true))} />
+          aba={aba} setAba={setAba} faixaTemp={faixaTemp} setFaixaTemp={setFaixaTemp} abrirGaveta={() => (!cel && menuEf === 'oculto' ? (menuAuto ? setMenuNaPlanilha(true) : cx.executar('exibir.menuCompleto')) : setGaveta(true))} />
         <div className="work">
           <main className="wk-main" id="conteudo">{conteudo}</main>
           {aberto && prefs.painel && (
@@ -736,9 +745,10 @@ export function App() {
       {opcoes && <Opcoes prefs={prefs} setPref={setPref} cx={cx} aoFechar={() => setOpcoes(false)} demo={demo} versao={VERSAO} espaco={espaco} abrir={opcoes} />}
       {pergunta && <Pergunta p={pergunta} aoFechar={() => setPergunta(null)} />}
       {ponte.janela && <JanelaInterno ficha={ponte.janela.ficha} fichas={fichas} depois={!!ponte.janela.depois} aoSalvar={ponte.salvarInterno} aoFechar={() => ponte.setJanela(null)} />}
-      {abrirExcel && <JanelaAbrirExcel aoFechar={() => setAbrirExcel(false)} aoAbrir={(conteudo, nome, original) => { setAbrirExcel(false); criarCom('planilha', nome, conteudo, '"{nome}" veio do Excel. O que veio e o que ficou de fora: Arquivo › O que veio do Excel.', original); }} />}
+      <SoltarArquivo avisar={avisar} aoExcel={(f) => { const b = bloqueado('arquivo.abrir'); if (b) { avisar(b, { ic: 'aviso' }); return; } setArquivoSolto(f); setAbrirExcel(true); }} />
+      {abrirExcel && <JanelaAbrirExcel arquivoInicial={arquivoSolto} aoFechar={() => { setAbrirExcel(false); setArquivoSolto(null); }} aoAbrir={(conteudo, nome, original) => { setAbrirExcel(false); setArquivoSolto(null); criarCom('planilha', nome, conteudo, '"{nome}" veio do Excel. O que veio e o que ficou de fora: Arquivo › O que veio do Excel.', original); }} />}
       {linhaTempo && aberto && <LinhaDoTempo h={aberto.h} aoIr={irParaPasso} aoFechar={() => setLinhaTempo(false)} />}
-      <Avisos lista={avisos} tirar={tirarAviso} menu={cel ? 'cel' : prefs.menu} />
+      <Avisos lista={avisos} tirar={tirarAviso} menu={cel ? 'cel' : menuEf} />
     </div>
   );
 }

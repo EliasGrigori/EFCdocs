@@ -2,14 +2,14 @@
    Guarda a TELA do app no aparelho para abrir sem internet. Os arquivos do usuário ficam no IndexedDB, fora deste cache.
    REGRA DE CONVIVÊNCIA: EFClaudian, EFCquiz e EFCdocs dividem o mesmo site. Este arquivo só mexe em
    caches que começam com "efcdocs-"; nunca lê, troca nem apaga cache de outro app. */
-const VERSAO = 'efcdocs-v0.6.21';
+const VERSAO = 'efcdocs-v0.6.22';
 const PREFIXO = 'efcdocs-';
 const ARQUIVOS = [
   "./",
   "./apple-touch-icon.png",
   "./logo-abertura.png",
-  "./assets/app-7OJA2DQ4.css",
-  "./assets/app-UBM2XLER.js",
+  "./assets/app-KXPTABWA.css",
+  "./assets/app-SYT24ENY.js",
   "./assets/app-5VSMB6GO.woff2",
   "./assets/app-LAHJG75G.woff2",
   "./assets/app-Q3UVYGXF.woff2",

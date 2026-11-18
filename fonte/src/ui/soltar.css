@@ -1,0 +1,7 @@
+/* v0.6.22 (D-62): soltar um arquivo em qualquer lugar do app */
+.solta-tela { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; pointer-events: none; background: color-mix(in srgb, var(--bg) 70%, transparent); }
+.solta-tela-c { display: grid; justify-items: center; gap: 6px; padding: 26px 30px; border: 1.5px dashed var(--primary); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-pop, 0 12px 32px rgba(0,0,0,.18)); text-align: center; max-width: 360px; }
+.solta-tela-c > svg { width: 38px; height: 38px; color: #1f7a46; }
+.solta-tela-c span { color: var(--text-muted); font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) { .solta-tela { animation: solta-entra var(--duration-quick) var(--ease-smooth-out); } }
+@keyframes solta-entra { from { opacity: 0; } to { opacity: 1; } }

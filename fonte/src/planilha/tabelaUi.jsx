@@ -210,8 +210,8 @@ export function usarTabelaViva(p) {
   const aoConfirmar = (lote, abaE, l, col) => {
     const cresceu = TV.crescerAoDigitar(c, lote, abaE, l, col);
     const calc = TV.colunaCalculadaAoDigitar(c, lote, abaE, l, col);
-    if (cresceu) return `A tabela ${cresceu.nome} ganhou ${cresceu.onde === 'linha' ? 'esta linha' : 'esta coluna'}. Ctrl+Z desfaz.`;
-    if (calc) return `A fórmula foi para a coluna inteira da tabela (${calc + 1} células). Ctrl+Z desfaz.`;
+    if (cresceu) return `A tabela ${cresceu.nome} ganhou ${cresceu.onde === 'linha' ? 'esta linha' : 'esta coluna'}. Ctrl+Z desfaz só isso; o que você digitou fica.`;
+    if (calc) return `A fórmula foi para a coluna inteira da tabela (${calc + 1} células). Ctrl+Z desfaz só isso; a fórmula fica nesta célula.`;
     return '';
   };
 

@@ -394,3 +394,7 @@ F392;Planilha;impressao;"Imprimir a grade e Imprimir letras e números direto na
 F393;Planilha;dados;"Classificar de A a Z e de Z a A pela coluna da célula; Limpar filtro (tira os critérios e deixa o filtro)";funciona;"v0.6.21";manter;v0.6.21 (R25, faixa parte 3, publicada 17/11)
 F394;Planilha;faixa;"Abas Dados, Revisão e Exibir nos lugares do Excel, com os nomes do Excel";funciona;"v0.6.21";manter;v0.6.21 (R25, faixa parte 3, publicada 17/11)
 F395;Planilha;exibir;"Congelar painéis com a lista do Excel (até a célula, linha superior, primeira coluna, descongelar) e Zoom 100%";funciona;"v0.6.21";manter;v0.6.21 (R25, faixa parte 3, publicada 17/11)
+F396;Planilha;toque;"Pinça de dois dedos aproxima e afasta a planilha (50% a 200%) sem abrir o menu da célula";funciona;"v0.6.22";manter;v0.6.22 (D-61, aprovada 18/11)
+F397;Núcleo;arquivos;"Soltar um arquivo do Excel em qualquer tela abre a janela do Excel já lendo; Word, PDF, .xls e CSV com aviso";funciona;"v0.6.22";manter;v0.6.22 (D-62, aprovada 18/11)
+F398;Núcleo;menu;"Em tela média, o menu lateral se esconde sozinho com uma planilha aberta (a alça mostra de novo)";funciona;"v0.6.22";manter;v0.6.22 (D3, aprovada 18/11)
+F399;Planilha;tabela;"Desfazer igual ao Excel quando a tabela cresce ou a fórmula vai para a coluna inteira (1º Ctrl+Z só a expansão)";funciona;"v0.6.22";manter;v0.6.22 (D01 da v0.6.19, aprovada 18/11)

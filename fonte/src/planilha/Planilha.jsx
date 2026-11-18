@@ -34,6 +34,7 @@ import { FormaView, JanelaForma, valoresLigados } from './formasUi.jsx';
 import * as I from './inserir.js';
 import { JanelaTabela, JanelaStatus, JanelaLink, JanelaBotao, JanelaImagem } from './inserirUi.jsx';
 import { usarTabelaViva } from './tabelaUi.jsx';
+import { ligarPinca, pincaRecente } from './pinca.js';
 import { tratarFaixaExtra, estadoFaixaExtra, pedirTamanho, ajustarTamanho, quaisDe } from './faixaExtra.js';
 import { lerImagem } from './imagem.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
@@ -650,8 +651,10 @@ export function Planilha({ arquivo, cx }) {
         if (memoZero) lote.outras[`conteudo.abas.${e.abaId}.zeros`] = memoZero;
         lote.por(e.abaId, k, nova);
         if (nova.v !== undefined) alargar(lote, e.abaId, [{ col: e.c, v: nova.v, est: estiloDe({ estilos: lote.estilos }, nova) }]);
+        const soTexto = r.vazio ? null : lote.copia(); /* v0.6.22 (D01 da v0.6.19): igual ao Excel, o 1º Ctrl+Z desfaz só a expansão da tabela */
         if (!r.vazio) avisoTabela = tv.aoConfirmar(lote, e.abaId, e.l, e.c);
-        aplicarLote(lote, r.vazio ? `Apagar ${chave(e.l, e.c)}` : `Digitar em ${chave(e.l, e.c)}`);
+        if (avisoTabela) aplicarLote(soTexto, `Digitar em ${chave(e.l, e.c)}`);
+        aplicarLote(lote, r.vazio ? `Apagar ${chave(e.l, e.c)}` : avisoTabela ? (avisoTabela.startsWith('A tabela') ? 'Expansão automática da tabela' : 'Fórmula na coluna inteira da tabela') : `Digitar em ${chave(e.l, e.c)}`);
       }
     });
     voltarFocoGrade();
@@ -2578,7 +2581,7 @@ export function Planilha({ arquivo, cx }) {
     const toqueDedo = ev.pointerType === 'touch';
     if (toqueDedo) {
       /* no dedo: decide no soltar (para não atrapalhar a rolagem) */
-      toque.current = { p, o, t: Date.now(), id: ev.pointerId, longo: setTimeout(() => { toque.current = null; abrirMenuCelula(ev.clientX, ev.clientY, o); }, 550) };
+      toque.current = { p, o, t: Date.now(), id: ev.pointerId, longo: setTimeout(() => { toque.current = null; if (!pincaRecente(pincaRef.current)) abrirMenuCelula(ev.clientX, ev.clientY, o); }, 550) };
       return;
     }
     /* o pointerdown não traz o número de cliques: conta aqui (dois cliques em até 400 ms no mesmo lugar) */
@@ -2814,17 +2817,15 @@ export function Planilha({ arquivo, cx }) {
     abrirMenuCelula(ev.clientX, ev.clientY, ondeCaiu(G, p.x, p.y));
   };
 
-  const aoRoda = (ev) => {
-    if (ev.ctrlKey || ev.metaKey) {
-      ev.preventDefault();
-      setZ((zz) => Math.max(Z_MIN, Math.min(Z_MAX, Math.round((zz * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)) * 20) / 20)));
-    }
-  };
+  const aoRoda = (ev) => { if (ev.ctrlKey || ev.metaKey) { ev.preventDefault(); setZ((zz) => Math.max(Z_MIN, Math.min(Z_MAX, Math.round((zz * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)) * 20) / 20))); } };
+  const pincaRef = useRef({ d0: 0, z0: 1 }); /* v0.6.22 (D-61): pinça de dois dedos no celular e na tela de toque; ela cancela o toque de um dedo */
+  pincaRef.current.aoComecar = () => { if (toque.current) { clearTimeout(toque.current.longo); toque.current = null; } };
   useEffect(() => {
     const el = rolRef.current;
     if (!el) return undefined;
     el.addEventListener('wheel', aoRoda, { passive: false });
-    return () => el.removeEventListener('wheel', aoRoda);
+    const solta = ligarPinca(el, pincaRef.current, () => z, setZ, Z_MIN, Z_MAX);
+    return () => { el.removeEventListener('wheel', aoRoda); solta(); };
   });
 
   /* foco no campo escondido (recebe o teclado da grade) */

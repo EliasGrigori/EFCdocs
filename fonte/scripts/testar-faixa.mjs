@@ -297,7 +297,10 @@ await larga2.ctx.close();
 
 const estreita = await abrir({ w: 1024, h: 768, reduzido: true });
 await caso('Tela estreita (1024): antes do "Mais" os botões de coluna ficam só com o ícone, e continuam com nome para leitor de tela', async () => {
-  const e = estreita.page; await e.click('.tabs .tab:has-text("Fórmulas")'); await espera(450);
+  const e = estreita.page;
+  /* v0.6.22 (D3): em tela média o menu se esconde sozinho com a planilha aberta; para ver o aperto, mostra o menu pela alça */
+  certo(await e.locator('nav.rail').count() === 0, 'o menu se escondeu sozinho'); await e.click('[data-menu-alca]'); await espera(400);
+  await e.click('.tabs .tab:has-text("Fórmulas")'); await espera(450);
   const v = await e.evaluate(() => { const r = document.querySelector('.ribbon'); return { aperto: r.dataset.aperto || '', mais: !!r.querySelector('.rb-mais'), rola: r.scrollWidth - r.clientWidth, semNome: [...r.querySelectorAll(':scope > .rb-g button')].filter((b) => !((b.getAttribute('aria-label') || b.textContent || '').trim())).length }; });
   certo(v.aperto && v.rola <= 0 && v.semNome === 0, JSON.stringify(v));
 });

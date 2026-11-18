@@ -42,6 +42,8 @@ async function novaPagina(opcoes = {}) {
   /* v0.4.4.1: a barra da esquerda do quadro começa escondida; os testes antigos de ferramentas ligam a barra, a não ser que peçam o padrão */
   if ((resto.isMobile || (resto.viewport && resto.viewport.width <= 800)) && !celBarraNova) await ctx.addInitScript(() => { globalThis.EFC_CEL_ABAS = true; }); // v0.4.9: os testes antigos do celular já começam com as abas abertas
   if (!padraoQuadro) await ctx.addInitScript(() => { try { for (const k of ['efcdocs:quadro-prefs', 'efcdocs-demo:quadro-prefs']) if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ v: 2, ferramentas: true })); } catch { /* sem armazenamento */ } });
+  /* v0.6.22 (D3): os casos antigos navegam pelo menu lateral com a planilha aberta; o menu que se esconde sozinho tem teste próprio (testar-toque-arquivos.mjs) */
+  await ctx.addInitScript(() => { globalThis.EFC_MENU_FIXO = true; });
   const p = await ctx.newPage();
   paginaAtual = p;
   p.on('console', (m) => { if (m.type() === 'error') errosConsole.push(`[${atual}] ${m.text()}`); });
@@ -91,10 +93,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.21', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.22', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.21'), 'menu sem v0.6.21');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.22'), 'menu sem v0.6.22');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -1899,7 +1901,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.21'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.22'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -4391,7 +4393,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.21'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.22'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -5255,7 +5257,7 @@ await caso('v0.6.19 (F296, D-12, D-13): estilo do Excel desenhado; digitar embai
   /* Tab no fim de uma linha do meio vai para o começo da próxima */
   await celula(p, 'E4'); await p.keyboard.press('Tab'); await p.waitForTimeout(100);
   const meio = await p.locator('.pl-nome').inputValue();
-  /* digitar logo abaixo (linha 11) cresce de novo, com aviso; Ctrl+Z desfaz a linha nova e o que foi digitado */
+  /* digitar logo abaixo (linha 11) cresce de novo, com aviso; v0.6.22 (D01): igual ao Excel, o 1º Ctrl+Z desfaz só a expansão e o 2º o que foi digitado */
   await digitarEm(p, 'A11', ['11/03/2026']);
   const aviso = await p.locator('.toast').last().innerText().catch(() => '');
   const e11 = await celula(p, 'E11');
@@ -5263,6 +5265,8 @@ await caso('v0.6.19 (F296, D-12, D-13): estilo do Excel desenhado; digitar embai
   await print(p, 'v0619-cresceu');
   await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
   const e11depois = await celula(p, 'E11'), a11 = await celula(p, 'A11');
+  await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
+  const a11depois = await celula(p, 'A11');
   /* digitar ao lado do título cria uma coluna nova */
   await digitarEm(p, 'F1', ['Obs']);
   const corF1 = await corNaCelula(p, 'F1', 0.85, 0.5);
@@ -5276,8 +5280,9 @@ await caso('v0.6.19 (F296, D-12, D-13): estilo do Excel desenhado; digitar embai
   certo(/ganhou esta linha/.test(aviso), 'aviso de que a tabela cresceu: ' + aviso);
   certo(/0/.test(e11), 'fórmula na linha digitada: ' + e11);
   certo(cor10[2] > cor10[0] + 15 && cor11[0] > 245, 'as linhas novas seguem as listras (10 com cor, 11 sem): ' + cor10 + ' / ' + cor11);
-  igual(e11depois, '', 'Ctrl+Z tira a linha nova (sem a fórmula):');
-  igual(a11, '', 'e o que foi digitado:');
+  igual(e11depois, '', 'o 1º Ctrl+Z tira a expansão (sem a fórmula):');
+  certo(a11 !== '', 'e deixa o que foi digitado (igual ao Excel): ' + a11);
+  igual(a11depois, '', 'o 2º Ctrl+Z tira o que foi digitado:');
   certo(perto(corF1, '#4f81bd'), 'a coluna nova tem o título no estilo da tabela: ' + corF1);
 });
 

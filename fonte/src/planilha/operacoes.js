@@ -41,6 +41,8 @@ export class Lote {
     return out;
   }
   get vazio() { return !Object.keys(this.cels).length && !Object.keys(this.outras).length; }
+  /** v0.6.22: cópia do que está no lote agora (para gravar em dois passos: o que foi digitado e o que a tabela fez sozinha) */
+  copia() { const n = new Lote(this.c); n.estilos = this.estilos; n.outras = { ...this.outras }; for (const [a, m] of Object.entries(this.cels)) n.cels[a] = { ...m }; return n; }
 }
 
 const celulasDaFaixa = function* (f) {

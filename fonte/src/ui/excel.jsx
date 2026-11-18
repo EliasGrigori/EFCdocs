@@ -119,7 +119,7 @@ export function RelatorioExcel({ rel }) {
 }
 
 /** Escolher o arquivo do Excel → ler → mostrar o relatório → abrir como planilha nova. */
-export function JanelaAbrirExcel({ aoFechar, aoAbrir }) {
+export function JanelaAbrirExcel({ aoFechar, aoAbrir, arquivoInicial }) {
   const [etapa, setEtapa] = useState({ tipo: 'escolher' });
   const campo = useRef(null);
   const [arrastando, setArrastando] = useState(false);
@@ -137,6 +137,8 @@ export function JanelaAbrirExcel({ aoFechar, aoAbrir }) {
       if (vivo.current) setEtapa({ tipo: 'erro', nome: arq.name, msg: e.message || String(e) });
     }
   };
+  /* v0.6.22 (D-62): arquivo solto em cima do app já chega aqui para ler */
+  useEffect(() => { if (arquivoInicial) ler(arquivoInicial); }, [arquivoInicial]); // eslint-disable-line react-hooks/exhaustive-deps
   const nomeSemExt = (s) => String(s || 'Planilha').replace(/\.(xlsx|xlsm|xltx|xltm)$/i, '').slice(0, 120);
 
   const rodape = etapa.tipo === 'pronto'
