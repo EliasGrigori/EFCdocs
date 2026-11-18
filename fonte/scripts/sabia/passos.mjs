@@ -1,4 +1,4 @@
-/* Método Sabiá 2.0 — passos de tela usados pelas auditorias. Cada passo é um objeto com UMA chave:
+/* Método Sabiá 2.1 · kit 2.1.0 — passos de tela usados pelas auditorias. Cada passo é um objeto com UMA chave:
    { "ir": "endereço" } · { "clicar": "seletor" } · { "preencher": ["seletor", "texto"] } · { "digitar": "texto" } · { "tecla": "Enter" }
    · { "arquivo": ["seletor", "caminho"] } · { "esperar": "seletor" ou milissegundos } · { "sumir": "seletor" (espera a abertura, o aviso ou o carregando sair) }
    · { "tema": "atributo=valor" (no <html>) } */

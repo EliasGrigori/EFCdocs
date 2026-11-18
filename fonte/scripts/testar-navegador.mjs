@@ -58,7 +58,8 @@ const contar = async (p) => {
   return { postits: +n[1], formas: +n[2], setas: +n[3] };
 };
 /* v0.6.21 (faixa igual ao Excel): na Página Inicial, inserir/excluir/ocultar/reexibir ficam nas listas de Inserir, Excluir e Formatar */
-const NA_LISTA = { 'planilha.inserirLinha': 'inserir', 'planilha.inserirColuna': 'inserir', 'planilha.excluirLinha': 'excluir', 'planilha.excluirColuna': 'excluir', 'planilha.reexibir': 'formatar', 'planilha.reexibirColuna': 'formatar' };
+/* v0.6.21 parte 3: Layout da Página e Congelar painéis com listas, como no Excel */
+const NA_LISTA = { 'impressao.area': 'areaImp', 'impressao.limparArea': 'areaImp', 'impressao.quebra': 'quebras', 'impressao.semQuebras': 'quebras', 'impressao.orientacao|retrato': 'orientacao', 'impressao.orientacao|paisagem': 'orientacao', 'exibir.congelar|linha': 'congelar', 'planilha.ocultarColuna': 'formatar', 'planilha.ocultarLinha': 'formatar', 'planilha.inserirLinha': 'inserir', 'planilha.inserirColuna': 'inserir', 'planilha.excluirLinha': 'excluir', 'planilha.excluirColuna': 'excluir', 'planilha.reexibir': 'formatar', 'planilha.reexibirColuna': 'formatar' };
 const abreLista = async (p, id) => { const m = NA_LISTA[id]; if (m && !(await p.locator(`[data-cmd="${id}"]`).count()) && await p.locator(`[data-menu-faixa=${m}]`).count()) { await p.click(`[data-menu-faixa=${m}]`); await p.waitForSelector(`.rb-lista [data-cmd="${id}"]`); return true; } return false; };
 const cmd = async (p, id) => { await abreLista(p, id); await p.locator(`[data-cmd="${id}"]`).first().click(); };
 const caixa = async (p, sel) => p.locator(sel).first().boundingBox();
@@ -937,10 +938,9 @@ await caso('v0.4.0: colar do Excel (texto com tabulação) e copiar com fórmula
 });
 await caso('v0.4.0: congelar a linha de cima e Folha clara', async () => {
   await p.click('.tab:has-text("Exibir")');
-  await cmd(p, 'exibir.congelar');
-  await p.locator('.pl-opcao:has-text("Congelar a linha de cima")').click();
+  await cmd(p, 'exibir.congelar|linha'); /* v0.6.21 parte 3: Congelar painéis abre a lista do Excel */
   await p.waitForTimeout(100);
-  certo(await p.locator('[data-cmd="exibir.congelar"][aria-pressed=true]').count(), 'congelar não ligou');
+  await p.click('[data-menu-faixa=congelar]'); certo(await p.locator('.rb-lista [data-cmd="exibir.congelar|linha"][aria-checked=true]').count(), 'congelar não ligou'); await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   await p.locator('.pl-rol').evaluate((e) => { e.scrollTop = 600; });
   await p.waitForTimeout(150);
   await print(p, '35-planilha-congelada');
@@ -1139,8 +1139,7 @@ await caso('v0.4.1: dica do SE continua com o cursor no fim da fórmula; mensage
 await caso('v0.4.1: cabeçalho congelado não se sobrepõe ao número das linhas roladas', async () => {
   await celula(p, 'A1');
   await p.click('.tab:has-text("Exibir")');
-  await cmd(p, 'exibir.congelar');
-  await p.locator('.pl-opcao:has-text("Congelar a linha de cima")').click();
+  await cmd(p, 'exibir.congelar|linha'); /* v0.6.21 parte 3 */
   await p.waitForTimeout(150);
   /* conta os pixels de "tinta" no cabeçalho da linha 1 (congelada): rolando, tem que continuar igual */
   const tinta = () => p.evaluate(() => {
@@ -1324,7 +1323,7 @@ await caso('v0.4.2: faixa não passa da tela em 1366 px, Copiar/Colar/Recortar c
   /* ocultar a coluna B e reexibir pela faixa */
   const vizinha = async () => { await celula(p, 'A1'); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(80); return p.locator('.pl-nome').inputValue(); };
   await celula(p, 'B1');
-  await p.click('.tabs .tab:has-text("Exibir")');
+  await p.click('.tabs .tab:has-text("Página Inicial")'); /* v0.6.21 parte 3: ocultar e reexibir ficam só em Formatar, como no Excel */
   await cmd(p, 'planilha.ocultarColuna');
   await p.waitForTimeout(200);
   igual(await vizinha(), 'C1', 'a coluna B não ficou oculta');
@@ -1565,7 +1564,7 @@ await caso('v0.4.3: Ctrl+B põe negrito; dica mostra Ctrl+B; Início e "chega de
   await p.waitForTimeout(150);
   igual(await p.locator('.dica-cmd').count(), 0, 'a dica não sumiu com a roda do mouse');
   await p.mouse.move(600, 500);
-  await p.click('.tabs .tab:has-text("Dados")');
+  await p.click('.tabs .tab:has-text("Inserir")'); /* v0.6.21 parte 3: Tabela dinâmica fica só em Inserir › Tabelas, como no Excel */
   igual(await p.locator('.ribbon [data-cmd="dados.dinamica"]').getAttribute('data-nota'), 'Chega depois da v1.0.0.');
   await p.goto(BASE + '#/');
   await p.waitForSelector('.pagina');
@@ -3341,7 +3340,7 @@ await caso('v0.6.0: Layout da Página: área de impressão, quebra de página e 
   await cmd(p, 'impressao.area');
   await celula(p, 'A16');
   await cmd(p, 'impressao.quebra');
-  await cmd(p, 'impressao.orientacao');
+  await cmd(p, 'impressao.orientacao|retrato'); /* v0.6.21 parte 3: Orientação abre a lista Retrato / Paisagem */
   await p.waitForTimeout(150);
   await p.keyboard.press('Control+p');
   await p.waitForSelector('[data-imprimir-janela]');

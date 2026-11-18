@@ -1,7 +1,7 @@
 /* Testes da v0.6.2: ícones novos da faixa (um desenho para cada nome do mapa; só desenho fechado e sem script). */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { NOVOS, MAPA } from '../../src/ui/iconesFaixa.js';
+import { NOVOS, MAPA, ICONES_DE_LISTA } from '../../src/ui/iconesFaixa.js';
 import { PorId } from '../../src/nucleo/comandos.js';
 
 test('v0.6.2: todo comando do mapa existe no catálogo e aponta para um desenho que existe', () => {
@@ -20,9 +20,13 @@ test('v0.6.2: os desenhos só usam path, circle, rect, line, polyline, ellipse; 
 });
 
 test('v0.6.2: quase todos os desenhos têm o toque de cor suave (classe t) ou ponto cheio (f), e cada nome é usado', () => {
-  const usados = new Set(Object.values(MAPA));
+  const usados = new Set([...Object.values(MAPA), ...ICONES_DE_LISTA]); /* v0.6.21 parte 2: os desenhos dos botões com lista também contam como usados */
   const naoUsados = Object.keys(NOVOS).filter((n) => !usados.has(n));
   assert.ok(naoUsados.length <= 8, 'desenhos sem uso demais: ' + naoUsados.join(', '));
   const comToque = Object.values(NOVOS).filter((s) => /class="(t|f|barra)/.test(s)).length;
   assert.ok(comToque / Object.keys(NOVOS).length > 0.7, 'poucos ícones com toque de cor: ' + comToque);
+});
+
+test('v0.6.21 parte 2: todo desenho de botão com lista existe', () => {
+  for (const n of ICONES_DE_LISTA) assert.ok(typeof NOVOS[n] === 'string' && NOVOS[n].length > 10, 'sem desenho: ' + n);
 });

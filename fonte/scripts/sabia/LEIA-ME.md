@@ -1,21 +1,25 @@
-# Kit do Método Sabiá 2.0
+versão 2.1.0 · 15/11/2026
 
-Programas e modelos que servem para qualquer sistema. Copie a pasta para dentro do projeto (por exemplo `scripts/sabia/`).
+# Kit do Método Sabiá 2.1
+
+Programas e modelos que servem para qualquer sistema. A fonte única é esta pasta, no repositório `EliasGrigori/EFC-Claude-Base`.
+
+**Cópia no projeto:** copie a pasta para dentro do projeto (por exemplo `scripts/sabia/`) e crie ao lado o arquivo `KIT-VERSAO` com a versão da primeira linha deste LEIA-ME (ex.: `2.1.0`). Nunca mude a cópia dentro do projeto: mude aqui, suba a versão em `VERSOES.md` e renove a cópia. Antes de começar ou retomar um projeto, compare o `KIT-VERSAO` do projeto com a versão daqui.
 
 ## O que tem
 
 | Arquivo | Lente | Para quê |
 |---|---|---|
-| `auditoria-visual.mjs` | 6.1 Visual | Mede cada tela (tamanhos de letra, cantos, altura dos botões, maiúsculas espaçadas, emoji, sombra com borda, contraste, rolagem de lado, erros no console), no PC e no celular, e diz "dentro" ou "FORA" |
-| `auditoria-rapidez.mjs` | 6.2 Rapidez | Mede o tempo de cada ação, no aparelho normal e com o processador 4 vezes mais lento |
-| `varredura-sensivel.py` | 6.4 Segurança | Procura senhas, chaves, e-mails, CPF, CNPJ, telefones e as palavras do dono; lista imagens e arquivos de escritório para olhar à mão |
-| `medir-codigo.py` | 6.5 Código | Linhas por pasta e arquivos acima do limite |
+| `auditoria-visual.mjs` | 7.1 Visual | Mede cada tela (tamanhos de letra, cantos, altura dos botões, maiúsculas espaçadas, emoji, sombra com borda, contraste, rolagem de lado, erros no console), no PC e no celular, e diz "dentro" ou "FORA" |
+| `auditoria-rapidez.mjs` | 7.2 Rapidez | Mede o tempo de cada ação, no aparelho normal e com o processador 4 vezes mais lento |
+| `varredura-sensivel.py` | 7.4 Segurança | Procura senhas, chaves, e-mails, CPF, CNPJ, telefones e as palavras do dono; lista imagens e arquivos de escritório para olhar à mão |
+| `medir-codigo.py` | 7.5 Código | Linhas por pasta e arquivos acima do limite |
 | `montar-aprovacao.py` + `aprovacao.modelo.html` | Entrega | Monta a página de aprovação (Aprovado, Reprovado, comentário, Copiar respostas) a partir de um `itens.json` |
 | `passos.mjs` | — | Os passos de tela usados pelas duas auditorias |
 | `servir.py` | — | Servidor simples para testar na máquina |
-| `modelos/` | — | Ficha do sistema, memória do projeto, `features.csv`, roteiro do agente de testes, exemplos de configuração e o texto para começar uma conversa |
+| `modelos/` | — | `FICHA-DO-SISTEMA.modelo.md`, `MEMORIA-DO-PROJETO.modelo.md`, `features.modelo.csv`, `ROTEIRO-AGENTE-DE-TESTES.modelo.md`, `TEXTO-PARA-COMECAR.modelo.md` e `exemplo-efcdocs.config.json` (a configuração usada no EFCdocs, só como exemplo: copie e troque telas, ações e endereço) |
 
-A lente 6.3 (fidelidade e dados) não tem programa genérico: o conferente de fora depende do sistema (seção 10 do método). Exemplo pronto para planilhas (.xlsx) no EFCdocs: `scripts/fidelidade/` (ida e volta + openpyxl + LibreOffice, com a lista de diferenças conhecidas).
+A lente 7.3 (fidelidade e dados) não tem programa genérico: o conferente de fora depende do sistema (seção 11 do método). Exemplo pronto para planilhas (.xlsx) no EFCdocs: `scripts/fidelidade/` (ida e volta + openpyxl + LibreOffice, com a lista de diferenças conhecidas).
 
 ## Como usar
 
@@ -40,7 +44,9 @@ python3 medir-codigo.py src --base linha-de-base/codigo.json
 python3 montar-aprovacao.py itens.json aprovacao.html
 ```
 
-Todos saem com **código 1 quando uma meta não é batida**. Por isso servem de trava: a versão só é entregue com tudo "dentro", ou com a exceção escrita para o dono decidir.
+Todos saem com **código 1 quando uma meta não é batida**. Por isso servem de trava. Pela regra de barrar do método (seção 5, passo 5), use sempre `--base` enquanto o sistema estiver abaixo da meta; sem `--base`, a trava cobra a meta absoluta, que vale para sistema novo e na Fase 3.
+
+Os programas medem só as medidas marcadas **Programa** na seção 7 do método. As marcadas **Olho** (por exemplo: botão no tamanho ideal de 34 a 36 px, sombra com borda, cor forte, informações por linha, filtro único, lixeira) vão para a lista de conferência da página de aprovação.
 
 Com `--base` (enquanto o sistema está abaixo da meta) a trava muda: sai com 1 só quando alguma medida **piorou** em relação à linha de base, quando uma tela ou ação nova não bate a meta, ou quando algo não abriu. A coluna "Contra a base" diz igual, melhorou ou PIOROU, com os números.
 

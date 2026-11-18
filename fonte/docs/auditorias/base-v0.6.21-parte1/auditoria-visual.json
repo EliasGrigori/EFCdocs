@@ -1,0 +1,512 @@
+{
+ "metas": {
+  "letras": 7,
+  "cantos": 3,
+  "botaoMinPc": 28,
+  "botaoPc": 34,
+  "botaoToque": 44,
+  "maiusculasEspacadas": 0,
+  "emoji": 0,
+  "rolaDeLado": 0,
+  "errosConsole": 0,
+  "contraste": 4.5
+ },
+ "base": null,
+ "piorou": 0,
+ "telas": [
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Início",
+   "print": "pc-In_cio.png",
+   "letras": 6,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16,
+    26
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 14,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 3,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Lista de planilhas",
+   "print": "pc-Lista_de_planilhas.png",
+   "letras": 6,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16,
+    26
+   ],
+   "cantos": 2,
+   "quaisCantos": [
+    "7px",
+    "4px"
+   ],
+   "botoes": 10,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Abrir Excel (relatório)",
+   "print": "pc-Abrir_Excel__relat_rio_.png",
+   "letras": 8,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    26
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 17,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 3,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [
+    "letras"
+   ]
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Página Inicial",
+   "print": "pc-Planilha___P_gina_Inicial.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 72,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Inserir",
+   "print": "pc-Planilha___Inserir.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 49,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Layout da Página",
+   "print": "pc-Planilha___Layout_da_P_gina.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 45,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Fórmulas",
+   "print": "pc-Planilha___F_rmulas.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 44,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Dados",
+   "print": "pc-Planilha___Dados.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "4px",
+    "10px"
+   ],
+   "botoes": 40,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Revisão",
+   "print": "pc-Planilha___Revis_o.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 2,
+   "quaisCantos": [
+    "7px",
+    "4px"
+   ],
+   "botoes": 39,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "pc",
+   "tema": null,
+   "tela": "Planilha · Exibir",
+   "print": "pc-Planilha___Exibir.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 2,
+   "quaisCantos": [
+    "7px",
+    "4px"
+   ],
+   "botoes": 59,
+   "menor": 28,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 1,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Início",
+   "print": "celular-In_cio.png",
+   "letras": 5,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "10px",
+    "4px"
+   ],
+   "botoes": 9,
+   "menor": 44,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Lista de planilhas",
+   "print": "celular-Lista_de_planilhas.png",
+   "letras": 4,
+   "tamanhos": [
+    11,
+    13,
+    14,
+    16
+   ],
+   "cantos": 2,
+   "quaisCantos": [
+    "4px",
+    "7px"
+   ],
+   "botoes": 6,
+   "menor": 44,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Abrir Excel (relatório)",
+   "print": "celular-Abrir_Excel__relat_rio_.png",
+   "letras": 8,
+   "tamanhos": [
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    26
+   ],
+   "cantos": 3,
+   "quaisCantos": [
+    "7px",
+    "10px",
+    "4px"
+   ],
+   "botoes": 12,
+   "menor": 44,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": [
+    "letras"
+   ]
+  },
+  {
+   "aparelho": "celular",
+   "tema": null,
+   "tela": "Planilha · Página Inicial",
+   "print": "celular-Planilha___P_gina_Inicial.png",
+   "letras": 4,
+   "tamanhos": [
+    12,
+    13,
+    14,
+    16
+   ],
+   "cantos": 1,
+   "quaisCantos": [
+    "10px"
+   ],
+   "botoes": 26,
+   "menor": 44,
+   "abaixoDoMinimo": 0,
+   "maiusculasEspacadas": 0,
+   "emoji": 0,
+   "sombraEBorda": 0,
+   "contrasteFraco": 0,
+   "rolaDeLado": 0,
+   "errosConsole": 0,
+   "exemplos": {
+    "pequenos": [],
+    "maiusculas": [],
+    "contraste": []
+   },
+   "fora": []
+  }
+ ]
+}

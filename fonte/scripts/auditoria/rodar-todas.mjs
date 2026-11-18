@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-/* EFCdocs · as cinco auditorias do Método Sabiá 2.0 contra a linha de base ("não pode piorar").  npm run auditoria
+/* EFCdocs · as cinco auditorias do Método Sabiá 2.1 contra a linha de base ("não pode piorar").  npm run auditoria
    1 Visual e 2 Rapidez (navegador, no app montado), 3 Fidelidade (ida e volta + openpyxl + LibreOffice),
    4 Segurança (varredura de dado sensível; as palavras do dono vêm de EFC_PALAVRAS, arquivo FORA do projeto),
    5 Código (arquivos acima de 800 linhas).
    Saída em .auditoria/<versão>/ (fora do repositório) com RESUMO.md e os JSON. Sai com 1 se alguma lente PIOROU.
-   Variáveis: EFC_BASE (pasta da linha de base; padrão docs/auditorias/base-v0.6.12), EFC_AMOSTRAS_FORA, EFC_PALAVRAS,
+   Variáveis: EFC_BASE (pasta da linha de base; padrão docs/auditorias/base-v0.6.21-parte1), EFC_AMOSTRAS_FORA, EFC_PALAVRAS,
    EFC_PULAR (ex.: "visual,rapidez"), CHROME (navegador para o Playwright). */
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { VERSAO } from '../../src/nucleo/modelo.js';
 
 const RAIZ = new URL('../../', import.meta.url).pathname;
-const BASE = process.env.EFC_BASE || join(RAIZ, 'docs/auditorias/base-v0.6.12');
+const BASE = process.env.EFC_BASE || join(RAIZ, 'docs/auditorias/base-v0.6.21-parte1');
 const OUT = join(RAIZ, '.auditoria', VERSAO); mkdirSync(OUT, { recursive: true });
 const PULAR = new Set((process.env.EFC_PULAR || '').split(',').filter(Boolean));
 const PORTA = 8741;
@@ -39,14 +39,14 @@ try {
   if (!existsSync(join(pastaGrande, 'amostra-grande.xlsx'))) rodar('python3', [join(RAIZ, 'testes/amostras/gerar-amostras-auditoria.py')], { cwd: pastaGrande });
 
   if (!PULAR.has('visual')) {
-    const r = rodar('node', ['scripts/sabia/auditoria-visual.mjs', 'scripts/sabia/efcdocs.config.json', join(OUT, 'visual'), '--base', BASE]);
+    const r = rodar('node', ['scripts/sabia/auditoria-visual.mjs', 'scripts/auditoria/efcdocs.config.json', join(OUT, 'visual'), '--base', BASE]);
     const j = existsSync(join(OUT, 'visual/auditoria-visual.json')) ? JSON.parse(readFileSync(join(OUT, 'visual/auditoria-visual.json'), 'utf8')) : { telas: [] };
     const dentro = j.telas.filter((t) => !t.falhou && !t.fora.length).length;
     const melhorou = j.telas.filter((t) => t.melhorou?.length).length;
-    lente('1 Visual', 'até 7 letras, 3 cantos, botão ≥ 28 px (44 no toque), 0 maiúsculas, contraste 4,5', '0 de 10 telas dentro', `${dentro} de ${j.telas.length} telas dentro; ${melhorou} melhoraram`, ultima(r.stdout, /Contra a linha de base|telas dentro/), r.status !== 0);
+    lente('1 Visual', 'até 7 letras, 3 cantos, botão ≥ 28 px (44 no toque), 0 maiúsculas, contraste 4,5', (() => { try { const bt = JSON.parse(readFileSync(join(BASE, 'auditoria-visual.json'), 'utf8')).telas; return `${bt.filter((t) => !t.falhou && !t.fora.length).length} de ${bt.length} telas dentro`; } catch { return 'sem medida'; } })(), `${dentro} de ${j.telas.length} telas dentro; ${melhorou} melhoraram`, ultima(r.stdout, /Contra a linha de base|telas dentro/), r.status !== 0);
   }
   if (!PULAR.has('rapidez')) {
-    const r = rodar('node', ['scripts/sabia/auditoria-rapidez.mjs', 'scripts/sabia/efcdocs.config.json', join(OUT, 'rapidez'), '--base', BASE]);
+    const r = rodar('node', ['scripts/sabia/auditoria-rapidez.mjs', 'scripts/auditoria/efcdocs.config.json', join(OUT, 'rapidez'), '--base', BASE]);
     const j = existsSync(join(OUT, 'rapidez/auditoria-rapidez.json')) ? JSON.parse(readFileSync(join(OUT, 'rapidez/auditoria-rapidez.json'), 'utf8')) : { medidas: [] };
     const txt = (m) => m.map((x) => `${x.acao.split(' ')[0]}${x.freio > 1 ? ' (4×)' : ''} ${x.falhou ? 'não rodou' : x.ms + ' ms'}`).join('; ');
     const b = JSON.parse(readFileSync(join(BASE, 'auditoria-rapidez.json'), 'utf8')).medidas;
@@ -64,7 +64,11 @@ try {
       const nf = (f.stdout.match(/NOVA\b/g) || []).length; fora = `; planilha(s) de fora: ${nf ? nf + ' diferença(s) NOVA(S)' : 'nenhuma nova'}`;
       if (nf) r.status = 1;
     }
-    lente('3 Fidelidade', '0 diferenças fora das conhecidas', 'medido pela primeira vez nesta versão', `${arqs} amostras: ${novas ? novas + ' diferença(s) NOVA(S)' : 'nenhuma diferença nova'}${fora}`, `${ultima(r.stdout, /^conferentes:/)}`, r.status !== 0);
+    /* v0.6.21 parte 2 (Sabiá 2.1): ida e volta do que fica guardado no aparelho (planilha, documento, quadro) e do PDF do Quadro */
+    const iv = rodar('node', ['scripts/fidelidade/ida-e-volta.mjs', join(OUT, 'ida-e-volta')]); writeFileSync(join(OUT, 'ida-e-volta.txt'), iv.stdout + iv.stderr);
+    const ivFim = ultima(iv.stdout, /^ida e volta:/) || 'ida e volta: não rodou';
+    if (iv.status !== 0) r.status = 1;
+    lente('3 Fidelidade', '0 diferenças fora das conhecidas', existsSync(join(BASE, 'fidelidade.txt')) ? `${(readFileSync(join(BASE, 'fidelidade.txt'), 'utf8').match(/^\S+\.xlsx:/gm) || []).length} amostras: nenhuma diferença nova${existsSync(join(BASE, 'ida-e-volta.txt')) ? '; ' + ultima(readFileSync(join(BASE, 'ida-e-volta.txt'), 'utf8'), /^ida e volta:/) : ''}` : 'sem medida', `${arqs} amostras: ${novas ? novas + ' diferença(s) NOVA(S)' : 'nenhuma diferença nova'}${fora}; ${ivFim}`, `${ultima(r.stdout, /^conferentes:/)}`, r.status !== 0);
   }
   if (!PULAR.has('seguranca')) {
     const args = ['scripts/sabia/varredura-sensivel.py', '..', '--ignorar', 'node_modules,dist,.git,.auditoria,assets'];
@@ -83,7 +87,7 @@ try {
 } finally { if (servidor) servidor.kill(); }
 
 const piorou = linhas.filter((l) => l.piorou);
-const md = [`# Auditorias do EFCdocs ${VERSAO} (Método Sabiá 2.0)`, '', `Linha de base: \`${BASE.replace(RAIZ, '')}\`. Regra: nenhuma medida pode piorar.`, '', '| Lente | Meta | Linha de base | Medido agora | Contra a base |', '|---|---|---|---|---|',
+const md = [`# Auditorias do EFCdocs ${VERSAO} (Método Sabiá 2.1)`, '', `Linha de base: \`${BASE.replace(RAIZ, '')}\`. Regra: nenhuma medida pode piorar.`, '', '| Lente | Meta | Linha de base | Medido agora | Contra a base |', '|---|---|---|---|---|',
   ...linhas.map((l) => `| ${l.nome} | ${l.meta} | ${l.base} | ${l.medido} | ${l.piorou ? 'PIOROU · ' : ''}${l.resultado} |`), '', piorou.length ? `**${piorou.length} lente(s) pioraram: a versão não sai sem decisão do dono.**` : 'Nenhuma lente piorou.'];
 writeFileSync(join(OUT, 'RESUMO.md'), md.join('\n') + '\n');
 console.log('\n' + md.join('\n') + `\n\nArquivos em ${OUT.replace(RAIZ, '')}/`);

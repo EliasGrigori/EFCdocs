@@ -8,6 +8,14 @@ const JAN = '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/>';
 const CANTOS = '<path d="M4 8.5V4h4.5M15.5 4H20v4.5M20 15.5V20h-4.5M8.5 20H4v-4.5"/>';
 
 export const NOVOS = {
+  /* v0.6.21 parte 3: Classificar de A a Z e de Z a A, Limpar filtro, papel, imprimir grade e letras, zoom 100% */
+  az: '<path d="M7 4.5v15M4 16.5l3 3 3-3"/><path class="t" d="M13.5 10.5l2.5-6 2.5 6M14.3 8.6h3.4"/><path d="M13.5 13.5h5l-5 6h5"/>',
+  za: '<path d="M7 4.5v15M4 16.5l3 3 3-3"/><path d="M13.5 4.5h5l-5 6h5"/><path class="t" d="M13.5 19.5l2.5-6 2.5 6M14.3 17.6h3.4"/>',
+  limparFiltro: '<path class="t" d="M3.5 5h12.5l-4.8 5.8v4.2l-2.9 1.4v-5.6z"/><path d="M15.5 14.5l4.5 4.5M20 14.5l-4.5 4.5"/>',
+  papel: `<path class="t" d="${FOLHA}"/><path d="${DOBRA}"/><path d="M8.5 13.5h7M10 12l-1.5 1.5L10 15M14 12l1.5 1.5L14 15"/>`,
+  imprimirGrade: '<rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path class="t" d="M4.5 9.2h15M4.5 14.8h15M9.5 3.5v17M14.5 3.5v17"/>',
+  imprimirTitulos: '<rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path class="t" d="M4.5 5.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2V7.5h-15zM4.5 7.5H8.5v13h-2a2 2 0 0 1-2-2z"/><path d="M11.5 11.5h5M11.5 15h5"/>',
+  zoom100: '<circle class="t" cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L20 20M8.2 8.6l1.3-1v5.8M12.3 9v.01M12.3 12.3v.01"/>',
   /* v0.6.16 (Ponte 1): pasta com etiqueta (documento interno) e bandeja com seta para cima (vai para o Cwork) */
   interno: `<path class="t" d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9.5A1.5 1.5 0 0 0 19 8h-7l-2-2.5H5A1.5 1.5 0 0 0 3.5 7z"/><path d="M9 14h6M9 16.5h3.5"/>`,
   camposCwork: `<rect class="t" x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M9.5 9.5v10"/><path d="M12.5 13h5M12.5 16h3"/>`,
@@ -214,6 +222,27 @@ export const NOVOS = {
   tabEstilos: '<rect class="t" x="3.5" y="4.5" width="7.5" height="6.5" rx="1.5"/><rect x="13" y="4.5" width="7.5" height="6.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="6.5" rx="1.5"/><rect class="t" x="13" y="13" width="7.5" height="6.5" rx="1.5"/><path d="M3.5 7h7.5M13 15.5h7.5"/>',
   tabNome: '<path class="t" d="M3.5 7.5A1.5 1.5 0 0 1 5 6h9l4.5 6-4.5 6H5a1.5 1.5 0 0 1-1.5-1.5z"/><circle class="f" cx="7.5" cy="12" r="1.2"/><path d="M10.5 12h3.5"/>',
   assistente: '<path d="M9.5 18.8h5M10.5 21h3"/><path class="t" d="M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2v.4h5v-.4c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5z"/>',
+  /* v0.6.21 parte 2 (faixa igual ao Excel: Inserir e Fórmulas). Desenhos próprios, mesmas regras de cima. */
+  alturaLinha: '<rect class="t" x="3.5" y="8" width="11" height="8" rx="1.5"/><path d="M3.5 4.5h11M3.5 19.5h11"/><path d="M18.5 5v14M16.3 7.2 18.5 5l2.2 2.2M16.3 16.8l2.2 2.2 2.2-2.2"/>',
+  ajustarLinha: '<rect class="t" x="3.5" y="9.5" width="11" height="5" rx="1.5"/><path d="M3.5 4.5h11M3.5 19.5h11"/><path d="M18.5 4v5M16.3 6.8 18.5 9l2.2-2.2M18.5 20v-5M16.3 17.2l2.2-2.2 2.2 2.2"/>',
+  larguraColuna: '<rect class="t" x="8" y="9.5" width="8" height="11" rx="1.5"/><path d="M4.5 9.5v11M19.5 9.5v11"/><path d="M5 5.5h14M7.2 3.3 5 5.5l2.2 2.2M16.8 3.3 19 5.5l-2.2 2.2"/>',
+  ajustarColuna: '<rect class="t" x="9.5" y="9.5" width="5" height="11" rx="1.5"/><path d="M4.5 9.5v11M19.5 9.5v11"/><path d="M4 5.5h5M6.8 3.3 9 5.5 6.8 7.7M20 5.5h-5M17.2 3.3 15 5.5l2.2 2.2"/>',
+  gColunas: '<path d="M3.5 20.5h17"/><rect class="t" x="5" y="11" width="3.6" height="7" rx=".8"/><rect class="t" x="10.2" y="5" width="3.6" height="13" rx=".8"/><rect class="t" x="15.4" y="8.5" width="3.6" height="9.5" rx=".8"/>',
+  gBarras: '<path d="M3.5 3.5v17"/><rect class="t" x="6" y="5" width="8" height="3.6" rx=".8"/><rect class="t" x="6" y="10.2" width="14" height="3.6" rx=".8"/><rect class="t" x="6" y="15.4" width="10.5" height="3.6" rx=".8"/>',
+  gLinha: '<path d="M3.5 3.5v17h17"/><path d="M6.5 15.5l4-5 3.5 3 5.5-7.5"/><circle class="f" cx="10.5" cy="10.5" r="1.3"/><circle class="f" cx="14" cy="13.5" r="1.3"/>',
+  gArea: '<path d="M3.5 3.5v17h17"/><path class="t" d="M6.5 18v-4l4-4.5 3.5 2.5 5.5-6V18z"/>',
+  gPizza: '<circle cx="12" cy="12" r="8.5"/><path class="t" d="M12 12V3.5a8.5 8.5 0 0 1 8.1 6z"/><path d="M12 12l5.5 6.4"/>',
+  gRosca: '<circle class="t" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.6"/><path d="M12 3.5v4.9M15.1 13.8l4.3 2.4"/>',
+  gDispersao: '<path d="M3.5 3.5v17h17"/><circle class="f" cx="8" cy="15.5" r="1.4"/><circle class="f" cx="11.5" cy="11" r="1.4"/><circle class="f" cx="14.5" cy="13.5" r="1.4"/><circle class="f" cx="18" cy="7" r="1.4"/><circle class="f" cx="16.5" cy="17" r="1.4"/>',
+  gMais: '<rect class="t" x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><path d="M17 14.5v5M14.5 17h5"/>',
+  fnSoma: '<path class="t" d="M4.5 4.5h15v15h-15z"/><path d="M15.5 9V8H8.5l3.5 4-3.5 4h7v-1"/>',
+  fnLogica: '<path class="t" d="M12 3.5 20.5 12 12 20.5 3.5 12z"/><path d="M9 12.2l2.2 2.2 4-4.6"/>',
+  fnTexto: '<rect class="t" x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M7 15.5 9.5 8.5l2.5 7M7.9 13.3h3.2M14.5 9.5v6M14.5 12.2c.5-.7 1.2-1 2-1 1.1 0 1.8.8 1.8 2.1s-.7 2.2-1.8 2.2c-.8 0-1.5-.4-2-1"/>',
+  fnData: '<rect class="t" x="3.5" y="5" width="13" height="12.5" rx="2"/><path d="M3.5 9h13M7 3.5V6M13 3.5V6"/><circle cx="16.5" cy="16.5" r="4"/><path d="M16.5 14.6v2.1l1.4.9"/>',
+  fnBusca: '<rect class="t" x="3.5" y="4.5" width="13" height="11" rx="1.5"/><path d="M3.5 8.5h13M8.5 8.5v7"/><circle cx="15.5" cy="15.5" r="3.5"/><path d="M18.1 18.1 20.5 20.5"/>',
+  fnMat: '<rect class="t" x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M8 7.5h8"/><path d="M8 12h2M12 10.9v2.2M10.9 12h2.2M15 12h1.2M8 16.2h2M11 16.2h2M15 15.4l1.2 1.6M16.2 15.4 15 17"/>',
+  fnEst: '<path d="M3.5 19.5h17"/><path class="t" d="M4 19.5c3.5 0 4.2-13 8-13s4.5 13 8 13z"/><path d="M12 6.5v13"/>',
+  fnMais: '<path class="t" d="M5 5a1.5 1.5 0 0 1 1.5-1.5H18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6.5A1.5 1.5 0 0 1 5 18z"/><path d="M5 17.5A1.5 1.5 0 0 1 6.5 16H19"/><circle class="f" cx="9" cy="10" r="1"/><circle class="f" cx="12.3" cy="10" r="1"/><circle class="f" cx="15.6" cy="10" r="1"/>',
 };
 
 /* comando → ícone (um para cada) */
@@ -246,6 +275,8 @@ export const MAPA = {
   'dados.classificar': 'classificar', 'dados.reaplicar': 'filtroRef', 'dados.validacao': 'validacao', 'dados.duplicados': 'duplicados', 'dados.dinamica': 'dinamica',
   'revisao.ortografia': 'ortografia', 'revisao.comentarios': 'comentarios', 'revisao.travar': 'cadeado',
   'exibir.congelar': 'congelar', 'exibir.grade': 'grade', 'exibir.folhaClara': 'folhaClara', 'exibir.abaGrafico': 'abaGrafico', 'exibir.barraFormula': 'barraFx', 'exibir.zoom': 'zoom',
+  'dados.az': 'az', 'dados.za': 'za', 'dados.limparFiltro': 'limparFiltro', 'impressao.papel': 'papel', 'impressao.grade': 'imprimirGrade', 'impressao.titulosLC': 'imprimirTitulos', 'exibir.zoom100': 'zoom100',
+  'planilha.alturaLinha': 'alturaLinha', 'planilha.ajustarLinha': 'ajustarLinha', 'planilha.larguraColuna': 'larguraColuna', 'planilha.ajustarColuna': 'ajustarColuna',
   'planilha.ocultarLinha': 'ocultarLinha', 'planilha.ocultarColuna': 'ocultarColuna', 'planilha.reexibir': 'reexibirLinha', 'planilha.reexibirColuna': 'reexibirColuna',
   'exibir.topoCompleto': 'topoCompleto', 'exibir.topoCompacto': 'topoCompacto', 'exibir.faixaTudo': 'faixaTudo', 'exibir.faixaAbas': 'faixaAbas', 'exibir.faixaOculta': 'faixaOculta',
   'exibir.menuCompleto': 'menuCompleto', 'exibir.menuIcones': 'menuIcones', 'exibir.menuOculto': 'menuOculto',
@@ -262,3 +293,6 @@ export const MAPA = {
   'organizar.ordenarGut': 'classificar', 'organizar.temporizador': 'temporizador',
   'exibir.ajustar': 'ajustar', 'exibir.minimapa': 'minimapa', 'exibir.codigos': 'codigos', 'exibir.ferramentas': 'ferramentas', 'exibir.assistente': 'assistente',
 };
+
+/** v0.6.21 parte 2: desenhos usados pelos botões com lista e pelos tipos de gráfico da faixa (não são comandos do catálogo) */
+export const ICONES_DE_LISTA = ['gColunas', 'gBarras', 'gLinha', 'gArea', 'gPizza', 'gRosca', 'gDispersao', 'gMais', 'fnSoma', 'fnLogica', 'fnTexto', 'fnData', 'fnBusca', 'fnMat', 'fnEst', 'fnMais'];

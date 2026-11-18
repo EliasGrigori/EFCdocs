@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Método Sabiá 2.0 — Medidas do código (lente 6.5): tamanho por pasta, arquivos grandes demais, testes por módulo.
+"""Método Sabiá 2.1 · kit 2.1.0 — Medidas do código (lente 7.5): tamanho por pasta, arquivos grandes demais, testes por módulo.
 Uso: python3 medir-codigo.py <pasta-do-código> [--limite 800] [--testes pasta-dos-testes] [--json saida.json] [--base base.json]
 Sem --base: sai com código 1 se houver arquivo acima do limite (dívida a dividir aos poucos).
 Com --base ("não pode piorar"): sai com 1 só se apareceu arquivo NOVO acima do limite ou se um dos grandes CRESCEU."""

@@ -33,4 +33,4 @@ No jeito do Excel: abas em cima (a ativa com traço dourado embaixo), grupos em 
 - Seta do filtro: funil com setinha; coluna filtrada = funil cheio em ouro.
 
 ## Como conferir
-`node scripts/sabia/auditoria-visual.mjs scripts/sabia/efcdocs.config.json <pasta>` (telas do kit) e `node scripts/auditoria/visual.mjs <endereço> <pasta>` (inclui o Escuro, as janelas, o Quadro e Opções).
+`node scripts/sabia/auditoria-visual.mjs scripts/auditoria/efcdocs.config.json <pasta>` (telas do kit) e `node scripts/auditoria/visual.mjs <endereço> <pasta>` (inclui o Escuro, as janelas, o Quadro e Opções).

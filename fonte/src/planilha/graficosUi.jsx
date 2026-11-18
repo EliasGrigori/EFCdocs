@@ -149,8 +149,8 @@ const ABAS = [['tipo', 'Tipo e dados', 'grafico'], ['estilo', 'Estilo', 'tema'],
  * inicial: g já salvo (editar) ou null (novo) · faixaPadrao: texto da seleção · lerDados(fx, porLinhas, ocultos) → { d, erro, ocultas }
  * lerFaixa: para os gráficos que vieram do Excel · tamanho: { w, h } do gráfico na grade (a prévia fica do mesmo jeito)
  */
-export function JanelaGrafico({ abaInicial, secao, inicial, faixaPadrao, celulaUnica, lerDados, lerFaixa, aoAplicar, aoFechar, tema, tamanho, modelos = [], aoTirarModelo }) {
-  const [g, setGraw] = useState(() => normalizarG(inicial || { t: '', dados: { fx: faixaPadrao } }));
+export function JanelaGrafico({ abaInicial, secao, inicial, tipoInicial, faixaPadrao, celulaUnica, lerDados, lerFaixa, aoAplicar, aoFechar, tema, tamanho, modelos = [], aoTirarModelo }) {
+  const [g, setGraw] = useState(() => (!inicial && tipoInicial ? { ...normalizarG({ t: tipoInicial, dados: { fx: faixaPadrao } }), escolhido: true } : normalizarG(inicial || { t: '', dados: { fx: faixaPadrao } }))); /* v0.6.21 parte 2: a faixa já traz o tipo (o mesmo que clicar no tipo dentro da janela; normalizarG não guarda o "escolhido") */
   /* v0.6.4 (Grok E03): Ctrl+Z / Ctrl+Y valem dentro do editor (cada mudança, inclusive estilo rápido, é um passo) */
   const gRef = useRef(g);
   const hist = useRef({ p: [], f: [] });

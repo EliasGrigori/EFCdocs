@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Método Sabiá 2.0 — servidor simples para testar na própria máquina.
+"""Método Sabiá 2.1 · kit 2.1.0 — servidor simples para testar na própria máquina.
 Uso: python3 servir.py <porta> <pasta>      (ex.: python3 servir.py 8731 dist)"""
 import functools, http.server, socketserver, sys
 porta = int(sys.argv[1]) if len(sys.argv) > 1 else 8731

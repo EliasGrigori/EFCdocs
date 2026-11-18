@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Método Sabiá 2.0 — Varredura de dado sensível (lente 6.4).
+"""Método Sabiá 2.1 · kit 2.1.0 — Varredura de dado sensível (lente 7.4).
 Procura, numa pasta de projeto, o que NÃO pode ir para o repositório: senhas e chaves, e-mails, CPF, CNPJ, telefones,
 e as palavras que o dono listar (nome da empresa, de pessoas, de fazendas...). Lista também as imagens e os arquivos
 de escritório, porque um print pode carregar dado real e programa nenhum lê isso com certeza: esses são para olhar.

@@ -37,6 +37,18 @@
 .rb-lista.estreita .rb-lista-it { justify-content: center; padding: 0 8px; }
 .rb-lista.estreita .rb-lista-it .ok { display: none; }
 
+/* v0.6.21 parte 2 (Inserir e Fórmulas) */
+/* AutoSoma: o botão faz a soma; a seta ao lado abre as outras contas (como no Excel) */
+.rb-duplo { display: flex; align-items: stretch; gap: 1px; }
+.rb-duplo > .rbs:first-child { flex: 1 1 auto; }
+.rbs.rb-so-seta { flex: none; width: 20px; min-width: 20px; padding: 0; justify-content: center; }
+.rbs.rb-so-seta .rb-seta { margin: 0; }
+/* botão de lista dentro da pilha (Outros gráficos): só o desenho */
+.rbi.rb-abre.aberto { background: var(--surface-2); color: var(--text); }
+/* título de seção e nome de função dentro da lista */
+.rb-lista-cab { padding: 6px 10px 2px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.rb-lista-it.fn { min-height: 28px; font-variant-numeric: tabular-nums; }
+
 /* tela apertada: antes de mandar um grupo para o "Mais", os botões de linha e os do lado do Colar ficam só com o ícone (o nome continua na dica e para o leitor de tela) */
 .ribbon[data-aperto] .rb-fila .rbs .rot, .ribbon[data-aperto] .rb-g:first-of-type .rb-col .rbs .rot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .ribbon[data-aperto] .rb-fila .rbs, .ribbon[data-aperto] .rb-g:first-of-type .rb-col .rbs { width: 28px; padding: 0; justify-content: center; }
@@ -46,6 +58,12 @@
 .ribbon[data-aperto]:not([data-estilo=E]) { gap: 1px; }
 .ribbon[data-aperto] .rb-div { margin: 0 1px; background: transparent; }
 .ribbon[data-aperto] .rbs.rb-abre .rb-seta { display: none; }
+
+/* parte 2: mais dois degraus de aperto antes do "Mais" (o Excel faz igual: primeiro encolhe os botões da ponta direita).
+   2 = os botões de coluna do último grupo ficam só com o ícone; 3 = os de todas as colunas */
+.ribbon[data-aperto="2"] .rb-g[data-ultimo] .rb-col .rbs .rot, .ribbon[data-aperto="3"] .rb-col .rbs .rot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ribbon[data-aperto="2"] .rb-g[data-ultimo] .rb-col .rbs:not(.rb-so-seta), .ribbon[data-aperto="3"] .rb-col .rbs:not(.rb-so-seta) { width: 28px; padding: 0; justify-content: center; }
+.ribbon[data-aperto] .rbs.rb-so-seta .rb-seta { display: block; }
 
 /* estilo E (uma linha só, só ícones): as duas linhas viram uma */
 .ribbon[data-estilo=E] .rb-pilha { display: flex; align-items: center; gap: 2px; }
@@ -61,3 +79,7 @@
   .rb-lista, .rb-cx-v { animation: none !important; }
   .rb-cx::after, .rb-seta { transition: none !important; }
 }
+/* v0.6.21 parte 3: botão grande com lista (Margens, Orientação, Tamanho, Área de impressão, Quebras, Ajustar, Congelar painéis) */
+.rbb.rb-abre .rb-nw { white-space: nowrap; }
+.rbb.rb-abre .rot .rb-seta { display: inline-block; margin-left: 2px; vertical-align: -1px; }
+.rbb.rb-abre.aberto .rb-seta { transform: rotate(180deg); }

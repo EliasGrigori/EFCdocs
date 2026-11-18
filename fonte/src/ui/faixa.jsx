@@ -1,8 +1,7 @@
 /* EFCdocs — topo: nome do arquivo, busca, faixa tipo Excel (opção A) e barra curta (opção B). */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FONTES, TAMANHOS_LETRA } from '../planilha/fontes.js';
-import { FORMATOS } from '../planilha/formato.js';
+import { GRAFICOS_NA_FAIXA } from '../planilha/biblioteca.js';
 import { TEMAS, AMOSTRAS } from '../nucleo/prefs.js';
 import { PorId, chegaNa, valeNoModulo, textoChega } from '../nucleo/comandos.js';
 import { ROTULOS, DICA_ESTILO, estiloDaFaixa } from '../nucleo/prefs.js';
@@ -11,8 +10,11 @@ import { validarNome } from '../nucleo/modelo.js';
 import { Icone, usarEsc } from './comum.jsx';
 import { Letras } from './letras.jsx';
 import { dicaDoComando } from '../nucleo/dicas.js';
+import { MENUS_FAIXA, CAIXAS_FAIXA } from './faixaMenus.js';
 
-/* item: ['g', id] botão grande · ['col', [ids]] coluna de pequenos · ['lin', [ids]] linha de ícones */
+/* item: ['g', id, rótulo?] botão grande · ['col', [ids]] coluna de pequenos · ['lin', [ids]] linha de ícones ·
+   ['pilha', [filas]] duas linhas (v0.6.21) · dentro de col e de pilha: ['menu', chave] botão com lista; na pilha: ['v', 'comando|valor'] ícone que já leva o valor ·
+   parte 3: ['gm', chave] botão grande com lista; dentro de col: ['r', id, rótulo] botão pequeno com o nome do Excel só nesta aba */
 const ABA_ARQUIVO = {
   id: 'arquivo', nome: 'Arquivo', grupos: [
     { nome: 'Arquivo', itens: [['g', 'arquivo.novo'], ['g', 'arquivo.renomear'], ['g', 'arquivo.abrir'], ['g', 'arquivo.exportarExcel'], ['g', 'arquivo.baixarOriginal'], ['g', 'arquivo.relatorioExcel'], ['g', 'arquivo.exportarWord'], ['g', 'arquivo.exportarPDF'], ['g', 'arquivo.exportarImagem'], ['g', 'arquivo.imprimir']] },
@@ -48,29 +50,49 @@ const FAIXAS = {
       { nome: 'Número', itens: [['pilha', [
         [['cx', 'numero']],
         ['formatar.moeda', 'formatar.porcentagem', 'formatar.milhar', '|', 'formatar.maisCasas', 'formatar.menosCasas']]]] },
-      { nome: 'Estilos', itens: [['g', 'formatar.condicional'], ['g', 'inserir.tabela']] },
+      { nome: 'Estilos', itens: [['g', 'formatar.condicional'], ['g', 'inserir.tabela', 'Formatar como tabela']] }, /* parte 2 (D1): os nomes do Excel */
       { nome: 'Células', itens: [['col', [['menu', 'inserir'], ['menu', 'excluir'], ['menu', 'formatar']]]] },
       { nome: 'Edição', itens: [['col', ['formula.autosoma', ['menu', 'preencher'], ['menu', 'limpar']]], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
+    /* v0.6.21 parte 2 (R25): Inserir nos lugares do Excel (Tabelas, Ilustrações, Gráficos, Links, Comentários, Texto); o que o Excel não tem fica no fim, em "Do Vértice".
+       Nova aba, Inserir linha e Inserir coluna moram em Página Inicial › Células › Inserir, como no Excel. */
     { id: 'inserir', nome: 'Inserir', grupos: [
-      { nome: 'Planilha', itens: [['g', 'planilha.novaAba'], ['g', 'inserir.painel'], ['g', 'planilha.inserirLinha'], ['g', 'planilha.inserirColuna']] }, /* v0.6.3 (R02): botões grandes com nome, para não confundir com Nova aba; v0.6.7: Painel */
-      { nome: 'Tabelas', itens: [['g', 'inserir.tabela'], ['g', 'inserir.status'], ['g', 'inserir.foto']] },
-      { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.formas'], ['g', 'inserir.grafico'], ['g', 'inserir.assinatura']] },
-      { nome: 'Navegação', itens: [['g', 'inserir.link'], ['g', 'inserir.tirarLink'], ['g', 'inserir.botao'], ['g', 'editar.comentar']] }] },
+      { nome: 'Tabelas', itens: [['g', 'dados.dinamica'], ['g', 'inserir.tabela']] },
+      { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.formas']] },
+      { nome: 'Gráficos', itens: [['g', 'inserir.grafico'], ['pilha', [
+        [['v', 'inserir.grafico|colunas'], ['v', 'inserir.grafico|linha'], ['v', 'inserir.grafico|pizza'], ['v', 'inserir.grafico|rosca']],
+        [['v', 'inserir.grafico|barras'], ['v', 'inserir.grafico|area'], ['v', 'inserir.grafico|dispersao'], ['menu', 'outrosGraficos']]]]] },
+      { nome: 'Links', itens: [['g', 'inserir.link'], ['col', ['inserir.tirarLink']]] },
+      { nome: 'Comentários', itens: [['g', 'editar.comentar']] },
+      { nome: 'Texto', itens: [['g', 'inserir.assinatura']] },
+      { nome: 'Do Vértice', itens: [['g', 'inserir.painel'], ['col', ['inserir.status', 'inserir.botao', 'inserir.foto']]] }] },
+    /* v0.6.21 parte 3 (R25): Layout da Página nos lugares do Excel (Configurar página, Dimensionar para ajustar, Opções de planilha) */
     { id: 'layout', nome: 'Layout da Página', grupos: [
-      { nome: 'Configurar página', itens: [['g', 'impressao.margens'], ['g', 'impressao.orientacao'], ['g', 'impressao.area'], ['g', 'impressao.quebra'], ['g', 'impressao.titulos'], ['col', ['impressao.limparArea', 'impressao.semQuebras', 'impressao.cabecalho']]] },
-      { nome: 'Ajustar e imprimir', itens: [['g', 'impressao.ajustar'], ['g', 'impressao.configurar'], ['g', 'arquivo.exportarPDF']] }] },
+      { nome: 'Configurar página', itens: [['gm', 'margens'], ['gm', 'orientacao'], ['gm', 'papel'], ['gm', 'areaImp'], ['gm', 'quebras'], ['g', 'impressao.titulos']] },
+      { nome: 'Dimensionar para ajustar', itens: [['gm', 'ajustarPag']] },
+      { nome: 'Opções de planilha', itens: [['col', [['r', 'exibir.grade', 'Exibir a grade'], ['r', 'impressao.grade', 'Imprimir a grade'], ['r', 'impressao.titulosLC', 'Imprimir A B C e 1 2 3']]]] },
+      { nome: 'Do Vértice', itens: [['col', [['r', 'impressao.configurar', 'Configurar página…'], 'impressao.cabecalho', 'arquivo.exportarPDF']]] }] },
+    /* v0.6.21 parte 2 (R25): Fórmulas nos lugares do Excel (Biblioteca de funções, Nomes definidos, Auditoria de fórmulas) */
     { id: 'formulas', nome: 'Fórmulas', grupos: [
-      { nome: 'Funções', itens: [['g', 'formula.inserir'], ['g', 'formula.autosoma']] },
-      { nome: 'Nomes', itens: [['g', 'formula.nome'], ['g', 'formula.nomes'], ['g', 'planilha.cabecalho']] },
-      { nome: 'Entender a conta', itens: [['g', 'formula.explicar'], ['g', 'formula.origem'], ['g', 'formula.fluxo'], ['g', 'formula.problemas']] },
-      { nome: 'Para o leigo', itens: [['g', 'formula.montar']] }] },
+      { nome: 'Biblioteca de funções', itens: [['g', 'formula.inserir'],
+        ['col', [['menu', 'autosoma'], ['menu', 'fnLogica'], ['menu', 'fnTexto']]],
+        ['col', [['menu', 'fnData'], ['menu', 'fnBusca'], ['menu', 'fnMat']]],
+        ['col', [['menu', 'fnEst'], ['menu', 'fnMais']]]] },
+      { nome: 'Nomes definidos', itens: [['g', 'formula.nomes'], ['col', ['formula.nome', 'planilha.cabecalho']]] },
+      { nome: 'Auditoria de fórmulas', itens: [['col', ['formula.origem', 'formula.fluxo', 'formula.problemas']], ['g', 'formula.explicar']] },
+      { nome: 'Do Vértice', itens: [['g', 'formula.montar']] }] },
+    /* v0.6.21 parte 3 (R25): Dados, Revisão e Exibir nos lugares do Excel; o que é só do Vértice fica no fim */
     { id: 'dados', nome: 'Dados', grupos: [
-      { nome: 'Classificar e filtrar', itens: [['g', 'dados.classificar'], ['g', 'dados.filtrar'], ['g', 'dados.reaplicar']] },
-      { nome: 'Ferramentas', itens: [['g', 'dados.validacao'], ['g', 'dados.duplicados'], ['g', 'dados.dinamica']] }] },
+      { nome: 'Classificar e filtrar', itens: [['col', ['dados.az', 'dados.za']], ['g', 'dados.classificar'], ['g', 'dados.filtrar', 'Filtro'], ['col', [['r', 'dados.limparFiltro', 'Limpar'], ['r', 'dados.reaplicar', 'Reaplicar']]]] },
+      { nome: 'Ferramentas de dados', itens: [['g', 'dados.duplicados', 'Remover duplicatas'], ['g', 'dados.validacao', 'Validação de dados']] }] },
     { id: 'revisao', nome: 'Revisão', grupos: [
-      { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar'], ['g', 'revisao.comentarios'], ['g', 'arquivo.versoes']] },
-      { nome: 'Proteger', itens: [['g', 'revisao.travar']] }] },
-    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Planilha', itens: [['g', 'exibir.congelar'], ['col', ['exibir.grade', 'exibir.folhaClara', 'exibir.barraFormula']], ['col', ['exibir.abaGrafico', 'exibir.zoom']]] }, { nome: 'Linhas e colunas', itens: [['lin', ['planilha.ocultarLinha', 'planilha.reexibir', 'planilha.ocultarColuna', 'planilha.reexibirColuna'], 2]] }, ...GRUPOS_EXIBIR] },
+      { nome: 'Revisão de texto', itens: [['g', 'revisao.ortografia']] },
+      { nome: 'Comentários', itens: [['g', 'editar.comentar', 'Novo comentário'], ['g', 'revisao.comentarios', 'Mostrar comentários']] },
+      { nome: 'Proteger', itens: [['g', 'revisao.travar', 'Proteger planilha']] },
+      { nome: 'Alterações', itens: [['g', 'arquivo.versoes', 'Versões e revisões']] }] },
+    { id: 'exibir', nome: 'Exibir', grupos: [
+      { nome: 'Mostrar', itens: [['col', [['r', 'exibir.grade', 'Linhas de grade'], ['r', 'exibir.barraFormula', 'Barra de fórmulas']]], ['col', ['exibir.abaGrafico', 'exibir.folhaClara']]] },
+      { nome: 'Zoom', itens: [['g', 'exibir.zoom'], ['g', 'exibir.zoom100', '100%']] },
+      { nome: 'Janela', itens: [['gm', 'congelar']] }, ...GRUPOS_EXIBIR] },
   ],
   docx: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
@@ -144,10 +166,10 @@ export function abasDoModulo(mod, ctx = {}) {
     ...aba,
     grupos: aba.grupos.map((g) => ({
       ...g,
-      itens: g.itens.map(([tipo, x]) => [tipo, tipo === 'pilha'
-        ? x.map((fila) => fila.filter((i) => i === '|' || (typeof i === 'string' ? vale(i) : i[0] === 'cx' || vale(i[1])))).filter((fila) => fila.length)
-        : Array.isArray(x) ? x.filter((i) => (typeof i === 'string' ? vale(i) : true)) : x])
-        .filter(([, x]) => (Array.isArray(x) ? x.length : vale(x))),
+      itens: g.itens.map(([tipo, x, r]) => [tipo, tipo === 'pilha'
+        ? x.map((fila) => fila.filter((i) => i === '|' || (typeof i === 'string' ? vale(i) : i[0] === 'cx' || i[0] === 'menu' || vale(i[1].split('|')[0])))).filter((fila) => fila.length)
+        : Array.isArray(x) ? x.filter((i) => (typeof i === 'string' ? vale(i) : i[0] === 'r' ? vale(i[1]) : true)) : x, tipo === 'g' ? r : undefined])
+        .filter(([tipo, x]) => (tipo === 'gm' ? !!MENUS_FAIXA[x] : Array.isArray(x) ? x.length : vale(x))),
     })).filter((g) => g.itens.length),
   }));
 }
@@ -167,9 +189,10 @@ export const ROTULO_CURTO = {
   'exibir.menuCompleto': 'Completo', 'exibir.menuIcones': 'Só ícones', 'exibir.menuOculto': 'Esconder',
   'exibir.layoutA': 'Faixa Excel', 'exibir.layoutB': 'Barra e painel', 'exibir.painel': 'Painel lateral',
   'arquivo.lixeira': 'Lixeira', 'arquivo.versoes': 'Versões', 'arquivo.cancelar': 'Cancelar',
-  'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Verificação', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
+  'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Verificação de erros', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
+  'inserir.formas': 'Formas', 'inserir.status': 'Coluna de status', 'inserir.foto': 'Foto na célula', 'inserir.assinatura': 'Linha de assinatura', 'inserir.imagem': 'Imagens',
   'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
-  'dados.validacao': 'Validação', 'formatar.condicional': 'Destacar regra', 'editar.localizar': 'Localizar',
+  'dados.validacao': 'Validação', 'formatar.condicional': 'Formatação condicional', 'editar.localizar': 'Localizar',
   'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.interno': 'Documento interno', 'arquivo.camposCwork': 'Campos do Cwork', 'arquivo.compartilharCwork': 'Compartilhar com o Cwork', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
   'arquivo.abrir': 'Abrir Excel', 'arquivo.exportarExcel': 'Salvar como Excel', 'arquivo.relatorioExcel': 'O que veio do Excel', 'arquivo.baixarOriginal': 'Baixar original',
   'editar.comentar': 'Comentário', 'revisao.comentarios': 'Comentários', 'organizar.temporizador': 'Temporizador', 'revisao.comparar': 'Comparar',
@@ -183,7 +206,7 @@ export const ROTULO_CURTO = {
   'editar.duplicar': 'Duplicar', 'inserir.texto': 'Texto solto',
   'editar.historico': 'Linha do tempo', 'planilha.inserirLinha': 'Inserir linha', 'planilha.inserirColuna': 'Inserir coluna',
   'planilha.excluirLinha': 'Excluir linha', 'planilha.excluirColuna': 'Excluir coluna', 'planilha.limparConteudo': 'Limpar conteúdo',
-  'formatar.limpar': 'Limpar formatos', 'planilha.novaAba': 'Nova aba', 'formula.nome': 'Dar nome', 'formula.nomes': 'Nomes',
+  'formatar.limpar': 'Limpar formatos', 'planilha.novaAba': 'Nova aba', 'formula.nome': 'Definir nome', 'formula.nomes': 'Gerenciador de nomes',
   'planilha.cabecalho': 'Linha de títulos', 'exibir.folhaClara': 'Folha clara', 'planilha.ocultarLinha': 'Ocultar linhas',
   'planilha.ocultarColuna': 'Ocultar colunas', 'planilha.reexibir': 'Reexibir linhas', 'planilha.reexibirColuna': 'Reexibir colunas', 'formula.inserir': 'Inserir função', 'formula.autosoma': 'AutoSoma',
 };
@@ -212,35 +235,7 @@ export function BotaoCmd({ id, tipo = 'g', cx, rotulo, prim, soIcone }) {
 
 /* ---------- v0.6.21 (R25): peças da faixa igual ao Excel ---------- */
 
-/* Botões que abrem uma lista de comandos (Inserir, Excluir, Formatar, Preencher, Limpar), como no Excel */
-const MENUS_FAIXA = {
-  inserir: { nome: 'Inserir', ic: 'inserir', dica: 'Inserir|Põe uma linha, uma coluna ou uma aba nova na planilha.', itens: ['planilha.inserirLinha', 'planilha.inserirColuna', '-', 'planilha.novaAba'] },
-  excluir: { nome: 'Excluir', ic: 'lixeira', dica: 'Excluir|Tira a linha ou a coluna da célula escolhida.', itens: ['planilha.excluirLinha', 'planilha.excluirColuna'] },
-  formatar: { nome: 'Formatar', ic: 'ver', dica: 'Formatar|Esconde e mostra de novo linhas e colunas.', itens: ['planilha.ocultarLinha', 'planilha.ocultarColuna', '-', 'planilha.reexibir', 'planilha.reexibirColuna'] },
-  preencher: { nome: 'Preencher', ic: 'setaBaixo', dica: 'Preencher|Copia a célula de cima ou a do lado para as células escolhidas.', itens: ['editar.preencherBaixo', 'editar.preencherDireita'] },
-  limpar: { nome: 'Limpar', ic: 'n:limparFormato', dica: 'Limpar|Apaga só o que está escrito ou só a aparência da célula.', itens: ['planilha.limparConteudo', 'formatar.limpar'] },
-};
-
-/* Caixas que mostram o valor da célula ativa (letra, tamanho, formato do número) e abrem a lista para trocar */
-const CAIXAS_FAIXA = {
-  fonte: {
-    nome: 'Letra', cmd: 'formatar.fonte', valor: 'valor.fonte', largura: 124, dica: 'Letra|O tipo de letra da célula escolhida.',
-    mostra: (v) => v || 'Padrão',
-    opcoes: () => FONTES.map((f) => ({ id: 'formatar.fonte|f:' + f, v: f, nome: f || 'Padrão', estilo: f ? { fontFamily: `'${f}', var(--f)` } : undefined })),
-    fim: { id: 'formatar.fonte', nome: 'Mais opções de letra…' },
-  },
-  tamanho: {
-    nome: 'Tamanho da letra', cmd: 'formatar.fonte', valor: 'valor.tamanho', largura: 50, estreita: true, dica: 'Tamanho da letra|O tamanho da letra da célula escolhida.',
-    mostra: (v) => String(v || 11),
-    opcoes: () => TAMANHOS_LETRA.map((t) => ({ id: 'formatar.fonte|t:' + t, v: t, nome: String(t) })),
-  },
-  numero: {
-    nome: 'Formato do número', cmd: 'formatar.formatoNumero', valor: 'valor.numero', largura: 150, dica: 'Formato do número|Como o número aparece: moeda, data, porcentagem e outros.',
-    mostra: (v) => (FORMATOS.find((f) => f.id === v) || { nome: 'Personalizado' }).nome,
-    opcoes: () => FORMATOS.map((f) => ({ id: 'formatar.formatoNumero|' + f.id, v: f.id, nome: f.nome })),
-    fim: { id: 'formatar.formatoNumero', nome: 'Mais formatos de número…' },
-  },
-};
+/* As listas e as caixas da faixa (só dados) ficam em faixaMenus.js (v0.6.21 parte 3: faixa.jsx não passa de 800 linhas) */
 
 /** Lista que nasce do botão (cresce a partir dele e fecha encolhendo — regra de fluidez, letra c).
     Fecha com Esc (uma camada), com clique fora e ao escolher; as setas do teclado andam pelos itens. */
@@ -281,36 +276,81 @@ function ListaFaixa({ ancora, fechar, rotulo, estreita, children }) {
     document.querySelector('.app') || document.body);
 }
 
-/* Botão pequeno com seta: abre a lista de comandos de um grupo */
-function BotaoMenuFaixa({ chave, cx }) {
+/* Botão pequeno com seta: abre a lista de comandos de um grupo.
+   Item da lista: id de comando · '-' separador · { cab } título de seção · { id: 'comando|valor', nome, dica? } escolha que já leva o valor.
+   soIcone: dentro da pilha (só o desenho). direto (AutoSoma): o botão faz a conta e a seta ao lado abre a lista, como no Excel. */
+function BotaoMenuFaixa({ chave, cx, soIcone, grande }) {
   const m = MENUS_FAIXA[chave];
   const [aberto, setAberto] = useState(false);
   const ref = useRef(null);
-  const cmds = m.itens.filter((id) => id !== '-');
-  const todosBloq = cmds.every((id) => cx.bloqueado(id));
+  const itens = (typeof m.itens === 'function' ? m.itens() : m.itens).concat(m.fim ? ['-', { ...m.fim, fim: true }] : []);
+  const base = (x) => (typeof x === 'string' ? x : x.id).split('|')[0];
+  const cmds = itens.filter((x) => x !== '-' && !x.cab);
+  const todosBloq = cmds.every((x) => cx.bloqueado(base(x)));
+  const atual = m.valor && cx.valorDe ? cx.valorDe(m.valor) : undefined; /* parte 3: a lista marca o que vale hoje (margens, papel, congelado...) */
+  const lista = aberto && (
+    <ListaFaixa ancora={ref} fechar={() => setAberto(false)} rotulo={m.nome}>
+      {itens.map((x, i) => {
+        if (x === '-') return <span className="rb-lista-sep" key={'s' + i} />;
+        if (x.cab) return <span className="rb-lista-cab" key={'c' + i}>{x.cab}</span>;
+        const id = typeof x === 'string' ? x : x.id;
+        const cmd = PorId[base(x)];
+        if (!cmd) return null;
+        const bloq = cx.bloqueado(base(x)), info = dicaDoComando(cmd, cx.mod), puro = typeof x === 'string';
+        const ic = puro ? (ICONE_FAIXA[id] ? 'n:' + ICONE_FAIXA[id] : cmd.ic) : x.ic;
+        const marcado = !puro && x.v !== undefined && x.v === atual;
+        return (
+          <button key={id} type="button" role={!puro && x.v !== undefined ? 'menuitemradio' : 'menuitem'} aria-checked={!puro && x.v !== undefined ? marcado : undefined}
+            className={'rb-lista-it' + (m.classe ? ' ' + m.classe : '') + (x.fim ? ' fim' : '') + (marcado ? ' on' : '')} data-cmd={id} data-dica={x.dica} disabled={!!bloq} title={bloq || undefined}
+            onClick={() => { setAberto(false); cx.executar(id); }}>
+            {ic && <Icone n={ic} />}<span>{puro ? cmd.nome : x.nome}</span>{(puro || id === m.direto) && info.atalho && <kbd>{info.atalho}</kbd>}{marcado && <Icone n="check" className="ok" />}
+          </button>
+        );
+      })}
+    </ListaFaixa>
+  );
+  if (m.direto) {
+    return (
+      <span className="rb-duplo">
+        <BotaoCmd id={m.direto} tipo="s" cx={cx} rotulo={m.nome} />
+        <button ref={ref} type="button" className={'rbs rb-abre rb-so-seta' + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-dica={m.dica} aria-label={m.seta} aria-haspopup="menu" aria-expanded={aberto}
+          disabled={todosBloq} onClick={() => setAberto(!aberto)}><Icone n="chevronBaixo" className="rb-seta" /></button>
+        {lista}
+      </span>
+    );
+  }
+  if (grande) {
+    return (
+      <>
+        <button ref={ref} type="button" className={'rbb rb-abre' + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-dica={m.dica} aria-haspopup="menu" aria-expanded={aberto}
+          disabled={todosBloq} title={todosBloq ? cx.bloqueado(base(cmds[0])) : undefined} onClick={() => setAberto(!aberto)}>
+          <span className="q"><Icone n={m.ic} /></span><span className="rot">{m.nome.includes(' ') ? m.nome.slice(0, m.nome.lastIndexOf(' ') + 1) : ''}<span className="rb-nw">{m.nome.slice(m.nome.lastIndexOf(' ') + 1)}<Icone n="chevronBaixo" className="rb-seta" /></span></span>
+        </button>
+        {lista}
+      </>
+    );
+  }
   return (
     <>
-      <button ref={ref} type="button" className={'rbs rb-abre' + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-dica={m.dica} aria-haspopup="menu" aria-expanded={aberto}
-        disabled={todosBloq} title={todosBloq ? cx.bloqueado(cmds[0]) : undefined} onClick={() => setAberto(!aberto)}>
-        <Icone n={m.ic} /><span className="rot">{m.nome}</span><Icone n="chevronBaixo" className="rb-seta" />
+      <button ref={ref} type="button" className={(soIcone ? 'rbi rb-abre' : 'rbs rb-abre') + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-dica={m.dica} aria-haspopup="menu" aria-expanded={aberto}
+        aria-label={soIcone ? m.nome : undefined} disabled={todosBloq} title={todosBloq ? cx.bloqueado(base(cmds[0])) : undefined} onClick={() => setAberto(!aberto)}>
+        <Icone n={m.ic} />{!soIcone && <span className="rot">{m.curto || m.nome}</span>}{!soIcone && <Icone n="chevronBaixo" className="rb-seta" />}
       </button>
-      {aberto && (
-        <ListaFaixa ancora={ref} fechar={() => setAberto(false)} rotulo={m.nome}>
-          {m.itens.map((id, i) => {
-            if (id === '-') return <span className="rb-lista-sep" key={'s' + i} />;
-            const cmd = PorId[id];
-            if (!cmd) return null;
-            const bloq = cx.bloqueado(id), info = dicaDoComando(cmd, cx.mod);
-            return (
-              <button key={id} type="button" role="menuitem" className="rb-lista-it" data-cmd={id} disabled={!!bloq} title={bloq || undefined}
-                onClick={() => { setAberto(false); cx.executar(id); }}>
-                <Icone n={ICONE_FAIXA[id] ? 'n:' + ICONE_FAIXA[id] : cmd.ic} /><span>{cmd.nome}</span>{info.atalho && <kbd>{info.atalho}</kbd>}
-              </button>
-            );
-          })}
-        </ListaFaixa>
-      )}
+      {lista}
     </>
+  );
+}
+
+/* Ícone que já leva o valor (os tipos de gráfico do grupo Gráficos): "comando|valor" */
+function BotaoValor({ id, cx }) {
+  const [cmd, v] = id.split('|');
+  const g = GRAFICOS_NA_FAIXA[v];
+  if (!g || !PorId[cmd]) return null;
+  const bloq = cx.bloqueado(cmd);
+  return (
+    <button type="button" className="rbi" data-cmd={id} data-dica={g.dica} aria-label={'Gráfico de ' + g.nome.toLowerCase()} disabled={!!bloq} title={bloq || undefined} onClick={() => cx.executar(id)}>
+      <Icone n={g.ic} />
+    </button>
   );
 }
 
@@ -354,24 +394,32 @@ function LinhaPilha({ itens, b }) {
           ? <BotaoCmd key={x} id={x} tipo="i" {...b} />
           : x[0] === 'cx'
             ? <CaixaFaixa key={x[1]} chave={x[1]} cx={b.cx} />
-            : <BotaoCmd key={x[1]} id={x[1]} tipo="s" {...b} rotulo={ROTULO_CURTO[x[1]]} />)}
+            : x[0] === 'v'
+              ? <BotaoValor key={x[1]} id={x[1]} cx={b.cx} />
+              : x[0] === 'menu'
+                ? <BotaoMenuFaixa key={x[1]} chave={x[1]} cx={b.cx} soIcone />
+                : <BotaoCmd key={x[1]} id={x[1]} tipo="s" {...b} rotulo={ROTULO_CURTO[x[1]]} />)}
     </div>
   );
 }
 
-function GrupoFaixa({ g, cx, prim, soIcone }) {
+function GrupoFaixa({ g, cx, prim, soIcone, ultimo }) {
   const b = { cx, prim: undefined, soIcone };
   return (
-    <div className="rb-g" role="group" aria-label={g.nome}>
+    <div className="rb-g" role="group" aria-label={g.nome} data-ultimo={ultimo ? '' : undefined}>
       <div className="rb-i">
         {g.itens.map(([tipo, x, colunas], j) => tipo === 'g'
-          ? <BotaoCmd key={j} id={x} {...b} prim={x === prim} rotulo={ROTULO_CURTO[x]} />
+          ? <BotaoCmd key={j} id={x} {...b} prim={x === prim} rotulo={colunas || ROTULO_CURTO[x]} />
+          : tipo === 'gm'
+            ? <BotaoMenuFaixa key={j} chave={x} cx={cx} grande />
           : tipo === 'pilha'
             ? <div className="rb-pilha" key={j}>{x.map((fila, k) => <LinhaPilha key={k} itens={fila} b={b} />)}</div>
             : tipo === 'col'
               ? <div className="rb-col" key={j}>{x.map((id) => (typeof id === 'string'
                 ? <BotaoCmd key={id} id={id} tipo="s" {...b} rotulo={ROTULO_CURTO[id]} />
-                : <BotaoMenuFaixa key={id[1]} chave={id[1]} cx={cx} />))}</div>
+                : id[0] === 'r'
+                  ? <BotaoCmd key={id[1]} id={id[1]} tipo="s" {...b} rotulo={id[2]} />
+                  : <BotaoMenuFaixa key={id[1]} chave={id[1]} cx={cx} />))}</div>
               : <div className="rb-lin" key={j} style={{ gridTemplateColumns: `repeat(${colunas || (x.length <= 4 ? x.length : Math.ceil(x.length / 2))}, 28px)` }}>
                 {x.map((id) => <BotaoCmd key={id} id={id} tipo="i" {...b} />)}
               </div>)}
@@ -420,7 +468,8 @@ function Faixa({ aba, cx, flutua, cel, estilo }) {
     const vao = (parseFloat(getComputedStyle(ref.current).columnGap) || 0) * Math.max(0, gs.length - 1);
     const disp = ref.current.clientWidth - 16 - vao;
     let corte = null;
-    if (w.reduce((a, b) => a + b, 0) > disp && !est.aperto && ref.current.querySelector('.rb-pilha')) { setEst({ corte: null, medir: true, aperto: 1 }); return; }
+    /* parte 2: três degraus antes do "Mais": 1 = as filas ficam só com o ícone; 2 = a coluna do último grupo também; 3 = todas as colunas */
+    if (w.reduce((a, b) => a + b, 0) > disp && est.aperto < 3 && ref.current.querySelector('.rb-pilha, .rb-col')) { setEst({ corte: null, medir: true, aperto: est.aperto + 1 }); return; }
     if (w.reduce((a, b) => a + b, 0) > disp) {
       let acc = 0, n = 0;
       for (const x of w) { if (acc + x > disp - 100) break; /* v0.6.4 (R02): sobra lugar para o "Mais" e para o botão de recolher, também no estilo E */ acc += x; n++; }
@@ -441,7 +490,7 @@ function Faixa({ aba, cx, flutua, cel, estilo }) {
   return (
     <div className={'ribbon' + (flutua ? ' flutua' : '') + (cel ? '' : ' ajustada')} data-estilo={estilo} data-aperto={est.aperto || undefined} role="toolbar" aria-label={'Faixa ' + atual.nome} data-aba={atual.id} ref={ref} onScroll={cel ? medirLados : undefined}>
       {cel && lados.esq && <button type="button" className="rb-rolar esq" aria-label="Ver os botões anteriores" onClick={() => rolar(-1)}><Icone n="setaEsq" /></button>}
-      {naFaixa.map((g, i) => <GrupoFaixa g={g} cx={cx} prim={prim} soIcone={estilo === 'E'} key={atual.id + i} />)}
+      {naFaixa.map((g, i) => <GrupoFaixa g={g} cx={cx} prim={prim} soIcone={estilo === 'E'} ultimo={i === atual.grupos.length - 1} key={atual.id + i} />)}
       {cel && lados.dir && <button type="button" className="rb-rolar dir" aria-label="Tem mais botões: ver os próximos" data-dica="Tem mais|Arraste a faixa para o lado ou toque aqui para ver os outros botões." onClick={() => rolar(1)}><Icone n="setaDir" /></button>}
       {!cel && (
         <button type="button" className="rb-recolher" data-faixa-recolher={flutua ? 'fixar' : 'recolher'}

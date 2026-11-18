@@ -1,4 +1,4 @@
-/* Método Sabiá 2.0 — Auditoria de rapidez (lente 6.2). Mede o tempo de cada ação, no aparelho normal e com o processador mais lento.
+/* Método Sabiá 2.1 · kit 2.1.0 — Auditoria de rapidez (lente 7.2). Mede o tempo de cada ação, no aparelho normal e com o processador mais lento.
    Uso: node auditoria-rapidez.mjs <config.json> [pasta-de-saída] [--base <auditoria-rapidez.json ou pasta>]
    Sem --base: sai com código 1 se alguma meta estourar. Com --base ("não pode piorar"): sai com 1 se alguma ação
    ficou mais lenta que na linha de base (mais de 25%, ou 40% com o processador freado, e mais de 20 ms, para não acusar a
@@ -41,7 +41,7 @@ if (BASE_ARQ) {
   }
 }
 writeFileSync(`${OUT}/auditoria-rapidez.json`, JSON.stringify({ metas: META, base: BASE_ARQ || null, piorou, medidas: res }, null, 1));
-const md = ['# Auditoria de rapidez (Método Sabiá 2.0)', '', `Mediana de ${cfg.repeticoes || 5} medidas por ação. Metas: ação comum até ${META.comum} ms, ação pesada até ${META.pesada} ms; com o processador mais lento, até ${META.lento} vezes isso.`, '', '| Ação | Processador | Tempo | Meta | Resultado |' + (BASE_ARQ ? ' Contra a base |' : ''), '|---|---|---|---|---|' + (BASE_ARQ ? '---|' : '')];
+const md = ['# Auditoria de rapidez (Método Sabiá 2.1 · kit 2.1.0)', '', `Mediana de ${cfg.repeticoes || 5} medidas por ação. Metas: ação comum até ${META.comum} ms, ação pesada até ${META.pesada} ms; com o processador mais lento, até ${META.lento} vezes isso.`, '', '| Ação | Processador | Tempo | Meta | Resultado |' + (BASE_ARQ ? ' Contra a base |' : ''), '|---|---|---|---|---|' + (BASE_ARQ ? '---|' : '')];
 for (const r of res) md.push(r.falhou ? `| ${r.acao} | ${r.freio === 1 ? 'normal' : r.freio + '× mais lento'} | | | NÃO RODOU: ${r.falhou} |${BASE_ARQ ? ' NÃO RODOU |' : ''}` : `| ${r.acao} | ${r.freio === 1 ? 'normal' : r.freio + '× mais lento'} | ${r.ms} ms | ${r.meta} ms | ${r.fora ? 'FORA' : 'dentro'} |${BASE_ARQ ? ` ${r.base} |` : ''}`);
 writeFileSync(`${OUT}/auditoria-rapidez.md`, md.join('\n') + '\n'); console.log(md.slice(4).join('\n'));
 if (BASE_ARQ) console.log(`\nContra a linha de base: ${piorou ? piorou + ' ação(ões) PIORARAM ou não rodaram' : 'nenhuma piorou'}.`);

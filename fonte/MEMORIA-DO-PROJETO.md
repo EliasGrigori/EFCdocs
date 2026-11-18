@@ -1,22 +1,29 @@
-# MEMÓRIA DO PROJETO — EFCdocs
+# MEMÓRIA DO PROJETO · Vértice Docs (EFCdocs)
 
-Atualizado em 13/11/2026 · App **Vértice Docs** (R23) · GitHub e site na **v0.6.14** (commit 059ea4d, 13/11) · **v0.6.14 aprovada inteira e publicada em 13/11** · próxima: v0.6.15 "Cara do Cwork"
+Atualizado em 17/11/2026 · Organizada pelo modelo do Método Sabiá 2.1 (`scripts/sabia/modelos/MEMORIA-DO-PROJETO.modelo.md`) · No ar desde 17/11: **v0.6.21 parte 3** · Próximo: **v0.6.22** (pinça no celular e arrastar arquivos)
 
-> **Este arquivo é a memória do projeto.** O Claude lê ele PRIMEIRO em toda conversa nova e grava de volta ao fechar cada versão.
-> Ele viaja em toda entrega (pasta da versão, ZIP da fonte e repositório), para nada se perder.
-> **Para o Elias:** diga "regra nova: ..." (ou "grava isso") e o Claude coloca na seção 2, com a data, na mesma hora. Nada que você disser como regra fica só na conversa.
-> Detalhe de cada versão (itens aprovados, achados do Grok, números dos testes): `ESTADO.md` e `PROGRESSO.md`.
+Arquivo único com tudo que foi feito, o que falta e as versões. Ler antes de qualquer trabalho. Sobe junto com cada versão. Nunca guardar aqui dado real, senha ou chave.
 
 ---
 
-## 1. Quem usa e como
+## 1. Como usar
+
+- **Quem lê:** a IA, PRIMEIRO, em toda conversa nova e antes de cada etapa; grava de volta ao fechar cada versão. Junto com ela: `FICHA-DO-SISTEMA.md` (o que adapta o método a este sistema), depois `ESTADO.md` e `PROGRESSO.md` só no trecho da próxima versão.
+- **Para o Elias:** diga "regra nova: ..." (ou "grava isso") e a IA coloca na seção 2, com a data, na mesma hora. Nada que você disser como regra fica só na conversa.
+- **Como atualizar:** regra permanente vira linha `R..` na seção 2; decisão aprovada vai também para "Decisões aprovadas" (2.2); defeito relatado vira linha `D-..` na seção 5; todo o resto entra **no fim do registro** (seção 10), com data.
+- Este arquivo viaja em toda entrega (pasta da versão, ZIP da fonte e repositório), para nada se perder. Detalhe de cada versão (itens aprovados, achados do Grok, números dos testes): `ESTADO.md` e `PROGRESSO.md`.
+- Antes de tudo, conferir as versões do `EliasGrigori/EFC-Claude-Base` (R33).
+
+### Quem usa e como
 
 - Elias, dono do projeto: trabalha com Controle e Gestão da Qualidade; desenvolvedor júnior com apoio de IA. Escreve em português informal.
 - **Testa em computador com tela de toque** (Windows, Chrome/PWA). Todo defeito de rolagem, arrastar e clique precisa ser pensado para toque e mouse.
 - O agente de testes **Grok** recebe um roteiro por versão e devolve um relatório; quem decide o que entra é o Elias.
 - App: PWA em React 19 + esbuild. Repositório `EliasGrigori/EFCdocs`; site `eliasgrigori.github.io/EFCdocs/`. Três módulos: **Planilha**, **Documento (Docx)** e **Post-its/Quadro**.
 
-## 2. Regras permanentes do Elias (valem em toda versão)
+## 2. Regras do dono (numeradas, com data)
+
+### 2.1 Regras permanentes do Elias (valem em toda versão; a mais nova ganha da mais antiga)
 
 | Nº | Regra | Desde |
 |---|---|---|
@@ -51,18 +58,90 @@ Atualizado em 13/11/2026 · App **Vértice Docs** (R23) · GitHub e site na **v0
 | R29 | **Publicar sem esperar a ordem (14/11/2026, 07:22):** "te autorizo publicar tudo sempre que estiver finalizado, porém você deve sempre me comunicar que o fez". Versão finalizada (testada, auditada e aprovada ou fechada) pode ser publicada pela IA sem pedir de novo, no mesmo commit com o site montado na raiz; **toda publicação é comunicada ao Elias na hora** (commits, o que foi ao ar, como conferir). Versão ainda não finalizada não se publica. | 14/11/2026 |
 | R30 | **Sempre trazer dúvidas, sugestões e aprova/reprova de tudo (14/11/2026, 08:36):** "tenta sempre me trazer dúvidas, sugestões e fazer um sistema de aprova ou reprova onde eu consiga visualizar todas as melhorias que estão acontecendo". Toda etapa leva uma página onde o Elias **vê cada melhoria** (antes e depois, ou o modelo de tela) com Aprovado/Reprovado e comentário, e mais uma parte de **Dúvidas** (perguntas com opções e a sugestão marcada) e **Sugestões** (ideias que o Claude teve, cada uma também com Aprovado/Reprovado). Vale também para as fases sem código (mapeamento, modelos de tela). Reforça a R02. | 14/11/2026 |
 | R31 | **Layout da família (14/11/2026, 14:42):** o Vértice segue as regras R1 a R14 do layout aprovado no EFCwork v0.6.15, em `docs/REGRAS-DE-LAYOUT.md` (tela parada e só a tabela rola; sem "Mostrando X de Y" nem rodapé; total no selo; ferramentas na linha das abas; cabeçalhos com a mesma medida; situação com bolinha e texto; cartões sem faixa lateral; gaveta com setas e X; linha do tempo da gota; esqueleto; botão dourado nítido; paleta suave; menu da coluna que desliza; movimento só da escala). As peças prontas ficam em `src/layout/` (`efc-layout.js` igual ao pacote, byte a byte; `efc-layout.css` só com o bloco `:root` ligado aos tokens do Vértice). **Não copiar telas do EFCwork.** Cada "Como conferir" vira teste em `scripts/testar-layout.mjs` (`npm run test:layout`). A página de aprovação segue o formato do EFCwork: número do ITEM grande, HOJE e PROPOSTA do app de verdade, imagens que ampliam, "Ver funcionando no app", Aprovado/Reprovado, comentário, Copiar respostas (`scripts/montar-aprovacao-layout.py`). Poucos itens por página, uma mudança por item. **Só publicar no GitHub quando o Elias disser "pode publicar"** (para o trabalho de layout isto vale no lugar da R29). Não mexer no OneDrive dele sem pedido pelo nome. | 14/11/2026 |
+| R32 | **Regra fixa de fluidez (15/11/2026, pacote `fluidez-comandos-efc`):** obrigatória em todas as telas, em `docs/REGRA-DE-FLUIDEZ.md`. Nenhuma troca seca; escala 40/80/150/250/350/400/500 ms; só `transform`, `opacity` e `filter`; sem `transition: all`; nada infinito fora o reflexo do botão dourado; "reduzir movimento" respeitado; sem Spotlight, Glare, Count Up e Magnet; provar com teste (`npm run test:fluidez`) e mostrar com o app de verdade. "Não se preocupe com peso." (Estava só no registro; entrou na tabela em 15/11.) | 15/11/2026 |
+| R33 | **Método Sabiá 2.1 e o repositório `EliasGrigori/EFC-Claude-Base` (15/11/2026, 16:44).** Vale no lugar da R20 (Sabiá 2.0). O repositório (privado, do Claude) guarda o método, o kit, as habilidades, as instruções, o `VERSOES.md` e o `RECOMENDADOS.md`, e **manda**: antes de começar, retomar ou lançar, conferir as versões contra a cópia do projeto e da conta; havendo diferença, atualizar a cópia e dizer ao Elias o que mudou. A habilidade `metodo-sabia` é obrigatória. O projeto guarda o método em `docs/METODO-SABIA.md` e a cópia do kit em `scripts/sabia/` com `KIT-VERSAO`; a cópia **não se edita** no projeto (a configuração das telas fica em `scripts/auditoria/efcdocs.config.json`). | 15/11/2026 |
+| R34 | **Uma regra só para barrar a versão (Sabiá 2.1):** nenhuma medida de **programa** pode piorar contra a linha de base (`docs/auditorias/base-v0.6.21-parte1`); tela ou função nova tem de bater a meta. Cada medida é Programa (barra) ou Olho (vai para a lista de conferência da página de aprovação). | 15/11/2026 |
+| R35 | **Trilhos, revisor novo e os dois números (Sabiá 2.1):** trilho leve para mudança pequena e trilho completo para o resto; em alto risco, revisão por "revisor novo" (um agente que não viu a conversa); resposta a cada achado com uma saída só (corrigir, contestar, perguntar ao dono ou dispensar); conferência de desvio ao retomar; nota do módulo calculada; cada versão anota dois números: tempo gasto e defeitos achados depois da entrega. | 15/11/2026 |
+| R36 | **Programa de ida e volta obrigatório:** o EFCdocs grava arquivos, então tem de ter a ida e volta de planilha, documento e post-it com conferente de fora (`npm run test:idaevolta`, dentro do `npm test` e da auditoria de fidelidade). Documento em Word: o conferente tem de existir no dia em que o Exportar Word ligar (a trava do programa cobra). | 15/11/2026 |
+| R37 | **Floorplan quando entrar o Firebase (v0.9.0):** rodar a varredura de saúde antes de publicar. O primeiro teste no EFCdocs não achou problema de segurança (informado pelo Elias). | 15/11/2026 |
+| R38 | **Fase 3 = 7 dias de uso do dono sem defeito novo** (um defeito novo zera a contagem), com meta absoluta das auditorias, antes da virada. | 15/11/2026 |
+| R39 | **O Grok continua como agente de testes:** procura os defeitos que podem ter passado e faz a **revisão total do sistema**, não só do que mudou. Reforça a R03. | 15/11/2026 |
+| R40 | **Regras fixas do material:** (a) ideias aproveitadas de outros métodos entram com nome próprio; os nomes de origem que o Elias proibiu em 15/11/2026 não aparecem em nenhum arquivo do método (a lista das palavras está na mensagem dele e na memória da conta, não aqui); (b) tudo que o Elias aprovar de recomendação da IA entra no `RECOMENDADOS.md` do repositório; (c) mudança no repositório só com aprovação dele e passando por revisor novo; (d) antes de lançar projeto novo, conferir as versões. | 15/11/2026 |
+| R41 | **Publicar só com "pode publicar"** (15/11/2026: "Perfeito, não publica nada"). Vale para tudo, no lugar da R29 (publicar sozinho) e do antigo "Poste do Github" da R02. Lista de publicação e plano de volta na seção 9 e na ficha. | 15/11/2026 |
 
-## 3. Como entregar uma versão (passo a passo)
+### 2.2 Decisões aprovadas (guardadas na íntegra)
 
-1. Ler esta memória, `ESTADO.md`, `PROGRESSO.md` e só a próxima versão.
-2. Sugerir Modelo/Esforço (R01) e esperar o "pode iniciar".
-3. Código em `fonte/` (git em `/home/claude/EFCdocs-repo`). `npm run build` → `fonte/dist`. `npm test` (regras) e `node scripts/testar-navegador.mjs <endereço> <pasta-de-prints>` (navegador; `FILTRO='a|b'` filtra por pedaços do nome).
-4. Servidor local de teste: `cd /tmp && python3 /tmp/srv/servir.py <porta> <pasta>` (a pasta atual no raiz, versões antigas em `/vXXX/`). Matar antigo: `fuser -k <porta>/tcp`.
-5. Prints de antes e depois só com amostras inventadas; montar a página de aprovação (`scripts/montar-aprovacao.py`), o roteiro do Grok e os 3 ZIPs.
-6. Atualizar `ESTADO.md`, `PROGRESSO.md` e **este arquivo**; enviar tudo.
-7. Só com a ordem do Elias: commit na `main` com o `dist` copiado para a raiz (R11), conferir o Pages.
+**Proposta 01:**
+- N01 EFCdocs em repositório próprio.
+- N02 prefixo efcdocs: no aparelho; apagar normal em rascunho, lançado só Cancelar com motivo.
+- N03 primeiro acesso pelo EFClaudian, depois entra sozinho; sem cadastro = demo.
+- N04 vale o perfil do cadastro.
+- N05 coleções efd_.
+- N06 Principal=Admin, Estrela=Editor, Secundário=Operador, Visitante=Leitor.
+- N07 Cancelar com ícone no canto superior direito.
+- N08 3 módulos, Formulário dentro do Docx, planilha exporta Excel.
+- N09 temas do EFClaudian.
+- N10 mesmo Firebase (docseliasflorencio).
+- N11 ligação com o EFClaudian só no fim; até lá sem login.
+- N12 pasta de atualizações crescente.
+- D1, D3 a D6, D8 a D10, D12, D13, D17 a D19, D21 a D26 como sugeridas. D15 ordem Post-its, Planilha, Docx.
+
+**Proposta 02 (layout), L01 a L09 aprovados:**
+- faixa tipo Excel (A) e barra curta com painel (B), ambas retráteis em 3 níveis; menu lateral retrátil;
+- 16 temas com relevo nas barras (ligado por padrão, em todos os temas); cantos arredondados do EFClaudian (6/8/12 px);
+- barra de status Soma/Média/Contagem; busca "O que você quer fazer?"; explicação de fórmula como editor de código;
+- máximo de recursos do Excel; compatibilidade 99 a 100% nos dois sentidos com varredura de riscos.
+
+**v0.2.0:** B01 a B12 aprovados (B07, busca e catálogo de comandos, aprovado em 25/10).
+
+**v0.4.0:** F01 a F19 aprovados em 25/10 (F05 lista e nomes; F16 lista suspensa na v0.6.0; F18 Operador edita até a v0.6.0; correções em F01, F04, F07, F08, F14, F15, F18 e o item novo das duas abas foram para a v0.4.1).
+
+**v0.3.2:** E01 a E10 aprovados em 25/10 (E03: botão da seta fica como está; E04: PDF como imagem até a v1.0.0; E05: datas de 2000 a 2100; E10: um Ctrl+Z apaga o post-it novo inteiro).
+
+**v0.3.1:** D01 a D11 aprovados em 25/10 (páginas, legenda, tarefa/GUT, Kanban com GUT, barra vertical, cores no celular, Assistente, modelos, PDF por página, nomes Atividade e Entrada/Saída, correções).
+
+**v0.3.0:** C01 a C16 aprovados em 25/10: quadro, Q-001 por item, próximo passo, alinhamento automático, barra da seleção, Kanban, raias/temporizador/minimapa/zoom/localizar, PDF/PNG/imprimir, Operador edita o quadro, "em breve", Petróleo como padrão, barra de módulos no celular, fundo do app instalado, aviso com o módulo, sem recarga na primeira visita, fonte no GitHub.
+
+**Ícone:** arte do Elias; no ícone fica só "EFC"; versão maskable para Android; tela de abertura com "EFCdocs". Melhorias na arte: avisar antes.
+
+**Rodada de 25/10 (madrugada):**
+- Macros: guardadas e devolvidas intactas, não rodam. Botões com ações próprias do EFCdocs. Tabela dinâmica e segmentação: guardadas; edição depois do básico. *(Nota de 11/11: decisão aprovada, mas ainda NÃO cumprida no app; ver D-29.)*
+- Demo: 3 ferramentas, 3 arquivos no aparelho, exporta com "DEMO" e "EFC", sem pastas e sem modelos da empresa.
+- GridCraft: motor em JavaScript na web, separado das telas; converter depois só se valer a pena.
+- Fotos: Firestore comprimido; apagam 15 dias depois de concluído o registro, 45 dias se não concluído; aviso antes e "Baixar fotos"; fica "Foto removida em".
+- Depois de lançado: não se apaga (Cancelar com motivo); a regra de prazo vale só para fotos.
+- Compactação do conteúdo (5 a 10 vezes menor); ficha sem compactar; revisões só com o que mudou.
+- Pastas: criáveis e excluíveis por Principais e Estrela; iniciais Treinamentos, Avaliação de Eficácia, Documentos Internos, Formulários, Fluxogramas; cada uma com Arquivados; vazia exclui com motivo, com lançamentos só arquiva.
+- Revisões no editor: selo, rascunho automático, "Concluir revisão" com motivo, aprovação por Principal em Formulários e Documentos Internos, comparar, linha do tempo, cabeçalho automático, marca OBSOLETO, aviso.
+- Documentos externos (exceção): só importados, controle por validade, avisos 60/30/7 dias, "Renovar", anterior vira Substituído, nunca se apagam sozinhos.
+- Modelos de planilha (cloro, coleta, RNC, Treinamentos): só de teste, sem influenciar o app.
+- Canva: pode olhar à vontade, sem copiar o visual.
+
+**Regra nova (25/10):** toda entrega leva um roteiro de verificação do Grok, com o que foi feito, como conferir e uma lista de outros erros para procurar.
+
+## 3. O que é o sistema
+
+Vértice Docs (repositório e endereço: EFCdocs): app instalável (PWA) com **Planilha** compatível com o Excel, **Documento** e **Quadro** (post-its, Kanban, fluxograma), para o trabalho de Controle e Gestão da Qualidade do Elias e da equipe. Roda no navegador, sem servidor; os arquivos ficam no aparelho. Detalhes, comandos, metas e conferentes: `FICHA-DO-SISTEMA.md`.
+
+### Notas técnicas essenciais
+
+- **Rapidez (v0.6.12): ler `docs/RAPIDEZ.md` antes de mexer em células, motor, gravação ou desenho.** `aba.cel` muda no lugar (diário em `nucleo/diario.js`); o estado antigo não guarda as células antigas; `useMemo` com `[aba.cel]` não dispara mais.
+- `src/planilha/grade.js`: `desenhar` (quadrantes congelados; `parte:'congelado'` desenha só o que fica parado num canvas `.pl-cv-cong` fora do rolador), `corDaGrade`, `CAB_W` (30). `src/planilha/Planilha.jsx`: tela, objetos (`.pl-objs`), guia de arrasto. `src/planilha/xlsx/`: `ler.js`, `gravar.js` (tabelas: `tabelasDaAba`, `nomeDeColunaXlsx`), `zip.js`. `src/docx/`: modelo e medidas do Documento.
+- Tabelas do Excel: o nome da coluna no `table1.xml` tem de ser **idêntico** ao texto da célula do título (espaço no fim conta; quebra de linha vira `_x000a_`).
+- `escapar()` de `xml.js` já protege `_xHHHH_`; não proteger duas vezes.
+- Toque: o navegador rola fora do JavaScript; por isso o parado é desenhado por cima.
+- Seleção, cópia e referências de fórmula são desenhadas **por quadrante**, só com a parte que é dele (v0.6.9.1).
 
 ## 4. Estado atual
+
+- **Fase do método:** Fase 2 (ciclos de versão). Fase 0 (varredura) aprovada em 11/11 e Fase 1 (rede de segurança, v0.6.10) em 11/11; o que faltava da rede pelo Sabiá 2.1, o programa de ida e volta do que fica guardado no aparelho, entrou na v0.6.21 parte 2.
+- **No ar:** v0.6.21 parte 3 (inclui v0.6.19, v0.6.20 e as partes 1 a 3 da v0.6.21), publicada em 17/11/2026 com "pode publicar" (commit no registro), `eliasgrigori.github.io/EFCdocs/`. Antes: v0.6.21 parte 1 publicada em 15/11/2026 19:30 por outra conversa (commit `588acc9`, depois de dois envios do Elias pela tela do GitHub); esta memória não sabia disso até 17/11.
+- **Prontas e não publicadas:** nenhuma.
+- **Próximo (plano de 17/11, respostas do Elias):** ver a seção 7 (Da IA).
+- **Depois:** faixa parte 3 em diante (Dados, Layout da Página, Revisão e Exibir; por último o redesenho dos ícones) · traço à mão nos post-its, no Kanban e no balão (modelo Looseleaf, MIT) · **guardado para depois de tudo (a pedido, 17/11): escrita à mão (tinta) no Quadro, inspirada no brainotes, MIT** · v0.7.0 Documento com a página em papel · v0.8.0 pastas e lançamentos · v0.9.0 nuvem e login (com o Floorplan) · v0.10.0 ligação com o EFClaudian · v1.0.0 revisão final (Fase 3: 7 dias de uso sem defeito novo).
+- **Linha de base das auditorias:** `docs/auditorias/base-v0.6.21-parte1/` (15/11/2026, kit 2.1.0).
+
+### Como estava escrito até 15/11/2026 (história, sem mudar)
 
 - **No ar (12/11/2026):** v0.6.11.1, commit f239db8 (v0.6.11 "Básico que não funciona" e v0.6.11.1 "Planilhas atuais" publicadas juntas; ordem do Elias: "Pode publicar e iniciar a prx etapa"). **v0.6.13 "Guardar e devolver" APROVADA e PUBLICADA em 12/11 (commit d0c1d91). v0.6.14 "Estável nas planilhas reais" PUBLICADA em 13/11 (corrige o erro do Excel no arquivo real: D-50). Aprovada inteira (A01 a E01). **v0.6.15 "Cara do Cwork" APROVADA inteira e PUBLICADA em 13/11 (commit 766ca73).** Ordem nova (D01 aprovado): v0.6.16 Ponte 1 · v0.6.17 Ponte 2 · v0.6.18 Guardar e devolver 2 · v0.6.19 Tabelas vivas · v0.6.20 Imagens e objetos · depois "Faixa igual ao Excel" (R25).** v0.6.12 publicada antes (commit 49e7d59). Antes: v0.6.10.1 (5d5a6d1), v0.6.10 (fa847e1), v0.6.9.1 (9bb3986). Planilha completa em funções: abrir e salvar Excel, fórmulas, gráficos nativos, formas, Painel, impressão e PDF, congelamento, largura e altura.
 - **v0.6.10 "Rede de segurança" aprovada inteira e publicada (11/11/2026).** Não muda o app (só o número da versão): suíte de regras por módulo (322 testes), rede de fidelidade (ida e volta + openpyxl + LibreOffice em pt-BR, `npm run test:fidelidade`), as cinco auditorias contra a linha de base (`npm run auditoria`), anonimizador corrigido (D-21), `docs/CREDITOS.md`, `docs/ARMADILHAS-EXCEL.md`, `features.csv` atualizado. A rede achou 4 defeitos novos de ida e volta (D-20, D-22, D-23, D-24), que vão para a v0.6.11. Leva junto as 4 correções da v0.6.9.2 (D03).
@@ -70,7 +149,7 @@ Atualizado em 13/11/2026 · App **Vértice Docs** (R23) · GitHub e site na **v0
 - **Próxima grande:** v0.7.0 = Documento (editor, POP, formulários, revisões, Word, PDF) + gráfico no Quadro. Já feitos: `src/docx/modelo.js` (blocos, trechos, cabeçalho do POP, sumário) e `src/docx/medidas.js` (larguras Helvetica/Times/Courier, quebra de linha), 11 testes. Arquitetura decidida: edição em fluxo contínuo na largura da folha; páginas de verdade na prévia, no PDF e na impressão; cabeçalho do POP repete em toda página.
 - Depois: v0.8.0 pastas e lançamentos · v0.9.0 nuvem e login · v0.10.0 ligação com o EFClaudian · v1.0.0 revisão final.
 
-## 5. Defeitos relatados pelo Elias e situação
+## 5. Defeitos
 
 | Id | Relato (data) | Causa | Situação |
 |---|---|---|---|
@@ -137,29 +216,23 @@ Atualizado em 13/11/2026 · App **Vértice Docs** (R23) · GitHub e site na **v0
 | D-57 | Rede nas cópias novas (13/11), cópia de frutos | Cor de borda do tema (com clareamento) volta como cor fixa (mesma cor na tela; deixa de seguir o tema). Na triagem: a causa era guardar uma cor só para a borda inteira (lados com cores diferentes viravam a primeira) | **CORRIGIDO na v0.6.15** (`estilos.js › bdcs`, cor por lado; a grade desenha cada lado); teste `testes/excel/v0615.test.mjs` falha na v0.6.14 |
 | D-58 | Rede nas cópias novas (13/11), cópia de frutos | Na 2ª volta, linhas ocultas da aba de tendência mudam (85… viram 79…): o arquivo salvo pelo app, aberto e salvo de novo, não fica igual. Causa: aba com `zeroHeight` e linhas ocultas à mão no fim, que não eram escritas | **CORRIGIDO na v0.6.15** (`gravar.js`); teste em `v0615.test.mjs` falha na v0.6.14 |
 | D-59 | Elias, 13/11 (uso real, com print) | Célula com lista suspensa selecionada; ao rolar, a seta da lista ficava solta por cima do painel congelado (a célula já tinha passado para baixo ou para o lado dele). Reproduzido com `testes/amostras/amostra-v0616.xlsx` (inventada: congelado em B4, lista em C4:C63) | **CORRIGIDO na v0.6.16** (`Planilha.jsx`: a seta, o balão de entrada e o link respeitam o painel congelado); teste no navegador falha na v0.6.15 publicada |
+| D-61 | Elias, 17/11 (uso no celular) | No modo celular não dá para aproximar ou afastar a planilha com o movimento de pinça | ABERTO, a reproduzir (v0.6.22) |
+| D-62 | Elias, 17/11 | Arrastar um arquivo do Excel para dentro do app não é aceito (pediu também Word e PDF) | ABERTO, a reproduzir (v0.6.22) |
 | D-60 | Elias, 13/11 (uso real, com print) | A alça do menu escondido atrapalhava mexer na altura da linha: a área de pegar tinha 26 × 84 px e cobria os números das linhas; com o mouse perto ela crescia para 22 px | **CORRIGIDO na v0.6.16** (`estilo-base.css`: só a beirada de 9 px é da alça; ela cresce só com o mouse em cima); teste no navegador falha na v0.6.15 publicada (0 pontos de borda de linha pegáveis ao lado da alça; agora 18) |
 | A-01 | Rede de fidelidade (v0.6.10): na `amostra-v068.xlsx`, AUX VEL!C8 `SUM(Dados!C2:C4*{1,2,3})` tem valor guardado 2, mas o EFCdocs calcula 9 | O gerador da amostra gravou o 2 de propósito (valor guardado falso) | **Não é defeito**: o LibreOffice recalcula e confirma 9 |
 
-## 6. Pendências
+## 6. Limites conhecidos e o que não deu para provar
 
-**Do Elias:**
-1. Atualizar o app e **conferir se mostra v0.6.9.1** (rodapé do menu "EFCdocs v0.6.9.1").
-2. Testar na tela de toque se os riscos ficam no lugar ao rolar (D-01) e abrir no Excel de verdade um arquivo salvo pelo EFCdocs (D-03: tabelas, velocímetros, logotipo, sem pedido de reparo).
-3. Mandar o endereço/amostra do D-05 e o print do Dashboard (D-07).
-4. Grok: **roteiros v0.6.8, v0.6.9, v0.6.9.2, Fase 0, v0.6.10, v0.6.10.1 e v0.6.11 verificados em 11/11 na v0.6.11** (relatório em `v0.6.11/RELATORIO-GROK-v0.6.11.md`): 64 OK, 1 PARCIAL (D-25, corrigido), 0 falhas; NÃO TESTADO: rodada na build v0.6.10 (zips não chegaram ao Grok), modelos da Fase 0 C01, e o que pede Excel ou aparelho de verdade (soma 15,3 do D-24, cópia anonimizada no Excel, instalar no Windows/Android).
-5. Listar exceções conhecidas; conferir limites do plano grátis do Firebase e a política de TTL das fotos.
-6. **v0.6.10:** mandar a cópia anonimizada da planilha ATUAL; decidir o D-19 (limpar ou não o histórico do Git); responder o roteiro do Grok da v0.6.10; se puder, abrir no Excel de verdade a `amostra-v0610.xlsx` (inventada) e o mesmo arquivo salvo pelo EFCdocs, e comparar "Resumo "!B2 (SUBTOTAL só do que o filtro mostra): é o que prova o D-24 no Excel.
+### O que não deu para provar (lista viva; o detalhe de cada versão está no registro)
 
-**Do Claude:**
-0. Responder ao estudo de refinamento (`ESTUDO-REFINAMENTO-PLANILHA.md`): ordem das versões, faixa contextual ou painel lateral, o que é o "painel estranho".
-1. (feito) v0.6.9.1 publicada. **v0.6.9.2 pronta (D-08, D-09, D-10, L-03): esperar a aprovação e a ordem "Poste do Github"; ao publicar, copiar `fonte/dist/*` para a raiz do repositório no mesmo commit.**
-2. Investigar D-05 e D-06 quando houver dado.
-3. v0.7.0 (Opus 5 · alto): editor do Documento, POP com cabeçalho repetido, sumário, revisões, Word, PDF, impressão; gráfico no Quadro.
-4. Lembrete antigo: gráficos usam motor próprio; trocar por ECharts só se o Elias pedir.
+- Abrir no **Excel de verdade** o que o app salva: "Salvar como Excel" (F05 da v0.5.1), a tabela que cresceu com totais e estilo trocado (v0.6.19), a aba de gráfico, as barras de dados e os gráficos do Excel 2016 (v0.6.18). O ambiente da IA não tem o Excel; os juízes aqui são openpyxl, LibreOffice e os conferentes de regras.
+- O site no endereço depois de publicar: a rede do ambiente não alcança o github.io; o Elias confere o rodapé do menu.
+- O mapa da faixa contra o Excel **do Elias**: os lugares seguem o Excel 365 em português pelo conhecimento do layout, sem os prints da faixa dele.
+- A Ponte com o EFCwork de verdade (o lado dele ainda não existe) e o papel saindo da impressora.
+- A ida e volta do banco roda com o banco na memória (mesmo código de gravar e abrir do app); o IndexedDB do navegador de verdade é coberto pelos testes do navegador, não por esse programa.
+- Registros gravados por versões **anteriores** à v0.6.21 não foram guardados como amostra: a prova de "dados antigos continuam abrindo" começa nos registros da v0.6.21 (`testes/fidelidade/guardados/`).
 
-**Sem solução ainda:** pasta viva no OneDrive (o computador ligado não tem OneDrive).
-
-## 7. Limitações conhecidas do Excel
+### Limitações conhecidas do Excel
 
 - **Macros, tabela dinâmica, segmentação de dados, linha do tempo, botões e caixas de controle e suplementos: voltam do arquivo original ao salvar como Excel (v0.6.13, D-29)**, como vieram; não são editados no app. Vale para arquivo aberto na v0.6.13 ou depois, enquanto o original estiver guardado no aparelho. Com macro, sai .xlsm. Detalhes: `docs/ARMADILHAS-EXCEL.md` item 26.
 - Funções que o EFCdocs ainda não calcula mostram o último valor do Excel (a fórmula fica guardada e volta igual).
@@ -183,16 +256,60 @@ Atualizado em 13/11/2026 · App **Vértice Docs** (R23) · GitHub e site na **v0
 - L-12 (11/11): cópia anonimizada tem valores guardados de fórmula que não batem com os dados trocados (o Excel recalcula ao abrir); na ida e volta de cópia anonimizada, diferença de valor em célula com fórmula não é defeito.
 - Todas as diferenças conhecidas da ida e volta estão em `testes/fidelidade/conhecidas.mjs`; o que sair dessa lista faz o teste falhar. Armadilhas do formato: `docs/ARMADILHAS-EXCEL.md`.
 
-## 8. Notas técnicas essenciais
+## 7. Pendências
 
-- **Rapidez (v0.6.12): ler `docs/RAPIDEZ.md` antes de mexer em células, motor, gravação ou desenho.** `aba.cel` muda no lugar (diário em `nucleo/diario.js`); o estado antigo não guarda as células antigas; `useMemo` com `[aba.cel]` não dispara mais.
-- `src/planilha/grade.js`: `desenhar` (quadrantes congelados; `parte:'congelado'` desenha só o que fica parado num canvas `.pl-cv-cong` fora do rolador), `corDaGrade`, `CAB_W` (30). `src/planilha/Planilha.jsx`: tela, objetos (`.pl-objs`), guia de arrasto. `src/planilha/xlsx/`: `ler.js`, `gravar.js` (tabelas: `tabelasDaAba`, `nomeDeColunaXlsx`), `zip.js`. `src/docx/`: modelo e medidas do Documento.
-- Tabelas do Excel: o nome da coluna no `table1.xml` tem de ser **idêntico** ao texto da célula do título (espaço no fim conta; quebra de linha vira `_x000a_`).
-- `escapar()` de `xml.js` já protege `_xHHHH_`; não proteger duas vezes.
-- Toque: o navegador rola fora do JavaScript; por isso o parado é desenhado por cima.
-- Seleção, cópia e referências de fórmula são desenhadas **por quadrante**, só com a parte que é dele (v0.6.9.1).
+**Do dono (em 17/11/2026):**
+1. Respostas que faltam: D3 (telas médias), D5 (Mais funções), D6 (trocar Fable por Opus na habilidade do repositório).
+2. Responder a **D01 da v0.6.19**: desfazer em um passo ou em dois.
+3. Mandar 3 ou 4 prints da faixa do Excel dele (só o topo, sem dados), para conferir os lugares.
+4. Testar no Excel de verdade: "Salvar como Excel" (F05), um arquivo salvo depois de mexer nas tabelas (v0.6.19).
+5. Decidir se troca os gráficos pelo ECharts (D01 da v0.6.0; lembrar em toda entrega até ele decidir).
+6. Responder às perguntas do `docs/ESTUDO-EXCEL-TABELAS-SEGMENTACAO.md` (seção 12), em especial o arquivo-modelo feito no Excel com uma tabela e duas segmentações.
+7. Relatórios do Grok pendentes (R15: a IA não espera por eles).
 
-## 9. Versões (plano e situação)
+**Da IA (ordem de 17/11/2026, pelo Sabiá: o básico que não funciona primeiro):**
+1. **v0.6.22 · básico que não funciona:** D-61 (pinça para dar zoom no celular) e D-62 (arrastar arquivo do Excel para dentro do app não aceita), mais o pedido de arrastar também Word e PDF.
+2. **Filtro de coluna igual ao do EFCwork** (pedido de 17/11): na Planilha e nas listas do menu (formulários, documentos internos, históricos de planilhas e documentos), no mesmo padrão, com mover e reposicionar as colunas. Primeiro estudar o filtro do EFCwork (código ou prints).
+3. **Faixa parte 4:** D7 (juntar os grupos só do Vértice no Exibir, também no Documento e no Quadro), D8 ("Travar modelo" vira "Proteger planilha" em tudo), D4 ("Filtrar" da Página Inicial vira "Classificar e filtrar" com lista) e o redesenho dos ícones.
+4. **D9 (todos):** o que o Excel tem e o Vértice não, em versões próprias, na ordem sugerida e aceita: Texto para colunas e Agrupar/Subtotal primeiro; depois Obter dados, Temas, Plano de fundo, Organizar, Modos de exibição e Nova janela.
+2. Do estudo de tabelas e segmentação (15/11): já feitos na v0.6.19 = T1 (estilo desenhado), T3 (tabela viva) e T4 (aba Design da Tabela e totais). **Faltam:** T0 (guardar o que hoje se perde: função e rótulo de totais, coluna calculada, formatos da tabela, ordenação guardada, estilo personalizado), T2 (um filtro por tabela), S1 a S3 (segmentação), T5 (filtros que faltam), T6 (referências estruturadas de verdade) e a seção 9.1 (agrupar linhas e colunas, minigráficos e intervalos com permissão somem ao salvar: conferir com amostra inventada).
+3. Investigar D-05 e D-06 quando houver dado.
+4. v0.7.0: editor do Documento, POP com cabeçalho repetido, sumário, revisões, Word, PDF, impressão; gráfico no Quadro. **Com o conferente do .docx** (R36).
+5. Passar a medir no Quadro e no Documento a auditoria visual quando forem mexidos.
+
+**Sem solução ainda:** pasta viva no OneDrive (o computador ligado não tem OneDrive).
+
+### Como estava escrito até 15/11/2026 (história, sem mudar)
+
+**Do Elias:**
+1. Atualizar o app e **conferir se mostra v0.6.9.1** (rodapé do menu "EFCdocs v0.6.9.1").
+2. Testar na tela de toque se os riscos ficam no lugar ao rolar (D-01) e abrir no Excel de verdade um arquivo salvo pelo EFCdocs (D-03: tabelas, velocímetros, logotipo, sem pedido de reparo).
+3. Mandar o endereço/amostra do D-05 e o print do Dashboard (D-07).
+4. Grok: **roteiros v0.6.8, v0.6.9, v0.6.9.2, Fase 0, v0.6.10, v0.6.10.1 e v0.6.11 verificados em 11/11 na v0.6.11** (relatório em `v0.6.11/RELATORIO-GROK-v0.6.11.md`): 64 OK, 1 PARCIAL (D-25, corrigido), 0 falhas; NÃO TESTADO: rodada na build v0.6.10 (zips não chegaram ao Grok), modelos da Fase 0 C01, e o que pede Excel ou aparelho de verdade (soma 15,3 do D-24, cópia anonimizada no Excel, instalar no Windows/Android).
+5. Listar exceções conhecidas; conferir limites do plano grátis do Firebase e a política de TTL das fotos.
+6. **v0.6.10:** mandar a cópia anonimizada da planilha ATUAL; decidir o D-19 (limpar ou não o histórico do Git); responder o roteiro do Grok da v0.6.10; se puder, abrir no Excel de verdade a `amostra-v0610.xlsx` (inventada) e o mesmo arquivo salvo pelo EFCdocs, e comparar "Resumo "!B2 (SUBTOTAL só do que o filtro mostra): é o que prova o D-24 no Excel.
+
+**Do Claude:**
+0. Responder ao estudo de refinamento (`ESTUDO-REFINAMENTO-PLANILHA.md`): ordem das versões, faixa contextual ou painel lateral, o que é o "painel estranho".
+1. (feito) v0.6.9.1 publicada. **v0.6.9.2 pronta (D-08, D-09, D-10, L-03): esperar a aprovação e a ordem "Poste do Github"; ao publicar, copiar `fonte/dist/*` para a raiz do repositório no mesmo commit.**
+2. Investigar D-05 e D-06 quando houver dado.
+3. v0.7.0 (Opus 5 · alto): editor do Documento, POP com cabeçalho repetido, sumário, revisões, Word, PDF, impressão; gráfico no Quadro.
+4. Lembrete antigo: gráficos usam motor próprio; trocar por ECharts só se o Elias pedir.
+
+**Sem solução ainda:** pasta viva no OneDrive (o computador ligado não tem OneDrive).
+
+## 8. Versões
+
+### Versões pelo Sabiá 2.1 (com trilho e os dois números)
+
+| Versão | Data | Assunto | Trilho | Situação | Tempo gasto | Defeitos achados depois da entrega |
+|---|---|---|---|---|---|---|
+| v0.6.21 parte 2 | 15/11/2026 | Sabiá 2.1 no projeto (kit, ficha, memória, linha de base, ida e volta) e faixa das abas Inserir e Fórmulas | Completo (mexe na rede de segurança e em material do método) | APROVADA inteira em 17/11/2026 (11 de 11); PUBLICADA em 17/11/2026 junto com a parte 3 | cerca de 1 h 30 em duas sessões (15/11 16:44–17:38 e 17/11 19:42–20:10; a pausa de dois dias não conta) | a contar até a versão seguinte |
+| v0.6.21 parte 3 | 17/11/2026 | Faixa das abas Layout da Página, Dados, Revisão e Exibir nos lugares do Excel | Completo (junta impressão, dados e exibição; mexe em Planilha.jsx) | Aprovada pela ordem "pode publicar" e PUBLICADA em 17/11/2026 | cerca de 1 h 20 (17/11 20:51–22:10) | a contar até a versão seguinte |
+
+As versões anteriores não têm os dois números (o método 2.0 não pedia). O que se sabe delas está na tabela de baixo e no registro.
+
+### Plano e situação (até a v0.6.21 parte 1)
 
 | Versão | O que entra | Modelo · esforço | Situação |
 |---|---|---|---|
@@ -241,58 +358,33 @@ Cada linha completa (itens aprovados, achados do Grok, números dos testes, comm
 |---|---|---|---|
 | v0.6.9.1 | Correções dos prints de 04/11: seleção sob o congelado e risco solto, coluna dos números mais fina (30 px), alça das imagens, tabelas do Excel voltam sem "reparo" (nome das colunas idêntico ao título), aviso de abertura separa as fórmulas com #REF! do Excel; memória do projeto | Sonnet 5.5 · alto | PUBLICADA em 04/11/2026 (commit 9bb3986). 301 regras + 248 navegador |
 
-## 10. Decisões aprovadas (guardadas na íntegra)
+## 9. Como publicar
 
+**Palavra de ordem: "pode publicar"** (R41). Sem ela, nada vai ao GitHub.
 
-**Proposta 01:**
-- N01 EFCdocs em repositório próprio.
-- N02 prefixo efcdocs: no aparelho; apagar normal em rascunho, lançado só Cancelar com motivo.
-- N03 primeiro acesso pelo EFClaudian, depois entra sozinho; sem cadastro = demo.
-- N04 vale o perfil do cadastro.
-- N05 coleções efd_.
-- N06 Principal=Admin, Estrela=Editor, Secundário=Operador, Visitante=Leitor.
-- N07 Cancelar com ícone no canto superior direito.
-- N08 3 módulos, Formulário dentro do Docx, planilha exporta Excel.
-- N09 temas do EFClaudian.
-- N10 mesmo Firebase (docseliasflorencio).
-- N11 ligação com o EFClaudian só no fim; até lá sem login.
-- N12 pasta de atualizações crescente.
-- D1, D3 a D6, D8 a D10, D12, D13, D17 a D19, D21 a D26 como sugeridas. D15 ordem Post-its, Planilha, Docx.
+**Lista de publicação** (tudo no mesmo envio, um commit na `main` de `EliasGrigori/EFCdocs`):
+1. `npm test`, `npm run build` e as auditorias sem piora, no código que foi aprovado.
+2. Copiar o código para `fonte/` (com esta memória, a ficha e `docs/` atualizados).
+3. Apagar a pasta `assets/` da raiz e copiar `fonte/dist/*` para a **raiz** do repositório (R11; sem isso o site fica numa versão velha).
+4. Commit com a versão no título, terminando com `Co-Authored-By: Claude <modelo>` e `Claude-Session: <endereço da sessão>`.
+5. Enviar e conferir com `git ls-remote` que o remoto está no commit novo.
+6. Se algum material do `EFC-Claude-Base` mudou e foi aprovado, atualizar o repositório de materiais no mesmo envio, com a versão nova em `VERSOES.md`.
+7. Avisar o Elias na hora: commit, o que foi ao ar e como conferir (rodapé do menu "Vértice Docs vX").
+8. O Elias confere no endereço (o ambiente da IA não alcança o github.io).
 
-**Proposta 02 (layout), L01 a L09 aprovados:**
-- faixa tipo Excel (A) e barra curta com painel (B), ambas retráteis em 3 níveis; menu lateral retrátil;
-- 16 temas com relevo nas barras (ligado por padrão, em todos os temas); cantos arredondados do EFClaudian (6/8/12 px);
-- barra de status Soma/Média/Contagem; busca "O que você quer fazer?"; explicação de fórmula como editor de código;
-- máximo de recursos do Excel; compatibilidade 99 a 100% nos dois sentidos com varredura de riscos.
+**Plano de volta:** `git revert <commit da versão>` na `main` (desfaz o código de `fonte/` e o site da raiz juntos) e enviar; o Pages volta em 1 a 2 minutos. Os arquivos das pessoas ficam no aparelho e a volta não toca neles; por isso formato de dado guardado não muda sem plano de migração e de volta escrito na versão. Quem decide voltar: o Elias.
 
-**v0.2.0:** B01 a B12 aprovados (B07, busca e catálogo de comandos, aprovado em 25/10).
+### Como entregar uma versão (passo a passo, como estava escrito)
 
-**v0.4.0:** F01 a F19 aprovados em 25/10 (F05 lista e nomes; F16 lista suspensa na v0.6.0; F18 Operador edita até a v0.6.0; correções em F01, F04, F07, F08, F14, F15, F18 e o item novo das duas abas foram para a v0.4.1).
+1. Ler esta memória, `ESTADO.md`, `PROGRESSO.md` e só a próxima versão.
+2. Sugerir Modelo/Esforço (R01) e esperar o "pode iniciar".
+3. Código em `fonte/` (git em `/home/claude/EFCdocs-repo`). `npm run build` → `fonte/dist`. `npm test` (regras) e `node scripts/testar-navegador.mjs <endereço> <pasta-de-prints>` (navegador; `FILTRO='a|b'` filtra por pedaços do nome).
+4. Servidor local de teste: `cd /tmp && python3 /tmp/srv/servir.py <porta> <pasta>` (a pasta atual no raiz, versões antigas em `/vXXX/`). Matar antigo: `fuser -k <porta>/tcp`.
+5. Prints de antes e depois só com amostras inventadas; montar a página de aprovação (`scripts/montar-aprovacao.py`), o roteiro do Grok e os 3 ZIPs.
+6. Atualizar `ESTADO.md`, `PROGRESSO.md` e **este arquivo**; enviar tudo.
+7. Só com a ordem do Elias: commit na `main` com o `dist` copiado para a raiz (R11), conferir o Pages.
 
-**v0.3.2:** E01 a E10 aprovados em 25/10 (E03: botão da seta fica como está; E04: PDF como imagem até a v1.0.0; E05: datas de 2000 a 2100; E10: um Ctrl+Z apaga o post-it novo inteiro).
-
-**v0.3.1:** D01 a D11 aprovados em 25/10 (páginas, legenda, tarefa/GUT, Kanban com GUT, barra vertical, cores no celular, Assistente, modelos, PDF por página, nomes Atividade e Entrada/Saída, correções).
-
-**v0.3.0:** C01 a C16 aprovados em 25/10: quadro, Q-001 por item, próximo passo, alinhamento automático, barra da seleção, Kanban, raias/temporizador/minimapa/zoom/localizar, PDF/PNG/imprimir, Operador edita o quadro, "em breve", Petróleo como padrão, barra de módulos no celular, fundo do app instalado, aviso com o módulo, sem recarga na primeira visita, fonte no GitHub.
-
-**Ícone:** arte do Elias; no ícone fica só "EFC"; versão maskable para Android; tela de abertura com "EFCdocs". Melhorias na arte: avisar antes.
-
-**Rodada de 25/10 (madrugada):**
-- Macros: guardadas e devolvidas intactas, não rodam. Botões com ações próprias do EFCdocs. Tabela dinâmica e segmentação: guardadas; edição depois do básico. *(Nota de 11/11: decisão aprovada, mas ainda NÃO cumprida no app; ver D-29.)*
-- Demo: 3 ferramentas, 3 arquivos no aparelho, exporta com "DEMO" e "EFC", sem pastas e sem modelos da empresa.
-- GridCraft: motor em JavaScript na web, separado das telas; converter depois só se valer a pena.
-- Fotos: Firestore comprimido; apagam 15 dias depois de concluído o registro, 45 dias se não concluído; aviso antes e "Baixar fotos"; fica "Foto removida em".
-- Depois de lançado: não se apaga (Cancelar com motivo); a regra de prazo vale só para fotos.
-- Compactação do conteúdo (5 a 10 vezes menor); ficha sem compactar; revisões só com o que mudou.
-- Pastas: criáveis e excluíveis por Principais e Estrela; iniciais Treinamentos, Avaliação de Eficácia, Documentos Internos, Formulários, Fluxogramas; cada uma com Arquivados; vazia exclui com motivo, com lançamentos só arquiva.
-- Revisões no editor: selo, rascunho automático, "Concluir revisão" com motivo, aprovação por Principal em Formulários e Documentos Internos, comparar, linha do tempo, cabeçalho automático, marca OBSOLETO, aviso.
-- Documentos externos (exceção): só importados, controle por validade, avisos 60/30/7 dias, "Renovar", anterior vira Substituído, nunca se apagam sozinhos.
-- Modelos de planilha (cloro, coleta, RNC, Treinamentos): só de teste, sem influenciar o app.
-- Canva: pode olhar à vontade, sem copiar o visual.
-
-**Regra nova (25/10):** toda entrega leva um roteiro de verificação do Grok, com o que foi feito, como conferir e uma lista de outros erros para procurar.
-
-## 11. Registro de regras e pedidos novos (acrescentar sempre no fim, com data)
+## 10. Registro por data (acrescentar sempre no fim)
 
 - 04/11/2026 · R14: criar e manter esta memória; toda regra dada vira linha aqui e viaja com cada versão.
 - 04/11/2026 · Pedido: documentar tudo o que foi feito, tudo o que falta e as versões, para não perder dado; o Claude lê isto sempre que precisar.
@@ -374,3 +466,11 @@ Cada linha completa (itens aprovados, achados do Grok, números dos testes, comm
 - 15/11/2026 (15:13) · **Looseleaf (github.com/kevintngo/looseleaf, licença MIT) como modelo de aparência, decisões do Elias:** (1) o traço à mão entra só nos post-its, no Kanban e no balão de comentário; listas, menus, janelas e faixa continuam no layout da família; (2) a fonte de letra de mão só no texto do post-it; (3) fazer DEPOIS da faixa de cima igual ao Excel. Não instalar a biblioteca (Tailwind, Radix, TypeScript): refazer no CSS do Vértice só o que for usado e registrar crédito e licença em `docs/CREDITOS.md`. Ordem combinada: faixa de cima (R25) → traço à mão nos post-its → futuro Word com a página em papel.
 - 15/11/2026 (15:40) · Elias: **"Pode iniciar, faz seu melhor, quero que seja bem parecido com Excel, locais e posicionamento, para atrair quem é do Excel, mas deve ter sua graça própria, belo, elegante, com o melhor da fluidez e transições."** Ele não mandou os prints do Excel dele e não respondeu às três decisões; segui: posição padrão do Excel 365 em português; Células vira três botões com lista (Inserir, Excluir, Formatar); redesenho dos ícones fica para uma parte só dele.
 - 15/11/2026 · **v0.6.21, FAIXA IGUAL AO EXCEL (R25), PARTE 1 (Página Inicial da Planilha) ENTREGUE para aprovação; não publicada.** Grupos na ordem do Excel (Área de transferência, Fonte, Alinhamento, Número, Estilos, Células, Edição). Tipos novos de item em `src/ui/faixa.jsx`: `pilha` (duas linhas; cada linha aceita id de comando, `'|'` separador, `['cx', chave]` caixa de valor e `['t', id]` botão com nome), e dentro de `col` o `['menu', chave]` (botão com lista). `CAIXAS_FAIXA` (fonte, tamanho, numero) e `MENUS_FAIXA` (inserir, excluir, formatar, preencher, limpar); `ListaFaixa` (lista em portal dentro de `.app`, posição fixa, Esc uma camada, setas do teclado, clique fora). Estilos em `src/ui/faixa-excel.css`. A escolha de uma caixa vai como **"comando|valor"** (`formatar.fonte|f:Arial`, `formatar.fonte|t:16`, `formatar.formatoNumero|moeda`): `App.jsx › executar` aplica as regras do comando de base e repassa o id inteiro ao editor; `cx.valorDe('valor.fonte'|'valor.tamanho'|'valor.numero')` lê o valor da célula ativa. Comandos novos: `formatar.cima/meio/baixo` (campo `av` do estilo, que já existia: 't', 'm', ausente = embaixo), `formatar.aumentarFonte/diminuirFonte`. Listas de letras e tamanhos em `src/planilha/fontes.js`. **Modo apertado** (`data-aperto` na faixa): antes de mandar grupo para o "Mais", os botões pequenos ficam só com o ícone; em 1280 com o menu aberto cabem os sete grupos. **Defeito antigo corrigido:** a conta do que cabe não somava o espaço entre os grupos. "Linha do tempo" saiu do grupo Edição (fica na barra de cima). Teste novo: `scripts/testar-faixa.mjs` (`npm run test:faixa`, 19 conferências). Testes antigos que clicavam em inserir/excluir linha na Página Inicial agora abrem a lista (`abreLista` em `testar-navegador.mjs`). Não cria campo novo no banco. Dúvidas abertas com o Elias: D1 (nomes do grupo Estilos como no Excel), D2 (altura da linha e largura da coluna no Formatar), D3 (telas médias), D4 (Classificar e Filtrar juntos).
+- 15/11/2026 (16:29) · **v0.6.21, faixa igual ao Excel, PARTE 1 (Página Inicial) APROVADA inteira** (itens 1 a 9, sem comentários). Elias: "próxima etapa". Dúvidas D1 a D4 sem resposta; levadas para a parte 2. NÃO publicada: só com "pode publicar".
+- 17/11/2026 (19:32) · Elias mandou o link github.com/swimmingbrain/brainotes (braiNOTES, MIT, Svelte 5, escrita à mão no navegador) e perguntou como integrar ao EFCdocs, pedindo o Sabiá novo. Conferi o repositório EFC-Claude-Base: continua Sabiá 2.1.0 e a habilidade da conta é igual à do repositório. Estudo de fora feito (licença MIT, autor único, último commit 13/10/2026, 3 estrelas); teste prático só do perfect-freehand (MIT, 1,9 KB compactado, 0,24 ms por traço de 300 pontos). Proposta: reaproveitar as ideias e só o perfect-freehand, não o código Svelte; começar por caneta no Quadro. **Elias (19:42): deixar para depois de concluir tudo (depois da v1.0.0 ou quando ele chamar); fica só registrado, fora do plano atual. Não está no RECOMENDADOS.md.** Resumo da proposta guardada: item "tinta" no Quadro (caneta, borracha, cores, pressão, regra da palma), escrever dentro do post-it, papéis pautado/quadriculado/pontilhado, rubrica com o mesmo motor; alto risco (formato do Quadro: plano de volta, ida e volta, revisor novo); crédito em `docs/CREDITOS.md`. Estudo em `/home/claude/estudo-fora/` (fora do projeto). Mesmo pedido: Elias disse que **não precisa mais publicar** as versões pedidas antes (v0.6.19, v0.6.20, v0.6.21 parte 1 seguem prontas e não publicadas).
+- 17/11/2026 (19:43) · Elias: **não tem mais acesso ao Fable.** O papel Forte (e o que estava sugerido como Fable 5.2 · alto) passa para **Opus 5.5 · alto**. Mesmo dia (19:42): "vamos dar continuidade aonde paramos do Vértice" = fechar a v0.6.21 parte 2 (testes, auditorias, página de aprovação, roteiro do Grok).
+- 17/11/2026 (20:00) · Elias mandou o pacote "metodo-sabia-v2.1.1-para-aprovar" (feito em outra conversa, sem acesso ao GitHub). Comparado com o EFC-Claude-Base (commit d65dd35): as 7 mudanças já estão no repositório desde 15/11; o método e a habilidade são iguais (só muda o número do cabeçalho); o `RECOMENDADOS.md` do pacote é um rascunho antigo que apagaria 6 recomendados aprovados. Sugestão dada: reprovar como "já feito"; método continua 2.1.0. Nada foi mudado no repositório.
+- 17/11/2026 (20:10) · **v0.6.21 parte 2 ENTREGUE para aprovação; não publicada.** Abas Inserir e Fórmulas nos lugares do Excel (`src/ui/faixa.jsx`, `src/planilha/biblioteca.js`, `src/planilha/faixaExtra.js`), ícone por tipo de gráfico com a janela já no tipo (`tipoInicial` em `JanelaGrafico`; defeito achado pelo teste e corrigido: `normalizarG` descartava o "escolhido"), AutoSoma com seta, sete gavetas de funções (cada função em uma só), D1 (Formatação condicional / Formatar como tabela) e D2 (altura e largura no Formatar), dica de item de lista ao lado da lista (`src/ui/dica.jsx`), terceiro degrau de aperto. Testes: regras 413/413 (novo `testes/planilha/v0621p2.test.mjs`, 9), faixa 43/43 (antes: 23/43 no app da parte 1), layout 27/27, fluidez 22/22, navegador 278/278 (276 na rodada; os 2 de compatibilidade com a v0.2.0 passaram ao rodar com a cópia servida em /v020/, montada do commit 128424c). Auditorias contra `base-v0.6.21-parte1`: nenhuma lente piorou; app 1.911 KB (+0,7%). Página `APROVACAO-EFCdocs-v0.6.21-faixa-parte2.html` (11 itens, D3 a D6 e D01) e roteiro do Grok Y01 a Y26 com revisão total. Visto nos prints: em 1280 o grupo Edição fica só com ícones por causa dos nomes mais longos de Estilos (dito no item 6).
+- 17/11/2026 (20:51) · **v0.6.21 parte 2 APROVADA inteira** (itens 1 a 11, sem comentários). Elias também aprovou a recomendação sobre o pacote do Sabiá 2.1.1: reprovado como "já feito" (as mudanças já estavam no EFC-Claude-Base desde 15/11) e o `RECOMENDADOS.md` do pacote NÃO sobe; método continua 2.1.0. "Pode seguir o próximo passo" = faixa parte 3 (Dados, Layout da Página, Revisão, Exibir), Opus 5.5 · alto. D3 a D6 sem resposta: seguem as escolhas da página. **Linha de base não muda**: a parte 2 não melhorou as medidas de programa (rapidez oscilou dentro da margem), então continua `base-v0.6.21-parte1`. NÃO publicada (o pedido de publicar foi cancelado em 17/11).
+- 17/11/2026 (22:10) · **v0.6.21 parte 3 ENTREGUE para aprovação; não publicada.** Layout da Página (Configurar página com Margens, Orientação, Tamanho, Área de impressão e Quebras como botões grandes com lista que marca a escolha; Dimensionar para ajustar; Opções de planilha com Exibir a grade, Imprimir a grade e Imprimir A B C e 1 2 3; Do Vértice), Dados (A a Z e Z a A novos, Classificar, Filtro, Limpar novo, Reaplicar; Remover duplicatas e Validação de dados; Tabela dinâmica só em Inserir), Revisão (nomes do Excel; "Travar modelo" aparece como Proteger planilha só na faixa), Exibir (Mostrar, Zoom com 100% novo, Janela com Congelar painéis em lista; Linhas e colunas saiu, está em Formatar). Peças novas: item `['gm', chave]` (botão grande com lista), `['r', id, rótulo]` dentro de col, `valor` nas listas (`menuitemradio` marcado); listas e caixas foram para `src/ui/faixaMenus.js` (faixa.jsx tinha passado de 800 linhas e a auditoria barrou: 811 → 757). Comandos novos: `dados.az`, `dados.za`, `dados.limparFiltro`, `impressao.papel`, `impressao.grade`, `impressao.titulosLC`, `exibir.zoom100`. Os comandos `impressao.*` saíram de Planilha.jsx para `src/planilha/faixaExtra.js` (3613 → 3602 linhas); `estadoFaixaExtra` lê a impressão só quando o botão é dela (defeito achado pelo teste novo antes da entrega). Testes: regras 421/421 (novo `testes/planilha/v0621p3.test.mjs`, 8), faixa 59/59 (antes 46/59), layout 27/27, fluidez 22/22, navegador 278/278 em duas rodadas (na primeira, o caso antigo "meta arrastável" da v0.6.7 falhou uma vez e não reproduziu: 8 de 8 sozinho; **falha intermitente ABERTA**, não corrigida). 5 casos antigos do navegador ajustados (congelar, orientação, Tabela dinâmica, ocultar coluna). Auditorias: nenhuma lente piorou; app 1.921 KB. Página com 10 itens e dúvidas D7 (Exibir em 1280), D8 (nome Travar/Proteger), D9 (o que o Excel tem e o Vértice não), D4 de novo. Roteiro Grok Z01 a Z30.
+- 17/11/2026 (22:15) · Elias respondeu à página da parte 3: **D7 sim, D8 sim, D9 sim (todos), D4 sim**; "sugestão aceita" (ordem de D9: Texto para colunas e Agrupar primeiro); **"pode publicar"**; "podemos ir para o próximo passo". Pediu explicação das dúvidas sem resposta (D3, D5, D6, D01 da v0.6.19). Relatou D-61 (pinça no celular) e D-62 (arrastar Excel não aceita; quer também Word e PDF). Pediu o **filtro de coluna no mesmo sistema do EFCwork**, também nas listas do menu (formulários, documentos internos, históricos), com mover e reposicionar colunas. Ao publicar, achei no GitHub a v0.6.21 parte 1 já publicada em 15/11 19:30 (commit `588acc9`); o código de lá era igual à base da parte 1 desta conversa, então as partes 2 e 3 foram por cima sem perder nada. A parte 3 conta como aprovada pela ordem "pode publicar" (sem respostas item a item).

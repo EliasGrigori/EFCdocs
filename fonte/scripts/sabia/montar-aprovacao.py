@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Método Sabiá 2.0 — Página de aprovação (um arquivo .html só, imagens embutidas).
+"""Método Sabiá 2.1 · kit 2.1.0 — Página de aprovação (um arquivo .html só, imagens embutidas).
 Uso: python3 montar-aprovacao.py <itens.json> <saida.html>
 O itens.json tem: titulo, subtitulo, data, chave (nome para guardar as respostas no aparelho), resumo (html curto),
 numeros [[valor, rótulo], ...] e itens [{cod, titulo, grupo, texto (html), pergunta, fotos [[legenda, caminho-da-imagem], ...], grade: "par"|"tres"|"um"}].

@@ -1,4 +1,4 @@
-/* Método Sabiá 2.0 — Auditoria visual (lente 6.1). Mede cada tela e compara com as metas.
+/* Método Sabiá 2.1 · kit 2.1.0 — Auditoria visual (lente 7.1). Mede cada tela e compara com as metas.
    Uso: node auditoria-visual.mjs <config.json> [pasta-de-saída] [--base <auditoria-visual.json ou pasta da linha de base>]
    Sem --base: sai com erro (código 1) se alguma meta não for batida: serve de trava da versão.
    Com --base (regra "não pode piorar", enquanto o sistema está abaixo da meta): sai com erro se alguma medida PIOROU
@@ -80,7 +80,7 @@ if (BASE_ARQ) {
   }
 }
 writeFileSync(`${OUT}/auditoria-visual.json`, JSON.stringify({ metas: METAS, base: BASE_ARQ || null, piorou, telas: linhas }, null, 1));
-const md = ['# Auditoria visual (Método Sabiá 2.0)', '', `Metas: até ${METAS.letras} tamanhos de letra, até ${METAS.cantos} tipos de canto, botão de ${METAS.botaoMinPc} px ou mais no PC e ${METAS.botaoToque} px no toque, sem maiúsculas espaçadas, sem emoji, sem rolagem de lado, console limpo, contraste ${METAS.contraste}.`, '', '| Aparelho | Tela | Letras | Cantos | Botões | Menor | Abaixo do mínimo | Maiúsc. | Contraste fraco | Console | Resultado |' + (BASE_ARQ ? ' Contra a base |' : ''), '|---|---|---|---|---|---|---|---|---|---|---|' + (BASE_ARQ ? '---|' : '')];
+const md = ['# Auditoria visual (Método Sabiá 2.1 · kit 2.1.0)', '', `Metas: até ${METAS.letras} tamanhos de letra, até ${METAS.cantos} tipos de canto, botão de ${METAS.botaoMinPc} px ou mais no PC e ${METAS.botaoToque} px no toque, sem maiúsculas espaçadas, sem emoji, sem rolagem de lado, console limpo, contraste ${METAS.contraste}.`, '', '| Aparelho | Tela | Letras | Cantos | Botões | Menor | Abaixo do mínimo | Maiúsc. | Contraste fraco | Console | Resultado |' + (BASE_ARQ ? ' Contra a base |' : ''), '|---|---|---|---|---|---|---|---|---|---|---|' + (BASE_ARQ ? '---|' : '')];
 for (const r of linhas) md.push(r.falhou ? `| ${r.aparelho} | ${r.tela} | | | | | | | | | NÃO ABRIU: ${r.falhou} |` : `| ${r.aparelho}${r.tema ? ' ' + r.tema.split('=')[1] : ''} | ${r.tela} | ${r.letras} | ${r.cantos} | ${r.botoes} | ${r.menor} | ${r.abaixoDoMinimo} | ${r.maiusculasEspacadas} | ${r.contrasteFraco} | ${r.errosConsole} | ${r.fora.length ? 'FORA: ' + r.fora.join(', ') : 'dentro'} |${BASE_ARQ ? ` ${r.base} |` : ''}`);
 md.push('', `${linhas.length - fora} de ${linhas.length} telas dentro das metas.` + (BASE_ARQ ? ` Contra a linha de base: ${piorou ? piorou + ' tela(s) PIORARAM ou não abriram' : 'nenhuma piorou'}.` : ''));
 writeFileSync(`${OUT}/auditoria-visual.md`, md.join('\n') + '\n'); console.log(md.slice(4).join('\n'));

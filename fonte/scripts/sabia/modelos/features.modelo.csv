@@ -1,0 +1,4 @@
+id;modulo;grupo;funcao;situacao;defeito_ou_falta;acao_no_plano;origem
+F001;<módulo>;<grupo>;<o que a função faz, em poucas palavras>;funciona;;manter;<de onde veio: sistema antigo, original, pedido do dono>
+F002;<módulo>;<grupo>;<função>;com defeito;<o que erra>;consertar na v<…>;<origem>
+F003;<módulo>;<grupo>;<função>;ainda não feito;;fazer na v<…>;<origem>

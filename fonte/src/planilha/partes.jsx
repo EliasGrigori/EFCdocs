@@ -203,9 +203,9 @@ export function JanelaCongelar({ ativa, cong, aoEscolher, aoFechar }) {
 }
 
 /* ---------- inserir função (lista por categoria, com busca) ---------- */
-export function JanelaFuncoes({ aoEscolher, aoFechar }) {
+export function JanelaFuncoes({ aoEscolher, aoFechar, catInicial }) {
   const [q, setQ] = useState('');
-  const [cat, setCat] = useState('');
+  const [cat, setCat] = useState(CATEGORIAS[catInicial] ? catInicial : ''); /* v0.6.21 parte 2: a faixa abre já na gaveta escolhida */
   const sem = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   /* busca pelo começo das palavras (contar acha CONT.SE e "conta"; procurar acha PROCV e "procura") */
   const bate = (f) => {

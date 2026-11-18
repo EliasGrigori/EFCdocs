@@ -30,7 +30,9 @@ export function DicasComandos({ mod }) {
         }
         if (!conteudo) return;
         const r = el.getBoundingClientRect();
-        setDica({ ...conteudo, x: r.left + r.width / 2, y: r.bottom + 6, topo: r.top });
+        /* v0.6.21 parte 2: item de lista da faixa: a dica fica ao lado, para não cobrir os itens de baixo */
+        if (el.closest('.rb-lista')) setDica({ ...conteudo, lado: r.right + 10, y: r.top, topo: r.top });
+        else setDica({ ...conteudo, x: r.left + r.width / 2, y: r.bottom + 6, topo: r.top });
       }, ESPERA);
     };
     const saiu = (ev) => { if (alvo.current && !(ev.relatedTarget && alvo.current.contains && alvo.current.contains(ev.relatedTarget))) esconder(); };
@@ -55,7 +57,7 @@ export function DicasComandos({ mod }) {
   }, [mod]);
   if (!dica) return null;
   const larg = 260;
-  const esq = Math.max(8, Math.min(dica.x - larg / 2, innerWidth - larg - 8));
+  const esq = Math.max(8, Math.min(dica.lado != null ? dica.lado : dica.x - larg / 2, innerWidth - larg - 8));
   return (
     <div className="dica-cmd" role="tooltip" style={{ left: esq, top: dica.y, width: larg }}>
       <div className="dica-t"><b>{dica.nome}</b>{dica.atalho && <kbd>{dica.atalho}</kbd>}</div>
