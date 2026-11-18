@@ -93,10 +93,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.23', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.23.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.23'), 'menu sem v0.6.23');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.23.1'), 'menu sem v0.6.23.1');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -4319,6 +4319,18 @@ await caso('v0.6.7: aba Gráfico: Duplicar, Baixar imagem, barras de erro, meta 
   await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(300);
   const meta = Number((await p.locator('[data-ge="meta"]').inputValue()).replace(',', '.'));
   certo(meta > 0.6, 'a meta subiu arrastando: ' + meta);
+  /* v0.6.23.1 (D-63): a prévia redesenhada no meio do arrasto não pode deixar o arrasto preso no desenho antigo */
+  const box2 = await p.locator('[data-gr-previa] [data-meta-arrastar]').boundingBox();
+  const cx2 = box2.x + box2.width / 2, cy2 = box2.y + box2.height / 2;
+  await p.mouse.move(cx2, cy2); await p.mouse.down();
+  await p.mouse.move(cx2, cy2 - 10, { steps: 2 });
+  await p.evaluate(() => { const pv = document.querySelector('[data-gr-previa]'); pv.innerHTML = pv.innerHTML; });
+  await p.mouse.move(cx2, cy2 + 30, { steps: 4 }); await p.mouse.up(); await p.waitForTimeout(300);
+  const meta2 = Number((await p.locator('[data-ge="meta"]').inputValue()).replace(',', '.'));
+  /* a linha desceu 30 px: o valor tem de seguir a escala da prévia que está na tela */
+  const [v0, p0, v1, p1] = (await p.locator('[data-gr-previa] [data-meta-arrastar]').getAttribute('data-meta-arrastar')).split(',').map(Number);
+  const esperado = meta + (30 * (v1 - v0)) / (p1 - p0);
+  certo(Math.abs(meta2 - esperado) < 0.03, 'redesenho no meio: a meta seguiu a linha: ' + meta + ' -> ' + meta2 + ' (esperado ' + esperado.toFixed(2) + ')');
   await p.locator('[data-ge-aba="series"]').click(); await p.locator('[data-ge-op="erro:pct"]').click(); await p.waitForTimeout(300);
   certo((await p.locator('[data-gr-previa] [data-erro]').count()) > 3, 'barras de erro na prévia');
   await print(p, 'v067-editor');

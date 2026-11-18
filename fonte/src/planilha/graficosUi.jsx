@@ -268,6 +268,8 @@ export function JanelaGrafico({ abaInicial, secao, inicial, tipoInicial, faixaPa
   };
   const metaMove = (ev) => {
     const a = arrMeta.current; if (!a) return;
+    /* v0.6.23.1 (D-63): se a prévia foi redesenhada no meio do arrasto, segue o desenho que está na tela */
+    if (!a.svg.isConnected) { const t = ev.currentTarget.querySelector('[data-meta-arrastar]'); if (!t) return; a.svg = t.ownerSVGElement; a.esc = t.getAttribute('data-meta-arrastar').split(',').map(Number); a.linhas = [...a.svg.querySelectorAll('[data-parte="meta"]')]; }
     const v = valorDaMeta(ev, a); if (v == null) return;
     a.v = v;
     const [v0, p0, v1, p1] = a.esc, y = p0 + ((v - v0) * (p1 - p0)) / (v1 - v0);
