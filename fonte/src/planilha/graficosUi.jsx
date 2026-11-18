@@ -9,6 +9,7 @@ import { TIPOS_GRAFICO, NOME_TIPO, normalizarG, recomendar, cartaControle, numer
 import { svgDoGrafico, svgDoPlano, planoDoGrafico, TEMA_CLARO } from './desenhoGrafico.js';
 import { seriesDe, juntar, clonar, ESTILOS_RAPIDOS, LAYOUTS_RAPIDOS, PALETAS, fxDoEstilo, fxDoLayout, aplicarPacote, pacoteCores } from './graficoPlano.js';
 import { PainelCores } from './cores.jsx';
+import './graficosUi.css';
 
 /** O desenho (SVG) do gráfico, no tamanho pedido. */
 export function GraficoView({ g, dados, w, h, tema = TEMA_CLARO, lerFaixa }) {
@@ -319,7 +320,7 @@ export function JanelaGrafico({ abaInicial, secao, inicial, tipoInicial, faixaPa
         <div className="ge-esq">
           <section className="rg-cartao ge-previa-c">
             <span className="rg-cab">Prévia <em>clique numa parte para mudar</em></span>
-            <div className="gr-previa ge-previa" data-gr-previa onClick={aoClicarPrevia} onPointerDown={metaBaixo} onPointerMove={metaMove} onPointerUp={metaSolta} onPointerCancel={() => { arrMeta.current = null; }} dangerouslySetInnerHTML={{ __html: svg }} />
+            <div className="gr-previa ge-previa" data-gr-previa data-com-meta={typeof g.op.meta === 'number' && !ehX ? '' : undefined} onClick={aoClicarPrevia} onPointerDown={metaBaixo} onPointerMove={metaMove} onPointerUp={metaSolta} onPointerCancel={() => { arrMeta.current = null; }} dangerouslySetInnerHTML={{ __html: svg }} />
             {typeof g.op.meta === 'number' && !ehX && <p className="rg-dica ge-dica-meta">Arraste a linha da meta na prévia para mudar o valor.</p>}
             {erro && <p className="rg-erro" role="alert">{erro}</p>}
           </section>

@@ -27,7 +27,7 @@ import { formatoDaFormula } from './formatoAuto.js';
 import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt, numeroGeral } from './valores.js';
 import * as O from './operacoes.js';
 import * as D from './dados.js';
-import { JanelaClassificar, JanelaDuplicados, JanelaTravar, MenuFiltro } from './dadosUi.jsx';
+import { JanelaClassificar, JanelaDuplicados, JanelaTravar, MenuFiltro, JanelaExpandirOrdem } from './dadosUi.jsx';
 import { objetosDaAba, novaAssinatura, novoGrafico, novaImagem, novoBotao, caberImagem, GR, IMG, BTN, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS, idObjeto } from './objetos.js';
 import { FM, temLink, textoDaForma } from './formas.js';
 import { FormaView, JanelaForma, valoresLigados } from './formasUi.jsx';
@@ -2048,7 +2048,7 @@ export function Planilha({ arquivo, cx }) {
     setJanela(null);
     if (r.lote.vazio) { cx.avisar('Já estava nessa ordem.', { ic: 'classificar' }); return null; }
     aplicarLote(r.lote, 'Classificar');
-    cx.avisar(`${r.linhas} linhas em ordem. Dá para desfazer.`, { ic: 'classificar' });
+    cx.avisar(`${r.linhas} linhas em ordem.${r.total != null ? ` A linha de total (${r.total + 1}) ficou embaixo.` : ''} Dá para desfazer.`, { ic: 'classificar' });
     return null;
   };
   const gravarFiltro = (fil, rotulo) => {
@@ -2150,7 +2150,7 @@ export function Planilha({ arquivo, cx }) {
     const extra = tratarFaixaExtra(id, { ed, novoGrafico: novoGraficoJanela, autoSoma, usarFuncao, procurarFuncao: (cat) => setJanela({ tipo: 'funcoes', cat }), tamanho: (a) => pedirTamanho({ cx, mudar, abaId, ...a }), ajustar: (a) => ajustarTamanho({ mudar, abaId, autoAjustar, ...a }),
       medida: (ehCol) => { const f = normalFaixa(faixa), i = ehCol ? f.c1 : f.l1, n = (ehCol ? f.c2 : f.l2) - i + 1; return { i, n, atual: ehCol ? colunas.tam(i) || largPadrao(aba) : linhas.tam(i) || altPadrao(aba) }; },
       imp: normalizarImp(aba.imp), mudarImp, janelaImp: (secao) => setJanela({ tipo: 'imprimir', secao }), avisar: cx.avisar, faixa, ativa: sel.ativa, zoom: setZ, congelar: (v, rot) => mudar({ [`conteudo.abas.${abaId}.cong`]: v }, rot),
-      ordenar: (desc) => { const f = areaDeDados(), e = f.l2 - f.l1 < 1 ? 'Clique numa célula da tabela para pôr em ordem.' : aplicarClassificar(f, { niveis: [{ col: sel.ativa.c, desc }], cabecalho: temCabecalho(f) }); if (e) cx.avisar(e, { ic: 'aviso' }); },
+      ordenar: (desc) => { const f = areaDeDados(), rg = D.pedeExpandir(f, regiaoAtual(f.l1, f.c1)); if (rg) { setJanela({ tipo: 'expandirOrdem', f, rg, desc, col: sel.ativa.c }); return; } const e = f.l2 - f.l1 < 1 ? 'Clique numa célula da tabela para pôr em ordem.' : aplicarClassificar(f, { niveis: [{ col: sel.ativa.c, desc }], cabecalho: temCabecalho(f) }); if (e) cx.avisar(e, { ic: 'aviso' }); },
       limparFiltro: () => (D.filtroAtivo(aba.fil) ? gravarFiltro(D.semCriterios(aba.fil), 'Limpar filtro') : cx.avisar('Esta aba não tem filtro com critério.', { ic: 'filtro' })) });
     if (extra !== undefined) return extra;
     /* v0.6.21 (faixa igual ao Excel): escolha feita nas caixas da faixa: "comando|valor" */
@@ -2985,6 +2985,8 @@ export function Planilha({ arquivo, cx }) {
 
   const irPelaCaixa = (t) => {
     setCaixaTexto(null);
+    /* v0.6.24.1 (DL01): com a célula em edição, termina a edição antes de ir (fórmula com erro é descartada, como o Esc) */
+    if (editRef.current && !confirmar(null)) cancelar();
     const s = t.trim();
     if (!s) return;
     const end = lerEnderecoCaixa(s);
@@ -3382,6 +3384,8 @@ export function Planilha({ arquivo, cx }) {
         <JanelaClassificar faixa={janela.f} subtitulo={`Vale em ${textoFaixa(janela.f)}`} cabecalho0={janela.cab} colInicial={janela.col} titulos={(cc) => textoDeDados(janela.f.l1, cc)}
           aoAplicar={(x) => aplicarClassificar(janela.f, x)} aoFechar={() => setJanela(null)} />
       )}
+      {janela && janela.tipo === 'expandirOrdem' && <JanelaExpandirOrdem coluna={textoFaixa(janela.f)} area={textoFaixa(janela.rg)} aoFechar={() => setJanela(null)}
+        aoEscolher={(exp) => { const a = exp ? janela.rg : janela.f; setJanela(null); const e = aplicarClassificar(a, { niveis: [{ col: janela.col, desc: janela.desc }], cabecalho: temCabecalho(a) }); if (e) cx.avisar(e, { ic: 'aviso' }); }} />}
       {janela && janela.tipo === 'duplicados' && (
         <JanelaDuplicados faixa={janela.f} subtitulo={`Procura em ${textoFaixa(janela.f)}`} cabecalho0={janela.cab} titulos={(cc) => textoDeDados(janela.f.l1, cc)}
           contar={(cols, cab) => D.acharDuplicados(janela.f, cols, { cabecalho: cab, valorDe: valorDeDados }).length}

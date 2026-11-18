@@ -245,7 +245,8 @@ export const ATALHOS = {
   postits: {
     ...COMUNS,
     'editar.duplicar': 'Ctrl+D', 'editar.excluir': 'Delete', 'inserir.proximo': 'Tab',
-    'formatar.negrito': 'Ctrl+B', 'formatar.italico': 'Ctrl+I', 'formatar.sublinhado': 'Ctrl+U',
+    /* v0.6.24.1 (V05): iguais aos da planilha (Excel em português) */
+    'formatar.negrito': 'Ctrl+N', 'formatar.italico': 'Ctrl+I', 'formatar.sublinhado': 'Ctrl+S', 'arquivo.salvar': 'Ctrl+B',
   },
   docx: { ...COMUNS },
 };

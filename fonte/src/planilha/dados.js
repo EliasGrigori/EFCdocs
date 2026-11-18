@@ -8,6 +8,7 @@ import { chave, lerChave, MAX_COL, MAX_LIN, letraCol, normalFaixa, lerEnderecoCa
 import { Lote, existentes, moverFormula } from './operacoes.js';
 import { mescladas } from './modelo.js';
 import { ehErro } from './valores.js';
+import { reescrever, ajustarEstrutura, lerGuardada, mapearRefs } from './formula.js';
 
 /* ---------- ordem dos valores ---------- */
 const cole = (() => { try { return new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: false }); } catch { return null; } })();
@@ -45,6 +46,28 @@ const linhaTemMescla = (aba, f) => mescladas(aba).some((m) => m.l1 <= f.l2 && m.
 /** Quantidade de linhas de dados (sem o cabeçalho). */
 export const linhasDeDados = (f, cabecalho) => f.l2 - f.l1 + 1 - (cabecalho ? 1 : 0);
 
+/* ---------- v0.6.24.1 (relatório do Grok de 18/11) ---------- */
+/** DL03: a última linha da área é de total quando tem uma fórmula que pega duas ou mais linhas de cima, dentro da área.
+    Ela fica no lugar ao classificar (como quem soma uma lista espera). Devolve a linha ou null. */
+export function linhaDeTotal(aba, l1, l2, c1, c2) {
+  if (l2 - l1 < 2) return null;
+  for (let cc = c1; cc <= c2; cc++) {
+    const x = aba.cel[chave(l2, cc)];
+    if (!x || x.f == null) continue;
+    let acha = false;
+    try { mapearRefs(lerGuardada(x.f), (r) => { if (r.t === 'area' && !r.aba && r.l1 >= l1 && r.l2 < l2 && r.l2 > r.l1) acha = true; return r; }); } catch { /* fórmula que não lê: não é total */ }
+    if (acha) return l2;
+  }
+  return null;
+}
+/** DL02: uma coluna só escolhida, com dados nas colunas ao lado: devolve a região inteira para perguntar "Expandir a seleção?" (como o Excel). */
+export function pedeExpandir(sel, regiao) {
+  const f = normalFaixa(sel), r = regiao && normalFaixa(regiao);
+  if (!r || f.c1 !== f.c2 || f.l2 <= f.l1) return null;
+  if (f.c1 < r.c1 || f.c1 > r.c2 || f.l1 < r.l1 || f.l2 > r.l2) return null;
+  return r.c1 < f.c1 || r.c2 > f.c2 ? r : null;
+}
+
 /* ---------- Classificar ---------- */
 /**
  * Põe as linhas da faixa em ordem.
@@ -55,8 +78,11 @@ export const linhasDeDados = (f, cabecalho) => f.l2 - f.l1 + 1 - (cabecalho ? 1 
  */
 export function classificar(c, abaId, faixa, niveis, { cabecalho = true, valorDe }) {
   const aba = c.abas[abaId];
-  const f = normalFaixa(faixa);
-  const l1 = f.l1 + (cabecalho ? 1 : 0);
+  const f0 = normalFaixa(faixa);
+  const l1 = f0.l1 + (cabecalho ? 1 : 0);
+  /* DL03: a linha de total de baixo fica no lugar */
+  const total = linhaDeTotal(aba, l1, f0.l2, f0.c1, f0.c2);
+  const f = total != null ? { ...f0, l2: f0.l2 - 1 } : f0;
   if (l1 >= f.l2) return { erro: 'Escolha pelo menos duas linhas de dados para pôr em ordem.' };
   if (!niveis || !niveis.length) return { erro: 'Escolha por qual coluna a ordem vale.' };
   for (const n of niveis) if (n.col < f.c1 || n.col > f.c2) return { erro: 'A coluna escolhida está fora da área.' };
@@ -89,7 +115,7 @@ export function classificar(c, abaId, faixa, niveis, { cabecalho = true, valorDe
       lote.por(abaId, chave(destino, cc), nova);
     }
   });
-  return { lote, linhas: linhas.length, mexeu };
+  return { lote, linhas: linhas.length, mexeu, total };
 }
 
 /* ---------- Remover duplicados ---------- */
@@ -120,17 +146,20 @@ export function removerDuplicados(c, abaId, faixa, colunas, { cabecalho = true, 
   const inicio = f.l1 + (cabecalho ? 1 : 0);
   if (!rep.size) return { lote: new Lote(c), removidas: 0, restantes: f.l2 - inicio + 1 };
   const lote = new Lote(c);
+  /* DL04: as fórmulas se ajustam como numa exclusão de linhas (o Excel faz assim): =SOMA(B2:B4) embaixo vira =SOMA(B2:B3),
+     e a fórmula que sobe continua apontando para a própria linha. Antes ela era copiada e o intervalo descia junto. */
+  const apagadas = [...rep].sort((a, b) => b - a);
+  const ajustar = (fx) => apagadas.reduce((g, r) => reescrever(g, (arv) => ajustarEstrutura(arv, { abaAlvo: aba.nome, abaDaFormula: aba.nome, eixo: 'l', i: r, n: -1 })), fx);
   let destino = inicio;
   for (let l = inicio; l <= f.l2; l++) {
     if (rep.has(l)) continue;
-    if (destino !== l) {
-      for (let cc = f.c1; cc <= f.c2; cc++) {
-        const x = aba.cel[chave(l, cc)];
-        if (!x) { lote.por(abaId, chave(destino, cc), undefined); continue; }
-        const nova = { ...x };
-        if (x.f != null) nova.f = moverFormula(x.f, destino - l, 0);
-        lote.por(abaId, chave(destino, cc), nova);
-      }
+    for (let cc = f.c1; cc <= f.c2; cc++) {
+      const x = aba.cel[chave(l, cc)];
+      if (destino === l) { if (x && x.f != null) { const nf = ajustar(x.f); if (nf !== x.f) lote.por(abaId, chave(l, cc), { ...x, f: nf }); } continue; }
+      if (!x) { lote.por(abaId, chave(destino, cc), undefined); continue; }
+      const nova = { ...x };
+      if (x.f != null) nova.f = ajustar(x.f);
+      lote.por(abaId, chave(destino, cc), nova);
     }
     destino++;
   }

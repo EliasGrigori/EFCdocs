@@ -93,10 +93,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.24', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.24.1', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24'), 'menu sem v0.6.24');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24.1'), 'menu sem v0.6.24.1');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -1575,7 +1575,7 @@ await caso('v0.4.3: Ctrl+2 põe negrito; dica mostra Ctrl+N (Excel em português
 await ctx.close();
 
 ({ ctx, p } = await novaPagina());
-await caso('v0.4.3: quadro: dica do Colar fala de post-it, Ctrl+B põe negrito no post-it, faixa compacta', async () => {
+await caso('v0.4.3: quadro: dica do Colar fala de post-it, Ctrl+N põe negrito no post-it, faixa compacta', async () => {
   await p.goto(BASE + '#/postits');
   await p.waitForSelector('[data-novo=postits]');
   await p.click('[data-novo=postits]');
@@ -1592,7 +1592,7 @@ await caso('v0.4.3: quadro: dica do Colar fala de post-it, Ctrl+B põe negrito n
   await cmd(p, 'inserir.postit');
   await p.waitForSelector('.qi-postit');
   await escolher(p, '.qi-postit');
-  await p.keyboard.press('Control+b');
+  await p.keyboard.press('Control+n'); /* v0.6.24.1 (V05): negrito é Ctrl+N, como na planilha; Ctrl+B salva */
   await p.waitForTimeout(150);
   await p.click('.tabs .tab:has-text("Página Inicial")');
   igual(await p.locator('.ribbon [data-cmd="formatar.negrito"]').getAttribute('aria-pressed'), 'true');
@@ -1900,7 +1900,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.24'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.24.1'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -4406,7 +4406,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24.1'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

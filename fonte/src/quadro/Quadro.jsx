@@ -768,8 +768,8 @@ export function Quadro({ arquivo, cx }) {
       if (ctrl && k === 'x') { if (selValida.itens.length) { ev.preventDefault(); copiar(true); } return; }
       if (ctrl && k === 'd') { ev.preventDefault(); duplicar(); return; }
       if (ctrl && k === 'a') { ev.preventDefault(); trata('editar.selecionarTudo'); return; }
-      /* fonte do item: Ctrl+B negrito, Ctrl+I itálico, Ctrl+U sublinhado */
-      if (ctrl && (k === 'b' || k === 'i' || k === 'u') && selValida.itens.length) { ev.preventDefault(); trata(k === 'b' ? 'formatar.negrito' : k === 'i' ? 'formatar.italico' : 'formatar.sublinhado'); return; }
+      /* v0.6.24.1 (V05, decisão do Elias): iguais à planilha (Excel em português): Ctrl+N/Ctrl+2 negrito, Ctrl+I itálico, Ctrl+S sublinhado, Ctrl+B salva */
+      if (ctrl && k === 'b') { ev.preventDefault(); cx.executar('arquivo.salvar'); return; } else if (ctrl && (k === 'n' || k === '2' || k === 'i' || k === 's') && selValida.itens.length) { ev.preventDefault(); trata(k === 'n' || k === '2' ? 'formatar.negrito' : k === 'i' ? 'formatar.italico' : 'formatar.sublinhado'); return; }
       if ((ev.key === 'Enter' || ev.key === 'F2') && umItem) { ev.preventDefault(); comecarEdicao(umItem); return; }
       if (ev.key === 'Tab' && umItem && vista === 'quadro') { ev.preventDefault(); proximo(umItem.id, ev.shiftKey ? 'b' : 'r'); return; }
       const setas = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };

@@ -6,6 +6,27 @@ import { letraCol } from './ref.js';
 /** Nome da coluna para mostrar: "Coluna B (Nome)" quando tem cabeçalho. */
 export const rotuloColuna = (cc, cab, titulo) => `Coluna ${letraCol(cc)}${cab && titulo ? ' (' + String(titulo).slice(0, 28) + ')' : ''}`;
 
+/* ---------- v0.6.24.1 (DL02): uma coluna só com dados ao lado, como o "Aviso de classificação" do Excel ---------- */
+export function JanelaExpandirOrdem({ coluna, area, aoEscolher, aoFechar }) {
+  const [exp, setExp] = useState(true);
+  return (
+    <Janela titulo="Aviso de classificação" icone="classificar" subtitulo={`Há dados ao lado de ${coluna}`} aoFechar={aoFechar} classe="pl-jdados" rodape={(
+      <>
+        <button type="button" className="btn sm" onClick={aoFechar}>Cancelar</button>
+        <button type="button" className="btn sm primary" data-foco data-expandir-ok onClick={() => aoEscolher(exp)}>Classificar</button>
+      </>
+    )}>
+      <div className="janela-c rg-corpo" data-expandir-ordem-janela>
+        <section className="rg-cartao">
+          <span className="rg-cab">Os dados ao lado não serão classificados se você continuar só com a coluna</span>
+          <label className="dd-col"><input type="radio" name="expandir" checked={exp} data-expandir-ordem="expandir" onChange={() => setExp(true)} /><span>Expandir a seleção para {area} (as linhas ficam juntas)</span></label>
+          <label className="dd-col"><input type="radio" name="expandir" checked={!exp} data-expandir-ordem="so" onChange={() => setExp(false)} /><span>Continuar só com {coluna}</span></label>
+        </section>
+      </div>
+    </Janela>
+  );
+}
+
 /* ---------- Classificar ---------- */
 export function JanelaClassificar({ faixa, subtitulo, titulos, cabecalho0, colInicial, aoAplicar, aoFechar }) {
   const cols = [];

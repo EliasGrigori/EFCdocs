@@ -539,7 +539,7 @@ test('v0.4.2: todo botão da faixa tem dica (o que faz) e os atalhos são os que
   const neg = dicaDoComando(PorId['formatar.negrito'], 'planilha');
   assert.equal(neg.atalho, 'Ctrl+N'); /* v0.6.23: Excel em português (Ctrl+B é Salvar) */
   assert.equal(dicaDoComando(PorId['editar.copiar'], 'postits').atalho, 'Ctrl+C');
-  assert.equal(dicaDoComando(PorId['formatar.negrito'], 'postits').atalho, 'Ctrl+B');
+  assert.equal(dicaDoComando(PorId['formatar.negrito'], 'postits').atalho, 'Ctrl+N'); /* v0.6.24.1 (V05): no Quadro também */
 });
 
 /* ---------- v0.4.3: entender a conta e correções do Grok ---------- */
@@ -684,7 +684,7 @@ test('v0.4.3: dicas do quadro sem "fórmula" e "Excel", atalhos B/I/U, e "chega 
   for (const [id, t] of Object.entries(DESCRICAO_MOD.postits)) assert.ok(!/fórmula|Excel/i.test(t), id);
   assert.match(dicaDoComando(PorId['editar.colar'], 'postits').desc, /post-it/);
   assert.match(dicaDoComando(PorId['editar.colar'], 'planilha').desc, /Excel/);
-  assert.equal(dicaDoComando(PorId['formatar.sublinhado'], 'postits').atalho, 'Ctrl+U');
+  assert.equal(dicaDoComando(PorId['formatar.sublinhado'], 'postits').atalho, 'Ctrl+S'); /* v0.6.24.1 (V05): igual à planilha */
   assert.equal(textoChega('v0.5.0'), 'chega na v0.5.0');
   assert.equal(textoChega('depois da v1.0.0'), 'chega depois da v1.0.0');
   for (const id of ['exibir.faixaTudo', 'exibir.faixaAbas', 'exibir.faixaOculta', 'exibir.menuCompleto', 'exibir.menuIcones', 'exibir.menuOculto', 'exibir.layoutA', 'exibir.layoutB']) assert.ok(DESCRICAO[id], id);

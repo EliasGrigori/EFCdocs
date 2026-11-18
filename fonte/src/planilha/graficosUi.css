@@ -1,0 +1,7 @@
+/* Vértice Docs v0.6.24.1 · editor de gráfico (relatório do Grok de 18/11).
+   V01: a coluna da esquerda (.ge-esq) já é presa no topo, mas é mais alta que a janela e rola junto; o cartão da prévia fica preso
+   sozinho, para a linha da meta não sumir atrás do topo ao digitar a meta (causa provável do D-63).
+   V02: com meta, o toque na prévia não rola a janela (o arrasto da linha recebe o dedo). Sem meta, a prévia rola normal. */
+.ge-esq > .ge-previa-c { position: sticky; top: 0; z-index: 2; }
+.ge-previa[data-com-meta] { touch-action: none; } /* atributo em vez de :has (mais leve para o navegador) */
+@media (max-width: 820px) { .ge-esq > .ge-previa-c { position: static; } }
