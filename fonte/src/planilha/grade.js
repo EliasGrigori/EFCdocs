@@ -195,6 +195,7 @@ export function desenhar(p) {
     ctx.beginPath(); ctx.rect(q.x, q.y, q.w, q.h); ctx.clip();
     if (soParado) { ctx.fillStyle = cores.fundo; ctx.fillRect(q.x, q.y, q.w, q.h); }
     desenharCelulas(p, q.L, q.C, mesc, q.reg);
+    if (p.circulos && p.circulos.length) desenharCirculos(p, q);
     desenharSelecao(p, q);
     ctx.restore();
   }
@@ -206,6 +207,20 @@ export function desenhar(p) {
   if (G.cc) { ctx.fillStyle = cores.congelado; ctx.fillRect(Math.round((hw + G.fx - um) / um) * um, 0, um, H); }
 
   desenharCabecalhos(p, mesc);
+  ctx.restore();
+}
+
+/* v0.6.25 (I02): círculo vermelho em volta da célula com valor fora da validação, como o "Circular dados inválidos" do Excel */
+function desenharCirculos(p, q) {
+  const { ctx, G } = p;
+  const [la, lb] = q.L, [ca, cb] = q.C;
+  ctx.save(); ctx.strokeStyle = '#d9262b'; ctx.lineWidth = Math.max(1.5, 1.6 * G.z);
+  for (const { l, c } of p.circulos) {
+    if (l < la || l > lb || c < ca || c > cb) continue;
+    const x = G.xDe(c), y = G.yDe(l), w = G.xFim(c) - x, h = G.yFim(l) - y;
+    if (w <= 0 || h <= 0) continue;
+    ctx.beginPath(); ctx.ellipse(x + w / 2, y + h / 2, w / 2 + 3, h / 2 + 2, 0, 0, Math.PI * 2); ctx.stroke();
+  }
   ctx.restore();
 }
 

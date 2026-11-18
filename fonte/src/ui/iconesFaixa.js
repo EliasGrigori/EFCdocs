@@ -137,6 +137,11 @@ export const NOVOS = {
   classificar: '<path d="M7 4.5v15M4 16.5l3 3 3-3"/><path d="M13.5 6h7M13.5 11h5M13.5 16h3"/>',
   validacao: '<rect class="t" x="3.5" y="5" width="17" height="14" rx="2"/><path d="M8.3 12.2l2.5 2.5 5-5"/>',
   duplicados: '<rect x="3.5" y="3.5" width="11" height="11" rx="2"/><rect class="t" x="9.5" y="9.5" width="11" height="11" rx="2"/><path d="M12.5 15h5"/>',
+  /* v0.6.25: círculo em volta da célula errada, borracha no círculo, barras com a média e linhas sorteadas */
+  circular: '<rect x="8" y="9.5" width="8" height="5" rx="1"/><ellipse class="t" cx="12" cy="12" rx="8.5" ry="5.5"/>',
+  limparCirculos: '<ellipse cx="10.5" cy="10.5" rx="7" ry="4.5"/><path d="M15 15.5l4.5 4.5M19.5 15.5L15 20"/>',
+  estatistica: '<path d="M4 4v16h16"/><rect class="t" x="7" y="12" width="2.6" height="5" rx=".7"/><rect class="t" x="11.2" y="8" width="2.6" height="9" rx=".7"/><rect class="t" x="15.4" y="10" width="2.6" height="7" rx=".7"/><path d="M6 10.5h14" stroke-dasharray="1.6 1.8"/>',
+  amostra: '<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.3h17M3.5 14.6h17"/><circle class="f" cx="7" cy="6.7" r="1.2"/><circle class="f" cx="7" cy="17.3" r="1.2"/><path d="M10 6.7h7M10 17.3h7"/>',
   /* Revisão */
   ortografia: '<path d="M4 15l3.5-9 3.5 9M5.3 12h4.4"/><path d="M12.5 16.5l3 3 5.5-6"/>',
   cadeado: '<rect class="t" x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/><path d="M12 14.5v2"/>',
@@ -272,7 +277,7 @@ export const MAPA = {
   'impressao.ajustar': 'ajustar', 'impressao.configurar': 'imprimir',
   'formula.inserir': 'funcao', 'formula.nome': 'nome', 'formula.nomes': 'nomes', 'planilha.cabecalho': 'linhaTitulos',
   'formula.explicar': 'explicar', 'formula.origem': 'origem', 'formula.fluxo': 'fluxo', 'formula.problemas': 'verificar', 'formula.montar': 'montar',
-  'dados.classificar': 'classificar', 'dados.reaplicar': 'filtroRef', 'dados.validacao': 'validacao', 'dados.duplicados': 'duplicados', 'dados.dinamica': 'dinamica',
+  'dados.classificar': 'classificar', 'dados.reaplicar': 'filtroRef', 'dados.validacao': 'validacao', 'dados.duplicados': 'duplicados', 'dados.dinamica': 'dinamica', 'dados.circular': 'circular', 'dados.limparCirculos': 'limparCirculos', 'dados.estatistica': 'estatistica', 'dados.amostra': 'amostra',
   'revisao.ortografia': 'ortografia', 'revisao.comentarios': 'comentarios', 'revisao.travar': 'cadeado',
   'exibir.congelar': 'congelar', 'exibir.grade': 'grade', 'exibir.folhaClara': 'folhaClara', 'exibir.abaGrafico': 'abaGrafico', 'exibir.barraFormula': 'barraFx', 'exibir.zoom': 'zoom',
   'dados.az': 'az', 'dados.za': 'za', 'dados.limparFiltro': 'limparFiltro', 'impressao.papel': 'papel', 'impressao.grade': 'imprimirGrade', 'impressao.titulosLC': 'imprimirTitulos', 'exibir.zoom100': 'zoom100',

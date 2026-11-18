@@ -1,0 +1,14 @@
+/* v0.6.25: janelas da Estatística descritiva e da Amostragem (padrão Camadas; o resto vem de camadas.css) */
+.an-previa { max-height: 260px; overflow: auto; border: 1px solid var(--border-light, var(--border)); border-radius: var(--r-ctl); }
+.an-previa table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.an-previa th, .an-previa td { padding: 4px 10px; text-align: right; border-bottom: 1px solid var(--border-light, var(--border)); white-space: nowrap; }
+.an-previa th:first-child, .an-previa td:first-child { text-align: left; color: var(--text-muted); }
+.an-previa thead th { position: sticky; top: 0; background: var(--surface); font-weight: 600; color: var(--text); }
+.an-previa tbody tr:last-child td { border-bottom: 0; }
+.an-campo { display: flex; align-items: center; gap: 10px; font-size: 13px; margin-top: 10px; flex-wrap: wrap; }
+.an-campo input { width: 84px; min-height: 34px; padding: 0 10px; border-radius: var(--r-ctl); border: 1px solid var(--border-light, var(--border)); background: var(--surface); color: var(--text); font: inherit; }
+.an-campo input:focus-visible { outline: none; box-shadow: var(--anel); }
+.an-campo input[aria-invalid=true] { border-color: var(--danger, #c0392b); }
+.an-campo em { font-style: normal; color: var(--text-dim); }
+@media (pointer: coarse) { .an-campo input { min-height: 44px; } }
+.an-jan .rg-seg { align-self: flex-start; justify-self: start; width: max-content; }

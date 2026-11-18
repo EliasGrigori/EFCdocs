@@ -5,7 +5,7 @@
 
 import { VERSAO } from './modelo.js';
 
-const V4 = 'v0.4.0', V5 = 'v0.5.0', V51 = 'v0.5.1', V6 = 'v0.6.0', V61 = 'v0.6.3', V7 = 'v0.7.0', V8 = 'v0.8.0';
+const V4 = 'v0.4.0', V5 = 'v0.5.0', V51 = 'v0.5.1', V6 = 'v0.6.0', V61 = 'v0.6.3', V625 = 'v0.6.25', V7 = 'v0.7.0', V8 = 'v0.8.0';
 const DEPOIS = 'depois da v1.0.0';
 const porModulo = (planilha, docx, postits) => ({ planilha, docx, postits });
 const C = (id, nome, ic, extra = {}) => ({ id, nome, ic, sin: [], mods: ['*'], ...extra });
@@ -180,6 +180,11 @@ export const COMANDOS = [
   C('dados.az', 'Classificar de A a Z', 'classificar', { sin: ['ordem crescente', 'menor para o maior', 'alfabética'], chega: V61, mods: ['planilha'] }),
   C('dados.za', 'Classificar de Z a A', 'classificar', { sin: ['ordem decrescente', 'maior para o menor'], chega: V61, mods: ['planilha'] }),
   C('dados.limparFiltro', 'Limpar filtro', 'filtro', { sin: ['tirar critério', 'mostrar todas as linhas', 'limpar'], chega: V61, mods: ['planilha'] }),
+  /* v0.6.25 (ideias do Grok aprovadas em 18/11): circular dados inválidos, estatística descritiva e amostragem */
+  C('dados.circular', 'Circular dados inválidos', 'validacao', { sin: ['marcar inválidos', 'fora da validação', 'valores errados', 'círculo vermelho'], chega: V625, mods: ['planilha'] }),
+  C('dados.limparCirculos', 'Limpar círculos de validação', 'validacao', { sin: ['tirar círculos', 'apagar círculos'], chega: V625, mods: ['planilha'] }),
+  C('dados.estatistica', 'Estatística descritiva', 'grafico', { sin: ['média', 'desvio padrão', 'resumo estatístico', 'análise de dados', 'coeficiente de variação'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
+  C('dados.amostra', 'Amostragem', 'lista', { sin: ['sortear linhas', 'amostra aleatória', 'sorteio', 'inspeção por amostra'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.dinamica', 'Tabela dinâmica', 'tabela', { sin: ['pivot', 'resumo', 'agrupar'], chega: DEPOIS, mods: ['planilha'] }),
 
   C('revisao.ortografia', 'Ortografia', 'ortografia', { sin: ['corretor', 'erros de escrita'], chega: porModulo(V61, V7, null) }),

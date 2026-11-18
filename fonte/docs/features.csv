@@ -422,3 +422,6 @@ F420;Planilha;filtro;"10 maiores/menores e acima/abaixo da média (opções da l
 F421;Planilha;filtro;"Filtrar por cor (só no app)";funciona;"v0.6.24.3";manter;v0.6.24.3 (aprovada 18/11)
 F422;Planilha;filtro;"Filtros de condição vão e voltam no .xlsx";funciona;"v0.6.24.3";manter;v0.6.24.3 (aprovada 18/11)
 F423;Planilha;filtro;"Ordenar do filtro num botão só, em ciclo (ordem padrão, crescente, decrescente, volta à ordem de antes)";funciona;"v0.6.24.3";manter;v0.6.24.3 (pedido de 18/11 15:46, aprovada)
+F424;Planilha;dados;"Circular dados inválidos e Limpar círculos (Dados › Ferramentas de dados; até 255, como o Excel; corrigiu, o círculo some)";funciona;"v0.6.25";manter;v0.6.25 (ideia I02 do Grok, aprovada 18/11)
+F425;Planilha;analise;"Estatística descritiva numa aba nova, com fórmulas ligadas aos dados (média, erro padrão, mediana, moda, desvio, variância, CV, mín., máx., amplitude, soma, contagem)";funciona;"v0.6.25";manter;v0.6.25 (ideia I01 do Grok, aprovada 18/11)
+F426;Planilha;analise;"Amostragem: sorteio aleatório sem repetir ou uma a cada k, numa aba nova com a linha de origem e a data do sorteio";funciona;"v0.6.25";manter;v0.6.25 (ideia I04 do Grok, aprovada 18/11)

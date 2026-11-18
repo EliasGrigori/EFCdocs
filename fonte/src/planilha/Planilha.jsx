@@ -59,6 +59,7 @@ import { validacaoEm, listaDaCelula, opcoesLista, valorValido, mensagemDeErro, c
 import { JanelaValidacao, JanelaCondicional, JanelaComentario, JanelaComentarios, ListaSuspensa, Balao } from './regrasUi.jsx';
 import { ASN } from '../nucleo/assinatura.js';
 import { CampoFormula, AjudaFormula } from './EditorFormula.jsx';
+import * as AN from './analise.js'; import { JanelaEstatistica, JanelaAmostra } from './analiseUi.jsx'; /* v0.6.25: ideias I01, I02 e I04 */
 import { AbasPlanilha, MenuFlutuante, JanelaCor, JanelaFormato, JanelaFonte, JanelaCongelar, JanelaFuncoes, JanelaNomes, JanelaOrigem, JanelaLocalizar, JanelaZeros, JanelaNumeroData, BarraSimbolos, ESTATS } from './partes.jsx';
 
 const Z_MIN = 0.5, Z_MAX = 2;
@@ -166,6 +167,7 @@ export function Planilha({ arquivo, cx }) {
   const setEdit = (e) => { editRef.current = typeof e === 'function' ? e(editRef.current) : e; setEditEstado(editRef.current); };
   const [menu, setMenu] = useState(null);
   const [janela, setJanela] = useState(null);
+  const [circulos, setCirculos] = useState(null); /* v0.6.25 (I02): { abaId, cels } dos dados inválidos circulados; corrigiu, o círculo some */
   const [lista, setLista] = useState(null); // lista suspensa aberta: { l, c, itens, aviso, literal }
   const [menuFiltro, setMenuFiltro] = useState(null); // v0.6.3: menu da seta do filtro: { col }
   const [balao, setBalao] = useState(null); // comentário sob o mouse: { l, c }
@@ -2291,6 +2293,9 @@ export function Planilha({ arquivo, cx }) {
       case 'dados.filtrar': return ed(alternarFiltro);
       case 'dados.reaplicar': return ed(reaplicarFiltro);
       case 'dados.duplicados': return ed(abrirDuplicados);
+      case 'dados.circular': { const r = AN.celulasInvalidas(motor, c, abaId); setCirculos(r.cels.length ? { abaId, cels: r.cels } : null); cx.avisar(r.semRegra ? 'Esta aba não tem validação de dados. Crie a regra em Dados › Validação de dados.' : !r.total ? 'Nenhum valor fora da validação.' : `${r.total} célula${r.total > 1 ? 's' : ''} fora da validação${r.total > AN.LIMITE_CIRCULOS ? ` (circuladas as ${AN.LIMITE_CIRCULOS} primeiras, como no Excel)` : ''}. Corrigiu, o círculo some.`, { ic: r.total ? 'aviso' : 'validacao' }); return true; }
+      case 'dados.limparCirculos': setCirculos(null); return true;
+      case 'dados.estatistica': case 'dados.amostra': return ed(() => { const f = areaDeDados(); if (f.l2 - f.l1 < 1) { cx.avisar('Clique numa célula da tabela (ou escolha a área) para ' + (id === 'dados.amostra' ? 'sortear a amostra.' : 'resumir os números.'), { ic: 'aviso' }); return; } setJanela({ tipo: id.slice(6), f, cab: temCabecalho(f) }); });
       case 'revisao.travar': setJanela({ tipo: 'travar' }); return true;
       case 'revisao.ortografia':
         setPrefs((p) => ({ ...p, ortografia: !p.ortografia }));
@@ -2512,6 +2517,7 @@ export function Planilha({ arquivo, cx }) {
   /* ---------- desenho ---------- */
   const familia = useMemo(() => familiaDa(c), [c.fonteBase]); // eslint-disable-line react-hooks/exhaustive-deps
   const desenhado = useRef(null), pintar = useRef(() => {}), quadro = useRef(0);
+  useEffect(() => { if (circulos) { const f = AN.circulosQueFicam(motor, c, circulos.abaId, circulos.cels); if (f.length !== circulos.cels.length) setCirculos(f.length ? { ...circulos, cels: f } : null); } }, [c, motor.rev]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     const cv = cvRef.current;
     if (!cv) return;
@@ -2525,13 +2531,13 @@ export function Planilha({ arquivo, cx }) {
     const comum = {
       dpr, c, motor, abaId, G, cores, familia, grade: !aba.semGrade, mesclas: mesc,
       sel: edit && edit.abaId === abaId && ehFormula ? null : sel, refsFormula: refsDaFormula,
-      copia: copia && !edit ? copia : null, spill, celular: cel, editando: !!edit && (cel || !!aba.fil), somenteLeitura, /* a grade só muda ao editar no celular ou com filtro (as setas somem) */
+      circulos: circulos && circulos.abaId === abaId ? circulos.cels : null, copia: copia && !edit ? copia : null, spill, celular: cel, editando: !!edit && (cel || !!aba.fil), somenteLeitura, /* a grade só muda ao editar no celular ou com filtro (as setas somem) */
       destino: arrasto && arrasto.tipo === 'alca' ? arrasto.destino : null,
     };
     /* v0.6.12 (D-16): cada letra digitada redesenhava a grade inteira duas vezes, e um Enter, três. Agora só redesenha quando
        muda algo que a grade mostra, e uma vez só por quadro da tela (várias mudanças seguidas viram um desenho). */
     const marca = [cv, cvCongRef.current, cv.width, cv.height, densidade, motor.rev, spill && `${spill.l1},${spill.c1},${spill.l2},${spill.c2}`,
-      dpr, c, abaId, G, cores, familia, comum.grade, mesc, comum.sel, refsDaFormula, comum.copia, cel, comum.editando, somenteLeitura, comum.destino];
+      dpr, c, abaId, G, cores, familia, comum.grade, mesc, comum.sel, refsDaFormula, comum.copia, cel, comum.editando, somenteLeitura, comum.destino, comum.circulos];
     const antes = desenhado.current;
     if (antes && antes.every((v, i) => v === marca[i])) return;
     desenhado.current = marca;
@@ -3402,6 +3408,8 @@ export function Planilha({ arquivo, cx }) {
           contar={(cols, cab) => D.acharDuplicados(janela.f, cols, { cabecalho: cab, valorDe: valorDeDados }).length}
           aoAplicar={(x) => aplicarDuplicados(janela.f, x)} aoFechar={() => setJanela(null)} />
       )}
+      {janela && janela.tipo === 'estatistica' && <JanelaEstatistica faixa={janela.f} subtitulo={`Resumo de ${textoFaixa(janela.f)}`} cabecalho0={janela.cab} titulos={(cc) => textoDeDados(janela.f.l1, cc)} numeros={(cc, cab) => AN.numerosDaColuna(janela.f, cc, cab, valorDeDados)} aoFechar={() => setJanela(null)} aoAplicar={(x) => { const r = AN.montarEstatistica(c, abaId, janela.f, { ...x, titulos: (cc) => textoDeDados(janela.f.l1, cc) }); if (r.erro) return r.erro; setJanela(null); if (mudar(r.mud, 'Estatística descritiva')) { setTimeout(() => trocarAba(r.id), 0); cx.avisar(`Resumo na aba "${r.nome}", com fórmulas ligadas aos dados. Dá para desfazer.`, { ic: 'grafico' }); } return null; }} />}
+      {janela && janela.tipo === 'amostra' && <JanelaAmostra subtitulo={`Sorteio em ${textoFaixa(janela.f)}`} cabecalho0={janela.cab} total={(cab) => { let n = 0; for (let l = janela.f.l1 + (cab ? 1 : 0); l <= janela.f.l2; l++) if (!(aba.ocL && aba.ocL[l])) n++; return n; }} aoFechar={() => setJanela(null)} aoAplicar={(x) => { const r = AN.montarAmostra(c, abaId, janela.f, { ...x, escondida: (l) => !!(aba.ocL && aba.ocL[l]), valorDe: valorDeDados }); if (r.erro) return r.erro; setJanela(null); if (mudar(r.mud, 'Amostragem')) { setTimeout(() => trocarAba(r.id), 0); cx.avisar(`${r.sorteadas} de ${r.total} linhas sorteadas na aba "${r.nome}". Dá para desfazer.`, { ic: 'lista' }); } return null; }} />}
       {janela && janela.tipo === 'travar' && (
         <JanelaTravar travada={!!aba.prot} liberadas={D.contarLiberadas(c, aba)} selecao={nomeSel()} temSelecao
           selecaoLivre={sel.faixas.some((f0) => O.existentes(aba, normalFaixa(f0)).some(([, , k]) => D.celulaLivre(c, aba.cel[k])))} somenteLeitura={somenteLeitura}
