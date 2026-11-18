@@ -716,7 +716,7 @@ export function Topo({ titulo, trilha, ficha, salvo, prefs, cx, cel, aba, setAba
           <BotaoCmd id="editar.desfazer" tipo="i" cx={cx} />
           <BotaoCmd id="editar.refazer" tipo="i" cx={cx} />
           <BotaoCmd id="editar.historico" tipo="i" cx={cx} />
-          <button type="button" className="iconbtn" aria-label="O que você quer fazer? (Ctrl K)" title="O que você quer fazer? (Ctrl K)" onClick={() => cx.executar('app.buscar')}><Icone n="busca" /></button>
+          <button type="button" className="iconbtn" aria-label={`O que você quer fazer? (${cx.mod === 'planilha' ? 'Alt Q' : 'Ctrl K'})`} title={`O que você quer fazer? (${cx.mod === 'planilha' ? 'Alt Q' : 'Ctrl K'})`} onClick={() => cx.executar('app.buscar')}><Icone n="busca" /></button>
           <BotaoCmd id="exibir.painel" tipo="i" cx={cx} />
           <button type="button" className="iconbtn" aria-label="Opções" title="Opções" onClick={() => cx.executar('app.opcoes')}><Icone n="gear" /></button>
         </span>
@@ -737,7 +737,7 @@ export function Topo({ titulo, trilha, ficha, salvo, prefs, cx, cel, aba, setAba
         {temArquivo && !cel && <BotaoCmd id="editar.refazer" tipo="i" cx={cx} />}
         {temArquivo && !cel && <BotaoCmd id="editar.historico" tipo="i" cx={cx} />}
         <button type="button" className="busca" onClick={() => cx.executar('app.buscar')}>
-          <Icone n="busca" />O que você quer fazer?<kbd>Ctrl K</kbd>
+          <Icone n="busca" />O que você quer fazer?<kbd>{cx.mod === 'planilha' ? 'Alt Q' : 'Ctrl K'}</kbd>
         </button>
         {cel && <button type="button" className="iconbtn" aria-label="O que você quer fazer?" onClick={() => cx.executar('app.buscar')}><Icone n="busca" /></button>}
         {temArquivo && layoutA && prefs.faixa === 'oculta' && !faixaTemp && (

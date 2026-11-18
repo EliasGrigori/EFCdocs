@@ -94,6 +94,18 @@ function naLista(v) {
 }
 const RX_COD = /^(.*?)(\d+)(\D*)$/;
 
+/* v0.6.23: mais padrões para a alça (pedido do Elias: "colocar A, B e arrastar ficar A, B, C, D") */
+const diaDaSemana = (serial) => new Date(Date.UTC(1899, 11, 30) + Math.round(serial) * 864e5).getUTCDay();
+const util = (serial) => { const d = diaDaSemana(serial); return d !== 0 && d !== 6; };
+/** letras como as colunas do Excel: A=1 ... Z=26, AA=27 */
+const numDeLetras = (t) => [...t.toUpperCase()].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0);
+const letrasDeNum = (n) => { let t = ''; while (n > 0) { const r = (n - 1) % 26; t = String.fromCharCode(65 + r) + t; n = Math.floor((n - 1) / 26); } return t; };
+const ROMANOS = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+const romanoDe = (n) => { let t = ''; for (const [v, r] of ROMANOS) while (n >= v) { t += r; n -= v; } return t; };
+const numDeRomano = (t) => { const s = String(t).toUpperCase(); if (!/^[IVXLCDM]+$/.test(s)) return null; let n = 0, i = 0; for (const [v, r] of ROMANOS) while (s.startsWith(r, i)) { n += v; i += r.length; } return i === s.length && romanoDe(n) === s ? n : null; };
+const passoFixo = (ns) => { const p = ns.length > 1 ? ns[1] - ns[0] : 1; return ns.every((n, i) => !i || n - ns[i - 1] === p) ? p : null; };
+const mesmaCaixa = (ts) => ts.every((t) => t === t.toUpperCase()) || ts.every((t) => t === t.toLowerCase());
+
 /**
  * Os próximos "quantos" valores da série a partir dos iniciais (como a alça do Excel).
  * ehData: os iniciais estão em formato de data. Devolve null quando é só copiar.
@@ -119,6 +131,23 @@ export function continuarSerie(iniciais, quantos, { ehData = false } = {}) {
         });
       }
     }
+    /* v0.6.23: dias úteis — datas de semana que pulam o fim de semana (sexta → segunda) continuam pulando */
+    if (ehData && v.length >= 3 && v.every(util)) {
+      const gaps = v.slice(1).map((x, i) => Math.round(x - v[i]));
+      if (gaps.some((g) => g === 3) && gaps.every((g, i) => g === 1 || (g === 3 && diaDaSemana(v[i]) === 5))) {
+        const out = []; let d = v[v.length - 1];
+        while (out.length < quantos) { d += 1; if (util(d)) out.push(d); }
+        return out;
+      }
+    }
+    /* v0.6.23: multiplicando (2, 4, 8 → 16, 32): só com 3 ou mais números e quando a soma não é constante */
+    if (!ehData && v.length >= 3 && v.every((x) => x !== 0) && passoFixo(v) === null) {
+      const r = v[1] / v[0];
+      if (r !== 1 && v.every((x, i) => !i || Math.abs(x / v[i - 1] - r) < 1e-9)) {
+        const ult = v[v.length - 1];
+        return Array.from({ length: quantos }, (_, i) => Number((ult * r ** (i + 1)).toPrecision(15)));
+      }
+    }
     const passo = (v[v.length - 1] - v[0]) / (v.length - 1);
     const ult = v[v.length - 1];
     return Array.from({ length: quantos }, (_, i) => Number((ult + passo * (i + 1)).toPrecision(15)));
@@ -130,6 +159,30 @@ export function continuarSerie(iniciais, quantos, { ehData = false } = {}) {
     const passo = v.length > 1 ? ls[1].i - ls[0].i : 1;
     const ult = ls[ls.length - 1].i;
     return Array.from({ length: quantos }, (_, i) => casarCaixa(v[v.length - 1], lista[(((ult + passo * (i + 1)) % lista.length) + lista.length) % lista.length]));
+  }
+  /* v0.6.23: algarismos romanos (I, II → III, IV), com 2 ou mais */
+  if (v.length >= 2 && v.every((x) => typeof x === 'string')) {
+    const rs = v.map(numDeRomano);
+    const p = rs.every((n) => n) ? passoFixo(rs) : null;
+    if (p && v.some((x) => x.length > 1)) { /* só letras soltas (C, D) são letras, não romanos */
+      const minus = v[0] === v[0].toLowerCase();
+      const out = Array.from({ length: quantos }, (_, i) => rs[rs.length - 1] + p * (i + 1));
+      if (out.every((n) => n > 0 && n < 4000)) return out.map((n) => (minus ? romanoDe(n).toLowerCase() : romanoDe(n)));
+    }
+  }
+  /* v0.6.23: letras (A, B → C, D; AA, AB → AC) e texto terminado em letra (Amostra A, Amostra B → Amostra C), com 2 ou mais */
+  if (v.length >= 2 && v.every((x) => typeof x === 'string')) {
+    const ms = v.map((x) => /^(.*?[\s\-_./]|)([A-Za-z]{1,2})$/.exec(x));
+    if (ms.every(Boolean) && ms.every((m) => m[1] === ms[0][1] && m[2].length === ms[0][2].length) && mesmaCaixa(ms.map((m) => m[2]))) {
+      const ns = ms.map((m) => numDeLetras(m[2]));
+      const p = passoFixo(ns);
+      /* duas letras só andando de um em um (AA, AB), para não "continuar" siglas como OK, NG */
+      if (p && (ms[0][2].length === 1 || Math.abs(p) === 1)) {
+        const minus = ms[0][2] === ms[0][2].toLowerCase(), pre = ms[0][1];
+        const out = Array.from({ length: quantos }, (_, i) => ns[ns.length - 1] + p * (i + 1));
+        if (out.every((n) => n > 0 && n <= 702)) return out.map((n) => pre + (minus ? letrasDeNum(n).toLowerCase() : letrasDeNum(n)));
+      }
+    }
   }
   /* códigos com número no fim: Q-001, Lote 12 */
   const cs = v.map((x) => (typeof x === 'string' ? RX_COD.exec(x) : null));

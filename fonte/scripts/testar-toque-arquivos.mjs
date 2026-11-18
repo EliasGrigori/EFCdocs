@@ -116,6 +116,98 @@ for (const [w, esconde] of [[1366, true], [1440, true], [1920, false]]) {
   }
   await t.ctx.close();
 }
+
+/* ---------- v0.6.23 (D10): a pinça aproxima no ponto entre os dedos ---------- */
+const c2 = await abrirSemeado(nav, BASE, { w: 390, h: 844, toque: true, reduzido: true });
+await abrePlanilha(c2.page);
+await caso('Pinça (D10): a célula embaixo do ponto entre os dedos continua embaixo dele depois de aproximar', async () => {
+  const p = c2.page; const b = await p.locator('.pl-cv').boundingBox();
+  const P = { x: b.x + 230, y: b.y + 260 };
+  await p.touchscreen.tap(P.x, P.y); await espera(300); const antes = await p.locator('.pl-nome').inputValue();
+  await p.touchscreen.tap(b.x + 60, b.y + 40); await espera(800); /* tira a seleção (e as alças) de baixo dos dedos */
+  const cdp = await p.context().newCDPSession(p), pts = (d) => [{ x: P.x - d, y: P.y, id: 1 }, { x: P.x + d, y: P.y, id: 2 }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(30) });
+  for (let i = 1; i <= 10; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts(30 + 3 * i) }); await espera(30); }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await espera(600);
+  const z = parseInt(await p.locator('.pl-zpct').innerText(), 10);
+  await p.touchscreen.tap(P.x, P.y); await espera(300); const depois = await p.locator('.pl-nome').inputValue();
+  certo(z > 120 && antes === depois, `zoom ${z}%; célula antes ${antes}, depois ${depois}`);
+});
+await caso('Pinça com os dedos em cima das alças da seleção também aproxima (e não mexe na seleção)', async () => {
+  const p = c2.page; const b = await p.locator('.pl-cv').boundingBox();
+  const P = { x: b.x + 230, y: b.y + 200 };
+  await p.touchscreen.tap(P.x, P.y); await espera(400); const nome = await p.locator('.pl-nome').inputValue();
+  const z0 = parseInt(await p.locator('.pl-zpct').innerText(), 10);
+  const cdp = await p.context().newCDPSession(p), pts = (d) => [{ x: P.x - d, y: P.y, id: 1 }, { x: P.x + d, y: P.y, id: 2 }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(40) });
+  for (let i = 1; i <= 10; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts(40 - 2 * i) }); await espera(30); }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await espera(600);
+  const z1 = parseInt(await p.locator('.pl-zpct').innerText(), 10);
+  certo(z1 < z0 && !(await p.locator('.pl-nome').inputValue()).includes(':'), `zoom ${z0}% → ${z1}%; seleção ${nome} → ${await p.locator('.pl-nome').inputValue()}`);
+});
+await c2.ctx.close();
+
+/* ---------- v0.6.23: atalhos do Excel em português ---------- */
+const at = await abrirSemeado(nav, BASE, { reduzido: true }); const r = at.page;
+await abrePlanilha(r);
+const vai = async (ref) => { await r.locator('.pl-nome').click(); await r.locator('.pl-nome').fill(ref); await r.locator('.pl-nome').press('Enter'); await espera(120); };
+const escreve = async (ref, t) => { await vai(ref); await r.keyboard.type(t); await r.keyboard.press('Enter'); await espera(80); };
+const ligado = (cmd) => r.locator(`.ribbon [data-cmd="${cmd}"]`).first().getAttribute('aria-pressed');
+const rodape = () => r.locator('.foot-desfazer').innerText().catch(() => '');
+for (const [ref, t] of [['A1', 'Fruta'], ['B1', 'Caixas'], ['C1', 'Lote'], ['A2', 'Mamão'], ['B2', '=1+1'], ['C2', 'A'], ['A3', 'Acerola'], ['B3', '12'], ['C3', 'B'], ['A4', 'Banana'], ['B4', '45']]) await escreve(ref, t);
+await caso('Ctrl+2 e Ctrl+Alt+N ligam e desligam o negrito; Ctrl+3 o itálico; Ctrl+5 o tachado', async () => {
+  await vai('A2'); await r.keyboard.press('Control+2'); await espera(200); certo(await ligado('formatar.negrito') === 'true', 'Ctrl+2');
+  await r.keyboard.press('Control+Alt+n'); await espera(200); certo(await ligado('formatar.negrito') === 'false', 'Ctrl+Alt+N desliga');
+  await r.keyboard.press('Control+3'); await espera(200); certo(await ligado('formatar.italico') === 'true', 'Ctrl+3');
+  await r.keyboard.press('Control+5'); await espera(200); certo(/Tachado/.test(await rodape()), 'Ctrl+5: ' + await rodape());
+});
+await caso('Ctrl+B salva (como no Excel em português) e não mexe no negrito', async () => {
+  await vai('A3'); await r.keyboard.press('Control+b'); await espera(300);
+  certo(/Salvo:/.test(await r.locator('body').innerText()), 'aviso de salvo'); certo(await ligado('formatar.negrito') === 'false', 'negrito não mudou');
+});
+await caso('Ctrl+Shift+# põe formato de data; Ctrl+Shift+! de número; Ctrl+Shift+~ volta para Geral', async () => {
+  await vai('B3'); await r.keyboard.press('Control+Shift+Digit3'); await espera(200); const d = await r.locator('[data-cx=numero] .rb-cx-v').innerText();
+  await r.keyboard.press('Control+Shift+Digit1'); await espera(200); const n = await r.locator('[data-cx=numero] .rb-cx-v').innerText();
+  await r.keyboard.press('Control+Shift+Backquote'); await espera(200); const g = await r.locator('[data-cx=numero] .rb-cx-v').innerText();
+  certo(/Data/.test(d) && /Número/.test(n) && g === 'Geral', [d, n, g].join(' · '));
+});
+await caso('Ctrl+K abre Inserir link e Ctrl+Alt+T abre Criar tabela; a busca da planilha mostra Alt Q', async () => {
+  await vai('A4'); await r.keyboard.press('Control+k'); await espera(400); const j1 = await r.locator('.janela').innerText().catch(() => '');
+  await r.keyboard.press('Escape'); await espera(300);
+  await vai('A2'); await r.keyboard.press('Control+Alt+t'); await espera(400); const j2 = await r.locator('.janela').innerText().catch(() => '');
+  await r.keyboard.press('Escape'); await espera(300);
+  certo(/[Ll]ink/.test(j1) && /[Tt]abela/.test(j2), 'janelas: ' + j1.slice(0, 40) + ' / ' + j2.slice(0, 40));
+  certo(/Alt Q/.test(await r.locator('.ribbon, .topo, body').first().innerText()), 'Alt Q na busca');
+});
+await caso("Ctrl+' começa a editar com a fórmula da célula de cima; Esc cancela", async () => {
+  await vai('B3'); await r.keyboard.press("Control+'"); await espera(250);
+  const t = await r.locator('.ef-campo').first().inputValue().catch(() => ''); await r.keyboard.press('Escape'); await espera(150);
+  certo(t === '=1+1', 'edição: ' + t);
+});
+await caso('Ctrl+Shift+* escolhe a região dos dados; Shift+F3 abre Inserir função; Ctrl+Shift+L liga o filtro', async () => {
+  await vai('B3'); await r.keyboard.press('Control+Shift+Digit8'); await espera(200); const reg = await r.locator('.foot').innerText();
+  await r.keyboard.press('Shift+F3'); await espera(400); const fn = await r.locator('.janela.pl-jfun').count(); await r.keyboard.press('Escape'); await espera(300);
+  await vai('A1'); await r.keyboard.press('Control+Shift+L'); await espera(300); const fil = await ligado('dados.filtrar');
+  await r.keyboard.press('Control+Shift+L'); await espera(300);
+  certo(/Contagem: 11/.test(reg) && fn === 1 && fil === 'true', `região ${reg.replace(/\s+/g, ' ').slice(0, 80)}, função ${fn}, filtro ${fil}`);
+});
+await caso('Ctrl+9 esconde a linha; com linhas inteiras, Ctrl+- exclui e Ctrl+Z volta; com células soltas, avisa', async () => {
+  await vai('A3'); await r.keyboard.press('Control+9'); await espera(250); await vai('A2'); await r.keyboard.press('ArrowDown'); await espera(120);
+  const pulou = await r.locator('.pl-nome').inputValue(); await r.keyboard.press('Control+z'); await espera(250);
+  await vai('A2'); await r.keyboard.press('Control+Minus'); await espera(300); const aviso = /linhas inteiras/.test(await r.locator('body').innerText());
+  await vai('A4'); await r.keyboard.press('Shift+Space'); await espera(150); await r.keyboard.press('Control+Minus'); await espera(300);
+  await vai('A4'); const sumiu = await r.locator('.pl-fx-campo').innerText(); await r.keyboard.press('Control+z'); await espera(300); await vai('A4'); const voltou = await r.locator('.pl-fx-campo').innerText();
+  certo(pulou === 'A4' && aviso && sumiu === '' && voltou === 'Banana', `pulou ${pulou}, aviso ${aviso}, sumiu "${sumiu}", voltou "${voltou}"`);
+});
+await caso('Alça: A e B arrastados viram C e D (pedido do Elias)', async () => {
+  await vai('C2'); await r.keyboard.down('Shift'); await r.keyboard.press('ArrowDown'); await r.keyboard.up('Shift'); await espera(150);
+  const cv = await r.locator('.pl-cv').boundingBox(), x = cv.x + 30 + 2 * 80 + 79, y0 = cv.y + 24 + 3 * 22 - 1, y1 = cv.y + 24 + 5 * 22 - 4;
+  await r.mouse.move(x, y0); await r.mouse.down(); await r.mouse.move(x, y1, { steps: 12 }); await r.mouse.up(); await espera(300);
+  await vai('C4'); const c4 = await r.locator('.pl-fx-campo').innerText(); await vai('C5'); const c5 = await r.locator('.pl-fx-campo').innerText();
+  certo(c4 === 'C' && c5 === 'D', `C4 "${c4}", C5 "${c5}"`);
+});
+await caso('Sem erro no console nos atalhos', async () => { certo(at.erros.length === 0, at.erros.slice(0, 3).join(' | ')); });
+await at.ctx.close();
 await nav.close();
 console.log(`\n${ok} de ${ok + falhas} conferências de toque e arquivos passaram.`);
 process.exit(falhas ? 1 : 0);

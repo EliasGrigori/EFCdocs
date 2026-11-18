@@ -25,6 +25,7 @@ export const COMANDOS = [
   C('arquivo.exportarExcel', 'Salvar como Excel', 'excel', { sin: ['exportar excel', 'xlsx', 'baixar planilha', 'baixar excel'], chega: V5, mods: ['planilha'], acao: 'exportar' }),
   C('arquivo.baixarOriginal', 'Baixar o original', 'baixar', { sin: ['arquivo original', 'excel original', 'como veio', 'devolver original'], mods: ['planilha'], acao: 'exportar' }),
   C('arquivo.relatorioExcel', 'O que veio do Excel', 'info', { sin: ['relatório da importação', 'compatibilidade', 'o que ficou de fora'], mods: ['planilha'] }),
+  C('arquivo.salvar', 'Salvar agora', 'check', { sin: ['gravar', 'salvar'], mods: ['planilha', 'docx', 'postits'] }), /* v0.6.23: Ctrl+B do Excel em português */
   C('arquivo.exportarWord', 'Exportar Word', 'docx', { sin: ['salvar como word', 'docx'], chega: V7, mods: ['docx'] }),
   C('arquivo.exportarPDF', 'Exportar PDF', 'pdf', { sin: ['pdf', 'baixar pdf', 'gerar pdf', 'paisagem'], chega: porModulo(V6, V7, null), acao: 'exportar' }),
   C('arquivo.exportarImagem', 'Exportar imagem (PNG)', 'imagem', { sin: ['png', 'jpg', 'foto do quadro', 'print'], mods: ['postits'], acao: 'exportar' }),
@@ -74,6 +75,7 @@ export const COMANDOS = [
   C('formatar.negrito', 'Negrito', 'negrito', { sin: ['ctrl n', 'grosso'], chega: porModulo(V4, V7, null), acao: 'quadro.editar' }),
   C('formatar.italico', 'Itálico', 'italico', { sin: ['ctrl i', 'inclinado'], chega: porModulo(V4, V7, null), acao: 'quadro.editar' }),
   C('formatar.sublinhado', 'Sublinhado', 'sublinhado', { sin: ['ctrl s', 'grifar'], chega: porModulo(V4, V7, null), acao: 'quadro.editar' }),
+  C('formatar.tachado', 'Tachado', 'sublinhado', { sin: ['riscado', 'risco no meio', 'strike'], mods: ['planilha'] }), /* v0.6.23: Ctrl+5 */
   C('formatar.corFonte', 'Cor da fonte', 'corfonte', { sin: ['cor do texto', 'letra colorida'], chega: porModulo(V4, V7, null), acao: 'quadro.editar' }),
   C('formatar.preenchimento', 'Cor de preenchimento', 'balde', { sin: ['fundo', 'pintar célula', 'cor do post-it'], chega: porModulo(V4, null, null), mods: ['planilha', 'postits'], acao: 'quadro.editar' }),
   C('formatar.bordas', 'Bordas', 'borda', { sin: ['linha da célula', 'contorno'], chega: V4, mods: ['planilha'] }),

@@ -398,3 +398,7 @@ F396;Planilha;toque;"Pinça de dois dedos aproxima e afasta a planilha (50% a 20
 F397;Núcleo;arquivos;"Soltar um arquivo do Excel em qualquer tela abre a janela do Excel já lendo; Word, PDF, .xls e CSV com aviso";funciona;"v0.6.22";manter;v0.6.22 (D-62, aprovada 18/11)
 F398;Núcleo;menu;"Em tela média, o menu lateral se esconde sozinho com uma planilha aberta (a alça mostra de novo)";funciona;"v0.6.22";manter;v0.6.22 (D3, aprovada 18/11)
 F399;Planilha;tabela;"Desfazer igual ao Excel quando a tabela cresce ou a fórmula vai para a coluna inteira (1º Ctrl+Z só a expansão)";funciona;"v0.6.22";manter;v0.6.22 (D01 da v0.6.19, aprovada 18/11)
+F400;Planilha;teclado;"Atalhos do Excel em português (negrito Ctrl+N/2/Alt+N, Ctrl+B salvar, Ctrl+K link, Ctrl+U substituir, formatos e bordas com Ctrl+Shift, Ctrl+9/0, Ctrl+-/+, Ctrl+', Ctrl+Shift+*, Ctrl+Alt+T/V, Shift+F3, F7, Shift+F11)";funciona;"v0.6.23";manter;v0.6.23 (aprovada 18/11)
+F401;Planilha;formatar;"Tachado (Ctrl+5)";funciona;"v0.6.23";manter;v0.6.23 (aprovada 18/11)
+F402;Planilha;preencher;"Alça reconhece letras, texto terminado em letra, romanos, multiplicação e dias úteis";funciona;"v0.6.23";manter;v0.6.23 (aprovada 18/11)
+F403;Planilha;toque;"Pinça aproxima no ponto entre os dedos";funciona;"v0.6.23";manter;v0.6.23 (D10) (aprovada 18/11)

@@ -34,7 +34,8 @@ import { FormaView, JanelaForma, valoresLigados } from './formasUi.jsx';
 import * as I from './inserir.js';
 import { JanelaTabela, JanelaStatus, JanelaLink, JanelaBotao, JanelaImagem } from './inserirUi.jsx';
 import { usarTabelaViva } from './tabelaUi.jsx';
-import { ligarPinca, pincaRecente } from './pinca.js';
+import { ligarPinca, pincaRecente, ancoraDaPinca } from './pinca.js';
+import { atalhoDe, fazerAtalho } from './atalhos.js';
 import { tratarFaixaExtra, estadoFaixaExtra, pedirTamanho, ajustarTamanho, quaisDe } from './faixaExtra.js';
 import { lerImagem } from './imagem.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
@@ -1385,36 +1386,18 @@ export function Planilha({ arquivo, cx }) {
     if (k === 'Backspace') { ev.preventDefault(); if (somenteLeitura) avisarLeitura(); else comecarEdicao({ texto: '', modo: 'entrar' }); return; }
     if (k === 'Escape') { if (probAberto) { setProbAberto(false); return; } setCopia(null); setPincel(null); return; }
     if (k === 'F4' && !ctrl) { return; }
+    const at = atalhoDe(ev); /* v0.6.23: atalhos do Excel em português (src/planilha/atalhos.js) */
+    if (at) { ev.preventDefault(); fazerAtalho(at, atalhoCtx()); return; }
     if (ev.key === ' ' && ev.shiftKey && !ctrl) { ev.preventDefault(); setSel({ ativa: sel.ativa, faixas: [{ l1: faixa.l1, c1: 0, l2: faixa.l2, c2: MAX_COL - 1 }] }); return; }
     if (ev.key === ' ' && ctrl) { ev.preventDefault(); setSel({ ativa: sel.ativa, faixas: [{ l1: 0, c1: faixa.c1, l2: MAX_LIN - 1, c2: faixa.c2 }] }); return; }
     if (ev.altKey && ev.key === 'ArrowLeft') return;
-    if (ctrl) {
-      const kk = k.toLowerCase();
-      if (kk === 'z' && !ev.shiftKey) { ev.preventDefault(); cx.executar('editar.desfazer'); return; }
-      if (kk === 'y' || (kk === 'z' && ev.shiftKey)) { ev.preventDefault(); cx.executar('editar.refazer'); return; }
-      if (kk === 'u' && ev.shiftKey) { ev.preventDefault(); trata('exibir.barraFormula'); return; }
-      if (kk === 'a') { ev.preventDefault(); setSel({ ativa: sel.ativa, faixas: [{ l1: 0, c1: 0, l2: MAX_LIN - 1, c2: MAX_COL - 1 }] }); return; }
-      if (kk === 'n' || kk === 'b') { ev.preventDefault(); trata('formatar.negrito'); return; }
-      if (kk === 'i') { ev.preventDefault(); trata('formatar.italico'); return; }
-      if (kk === 's' || kk === 'u') { ev.preventDefault(); trata('formatar.sublinhado'); return; }
-      if (kk === 'd') { ev.preventDefault(); trata('editar.preencherBaixo'); return; }
-      if (kk === 'r') { ev.preventDefault(); trata('editar.preencherDireita'); return; }
-      if (kk === '1') { ev.preventDefault(); trata('formatar.formatoNumero'); return; }
-      if (kk === 'l' || kk === 'f') { ev.preventDefault(); trata('editar.localizar'); return; }
-      if (kk === 'g') { ev.preventDefault(); cx.executar('app.buscar'); return; }
-      if (k === ';' || ev.code === 'Semicolon' || ev.code === 'Comma' && false) {
-        ev.preventDefault();
-        if (ev.shiftKey) inserirAgora('hora'); else inserirAgora('data');
-        return;
-      }
-      if (k === ':' ) { ev.preventDefault(); inserirAgora('hora'); return; }
-      if (ev.shiftKey && (k === '$' || ev.code === 'Digit4')) { ev.preventDefault(); trata('formatar.moeda'); return; }
-      if (ev.shiftKey && (k === '%' || ev.code === 'Digit5')) { ev.preventDefault(); trata('formatar.porcentagem'); return; }
-      return;
-    }
-    if (ev.altKey && (k === '=' || ev.code === 'Equal')) { ev.preventDefault(); trata('formula.autosoma'); return; }
+    if (ctrl) return; /* v0.6.23: os atalhos com Ctrl estão em atalhos.js (lista do Excel em português) */
   };
 
+  const atalhoCtx = () => ({ trata, executar: cx.executar, avisar: cx.avisar, agora: inserirAgora, faixa: () => normalFaixa(faixa), maxLin: MAX_LIN, maxCol: MAX_COL,
+    tudo: () => setSel({ ativa: sel.ativa, faixas: [{ l1: 0, c1: 0, l2: MAX_LIN - 1, c2: MAX_COL - 1 }] }), regiao: () => setSel({ ativa: sel.ativa, faixas: [regiaoAtual(sel.ativa.l, sel.ativa.c)] }),
+    formulaDeCima: () => { if (somenteLeitura) cx.avisar('Seu perfil não permite esta ação.', { ic: 'aviso' }); else if (sel.ativa.l) comecarEdicao({ texto: textoParaEditar(aba.cel[chave(sel.ativa.l - 1, sel.ativa.c)], {}) }); },
+    bordas: (tipo, nome) => aplicarLote(O.aplicarBordas(c, abaId, sel.faixas, tipo), 'Bordas: ' + nome.toLowerCase()), zoom: (d) => setZ((v) => Math.max(Z_MIN, Math.min(Z_MAX, Math.round((v + d) * 10) / 10))) });
   const inserirAgora = (tipo) => {
     if (somenteLeitura) return;
     const v = tipo === 'data' ? serialHoje() : serialAgora() - serialHoje();
@@ -2191,6 +2174,7 @@ export function Planilha({ arquivo, cx }) {
       case 'formatar.negrito': return ed(() => alternarEstilo('b', 'Negrito'));
       case 'formatar.italico': return ed(() => alternarEstilo('i', 'Itálico'));
       case 'formatar.sublinhado': return ed(() => alternarEstilo('u', 'Sublinhado'));
+      case 'formatar.tachado': return ed(() => alternarEstilo('st', 'Tachado')); /* v0.6.23: Ctrl+5 */
       case 'formatar.corFonte': return ed(() => setJanela({ tipo: 'corFonte' }));
       case 'formatar.preenchimento': return ed(() => setJanela({ tipo: 'fundo' }));
       case 'formatar.bordas': return ed(() => abrirMenuBordas());
@@ -2339,6 +2323,7 @@ export function Planilha({ arquivo, cx }) {
       case 'formatar.negrito': return !!estiloAtivo.b;
       case 'formatar.italico': return !!estiloAtivo.i;
       case 'formatar.sublinhado': return !!estiloAtivo.u;
+      case 'formatar.tachado': return !!estiloAtivo.st;
       case 'formatar.esquerda': return estiloAtivo.al === 'e';
       case 'formatar.centro': return estiloAtivo.al === 'c';
       case 'formatar.direita': return estiloAtivo.al === 'd';
@@ -2819,12 +2804,15 @@ export function Planilha({ arquivo, cx }) {
 
   const aoRoda = (ev) => { if (ev.ctrlKey || ev.metaKey) { ev.preventDefault(); setZ((zz) => Math.max(Z_MIN, Math.min(Z_MAX, Math.round((zz * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)) * 20) / 20))); } };
   const pincaRef = useRef({ d0: 0, z0: 1 }); /* v0.6.22 (D-61): pinça de dois dedos no celular e na tela de toque; ela cancela o toque de um dedo */
-  pincaRef.current.aoComecar = () => { if (toque.current) { clearTimeout(toque.current.longo); toque.current = null; } };
+  pincaRef.current.aoComecar = () => { if (toque.current) { clearTimeout(toque.current.longo); toque.current = null; } setArrasto((a) => (a && a.tipo === 'alcaCel' ? null : a)); };
   useEffect(() => {
     const el = rolRef.current;
     if (!el) return undefined;
     el.addEventListener('wheel', aoRoda, { passive: false });
-    const solta = ligarPinca(el, pincaRef.current, () => z, setZ, Z_MIN, Z_MAX);
+    const solta = ligarPinca(el.parentElement || el, pincaRef.current, () => z, (z1, pt) => { /* na área toda: dedo em cima das alças da seleção também vale */ /* D10: aproxima no ponto entre os dedos */
+      const r = el.getBoundingClientRect(), n = ancoraDaPinca({ sx: rol.x, sy: rol.y, z0: z, z1, px: pt.x - r.left - G.hw, py: pt.y - r.top - G.hh });
+      setZ(z1); requestAnimationFrame(() => { el.scrollLeft = (n.sx * z1) / fatorX; el.scrollTop = (n.sy * z1) / fatorY; });
+    }, Z_MIN, Z_MAX);
     return () => { el.removeEventListener('wheel', aoRoda); solta(); };
   });
 

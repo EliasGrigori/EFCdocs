@@ -72,6 +72,8 @@ export const DESCRICAO = {
   'dados.reaplicar': 'Refaz o filtro depois que você mudou os dados.',
   'dados.validacao': 'Limita o que pode ser digitado (lista suspensa, números, datas).',
   'dados.duplicados': 'Acha e tira linhas repetidas.',
+  'formatar.tachado': 'Passa um risco no meio do texto da célula.',
+  'arquivo.salvar': 'Grava o arquivo agora. O Vértice já salva sozinho a cada mudança; o atalho só confirma.',
   'dados.az': 'Põe a lista em ordem pela coluna da célula escolhida, do menor para o maior (A a Z, 1 a 9, data mais antiga primeiro).',
   'dados.za': 'Põe a lista em ordem pela coluna da célula escolhida, do maior para o menor (Z a A, 9 a 1, data mais nova primeiro).',
   'dados.limparFiltro': 'Tira os critérios do filtro e mostra todas as linhas de novo; os botões do filtro continuam.',
@@ -230,11 +232,15 @@ const COMUNS = { 'editar.desfazer': 'Ctrl+Z', 'editar.refazer': 'Ctrl+Y', 'app.b
 export const ATALHOS = {
   planilha: {
     ...COMUNS,
-    /* Ctrl+N é do navegador (abre janela nova) e o site não consegue impedir: na planilha vale Ctrl+B */
-    'formatar.negrito': 'Ctrl+B', 'formatar.italico': 'Ctrl+I', 'formatar.sublinhado': 'Ctrl+S',
+    /* v0.6.23: atalhos do Excel em português. Ctrl+N numa aba comum do navegador abre outra janela (o site não consegue impedir):
+       com o app instalado vale Ctrl+N; em qualquer lugar valem Ctrl+2 e Ctrl+Alt+N. Ctrl+B é Salvar, como no Excel em português. */
+    'formatar.negrito': 'Ctrl+N', 'formatar.italico': 'Ctrl+I', 'formatar.sublinhado': 'Ctrl+S', 'formatar.tachado': 'Ctrl+5', 'arquivo.salvar': 'Ctrl+B',
     'formatar.formatoNumero': 'Ctrl+1', 'formatar.moeda': 'Ctrl+Shift+$', 'formatar.porcentagem': 'Ctrl+Shift+%',
     'editar.preencherBaixo': 'Ctrl+D', 'editar.preencherDireita': 'Ctrl+R', 'editar.localizar': 'Ctrl+L',
     'formula.autosoma': 'Alt+=', 'exibir.barraFormula': 'Ctrl+Shift+U', 'planilha.limparConteudo': 'Delete',
+    'inserir.link': 'Ctrl+K', 'inserir.tabela': 'Ctrl+Alt+T', 'dados.filtrar': 'Ctrl+Shift+L', 'formula.inserir': 'Shift+F3',
+    'planilha.ocultarLinha': 'Ctrl+9', 'planilha.ocultarColuna': 'Ctrl+0', 'planilha.novaAba': 'Shift+F11', 'revisao.ortografia': 'F7',
+    'editar.colarValores': 'Ctrl+Alt+V', 'app.buscar': 'Alt+Q',
   },
   postits: {
     ...COMUNS,

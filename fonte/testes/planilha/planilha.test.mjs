@@ -537,7 +537,7 @@ test('v0.4.2: todo botão da faixa tem dica (o que faz) e os atalhos são os que
   for (const id of Object.keys(DESCRICAO)) assert.ok(PorId[id], 'dica de comando que não existe: ' + id);
   for (const mod of Object.keys(ATALHOS)) for (const id of Object.keys(ATALHOS[mod])) assert.ok(PorId[id], 'atalho de comando que não existe: ' + id);
   const neg = dicaDoComando(PorId['formatar.negrito'], 'planilha');
-  assert.equal(neg.atalho, 'Ctrl+B');
+  assert.equal(neg.atalho, 'Ctrl+N'); /* v0.6.23: Excel em português (Ctrl+B é Salvar) */
   assert.equal(dicaDoComando(PorId['editar.copiar'], 'postits').atalho, 'Ctrl+C');
   assert.equal(dicaDoComando(PorId['formatar.negrito'], 'postits').atalho, 'Ctrl+B');
 });

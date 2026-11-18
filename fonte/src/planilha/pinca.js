@@ -8,6 +8,13 @@ export function zoomDaPinca(z0, d0, d, min, max) {
   return Math.max(min, Math.min(max, Math.round(((z0 * d) / d0) * 20) / 20));
 }
 
+/** v0.6.23 (D10): rolagem nova para o ponto entre os dedos ficar no mesmo lugar da tela (como no Excel do celular).
+    sx, sy: rolagem em unidades da planilha (sem zoom); px, py: o ponto, medido a partir do canto das células (depois dos cabeçalhos). */
+export function ancoraDaPinca({ sx, sy, z0, z1, px, py }) {
+  const ax = sx + px / z0, ay = sy + py / z0;
+  return { sx: Math.max(0, ax - px / z1), sy: Math.max(0, ay - py / z1) };
+}
+
 const distancia = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 
 /** Quem segura o dedo pergunta: houve pinça agora há pouco? (o primeiro dedo da pinça não pode abrir o menu da célula) */
@@ -21,7 +28,8 @@ export function ligarPinca(el, est, lerZ, mudarZ, min, max) {
     if (ev.touches.length !== 2 || !est.d0) return;
     ev.preventDefault();
     const z = zoomDaPinca(est.z0, est.d0, distancia(ev.touches), min, max);
-    if (z !== lerZ()) mudarZ(z);
+    const t = ev.touches;
+    if (z !== lerZ()) mudarZ(z, { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
   };
   const acaba = (ev) => { if (ev.touches.length < 2 && est.d0) { est.d0 = 0; est.ate = Date.now(); } };
   el.addEventListener('touchstart', comeca, { passive: false });

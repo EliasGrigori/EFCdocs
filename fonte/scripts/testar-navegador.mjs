@@ -93,10 +93,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.22', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.23', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.22'), 'menu sem v0.6.22');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.23'), 'menu sem v0.6.23');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -900,7 +900,7 @@ await caso('v0.4.0: nome fácil (Meta_Cloro) e Ctrl+K acha célula, nome e colun
   await p.waitForTimeout(100);
   await digitarEm(p, 'H2', ['=SE(B2>=Meta_Cloro;"OK";"Baixo")']);
   igual(await celula(p, 'H2'), 'OK');
-  await p.keyboard.press('Control+k');
+  await p.keyboard.press('Alt+q');
   await p.keyboard.type('cloro');
   await p.waitForTimeout(100);
   const lista = await p.locator('.paleta').innerText();
@@ -908,7 +908,7 @@ await caso('v0.4.0: nome fácil (Meta_Cloro) e Ctrl+K acha célula, nome e colun
   await p.locator('.paleta button:has-text("Coluna Cloro livre")').click();
   await p.waitForTimeout(150);
   igual(await p.locator('.pl-nome').inputValue(), 'B2');
-  await p.keyboard.press('Control+k');
+  await p.keyboard.press('Alt+q');
   await p.keyboard.type('H2');
   await p.keyboard.press('Enter');
   await p.waitForTimeout(150);
@@ -1340,7 +1340,7 @@ await caso('v0.4.2: dica ao parar o mouse: nome, o que faz e atalho', async () =
   await p.hover('.ribbon [data-cmd="formatar.negrito"]');
   await p.waitForSelector('.dica-cmd', { timeout: 2000 });
   const t = await p.locator('.dica-cmd').innerText();
-  certo(t.includes('Negrito') && t.includes('Ctrl+B') && t.includes('Letra em negrito'), 'dica: ' + t);
+  certo(t.includes('Negrito') && t.includes('Ctrl+N') && t.includes('Letra em negrito'), 'dica: ' + t);
   await print(p, '44-dica-botao');
   await p.mouse.move(600, 400);
   await p.waitForTimeout(150);
@@ -1553,15 +1553,15 @@ await caso('v0.4.3: N04 botão direito no cabeçalho seleciona a coluna e insere
   igual(await celula(p, 'A3'), '', 'a linha nova devia entrar na 3');
   igual(await celula(p, 'A4'), 'L-013');
 });
-await caso('v0.4.3: Ctrl+B põe negrito; dica mostra Ctrl+B; Início e "chega depois da v1.0.0"', async () => {
+await caso('v0.4.3: Ctrl+2 põe negrito; dica mostra Ctrl+N (Excel em português, v0.6.23); Início e "chega depois da v1.0.0"', async () => {
   await celula(p, 'A2');
-  await p.keyboard.press('Control+b');
+  await p.keyboard.press('Control+2');
   await p.waitForTimeout(150);
   await p.click('.tabs .tab:has-text("Página Inicial")');
   igual(await p.locator('.ribbon [data-cmd="formatar.negrito"]').getAttribute('aria-pressed'), 'true');
   await p.hover('.ribbon [data-cmd="formatar.negrito"]');
   await p.waitForSelector('.dica-cmd');
-  certo((await p.locator('.dica-cmd').innerText()).includes('Ctrl+B'), 'dica sem Ctrl+B');
+  certo((await p.locator('.dica-cmd').innerText()).includes('Ctrl+N'), 'dica sem Ctrl+N');
   await p.mouse.wheel(0, 120);
   await p.waitForTimeout(150);
   igual(await p.locator('.dica-cmd').count(), 0, 'a dica não sumiu com a roda do mouse');
@@ -1901,7 +1901,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.22'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.23'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -1910,7 +1910,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 0);
   await p.keyboard.press('Escape');
-  await p.keyboard.press('Control+k');
+  await p.keyboard.press('Alt+q');
   await p.keyboard.type('tema');
   await p.keyboard.press('Enter');
   await p.waitForSelector('.opcoes');
@@ -1966,7 +1966,7 @@ await caso('v0.4.4.1: a barra da esquerda do quadro começa escondida e o comand
   const ys = [];
   for (const b of await p.locator('.qd-vazio .chipb').all()) ys.push(Math.round((await b.boundingBox()).y));
   certo(ys.length === 4 && ys.every((y) => y === ys[0]), 'os 4 botões na mesma linha: ' + ys);
-  await p.keyboard.press('Control+k');
+  await p.keyboard.press('Alt+q');
   await p.keyboard.type('barra de ferramentas');
   await p.keyboard.press('Enter');
   await p.waitForSelector('.qd-ferr');
@@ -3566,7 +3566,7 @@ await caso('v0.6.2: Imprimir: margens arrastáveis na prévia (mouse e setas) e 
 });
 await caso('v0.6.2: janelas cabem na tela em 1366×800 (cabeçalho e rodapé sempre à vista)', async () => {
   for (const termo of ['Localizar e substituir', 'Validação de dados', 'Formatação condicional', 'Nomes']) {
-    await p.keyboard.press('Control+k'); await p.keyboard.type(termo); await p.waitForTimeout(200); await p.keyboard.press('Enter'); await p.waitForTimeout(350);
+    await p.keyboard.press('Alt+q'); await p.keyboard.type(termo); await p.waitForTimeout(200); await p.keyboard.press('Enter'); await p.waitForTimeout(350);
     const m = await p.locator('.janela').last().evaluate((e) => { const r = e.getBoundingClientRect(); return { topo: r.top, base: r.bottom, h: innerHeight }; });
     certo(m.topo >= 0 && m.base <= m.h + 1, `${termo}: ${JSON.stringify(m)}`);
     await p.keyboard.press('Escape'); await p.waitForTimeout(100);
@@ -3612,7 +3612,7 @@ await caso('v0.6.1 celular: o gráfico nasce dentro da tela e o aviso diz "toque
   if (!(await p.locator('.pl-cv').count())) { await p.goto(BASE + '#/'); await abrirAmostraNaPlanilha(p).catch(async () => { await p.waitForSelector('.pl-cv'); }); }
   await p.evaluate(() => { const t = document.querySelector('.toasts'); if (t) t.style.visibility = 'visible'; });
   await celula(p, 'A1:C10');
-  await p.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));
+  await p.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', altKey: true, bubbles: true }) /* v0.6.23: na planilha a busca é Alt+Q */));
   await p.keyboard.type('Inserir gráfico'); await p.waitForTimeout(250); await p.keyboard.press('Enter');
   await p.waitForSelector('[data-grafico-janela]');
   certo(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'editor sem rolagem lateral');
@@ -4098,7 +4098,7 @@ await caso('v0.6.5: janela da forma cabe na tela do celular (390×844) sem rolag
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p2 = await ctx2.newPage();
   await novaPlanilha(p2);
-  await p2.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));
+  await p2.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', altKey: true, bubbles: true }) /* v0.6.23: na planilha a busca é Alt+Q */));
   await p2.keyboard.type('Forma'); await p2.waitForTimeout(250); await p2.keyboard.press('Enter');
   await p2.waitForSelector('[data-forma-janela]');
   const r = await p2.locator('.janela.fm-jan').boundingBox();
@@ -4286,7 +4286,7 @@ await caso('v0.6.7: Painel no celular: peças uma embaixo da outra, sem rolagem 
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p2 = await ctx2.newPage();
   await novaPlanilha(p2);
-  await p2.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));
+  await p2.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', altKey: true, bubbles: true }) /* v0.6.23: na planilha a busca é Alt+Q */));
   await p2.keyboard.type('Painel'); await p2.waitForTimeout(250); await p2.keyboard.press('Enter');
   await p2.waitForSelector('[data-pn-branco]');
   await p2.click('[data-pn-add="texto"]'); await p2.waitForSelector('[data-pn-texto]');
@@ -4313,6 +4313,7 @@ await caso('v0.6.7: aba Gráfico: Duplicar, Baixar imagem, barras de erro, meta 
   await cmd(p, 'grafico.editar'); await p.waitForSelector('[data-grafico-janela]'); await p.waitForTimeout(300);
   await p.locator('[data-ge-estilo=escuro]').click(); await p.waitForTimeout(150);
   await p.locator('[data-ge-aba="tipo"]').click(); await p.locator('[data-ge="meta"]').fill('0,6'); await p.waitForTimeout(300);
+  /* v0.6.23 (D-63): a falha "subiu: 0.55" era do app: a linha desenhada da meta ficava por cima da área de pegar e o arrasto não começava */
   const box = await p.locator('[data-gr-previa] [data-meta-arrastar]').boundingBox();
   await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down();
   await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(300);
@@ -4393,13 +4394,13 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.22'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.23'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const p2 = await ctx2.newPage();
   await novaPlanilha(p2);
-  await p2.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));
+  await p2.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', altKey: true, bubbles: true }) /* v0.6.23: na planilha a busca é Alt+Q */));
   await p2.keyboard.type('Painel'); await p2.waitForTimeout(250); await p2.keyboard.press('Enter');
   await p2.waitForSelector('[data-pn-branco]');
   await p2.click('[data-pn-add="texto"]'); await p2.waitForSelector('[data-pn-texto]');

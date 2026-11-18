@@ -552,6 +552,8 @@ export function App() {
       case 'arquivo.novo': criarNovo(mod || 'planilha'); return;
       case 'arquivo.novaPlanilha': case 'arquivo.novoDocumento': case 'arquivo.novoQuadro': criarNovo(NOVO_POR_CMD[id]); return;
       case 'arquivo.abrir': setAbrirExcel(true); return;
+      /* v0.6.23: Ctrl+B do Excel em português; o Vértice já salva sozinho, aqui grava na hora e confirma */
+      case 'arquivo.salvar': if (atual) { if (atual.sujo) salvar(atual, 'salvou', true); avisar(`Salvo: ${atual.arquivo.ficha.nome}. O Vértice também salva sozinho a cada mudança.`, { ic: 'check' }); } return;
       case 'arquivo.renomear': if (atual) perguntarNome(atual.arquivo.ficha); return;
       case 'arquivo.lixeira': if (atual) mandarLixeira(atual.arquivo.ficha); return;
       case 'arquivo.interno': if (atual) ponteRef.current.setJanela({ ficha: atual.arquivo.ficha }); return;
@@ -599,7 +601,8 @@ export function App() {
       const k = ev.key.toLowerCase();
       const ctrl = ev.ctrlKey || ev.metaKey;
       const digitando = /^(input|textarea|select)$/i.test(ev.target.tagName) || ev.target.isContentEditable;
-      if ((ctrl && k === 'k') || (ev.altKey && k === 'q')) { ev.preventDefault(); setPaleta(true); return; }
+      /* v0.6.23: na planilha, Ctrl+K é Inserir link (como no Excel); a busca continua em Alt+Q */
+      if ((ctrl && k === 'k' && !(abertoRef.current && abertoRef.current.arquivo.ficha.tipo === 'planilha')) || (ev.altKey && k === 'q')) { ev.preventDefault(); setPaleta(true); return; }
       if (ctrl && !ev.shiftKey && !ev.altKey && k === 'p' && abertoRef.current) { ev.preventDefault(); executar('arquivo.imprimir'); return; }
       if (ctrl && ev.key === 'F1') { ev.preventDefault(); executar(prefs.faixa === 'tudo' ? 'exibir.faixaAbas' : 'exibir.faixaTudo'); return; }
       if (ev.key === 'Escape') { setFaixaTemp(false); setGaveta(false); return; }

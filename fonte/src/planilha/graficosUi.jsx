@@ -258,7 +258,9 @@ export function JanelaGrafico({ abaInicial, secao, inicial, tipoInicial, faixaPa
     return Math.round(v / passo) * passo;
   };
   const metaBaixo = (ev) => {
-    const t = ev.target.closest && ev.target.closest('[data-meta-arrastar]');
+    /* v0.6.23 (D-63): em alguns gráficos a linha desenhada da meta fica por cima da área de pegar; pegar a linha também arrasta */
+    const sobreMeta = ev.target.closest && ev.target.closest('[data-parte="meta"]');
+    const t = ev.target.closest && (ev.target.closest('[data-meta-arrastar]') || (sobreMeta && sobreMeta.ownerSVGElement && sobreMeta.ownerSVGElement.querySelector('[data-meta-arrastar]')));
     if (!t) return;
     ev.preventDefault(); ev.stopPropagation();
     ev.currentTarget.setPointerCapture(ev.pointerId);
