@@ -90,7 +90,7 @@ function trocaValores(f, todos, labs, ligar) {
 
 export function MenuColuna({ nome, cols, base, k, fechar, unidade = ['arquivo', 'arquivos'] }) {
   const st = usarTabela(nome), c = cols.find((x) => x.id === k);
-  const ref = useRef(null), de = useRef(null);
+  const ref = useRef(null), de = useRef(null), clique = useRef(0);
   const folha = typeof window !== 'undefined' && (innerWidth < 600 || !!document.querySelector('.app.cel'));
   usarEsc(fechar, true);
   useLayoutEffect(() => {
@@ -99,8 +99,10 @@ export function MenuColuna({ nome, cols, base, k, fechar, unidade = ['arquivo', 
     const th = b.closest('th') || b, r = th.getBoundingClientRect(), w = m.offsetWidth;
     /* cabe embaixo? se não, e se em cima houver mais espaço, abre para cima (a ponta vai para baixo) */
     m.style.maxHeight = 'none'; const alto = m.offsetHeight;
-    const embaixo = innerHeight - r.bottom - 18, emCima = r.top - 18, cima = alto > embaixo && emCima > embaixo;
-    const x = Math.max(8, Math.min(innerWidth - w - 8, r.left)), y = cima ? Math.max(8, r.top - 6 - Math.min(alto, emCima)) : r.bottom + 6;
+    /* v0.6.24.2 (V24-07): para cima, o menu para embaixo da barra de cima do app */
+    const barra = document.querySelector('.topbar'), topo = (barra ? barra.getBoundingClientRect().bottom : 0) + 6;
+    const embaixo = innerHeight - r.bottom - 18, emCima = r.top - 12 - topo, cima = alto > embaixo && emCima > embaixo;
+    const x = Math.max(8, Math.min(innerWidth - w - 8, r.left)), y = cima ? Math.max(topo, r.top - 6 - Math.min(alto, emCima)) : r.bottom + 6;
     m.style.left = x + 'px'; m.style.top = y + 'px';
     m.style.maxHeight = Math.max(200, cima ? emCima : embaixo) + 'px';
     m.classList.toggle('col-cima', cima);
@@ -132,7 +134,14 @@ export function MenuColuna({ nome, cols, base, k, fechar, unidade = ['arquivo', 
   return (
     <>
       {folha && <div className="col-fundo" onPointerDown={fechar} />}
-      <div className={'col-menu' + (folha ? ' col-folha' : '')} role="dialog" aria-label={'Coluna ' + c.rot} data-col-aberta={k} ref={ref}>
+      <div className={'col-menu' + (folha ? ' col-folha' : '')} role="dialog" aria-label={'Coluna ' + c.rot} data-col-aberta={k} ref={ref}
+        onPointerDown={() => { clique.current = Date.now(); }}
+        onBlur={(ev) => {
+          /* v0.6.24.2 (V24-06): o Tab que leva o foco para fora fecha o menu (clique num vazio do menu não fecha) */
+          const t = ev.relatedTarget;
+          if (t) { if (!ev.currentTarget.contains(t) && !(t.closest && t.closest('[data-col-menu], [data-col-hm]'))) fechar(); return; }
+          if (Date.now() - clique.current > 300) setTimeout(() => { if (ref.current && !ref.current.contains(document.activeElement)) fechar(); }, 0);
+        }}>
         {!folha && <i className="col-pt" aria-hidden="true" />}
         <div className="col-cab">
           <div className="col-t"><b>{c.rot}</b><small>{nItens} {nItens === 1 ? unidade[0] : unidade[1]} · {vals.length} {vals.length === 1 ? 'valor' : 'valores'}</small></div>

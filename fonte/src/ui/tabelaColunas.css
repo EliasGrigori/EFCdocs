@@ -106,3 +106,20 @@ th.c-acoes .col-thi { justify-content: flex-end; }
 .app.cel .tb-arq thead th.col-th { width: auto !important; min-width: 0; }
 .app.cel .tb-arq thead .col-thr { overflow: visible; }
 .app.cel .tb-arq:has(th.col-th) thead, .app.cel .tb-arq:has(th.col-th) thead tr { width: 100%; box-sizing: border-box; }
+
+/* ---------- v0.6.24.2 (relatório do Grok da parte 1) ---------- */
+/* V24-01: o tema escuro não tinha as variáveis douradas (só o claro, "papel"); usam o dourado que o escuro já tem */
+body[data-theme=dark] { --gold: var(--primary); --gold-ink: var(--primary); --gold-soft: color-mix(in srgb, var(--primary) 16%, transparent); }
+/* V24-02: janela média (PC ou tablet até 1240 px): as colunas de largura fixa encolhem para o Nome não sumir;
+   abaixo de 1040 px o Tipo sai (o ícone do arquivo já mostra o tipo) */
+@media (max-width: 1240px) {
+  .app:not(.cel) .tb-arq .c-codigo { width: 84px; }
+  .app:not(.cel) .tb-arq .c-tipo { width: 100px; }
+  .app:not(.cel) .tb-arq .c-quando { width: 142px; }
+  .app:not(.cel) .tb-arq .c-situacao { width: 170px; }
+  .app:not(.cel) .pg-lixeira .tb-arq .c-tipo { display: none; }
+}
+@media (max-width: 1040px) { .app:not(.cel) .internos .tb-arq .c-tipo { display: none; } }
+/* V24-03: reprovado pelo Elias em 18/11 ("deixa como antes, porém a barra rola para o lado"): volta na v0.6.24 parte 2 */
+/* V24-04: "Apagar para sempre" com a linha sob o mouse ficava com 4,27 de contraste: texto um pouco mais escuro no tema claro */
+body[data-theme=papel] .btn.apagar { color: color-mix(in srgb, var(--crit) 82%, #000); }

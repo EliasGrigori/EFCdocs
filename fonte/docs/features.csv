@@ -414,3 +414,4 @@ F412;Planilha;estabilizacao;"Classificar deixa a linha de total embaixo (DL03)";
 F413;Planilha;estabilizacao;"Remover duplicados ajusta a SOMA como exclusão de linhas (DL04)";funciona;"v0.6.24.1";manter;v0.6.24.1 (aguarda aprovação)
 F414;Planilha;estabilizacao;"Meta do gráfico: prévia presa no topo e arrasto com o dedo (V01, V02, D-63)";funciona;"v0.6.24.1";manter;v0.6.24.1 (aguarda aprovação)
 F415;Planilha;estabilizacao;"Atalhos do Quadro iguais aos da planilha (V05)";funciona;"v0.6.24.1";manter;v0.6.24.1 (aguarda aprovação)
+F416;Listas;listas;"Ajustes das colunas: escuro, janela média, celular, contraste, leitor e teclado (V24-01 a V24-07)";funciona;"v0.6.24.2";manter;v0.6.24.2 (aguarda aprovação)

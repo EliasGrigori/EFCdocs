@@ -16,5 +16,6 @@ export function Letras({ texto, canal = 'titulo' }) {
     return () => clearTimeout(t);
   }, [texto, canal]);
   if (vivo !== texto) return texto;
-  return <span className="fz-tt" data-fz-tt aria-label={texto}>{[...texto].map((c, i) => <span key={i} aria-hidden="true" style={{ '--i': i }}>{c}</span>)}</span>;
+  /* v0.6.24.2 (V24-05): o leitor de tela lê o texto escondido; as letras soltas ficam fora dele (sem aria-label em span sem papel) */
+  return <span className="fz-tt" data-fz-tt><span className="so-leitor">{texto}</span>{[...texto].map((c, i) => <span key={i} aria-hidden="true" style={{ '--i': i }}>{c}</span>)}</span>;
 }
