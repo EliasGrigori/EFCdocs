@@ -1,0 +1,39 @@
+/* Vértice Docs v0.6.24 parte 2 · menu do filtro da planilha no visual do menu das colunas das listas (tabelaColunas.css).
+   O botão do filtro mora na faixa das letras (A, B, C): sem caixa por cima do título da tabela. */
+.col-menu.pl-fmenu { display: flex; padding: 0; gap: 0; z-index: 41; width: 300px; max-height: min(560px, calc(100% - 8px)); }
+.col-menu.pl-fmenu .col-cab { gap: 8px; }
+.pl-fatual { font-weight: 600; }
+.pl-fcond { display: grid; gap: 6px; padding: 4px 6px 6px; }
+.pl-fcond select, .pl-fcond input { height: 34px; padding: 0 8px; border: 1px solid var(--border); border-radius: var(--r-ctl); background: var(--surface-2); color: var(--text); font: inherit; font-size: 14px; min-width: 0; }
+.pl-fcond select:focus-visible, .pl-fcond input:focus-visible { outline: none; border-color: var(--gold); box-shadow: var(--anel); }
+.pl-fcond-v { display: grid; grid-template-columns: 1fr; gap: 6px; align-items: center; }
+.pl-fcond-v.dois { grid-template-columns: 1fr auto 1fr; }
+.pl-fcond-v span { font-size: 13px; color: var(--text-muted); }
+.pl-fcond .btn { justify-self: end; }
+.pl-fcores { padding: 4px 0 2px; }
+.pl-fcores > div { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 6px; }
+.pl-fcor { all: unset; box-sizing: border-box; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: var(--r-chip); cursor: pointer; background: var(--surface); }
+.pl-fcor:hover, .pl-fcor:focus-visible { border-color: var(--gold); box-shadow: var(--anel); }
+.pl-fcor i { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0, 0, 0, .12); }
+.pl-fcor i.sem { background: repeating-linear-gradient(45deg, transparent 0 3px, var(--border) 3px 4px) !important; }
+.pl-fcor b { font-size: 15px; font-weight: 800; }
+.col-menu.pl-fmenu .pl-fmenu-r { display: flex; justify-content: flex-end; gap: 6px; padding: 8px 6px 2px; }
+.col-menu.pl-fmenu .pl-fmenu-q { all: unset; flex: 1; min-width: 0; color: var(--text); font-size: 14px; }
+.col-li.fora span { color: var(--text-dim); }
+/* a seta do filtro no título (filtro comum e tabela), pedidos do Elias em 18/11 (15:46 e aprovação das 16:26): a seta de sempre num
+   quadrado pequeno e bem transparente, para ver os dados da coluna; com o mouse em cima o quadrado cresce e fica mais opaco.
+   Filtrada: só o funil dourado, sem quadrado e pequeno; com o mouse em cima cresce no quadrado. Sem contorno, canto quase reto.
+   Crescer é transform (R32); o canto de baixo à direita fica parado. Em título escuro (tabela verde, azul), quadrado claro e seta branca. */
+.pl-seta-filtro.discreta { width: 14px; height: 14px; padding: 0; border: 0; border-radius: 2px; box-shadow: none; color: var(--text-muted);
+  background: color-mix(in srgb, var(--surface) 22%, transparent); transform-origin: 100% 100%; transition: transform var(--duration-quick) var(--ease-smooth-out); }
+.pl-seta-filtro.discreta svg { width: 10px; height: 10px; }
+.pl-seta-filtro.discreta:hover, .pl-seta-filtro.discreta:focus-visible { transform: scale(1.3); background: color-mix(in srgb, var(--surface) 88%, transparent); color: var(--text); border: 0; }
+.pl-seta-filtro.discreta.on { background: transparent; color: var(--gold-ink, var(--primary)); border: 0; }
+.pl-seta-filtro.discreta.on:hover, .pl-seta-filtro.discreta.on:focus-visible { background: color-mix(in srgb, var(--surface) 88%, transparent); }
+.pl-seta-filtro.discreta.on svg path { fill: currentColor; }
+.pl-seta-filtro.discreta.em-escuro { color: #fff; background: rgba(255, 255, 255, .12); }
+.pl-seta-filtro.discreta.em-escuro:hover, .pl-seta-filtro.discreta.em-escuro:focus-visible { background: rgba(255, 255, 255, .4); color: #fff; }
+.pl-seta-filtro.discreta.em-escuro.on { color: #ffe08a; background: transparent; }
+.pl-seta-filtro.discreta.em-escuro.on:hover { background: rgba(255, 255, 255, .4); }
+@media (prefers-reduced-motion: reduce) { .pl-seta-filtro.discreta { transition: none; } }
+@media (pointer: coarse) { .pl-seta-filtro.discreta { width: 22px; height: 22px; margin: -8px 0 0 -8px; } .pl-seta-filtro.discreta svg { width: 12px; height: 12px; } .col-menu.pl-fmenu .col-li { min-height: 44px; } }

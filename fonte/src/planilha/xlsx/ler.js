@@ -15,7 +15,7 @@ import { lerColunas } from './colunasXlsx.js';
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
-import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js';
+import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js'; import { criterioDoXlsx } from '../filtroCriterios.js';
 import { ligarCx } from './cxXlsx.js';
 import { noCantoDaAbaDeGrafico } from './abaGraficoXlsx.js';
 import { ligarFormaAoLivro } from './formasXlsx.js';
@@ -661,7 +661,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
             const v = tags(lista.dentro, 'filter').map((x) => x.a.val ?? '');
             if (lista.a.blank === '1' || lista.a.blank === 'true') v.push('');
             cr[col] = { v };
-          } else if (col >= p1.c && col <= p2.c) { naoEntram++; cx[col] = fc.bruto.replace(/\scolId="[^"]*"/, ''); }
+          } else if (col >= p1.c && col <= p2.c) { const k = criterioDoXlsx(fc.dentro); /* v0.6.24.3: texto, número, data, 10 primeiros e média valem no app; o resto fica como veio */ if (k) cr[col] = k; else { naoEntram++; cx[col] = fc.bruto.replace(/\scolId="[^"]*"/, ''); } }
         }
         /* v0.6.11 (D-24): critério que o app não entende (data, cor, "maiores que") fica guardado em cx e volta ao salvar */
         aba.fil = { fx: `${chave(p1.l, p1.c)}:${chave(p2.l, p2.c)}`, cr, ...(Object.keys(cx).length ? { cx } : {}) };

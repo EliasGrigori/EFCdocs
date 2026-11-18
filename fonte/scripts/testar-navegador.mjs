@@ -93,10 +93,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.24.2', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.24.4', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24.2'), 'menu sem v0.6.24.2');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24.4'), 'menu sem v0.6.24.4');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -1900,7 +1900,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.24.2'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.24.4'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -4406,7 +4406,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24.2'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.24.4'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4871,7 +4871,7 @@ await caso('v0.6.15 (C02): linha do congelamento com 1 pixel, como no Excel (era
   certo(r.some(([s, e]) => s === 'h' && e === 1) && r.some(([s, e]) => s === 'v' && e === 1), 'linhas de 1 px nos dois sentidos: ' + JSON.stringify(r.slice(0, 6)));
   igual(r.filter(([, e]) => e > 1).length, 0, 'nenhuma linha de congelamento grossa');
 });
-await caso('v0.6.15 (R22): seta do filtro no desenho do Cwork (funil com seta); filtrada vira o funil cheio em ouro', async () => {
+await caso('v0.6.15 (R22), v0.6.24.3: seta do filtro é a seta de sempre num quadrado translúcido; filtrada vira o funil dourado', async () => {
   const { ctx, p } = await novaPagina({ viewport: { width: 1366, height: 700 } });
   await novaPlanilha(p);
   await digitarEm(p, 'A1', ['Nome', 'Ana', 'Rui']);
@@ -4883,9 +4883,10 @@ await caso('v0.6.15 (R22): seta do filtro no desenho do Cwork (funil com seta); 
   const fundo = await p.locator('[data-seta-filtro="0"]').evaluate((el) => getComputedStyle(el).backgroundImage);
   await print(p, 'v0615-filtro');
   await ctx.close();
-  certo(antes.includes('m15.5 14'), 'seta com o funil e a setinha: ' + antes);
-  certo(!depois.includes('m15.5 14') && depois.includes('M3 5h18'), 'filtrada mostra o funil: ' + depois);
-  certo(/gradient/.test(fundo), 'filtrada em ouro: ' + fundo);
+  /* v0.6.24.3 (pedido do Elias em 18/11, 15:46): a seta de sempre num quadrado meio translúcido; filtrada vira o funil dourado */
+  certo(antes.includes('M6 9l6 6 6-6'), 'só a setinha para baixo: ' + antes);
+  certo(depois.includes('M3 5h18'), 'filtrada mostra o funil: ' + depois);
+  certo(!/gradient/.test(fundo), 'sem fundo pintado: ' + fundo);
 });
 
 await caso('v0.6.15 (Transitions.dev): janela, menu, aviso e seção das Opções entram com a receita e os tempos da escala; com "reduzir movimento" nada se move', async () => {

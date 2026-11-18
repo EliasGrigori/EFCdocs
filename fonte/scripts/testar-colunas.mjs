@@ -151,11 +151,16 @@ for (const [rota, nome] of [['#/internos', 'Documentos internos'], ['#/lixeira',
     await c.ctx.close();
   });
 }
-if (process.env.V2403) await caso('V24-03: celular, Documentos internos: a barra das colunas cabe e a Situação tem menu', async () => {
+await caso('V24-03 (refeito): celular, Documentos internos: barra numa linha que rola para o lado, com a Situação, sem alargar a tabela', async () => {
   const c = await abre({ w: 390, h: 844, toque: true }); const q = c.page;
   await q.goto(BASE + '#/internos'); await espera(900);
   const r = await q.evaluate(() => { const tr = document.querySelector('.tb-arq thead tr'), cart = document.querySelector('.tb-arq').getBoundingClientRect(), s = document.querySelector('th[data-col=situacao] [data-col-menu]'); const ths = [...tr.querySelectorAll('th')].filter((t) => t.getBoundingClientRect().width > 0); const dir = Math.max(...ths.map((t) => t.getBoundingClientRect().right)); return { cabe: tr.scrollWidth <= tr.clientWidth + 1 && dir <= Math.min(cart.right, innerWidth - 12) + 1, sw: tr.scrollWidth, cw: tr.clientWidth, dir: Math.round(dir), cart: Math.round(cart.right), situacao: !!(s && s.getBoundingClientRect().width > 0) }; });
-  certo(r.cabe && r.situacao, 'barra: ' + JSON.stringify(r));
+  /* numa linha só (como antes), rolando para o lado dentro do cartão; a tabela não passa da tela (os botões das linhas aparecem) */
+  const r2 = await q.evaluate(() => { const tr = document.querySelector('.tb-arq thead tr'), ths = [...tr.querySelectorAll('th')].filter((t) => t.getBoundingClientRect().width > 0); const tops = new Set(ths.map((t) => Math.round(t.getBoundingClientRect().top))); const tb = document.querySelector('.tb-arq').getBoundingClientRect(); const ac = document.querySelector('.tb-arq tr.arq .c-acoes'); return { linhas: tops.size, rola: tr.scrollWidth > tr.clientWidth, tabela: Math.round(tb.right), acoes: ac ? Math.round(ac.getBoundingClientRect().right) : 0, tela: innerWidth }; });
+  certo(r.situacao && r2.linhas === 1 && r2.rola && r2.tabela <= r2.tela && r2.acoes <= r2.tela, 'barra: ' + JSON.stringify({ ...r, ...r2 }));
+  await q.locator('.tb-arq thead tr').evaluate((e) => { e.scrollLeft = e.scrollWidth; }); await espera(150);
+  await q.locator('[data-col-menu=situacao]').tap(); await espera(300);
+  certo(await q.locator('.col-menu[data-col-aberta=situacao]').count() === 1, 'o menu da Situação não abriu');
   await c.ctx.close();
 });
 await caso('V24-04: "Apagar para sempre" da Lixeira com contraste de pelo menos 4,5', async () => {

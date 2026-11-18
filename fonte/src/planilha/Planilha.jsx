@@ -27,7 +27,9 @@ import { formatoDaFormula } from './formatoAuto.js';
 import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt, numeroGeral } from './valores.js';
 import * as O from './operacoes.js';
 import * as D from './dados.js';
-import { JanelaClassificar, JanelaDuplicados, JanelaTravar, MenuFiltro, JanelaExpandirOrdem } from './dadosUi.jsx';
+import { JanelaClassificar, JanelaDuplicados, JanelaTravar, JanelaExpandirOrdem } from './dadosUi.jsx';
+import { MenuFiltro } from './filtroMenu.jsx';
+import { tipoDaColuna } from './filtroCriterios.js';
 import { objetosDaAba, novaAssinatura, novoGrafico, novaImagem, novoBotao, caberImagem, GR, IMG, BTN, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS, idObjeto } from './objetos.js';
 import { FM, temLink, textoDaForma } from './formas.js';
 import { FormaView, JanelaForma, valoresLigados } from './formasUi.jsx';
@@ -2024,6 +2026,9 @@ export function Planilha({ arquivo, cx }) {
   /* ---------- v0.6.3: Classificar, Filtrar, Remover duplicados e Travar modelo ---------- */
   const valorDeDados = (l, cc) => { const v = motor.valor(abaId, l, cc); return v && typeof v === 'object' && !ehErro(v) ? null : v; };
   const textoDeDados = (l, cc) => textoCelula(motor, c, abaId, l, cc).t;
+  /* v0.6.24 parte 2: os filtros do Excel olham também o valor e a cor da célula */
+  /* a cor do filtro é a pintada na célula (as faixas do estilo de tabela não contam, como no Excel) */
+  const xDados = { valorDe: valorDeDados, corDe: (l, cc) => { const e = estiloDe(c, aba.cel[chave(l, cc)]); return { fundo: e.fundo || '', cor: e.cor || '' }; } };
   /** A área da tabela: a seleção (se tem mais de uma célula), a área do filtro ou a região em volta da célula ativa. */
   const areaDeDados = () => {
     const f = normalFaixa(faixa);
@@ -2052,9 +2057,9 @@ export function Planilha({ arquivo, cx }) {
     return null;
   };
   const gravarFiltro = (fil, rotulo) => {
-    mudar(D.mudancasDoFiltro(aba, abaId, fil, textoDeDados), rotulo);
+    mudar(D.mudancasDoFiltro(aba, abaId, fil, textoDeDados, xDados), rotulo);
     /* v0.6.4 (Grok B02): diz quantas linhas ficaram, como o Excel faz na barra de baixo */
-    if (fil) { const n = D.contagemDoFiltro(fil, textoDeDados); if (n.total) cx.avisar(n.visiveis + ' de ' + n.total + ' linhas aparecem.' + (fil.cx ? D.AVISO_CX : ''), { ic: 'filtro' }); }
+    if (fil) { const n = D.contagemDoFiltro(fil, textoDeDados, xDados); if (n.total) cx.avisar(n.visiveis + ' de ' + n.total + ' linhas aparecem.' + (fil.cx ? D.AVISO_CX : ''), { ic: 'filtro' }); }
   };
   const alternarFiltro = () => {
     setMenuFiltro(null);
@@ -3255,34 +3260,40 @@ export function Planilha({ arquivo, cx }) {
             </>
           );
         })()}
-        {/* v0.6.3: setas do filtro nos títulos e menu de valores. v0.6.11.1 (D-15): título que rolou para trás do painel congelado (linha ou coluna) não mostra seta: ela caía por cima do título congelado, em dobro */}
+        {/* v0.6.3: setas do filtro (do filtro comum e da tabela) e menu de valores. v0.6.24 parte 2 (pedido do Elias): no título, só uma setinha
+            para baixo, sem caixa; o contorno aparece ao passar o mouse; o menu é o do EFCwork, com os filtros do Excel. D-15: colunas roladas
+            para trás das congeladas não mostram seta. */}
         {aba.fil && !edit && (() => {
           const ff = D.faixaDoFiltro(aba.fil);
           if (!ff) return null;
-          const y0 = G.yDe(ff.l1), y1 = G.yFim(ff.l1);
-          if (y1 - y0 < 14 || y1 < G.hh + 8 || y0 > tam.H || (ff.l1 >= G.cl && y1 < G.hh + G.fy + 8)) return null;
+          const y1 = G.yFim(ff.l1);
+          if (y1 - G.yDe(ff.l1) < 14 || y1 < G.hh + 8 || G.yDe(ff.l1) > tam.H || (ff.l1 >= G.cl && y1 < G.hh + G.fy + 8)) return null;
           const setas = [];
           for (let cc = ff.c1; cc <= ff.c2; cc++) {
             const x0 = G.xDe(cc), x1 = G.xFim(cc);
             if (x1 - x0 < 22 || x1 < G.hw + 22 || x0 > tam.W - 4 || (cc >= G.cc && x1 < G.hw + G.fx + 22)) continue;
-            const filtrada = D.colunaFiltrada(aba.fil, cc);
+            const filtrada = D.colunaFiltrada(aba.fil, cc), fd = estiloVisto(c, aba.cel[chave(ff.l1, cc)], motor, abaId, ff.l1, cc).fundo, m = /^#?([0-9a-f]{6})$/i.exec(fd || '');
+            /* título de fundo escuro (estilo de tabela verde, azul...): a setinha fica clara */
+            const escuro = m && (() => { const n = parseInt(m[1], 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 140; })();
             setas.push(
-              <button key={cc} type="button" className={'pl-seta-filtro' + (filtrada ? ' on' : '')} data-seta-filtro={cc} tabIndex={-1}
+              <button key={cc} type="button" className={'pl-seta-filtro discreta' + (filtrada ? ' on' : '') + (escuro ? ' em-escuro' : '')} data-seta-filtro={cc} tabIndex={-1}
                 aria-label={(filtrada ? 'Filtro ativo na coluna ' : 'Filtrar a coluna ') + letraCol(cc)} title={filtrada ? 'Esta coluna está filtrada' : 'Filtrar esta coluna'}
-                style={{ left: Math.min(x1, tam.W) - 20, top: y1 - 20 }}
-                onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); setMenuFiltro((m) => (m && m.col === cc ? null : { col: cc })); }}><Icone n={filtrada ? 'filtro' : 'filtroSeta'} /></button>,
+                style={{ left: Math.min(x1, tam.W) - 16, top: y1 - 16 }}
+                onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); setMenuFiltro((m) => (m && m.col === cc ? null : { col: cc })); }}><Icone n={filtrada ? 'filtro' : 'chevronBaixo'} /></button>,
             );
           }
           let menu = null;
           if (menuFiltro && menuFiltro.col >= ff.c1 && menuFiltro.col <= ff.c2) {
-            const cc = menuFiltro.col;
-            const x0 = G.xDe(cc), x1 = G.xFim(cc);
-            const valores = D.valoresDaColuna(aba.fil, cc, textoDeDados, valorDeDados);
+            const cc = menuFiltro.col, x0 = G.xDe(cc);
+            const amostras = [], fundos = new Set(), letras = new Set();
+            for (let l = ff.l1 + 1; l <= Math.min(ff.l2, ff.l1 + 5000); l++) { amostras.push({ v: valorDeDados(l, cc), t: textoDeDados(l, cc) }); const k = xDados.corDe(l, cc); fundos.add(k.fundo); letras.add(k.cor); }
+            const cores = { fundos: fundos.size > 1 ? [...fundos] : [], letras: letras.size > 1 ? [...letras] : [] };
             menu = (
-              <MenuFiltro key={cc + ':' + c.abas[abaId].fil.fx} x={Math.max(G.hw, Math.min(x0, tam.W - 250))} y={Math.min(y1 + 2, Math.max(G.hh, tam.H - 330))} w={x1 - x0}
-                titulo={textoDeDados(ff.l1, cc) || 'coluna ' + letraCol(cc)} valores={valores} filtrada={D.colunaFiltrada(aba.fil, cc)}
-                aoOrdenar={(desc) => { setMenuFiltro(null); aplicarClassificar(ff, { niveis: [{ col: cc, desc }], cabecalho: true }); }}
+              <MenuFiltro key={cc + ':' + c.abas[abaId].fil.fx} x={Math.max(G.hw, Math.min(x0, tam.W - 304))} y={Math.min(y1 + 2, Math.max(G.hh, tam.H - 420))} tipo={tipoDaColuna(amostras)} cores={cores} criterio={aba.fil.cr && aba.fil.cr[cc]}
+                titulo={textoDeDados(ff.l1, cc) || 'coluna ' + letraCol(cc)} valores={D.valoresDaColuna(aba.fil, cc, textoDeDados, valorDeDados, xDados.corDe)} filtrada={D.colunaFiltrada(aba.fil, cc)}
+                ordem={D.estadoDaOrdem(aba.fil, cc)} aoCiclo={() => { setMenuFiltro(null); const r = D.cicloDeOrdem(c, abaId, cc, { valorDe: valorDeDados }); if (r.erro) { cx.avisar(r.erro, { ic: 'aviso' }); return; } aplicarLote(r.lote, r.rotulo); cx.avisar(r.aviso, { ic: 'classificar' }); }}
                 aoAplicar={(esc, todos) => { setMenuFiltro(null); gravarFiltro(D.comCriterio(aba.fil, cc, esc, todos), 'Filtrar'); setTimeout(voltarFocoGrade, 0); }}
+                aoCriterio={(cr) => { setMenuFiltro(null); gravarFiltro({ ...aba.fil, cr: { ...aba.fil.cr, [cc]: cr } }, 'Filtrar'); setTimeout(voltarFocoGrade, 0); }}
                 aoLimparColuna={() => { setMenuFiltro(null); const cr = { ...aba.fil.cr }; delete cr[cc]; gravarFiltro({ ...aba.fil, cr }, 'Limpar o filtro da coluna'); }}
                 aoFechar={() => { setMenuFiltro(null); setTimeout(voltarFocoGrade, 0); }} />
             );

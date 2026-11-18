@@ -18,6 +18,7 @@ import { lerGuardada } from '../formula.js';
 import { chave, letraCol, lerChave, MAX_COL } from '../ref.js';
 import { valorGuardado, LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao } from '../modelo.js';
 import { ehErro } from '../valores.js';
+import { criterioParaXlsx } from '../filtroCriterios.js';
 import { Motor } from '../motor.js';
 import { POR_EN } from '../nomesFuncoes.js';
 import { gravarValidacoes, gravarCondicionais, gravarComentarios } from './extras.js';
@@ -39,6 +40,8 @@ function gravarFiltro(fil) {
   if (!cols.length && !crus.length) return `<autoFilter ref="${fil.fx}"/>`;
   const dentro = [...cols, ...crus].sort((x, y) => x - y).map((col) => {
     if (!fil.cr || !fil.cr[col]) return colunaCrua(fil.cx[col], col - a1.c);
+    /* v0.6.24 parte 2: texto, número, data, 10 primeiros e média como o Excel grava; a cor fica só no app (as linhas continuam escondidas) */
+    if (!Array.isArray(fil.cr[col].v)) { const x = criterioParaXlsx(fil.cr[col]); return x ? colunaCrua(x, col - a1.c) : ''; }
     const v = fil.cr[col].v || [];
     const vazio = v.includes('');
     const itens = v.filter((t) => t !== '').map((t) => `<filter val="${escapar(t, true)}"/>`).join('');

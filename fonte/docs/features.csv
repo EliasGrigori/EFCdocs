@@ -415,3 +415,10 @@ F413;Planilha;estabilizacao;"Remover duplicados ajusta a SOMA como exclusão de 
 F414;Planilha;estabilizacao;"Meta do gráfico: prévia presa no topo e arrasto com o dedo (V01, V02, D-63)";funciona;"v0.6.24.1";manter;v0.6.24.1 (aguarda aprovação)
 F415;Planilha;estabilizacao;"Atalhos do Quadro iguais aos da planilha (V05)";funciona;"v0.6.24.1";manter;v0.6.24.1 (aguarda aprovação)
 F416;Listas;listas;"Ajustes das colunas: escuro, janela média, celular, contraste, leitor e teclado (V24-01 a V24-07)";funciona;"v0.6.24.2";manter;v0.6.24.2 (aguarda aprovação)
+F417;Planilha;filtro;"Seta do filtro num quadrado pequeno e bem transparente no título, que cresce e fica opaco no mouse; filtrada, funil sem quadrado (tabela e Dados › Filtro)";funciona;"v0.6.24.3";manter;v0.6.24.3 (aprovada 18/11)
+F418;Planilha;filtro;"Menu do filtro da planilha no padrão do EFCwork";funciona;"v0.6.24.3";manter;v0.6.24.3 (aprovada 18/11)
+F419;Planilha;filtro;"Filtros de número, data e texto do Excel";funciona;"v0.6.24.3";manter;v0.6.24.3 (aprovada 18/11)
+F420;Planilha;filtro;"10 maiores/menores e acima/abaixo da média (opções da lista de Filtros de número)";funciona;"v0.6.24.4";manter;v0.6.24.3 aprovada; na lista desde a v0.6.24.4
+F421;Planilha;filtro;"Filtrar por cor (só no app)";funciona;"v0.6.24.3";manter;v0.6.24.3 (aprovada 18/11)
+F422;Planilha;filtro;"Filtros de condição vão e voltam no .xlsx";funciona;"v0.6.24.3";manter;v0.6.24.3 (aprovada 18/11)
+F423;Planilha;filtro;"Ordenar do filtro num botão só, em ciclo (ordem padrão, crescente, decrescente, volta à ordem de antes)";funciona;"v0.6.24.3";manter;v0.6.24.3 (pedido de 18/11 15:46, aprovada)

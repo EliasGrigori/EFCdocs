@@ -120,6 +120,11 @@ body[data-theme=dark] { --gold: var(--primary); --gold-ink: var(--primary); --go
   .app:not(.cel) .pg-lixeira .tb-arq .c-tipo { display: none; }
 }
 @media (max-width: 1040px) { .app:not(.cel) .internos .tb-arq .c-tipo { display: none; } }
-/* V24-03: reprovado pelo Elias em 18/11 ("deixa como antes, porém a barra rola para o lado"): volta na v0.6.24 parte 2 */
+/* V24-03 refeito (v0.6.24 parte 2, comentário do Elias: "deixa como antes porém a tela rola para o lado"): a barra das colunas
+   fica numa linha só, como antes, e rola para o lado dentro do cartão; a Situação entra no fim; a barra não alarga a tabela */
+.app.cel .internos .tb-arq thead th.c-situacao.col-th { display: block; width: auto; }
+.app.cel .tb-arq:has(th.col-th) thead { contain: inline-size; }
+.app.cel .tb-arq:has(th.col-th) thead tr { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; }
+.app.cel .tb-arq:has(th.col-th) thead th.col-th { scroll-snap-align: start; }
 /* V24-04: "Apagar para sempre" com a linha sob o mouse ficava com 4,27 de contraste: texto um pouco mais escuro no tema claro */
 body[data-theme=papel] .btn.apagar { color: color-mix(in srgb, var(--crit) 82%, #000); }

@@ -9,6 +9,7 @@ import { Lote, existentes, moverFormula } from './operacoes.js';
 import { mescladas } from './modelo.js';
 import { ehErro } from './valores.js';
 import { reescrever, ajustarEstrutura, lerGuardada, mapearRefs } from './formula.js';
+import { passaCriterio, preparar } from './filtroCriterios.js';
 
 /* ---------- ordem dos valores ---------- */
 const cole = (() => { try { return new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: false }); } catch { return null; } })();
@@ -103,6 +104,7 @@ export function classificar(c, abaId, faixa, niveis, { cabecalho = true, valorDe
   });
   const lote = new Lote(c);
   let mexeu = 0;
+  const perm = linhas.map((destino, pos) => [destino, ordem[pos].l]); /* v0.6.24.3: [destino, origem] para o ciclo de ordem voltar ao padrão */
   linhas.forEach((destino, pos) => {
     const origem = ordem[pos].l;
     if (origem === destino) return;
@@ -115,7 +117,47 @@ export function classificar(c, abaId, faixa, niveis, { cabecalho = true, valorDe
       lote.por(abaId, chave(destino, cc), nova);
     }
   });
-  return { lote, linhas: linhas.length, mexeu, total };
+  return { lote, linhas: linhas.length, mexeu, total, perm };
+}
+
+/* ---------- v0.6.24.3: ordem em ciclo no menu do filtro, igual ao EFCwork (ordem padrão, crescente, decrescente, padrão) ----------
+   aba.fil.ord = { col, dir: 'asc'|'desc', fx, orig: { linha atual: linha de antes da primeira ordem } } (só as que mudaram de lugar).
+   Voltar ao padrão põe cada linha de volta no lugar de antes. Se a área do filtro mudou, não dá para voltar (diz para usar o Ctrl+Z). */
+function moverLinhas(lote, aba, abaId, f, pares) {
+  for (const [destino, origem] of pares) {
+    if (destino === origem) continue;
+    for (let cc = f.c1; cc <= f.c2; cc++) {
+      const x = aba.cel[chave(origem, cc)];
+      if (!x) { lote.por(abaId, chave(destino, cc), undefined); continue; }
+      const nova = { ...x };
+      if (x.f != null) nova.f = moverFormula(x.f, destino - origem, 0);
+      lote.por(abaId, chave(destino, cc), nova);
+    }
+  }
+}
+export const estadoDaOrdem = (fil, col) => (fil && fil.ord && fil.ord.col === col && fil.ord.fx === fil.fx ? fil.ord.dir : null);
+export function cicloDeOrdem(c, abaId, col, { valorDe }) {
+  const aba = c.abas[abaId], fil = aba.fil, f = faixaDoFiltro(fil);
+  if (!f) return { erro: 'Esta aba não tem filtro.' };
+  const ord = fil.ord && fil.ord.fx === fil.fx ? fil.ord : null;
+  const agora = estadoDaOrdem(fil, col);
+  const { ord: _x, ...semOrd } = fil;
+  if (agora === 'desc') {
+    /* volta à ordem de antes */
+    const orig = (ord && ord.orig) || {};
+    const lote = new Lote(c);
+    moverLinhas(lote, aba, abaId, f, Object.entries(orig).map(([atual, antes]) => [Number(antes), Number(atual)]));
+    lote.outras[`conteudo.abas.${abaId}.fil`] = semOrd;
+    return { lote, rotulo: 'Voltar à ordem padrão', aviso: 'As linhas voltaram à ordem de antes. Dá para desfazer.', dir: null };
+  }
+  const desc = agora === 'asc';
+  const r = classificar(c, abaId, f, [{ col, desc }], { cabecalho: true, valorDe });
+  if (r.erro) return { erro: r.erro };
+  const antes = (ord && ord.orig) || {}, orig = {};
+  for (const [destino, origem] of r.perm) { const o = antes[origem] ?? origem; if (o !== destino) orig[destino] = o; }
+  for (const k of Object.keys(antes)) { const l = Number(k); if (!r.perm.some((p) => p[0] === l) && antes[k] !== l) orig[l] = antes[k]; }
+  r.lote.outras[`conteudo.abas.${abaId}.fil`] = { ...semOrd, ord: { col, dir: desc ? 'desc' : 'asc', fx: fil.fx, orig } };
+  return { lote: r.lote, rotulo: 'Classificar', aviso: `${r.linhas} linhas em ordem${r.total != null ? `; a linha de total (${r.total + 1}) ficou embaixo` : ''}. Toque de novo para ${desc ? 'voltar à ordem padrão' : 'inverter'}.`, dir: desc ? 'desc' : 'asc' };
 }
 
 /* ---------- Remover duplicados ---------- */
@@ -179,20 +221,31 @@ export const novoFiltro = (faixa) => ({ fx: textoFaixa(normalFaixa(faixa)), cr: 
 export const filtroAtivo = (fil) => !!fil && Object.keys(fil.cr || {}).length > 0;
 export const colunaFiltrada = (fil, col) => !!(fil && fil.cr && fil.cr[col]);
 
-/** O texto que o filtro compara: o que aparece na célula. */
-const passa = (fil, col, texto) => {
+/** O que o filtro compara: a lista de valores usa o texto que aparece na célula; os critérios do Excel (v0.6.24 parte 2)
+    usam também o valor, a cor e a conta da coluna (os N maiores, a média). x = { valorDe, corDe } (opcional). */
+const contas = new WeakMap();
+const prepDe = (fil, col, x, f) => {
   const cr = fil.cr[col];
-  return !cr || cr.v.includes(texto);
+  if (!cr || !cr.k || (cr.k !== 'top' && cr.k !== 'media')) return null;
+  let m = contas.get(fil); if (!m) { m = {}; contas.set(fil, m); }
+  if (!(col in m)) { const vals = []; for (let l = f.l1 + 1; l <= f.l2; l++) vals.push(x && x.valorDe ? x.valorDe(l, col) : null); m[col] = preparar(cr, vals); }
+  return m[col];
 };
-/** Linhas de dados que o filtro esconde. textoDe(l, c) = texto mostrado na célula. */
-export function linhasEscondidasPeloFiltro(fil, textoDe) {
+const passa = (fil, col, texto, l, x, f) => {
+  const cr = fil.cr[col];
+  if (!cr) return true;
+  if (Array.isArray(cr.v)) return cr.v.includes(texto);
+  return passaCriterio(cr, x && x.valorDe ? x.valorDe(l, col) : texto, texto, x && x.corDe ? x.corDe(l, col) : null, prepDe(fil, col, x, f));
+};
+/** Linhas de dados que o filtro esconde. textoDe(l, c) = texto mostrado na célula; x = { valorDe, corDe }. */
+export function linhasEscondidasPeloFiltro(fil, textoDe, x) {
   const f = faixaDoFiltro(fil);
   const out = new Set();
   if (!f) return out;
   const cols = Object.keys(fil.cr || {}).map(Number);
   if (!cols.length) return out;
   for (let l = f.l1 + 1; l <= f.l2; l++) {
-    for (const col of cols) if (!passa(fil, col, textoDe(l, col))) { out.add(l); break; }
+    for (const col of cols) if (!passa(fil, col, textoDe(l, col), l, x, f)) { out.add(l); break; }
   }
   return out;
 }
@@ -201,7 +254,7 @@ export function linhasEscondidasPeloFiltro(fil, textoDe) {
  * quem foi escondido por outra coluna aparece com ok:false.
  * Devolve [{ t (texto), n (quantas linhas), marcado, ok }], em ordem crescente (vazios no fim).
  */
-export function valoresDaColuna(fil, col, textoDe, valorDe) {
+export function valoresDaColuna(fil, col, textoDe, valorDe, corDe) {
   const f = faixaDoFiltro(fil);
   if (!f) return [];
   const cr = fil.cr || {};
@@ -209,14 +262,14 @@ export function valoresDaColuna(fil, col, textoDe, valorDe) {
   for (let l = f.l1 + 1; l <= f.l2; l++) {
     const t = textoDe(l, col);
     let ok = true;
-    for (const k of Object.keys(cr)) { if (+k !== col && !passa(fil, +k, textoDe(l, +k))) { ok = false; break; } }
+    for (const k of Object.keys(cr)) { if (+k !== col && !passa(fil, +k, textoDe(l, +k), l, { valorDe, corDe }, f)) { ok = false; break; } }
     let e = mapa.get(t);
     if (!e) { e = { t, n: 0, ok: false, v: valorDe ? valorDe(l, col) : t }; mapa.set(t, e); }
     if (ok) { e.n++; e.ok = true; }
   }
   const lista = [...mapa.values()].sort((a, b) => compararNivel(a.v, b.v, false));
   const atual = cr[col];
-  return lista.map((e) => ({ t: e.t, n: e.n, ok: e.ok, marcado: atual ? atual.v.includes(e.t) : true }));
+  return lista.map((e) => ({ t: e.t, n: e.n, ok: e.ok, marcado: atual && Array.isArray(atual.v) ? atual.v.includes(e.t) : true }));
 }
 /** Muda o critério de uma coluna: escolhidos = textos que ficam. Todos marcados = sem critério. */
 export function comCriterio(fil, col, escolhidos, todos) {
@@ -234,14 +287,14 @@ export const semCriterios = (fil) => ({ ...fil, cr: {} });
  */
 /** v0.6.11 (Grok B05): aviso quando o critério que veio do Excel (data, cor) sai porque a pessoa mexeu no filtro aqui. */
 export const AVISO_CX = ' O filtro de data ou de cor que veio do Excel saiu: agora valem só os filtros feitos aqui.';
-export function mudancasDoFiltro(aba, abaId, fil, textoDe) {
+export function mudancasDoFiltro(aba, abaId, fil, textoDe, x) {
   /* v0.6.11 (D-24): mexeu no filtro aqui, o critério que veio do Excel e que o app não entende (data, cor) sai junto,
      para a tela e o arquivo ficarem iguais (as linhas que ele escondia passam a seguir só os critérios daqui) */
   if (fil && fil.cx) { const { cx, ...resto } = fil; fil = resto; }
   const antigoF = aba.ocF || {};
   const ocL = {};
   for (const k of Object.keys(aba.ocL || {})) if (!antigoF[k]) ocL[k] = aba.ocL[k];
-  const novas = fil ? linhasEscondidasPeloFiltro(fil, textoDe) : new Set();
+  const novas = fil ? linhasEscondidasPeloFiltro(fil, textoDe, x) : new Set();
   const ocF = {};
   for (const l of novas) { ocL[l] = 1; ocF[l] = 1; }
   const p = `conteudo.abas.${abaId}.`;
@@ -252,11 +305,11 @@ export function mudancasDoFiltro(aba, abaId, fil, textoDe) {
   };
 }
 /** Quantas linhas aparecem de quantas (para a mensagem "12 de 340 registros"). */
-export function contagemDoFiltro(fil, textoDe) {
+export function contagemDoFiltro(fil, textoDe, x) {
   const f = faixaDoFiltro(fil);
   if (!f) return { total: 0, visiveis: 0 };
   const total = f.l2 - f.l1;
-  return { total, visiveis: total - linhasEscondidasPeloFiltro(fil, textoDe).size };
+  return { total, visiveis: total - linhasEscondidasPeloFiltro(fil, textoDe, x).size };
 }
 
 /** Linhas e colunas de uma aba mudaram de lugar (inserir/excluir): acerta a área do filtro. */

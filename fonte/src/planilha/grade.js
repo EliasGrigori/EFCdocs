@@ -221,7 +221,7 @@ function retMescla(G, m, reg) {
 
 function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
   const ffil = p.c.abas[p.abaId] && p.c.abas[p.abaId].fil && !p.editando ? faixaDoFiltro(p.c.abas[p.abaId].fil) : null;
-  const reservaFiltro = ffil ? { l: ffil.l1, c1: ffil.c1, c2: ffil.c2, px: p.celular ? 28 : 22 } : null;
+  const reservaFiltro = ffil ? { l: ffil.l1, c1: ffil.c1, c2: ffil.c2, px: p.celular ? 28 : 18 } : null;
   const { ctx, c, motor, abaId, G, cores, familia } = p;
   const aba = c.abas[abaId];
   const { z } = G;
@@ -329,7 +329,8 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       if (m) { const R = retMescla(G, m, reg); if (!R) continue; x = R.x; yy = R.y; w = R.w; hh = R.h; }
       /* v0.6.11 (D-15): na linha dos títulos do filtro, o texto não entra no lugar da seta (18 px; 24 no toque) */
       const rf = reservaFiltro;
-      if (rf && !m && cl === rf.l && cc >= rf.c1 && cc <= rf.c2 && w > rf.px + 12) w -= rf.px;
+      /* v0.6.24.3: e não vaza para a vizinha (vazando, o fundo era apagado a partir da seta e ficava um retângulo branco no título da tabela) */
+      if (rf && !m && cl === rf.l && cc >= rf.c1 && cc <= rf.c2 && w > rf.px + 12) { w -= rf.px; desenharTexto(p, { ...tx, semVazar: true }, x, yy, w, hh, l, col, aba, mesc); continue; }
       desenharTexto(p, tx, x, yy, w, hh, l, col, aba, mesc);
     }
   }
@@ -473,7 +474,7 @@ function desenharTexto(p, tx, x, y, w, h, l, col, aba, mesc) {
   let xx = tx.al === 'd' ? x + w - pad - largura : tx.al === 'c' ? x + (w - largura) / 2 : x + pad;
   /* texto que passa da célula: avança sobre as vizinhas vazias (só texto à esquerda/direita) */
   let x1 = x, x2 = x + w;
-  if (largura > w - 2 * pad && !tx.num) {
+  if (largura > w - 2 * pad && !tx.num && !tx.semVazar) {
     if (tx.al === 'e' || tx.al === 'c') {
       let cc = col + 1;
       while (x2 < xx + largura + pad && cc < G.colunas.max && cc < col + 40) {
