@@ -1,6 +1,6 @@
 # MEMÓRIA DO PROJETO · Vértice Docs (EFCdocs)
 
-Atualizado em 18/11/2026 · Organizada pelo modelo do Método Sabiá 2.1 (`scripts/sabia/modelos/MEMORIA-DO-PROJETO.modelo.md`) · No ar desde 17/11: **v0.6.21 parte 3** · No ar: **v0.6.30** (publicada em 19/11) · Em andamento: **proposta de ícones da faixa** (página só de proposta, sem mexer no app)
+Atualizado em 19/11/2026 · Organizada pelo modelo do Método Sabiá 2.1 (`scripts/sabia/modelos/MEMORIA-DO-PROJETO.modelo.md`) · No ar desde 17/11: **v0.6.21 parte 3** · No ar: **v0.6.31** (publicada em 19/11) · Próximo: **PL05 a PL13** (defeitos menores do Quadro)
 
 Arquivo único com tudo que foi feito, o que falta e as versões. Ler antes de qualquer trabalho. Sobe junto com cada versão. Nunca guardar aqui dado real, senha ou chave.
 
@@ -327,6 +327,7 @@ Vértice Docs (repositório e endereço: EFCdocs): app instalável (PWA) com **P
 | v0.6.28 | 18/11/2026 | Trava de toque acidental em imagens e gráficos da planilha (celular e tela de toque) | Leve (toque nos objetos, sem dados) | APROVADA inteira (18/11, 21:44) e PUBLICADA | 20:59 a 21:44 (45 min) | a contar |
 | v0.6.29 | 18/11/2026 | D17 curtose e assimetria (CURT, DISTORÇÃO, DISTORÇÃO.P, também na Estatística descritiva); Ctrl+Shift+↓ para no fim da tabela | Leve (funções novas e navegação, sem mexer em arquivo) | APROVADA inteira (18/11, 22:27) e PUBLICADA | 21:44 a 22:27 (43 min) | a contar |
 | v0.6.30 | 18/11/2026 | Faixa parte 4 (sem os ícones): D7 grupo único Do Vértice no Exibir, D4 Classificar e filtrar na Página Inicial, D8 Proteger planilha | Leve (faixa e textos) | APROVADA inteira (19/11, 03:25) e PUBLICADA | 18/11 22:27 a 19/11 03:25 | a contar |
+| v0.6.31 | 19/11/2026 | Ícones no estilo E escolhido pelo Elias: traço 1,3 px na faixa e 1,5 px no resto, destaque sem fundo na cor da família do botão (6 cores, claro e escuro), listas e itens com família | Leve (visual, sem dados) | APROVADA inteira (19/11, 04:58) e PUBLICADA | 19/11 04:21 a 04:58 (37 min) | a contar |
 
 As versões anteriores não têm os dois números (o método 2.0 não pedia). O que se sabe delas está na tabela de baixo e no registro.
 
@@ -540,3 +541,9 @@ Cada linha completa (itens aprovados, achados do Grok, números dos testes, comm
 - 18/11/2026 · v0.6.30, números: regras 477/477 (`dados.test.mjs` com "protegida"), faixa 62/62 (3 casos novos: D7, D4, D8; a ordem do Exibir agora é Mostrar, Zoom, Janela, Do Vértice; 58 de 62 na v0.6.26), navegador 278/278 (numa rodada inteira; os casos antigos que clicavam em Mesa e em Filtrar soltos abrem a lista pelo `NA_LISTA`), toque 21/21 (o Ctrl+Shift+L confere as setas nos títulos), salto 6/6, análise 9/9, toque em objetos 7/7, rolagem 5/5, Quadro 10/10, fluidez 22/22, layout 27/27, filtro 12/12, colunas 16/16, estabilização 6/6, fidelidade 35/35. Auditorias: as 5 limpas (Digitar 50 ms, Mover 34, Desfazer 36; freado 216, 81, 122; 644 KB). O redesenho dos ícones fica para a próxima versão.
 - 19/11/2026 (03:25) · **v0.6.30 APROVADA inteira** (itens 1 a 3). "Pode continuar": v0.6.30 publicada; próxima etapa, proposta de ícones da faixa (2 ou 3 estilos de traço, página só de proposta).
 
+- 19/11/2026 03:30 · Proposta de ícones da faixa entregue (só página, app sem mudança): estilos A (hoje), B (relevo suave, sugerido), C (cor por família), D (linha fina). Vitrine gerada por `scripts/vitrine-icones.mjs`. Aguardando a escolha do Elias antes de mudar os 194 ícones.
+- 19/11/2026 04:17 · Elias gostou dos quatro estilos e escolheu juntar C e D: estilo E = traço de 1,3 px sem fundo, linha de destaque na cor da família do botão. Disse que gosta dos traços mais finos também nos ícones dos gráficos e de outros locais (levar o estilo para além da faixa). v0.6.30 aprovada por inteiro (D7, D4, D8), já publicada em 17519ce.
+- 19/11/2026 (04:21) · "Pode continuar": estilo E aprovado ("1 tá excelente"); PL05 a PL13 em seguida ("2 ok").
+- 19/11/2026 · **v0.6.31 ENTREGUE para aprovação; não publicada.** `ui/comum.jsx` (traço 1,3 nos ícones novos e 1,5 nos outros), `camadas.css` (tokens `--fam-*` claro e escuro; `--fam` por `data-fam` e pelo começo do `data-cmd`; `.t` sem fundo com traço `--fam`; no botão principal `.t` acompanha a letra), `faixa.jsx` (`data-fam` no botão de lista pelo 1º comando e em cada item da lista aberta). Teste novo `scripts/testar-icones.mjs` (`npm run test:icones`, 9 casos): no antes (v0.6.26) 2 de 8 passavam; no depois 9 de 9. "Formatar como tabela" usa `inserir.tabela`, por isso fica laranja: perguntado na aprovação.
+- 19/11/2026 · Lição: nunca limpar `/home/claude/servir-nav/*` inteiro; ele guarda o `/v020/` dos 2 casos de compatibilidade. Se sumir, remontar com `git archive 128424c | tar -x -C servir-nav/v020`.
+- 19/11/2026 (04:58) · **v0.6.31 APROVADA inteira** (itens 1 a 6). Item 6: "Formatar como tabela" fica laranja (mesmo comando de Inserir › Tabela). v0.6.31 publicada; próxima, PL05 a PL13 do Quadro.

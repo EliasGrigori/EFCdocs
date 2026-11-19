@@ -3,7 +3,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { ICONES } from './icones.js';
 import { NOVOS } from './iconesFaixa.js';
 
-/* n = nome do ícone; "n:nome" usa os ícones novos da faixa (v0.6.2: traço fino 1,6 e uma parte com toque de cor). */
+/* n = nome do ícone; "n:nome" usa os ícones novos da faixa. v0.6.31 (estilo E, escolhido em 19/11): traço de 1,3 nos novos e 1,5 nos outros. */
 /* v0.6.12 (D-16): o desenho de cada ícone é guardado (o mesmo objeto sempre) e o ícone só é refeito quando muda de nome.
    Antes, cada tecla refazia o desenho de todos os ícones da tela (mais de 60 na faixa da planilha). */
 const DESENHOS = new Map();
@@ -11,7 +11,7 @@ const desenhoDe = (n, novo) => { let d = DESENHOS.get(n); if (!d) DESENHOS.set(n
 export const Icone = memo(function Icone({ n, className, titulo }) {
   const novo = typeof n === 'string' && n.startsWith('n:');
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={novo ? 1.6 : 1.8} strokeLinecap="round" strokeLinejoin="round"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={novo ? 1.3 : 1.5} strokeLinecap="round" strokeLinejoin="round"
       aria-hidden={titulo ? undefined : true} role={titulo ? 'img' : undefined} aria-label={titulo} className={(novo ? 'ic-novo ' : '') + (className || '') || undefined}
       dangerouslySetInnerHTML={desenhoDe(n, novo)} />
   );

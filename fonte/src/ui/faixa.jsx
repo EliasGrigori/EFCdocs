@@ -287,6 +287,7 @@ function BotaoMenuFaixa({ chave, cx, soIcone, grande }) {
   const base = (x) => (typeof x === 'string' ? x : x.id).split('|')[0];
   const cmds = itens.filter((x) => x !== '-' && !x.cab);
   const todosBloq = cmds.every((x) => cx.bloqueado(base(x)));
+  const fam = (m.direto || (cmds[0] ? base(cmds[0]) : '')).split('.')[0] || undefined; /* v0.6.31: cor da família pelo 1º comando da lista */
   const atual = m.valor && cx.valorDe ? cx.valorDe(m.valor) : undefined; /* parte 3: a lista marca o que vale hoje (margens, papel, congelado...) */
   const lista = aberto && (
     <ListaFaixa ancora={ref} fechar={() => setAberto(false)} rotulo={m.nome}>
@@ -301,7 +302,7 @@ function BotaoMenuFaixa({ chave, cx, soIcone, grande }) {
         const ligado = m.marcaLigado && cx.ligado ? cx.ligado(base(x)) === true : false; /* v0.6.30: lista de opções que ligam e desligam */
         const marcado = (!puro && x.v !== undefined && x.v === atual) || ligado;
         return (
-          <button key={id} type="button" role={!puro && x.v !== undefined ? 'menuitemradio' : m.marcaLigado ? 'menuitemcheckbox' : 'menuitem'} aria-checked={(!puro && x.v !== undefined) || m.marcaLigado ? marcado : undefined}
+          <button key={id} type="button" data-fam={base(x).split('.')[0]} role={!puro && x.v !== undefined ? 'menuitemradio' : m.marcaLigado ? 'menuitemcheckbox' : 'menuitem'} aria-checked={(!puro && x.v !== undefined) || m.marcaLigado ? marcado : undefined}
             className={'rb-lista-it' + (m.classe ? ' ' + m.classe : '') + (x.fim ? ' fim' : '') + (marcado ? ' on' : '')} data-cmd={id} data-dica={x.dica} disabled={!!bloq} title={bloq || undefined}
             onClick={() => { setAberto(false); cx.executar(id); }}>
             {ic && <Icone n={ic} />}<span>{puro ? cmd.nome : x.nome}</span>{(puro || id === m.direto) && info.atalho && <kbd>{info.atalho}</kbd>}{marcado && <Icone n="check" className="ok" />}
@@ -314,7 +315,7 @@ function BotaoMenuFaixa({ chave, cx, soIcone, grande }) {
     return (
       <span className="rb-duplo">
         <BotaoCmd id={m.direto} tipo="s" cx={cx} rotulo={m.nome} />
-        <button ref={ref} type="button" className={'rbs rb-abre rb-so-seta' + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-dica={m.dica} aria-label={m.seta} aria-haspopup="menu" aria-expanded={aberto}
+        <button ref={ref} type="button" className={'rbs rb-abre rb-so-seta' + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-fam={fam} data-dica={m.dica} aria-label={m.seta} aria-haspopup="menu" aria-expanded={aberto}
           disabled={todosBloq} onClick={() => setAberto(!aberto)}><Icone n="chevronBaixo" className="rb-seta" /></button>
         {lista}
       </span>
@@ -323,7 +324,7 @@ function BotaoMenuFaixa({ chave, cx, soIcone, grande }) {
   if (grande) {
     return (
       <>
-        <button ref={ref} type="button" className={'rbb rb-abre' + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-dica={m.dica} aria-haspopup="menu" aria-expanded={aberto}
+        <button ref={ref} type="button" className={'rbb rb-abre' + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-fam={fam} data-dica={m.dica} aria-haspopup="menu" aria-expanded={aberto}
           disabled={todosBloq} title={todosBloq ? cx.bloqueado(base(cmds[0])) : undefined} onClick={() => setAberto(!aberto)}>
           <span className="q"><Icone n={m.ic} /></span><span className="rot">{m.nome.includes(' ') ? m.nome.slice(0, m.nome.lastIndexOf(' ') + 1) : ''}<span className="rb-nw">{m.nome.slice(m.nome.lastIndexOf(' ') + 1)}<Icone n="chevronBaixo" className="rb-seta" /></span></span>
         </button>
@@ -333,7 +334,7 @@ function BotaoMenuFaixa({ chave, cx, soIcone, grande }) {
   }
   return (
     <>
-      <button ref={ref} type="button" className={(soIcone ? 'rbi rb-abre' : 'rbs rb-abre') + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-dica={m.dica} aria-haspopup="menu" aria-expanded={aberto}
+      <button ref={ref} type="button" className={(soIcone ? 'rbi rb-abre' : 'rbs rb-abre') + (aberto ? ' aberto' : '')} data-menu-faixa={chave} data-fam={fam} data-dica={m.dica} aria-haspopup="menu" aria-expanded={aberto}
         aria-label={soIcone ? m.nome : undefined} disabled={todosBloq} title={todosBloq ? cx.bloqueado(base(cmds[0])) : undefined} onClick={() => setAberto(!aberto)}>
         <Icone n={m.ic} />{!soIcone && <span className="rot">{m.curto || m.nome}</span>}{!soIcone && <Icone n="chevronBaixo" className="rb-seta" />}
       </button>

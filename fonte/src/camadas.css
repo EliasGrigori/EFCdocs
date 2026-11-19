@@ -323,7 +323,17 @@ body.pegando-cor .pl-cv { cursor: crosshair !important; }
 
 /* ---------- v0.6.2: ícones novos (traço fino, uma cor, toque suave) e a faixa nos estilos B, C, D e E ---------- */
 .ribbon, .tbar { --ic-tinta: var(--text); --ic-toque: color-mix(in srgb, var(--primary) 22%, transparent); }
-svg.ic-novo .t { fill: var(--ic-toque, color-mix(in srgb, var(--primary) 22%, transparent)); }
+/* v0.6.31 · estilo E (Elias, 19/11): traço fino, sem fundo; a parte de destaque (.t) ganha a cor da família do botão (data-fam = prefixo do comando) */
+:root { --fam-azul: #2f6fb3; --fam-verde: #2e7d4f; --fam-laranja: #c0641a; --fam-petroleo: #1f7f86; --fam-roxo: #7348ad; --fam-cinza: #4a6578; }
+body[data-theme=dark] { --fam-azul: #6aa2e0; --fam-verde: #5fbf87; --fam-laranja: #e8944f; --fam-petroleo: #4fb7bd; --fam-roxo: #a585d6; --fam-cinza: #8fa8ba; }
+[data-fam=editar], [data-cmd^="editar."], [data-fam=arquivo], [data-cmd^="arquivo."] { --fam: var(--fam-azul); }
+[data-fam=formula], [data-cmd^="formula."] { --fam: var(--fam-verde); }
+[data-fam=inserir], [data-cmd^="inserir."], [data-fam=grafico], [data-cmd^="grafico."] { --fam: var(--fam-laranja); }
+[data-fam=dados], [data-cmd^="dados."], [data-fam=tabela], [data-cmd^="tabela."], [data-fam=organizar], [data-cmd^="organizar."] { --fam: var(--fam-petroleo); }
+[data-fam=formatar], [data-cmd^="formatar."], [data-fam=pagina], [data-cmd^="pagina."] { --fam: var(--fam-roxo); }
+[data-fam=exibir], [data-cmd^="exibir."], [data-fam=revisao], [data-cmd^="revisao."], [data-fam=impressao], [data-cmd^="impressao."], [data-fam=painel], [data-cmd^="painel."], [data-fam=planilha], [data-cmd^="planilha."] { --fam: var(--fam-cinza); }
+svg.ic-novo .t { fill: none; stroke: var(--fam, var(--primary)); }
+[data-prim] svg.ic-novo .t { stroke: currentColor; }
 svg.ic-novo .f { fill: currentColor; stroke: none; }
 svg.ic-novo .barra { stroke: var(--primary); }
 .ribbon [data-fam] svg.ic-novo, .tbar [data-fam] svg.ic-novo { color: var(--ic-tinta); }
@@ -344,7 +354,6 @@ svg.ic-novo .barra { stroke: var(--primary); }
 /* C · Linha fina */
 .ribbon[data-estilo=C] { min-height: 0; padding: 4px 6px 3px; }
 .ribbon[data-estilo=C] .rb-g { padding: 0 8px; }
-.ribbon[data-estilo=C] svg.ic-novo { stroke-width: 1.4; }
 .ribbon[data-estilo=C] .rb-n { padding-top: 2px; font-size: 11px; }
 .ribbon[data-estilo=C] .rbb { font-weight: 500; border-radius: 7px; }
 .ribbon[data-estilo=C] .rbb:hover:not(:disabled), .ribbon[data-estilo=C] .rbs:hover:not(:disabled), .ribbon[data-estilo=C] .rbi:hover:not(:disabled) { background: var(--surface-3); }

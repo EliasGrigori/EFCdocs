@@ -437,3 +437,5 @@ F435;Planilha;navegacao;"Ctrl+seta (e Ctrl+Shift+seta) dentro de uma tabela para
 F436;Geral;faixa;"Exibir › Do Vértice: barra de cima, menu lateral, layout e aparência em listas que marcam o que está ligado (Planilha, Documento e Quadro)";funciona;"v0.6.30";manter;v0.6.30 (D7)
 F437;Planilha;faixa;"Página Inicial › Edição › Classificar e filtrar (lista do Excel)";funciona;"v0.6.30";manter;v0.6.30 (D4)
 F438;Planilha;protecao;"Proteger planilha (antes Travar modelo) em botão, janela e avisos";funciona;"v0.6.30";manter;v0.6.30 (D8)
+F439;Geral;icones;"Ícones da faixa no estilo E: traço 1,3 px, destaque sem fundo na cor da família do botão (claro e escuro); listas e itens com família";funciona;"v0.6.31";manter;v0.6.31 (estilo E)
+F440;Geral;icones;"Outros ícones do app (menu lateral, barra, janelas) com traço 1,5 px";funciona;"v0.6.31";manter;v0.6.31
