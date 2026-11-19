@@ -164,10 +164,10 @@ export function usarTabelaViva(p) {
       case 'tabela.estilos': setJan({ tipo: 'estilos', k }); break;
       case 'tabela.totalColuna': if (!t.tot) avisar('Ligue a Linha de totais primeiro (Design da Tabela).', { ic: 'info' }); else setJan({ tipo: 'total', k, col: ativa.c }); break;
       case 'tabela.converter':
-        aplicar(TV.converterEmIntervalo(c, abaId, k), `Converter ${t.nome} em intervalo`, () => avisar(`A tabela ${t.nome} virou células comuns. A aparência ficou.`, { ic: 'check', acao: { rotulo: 'Desfazer', fazer: p.desfazer } }));
+        aplicar(TV.converterEmIntervalo(c, abaId, k, p.ler && p.ler()), `Converter ${t.nome} em intervalo`, () => avisar(`A tabela ${t.nome} virou células comuns. A aparência ficou.`, { ic: 'check', acao: { rotulo: 'Desfazer', fazer: p.desfazer } }));
         break;
       case 'tabela.totais': aplicar(comViva(k, (cc) => TV.alternarTotais(cc, abaId, k)), t.tot ? 'Tirar a linha de totais' : 'Linha de totais'); break;
-      case 'tabela.filtro': aplicar(TV.alternarFiltro(c, abaId, k), 'Botão de filtro', (r) => { if (r.trocou) avisar('O filtro que estava na aba passou para esta tabela (a aba tem um filtro por vez).', { ic: 'info' }); }); break;
+      case 'tabela.filtro': aplicar(TV.alternarFiltro(c, abaId, k, p.ler && p.ler()), 'Botão de filtro', (r) => { if (!r.ligado) avisar(`Filtro da tabela ${t.nome} tirado: todas as linhas dela voltam.`, { ic: 'filtro' }); }); break; /* v0.6.40 (T2): cada tabela tem o dela */
       default:
         if (OPCAO[id]) aplicar(comViva(k, (cc) => TV.mudarOpcao(cc, k, OPCAO[id])), ROTULO[id]);
     }

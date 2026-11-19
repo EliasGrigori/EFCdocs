@@ -3,12 +3,13 @@
    - Digitar logo abaixo (ou logo à direita) da tabela a faz crescer, com o formato e as colunas calculadas da linha de cima.
    - Tab na última célula abre uma linha nova; Tab no fim de uma linha vai para o começo da próxima (como no Excel).
    - A alça do canto estica ou encolhe a tabela; Design da Tabela: nome, estilo, opções, linha de totais, converter em intervalo.
-   A tabela: c.tabelas[chave] = { nome, aba, l1, c1, l2, c2, cols, cab, tot, est, fcx, fxc (coluna calculada do Excel, v0.6.39), ord e ordRef (ordenação guardada do Excel, v0.6.39) }. */
+   A tabela: c.tabelas[chave] = { nome, aba, l1, c1, l2, c2, cols, cab, tot, est, fcx, fxc (coluna calculada do Excel, v0.6.39), ord e ordRef (ordenação guardada do Excel, v0.6.39), fil e sf (filtro da própria tabela, v0.6.40, filtrosTabela.js) }. */
 import { chave, textoFaixa, MAX_LIN, MAX_COL } from './ref.js';
 import { Lote, moverFormula, estrutura } from './operacoes.js';
 import { mescladas, estiloDe } from './modelo.js';
 import { faixasDe, textoFaixas } from './regras.js';
-import { faixaDoFiltro, novoFiltro } from './dados.js';
+import { faixaDoFiltro } from './dados.js';
+import { filtroDaAbaNaTabela, tirarFiltro, ligarFiltro } from './filtrosTabela.js';
 import { titulosDaTabela, nomeDeTabelaValido, formatarComoTabela } from './inserir.js';
 import { estiloDaTabela, coresDoTema, temEstiloVivo, ESTILO_PADRAO } from './tabelaEstilo.js';
 
@@ -291,18 +292,16 @@ export function mudarOpcao(c, k, campo) {
 }
 export const opcaoLigada = (t, campo) => !!(t && t.est && t.est[campo]);
 
-/** Botão de filtro: liga ou tira as setas da tabela (o filtro da aba passa a ser o da tabela). */
-export function alternarFiltro(c, abaId, k) {
+/** Botão de filtro: liga ou tira as setas da tabela. v0.6.40 (T2): cada tabela tem o filtro dela (o da aba fica);
+    tirar mostra as linhas que ele escondia (antes elas continuavam escondidas). ler = { textoDe, x } (filtrosTabela.tirarFiltro). */
+export function alternarFiltro(c, abaId, k, ler) {
   const t = c.tabelas[k];
-  const aba = c.abas[abaId];
-  const { dN } = linhasDeDados(t);
   if (!t.cab) return { erro: 'O filtro precisa da linha de títulos.' };
-  const ff = faixaDoFiltro(aba.fil);
-  const daTabela = ff && ff.l1 === t.l1 && ff.c1 === t.c1 && ff.c2 === t.c2;
-  if (daTabela) return { mud: { [`conteudo.abas.${abaId}.fil`]: undefined }, ligado: false };
-  return { mud: { [`conteudo.abas.${abaId}.fil`]: novoFiltro({ l1: t.l1, c1: t.c1, l2: dN, c2: t.c2 }) }, ligado: true, trocou: !!ff };
+  if (filtroDaAbaNaTabela(c.abas[abaId], t)) return { mud: tirarFiltro(c, abaId, null, ler), ligado: false };
+  if (t.fil) return { mud: tirarFiltro(c, abaId, k, ler), ligado: false };
+  return { mud: ligarFiltro(c, k), ligado: true };
 }
-export function filtroLigado(c, abaId, t) { const ff = faixaDoFiltro(c.abas[abaId] && c.abas[abaId].fil); return !!(t && ff && ff.l1 === t.l1 && ff.c1 === t.c1 && ff.c2 === t.c2); }
+export function filtroLigado(c, abaId, t) { return !!(t && (t.cab && t.fil || filtroDaAbaNaTabela(c.abas[abaId], t))); }
 
 export const FUNCOES_TOTAL = [
   ['nenhum', 'Nenhum', null], ['soma', 'Soma', 109], ['media', 'Média', 101], ['contagem', 'Contagem', 103],
@@ -370,7 +369,7 @@ export function funcaoDoTotal(c, abaId, t, col) {
 /**
  * Converter em intervalo: a tabela deixa de existir; a aparência fica pintada nas células (como o Excel faz) e as setas saem.
  */
-export function converterEmIntervalo(c, abaId, k) {
+export function converterEmIntervalo(c, abaId, k, ler) {
   const t = c.tabelas[k];
   const aba = c.abas[abaId];
   const lote = new Lote(c);
@@ -392,9 +391,9 @@ export function converterEmIntervalo(c, abaId, k) {
       lote.por(abaId, kc, { ...x, s: lote.estilo(e) || undefined });
     }
   }
+  if (filtroLigado(c, abaId, t)) Object.assign(lote.outras, tirarFiltro(c, abaId, filtroDaAbaNaTabela(aba, t) ? null : k, ler)); /* v0.6.40: as linhas que o filtro escondia voltam */
   const tabs = { ...c.tabelas }; delete tabs[k];
   lote.outras['conteudo.tabelas'] = Object.keys(tabs).length ? tabs : undefined;
-  if (filtroLigado(c, abaId, t)) lote.outras[`conteudo.abas.${abaId}.fil`] = undefined;
   return { mud: lote.mudancas() };
 }
 
@@ -417,8 +416,8 @@ export function vivificar(c, abaId, k) {
   const valorDe = (l, cc) => { const x = c.abas[abaId].cel[chave(l, cc)]; return x ? x.v : undefined; };
   const r = formatarComoTabela(c, abaId, { l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2 }, { nome: t.nome, estilo: ESTILO_PADRAO, cabecalho: !!t.cab, listras: true, filtro: false }, valorDe);
   if (r.erro) return null;
-  const tn = r.mud['conteudo.tabelas'][t.nome.toLowerCase()];
-  r.mud['conteudo.tabelas'] = { ...r.mud['conteudo.tabelas'], [k]: { ...tn, tot: t.tot, ...(t.fcx ? { fcx: t.fcx } : {}), ...(t.fxc ? { fxc: t.fxc } : {}), ...(t.ord ? { ord: t.ord, ordRef: t.ordRef } : {}) } }; /* v0.6.39 (T0) */
+  const { sf: _sf, ...tn } = r.mud['conteudo.tabelas'][t.nome.toLowerCase()]; /* v0.6.40: as setas ficam como estavam */
+  r.mud['conteudo.tabelas'] = { ...r.mud['conteudo.tabelas'], [k]: { ...tn, ...(t.sf ? { sf: 1 } : {}), ...(t.fil ? { fil: t.fil } : {}), tot: t.tot, ...(t.fcx ? { fcx: t.fcx } : {}), ...(t.fxc ? { fxc: t.fxc } : {}), ...(t.ord ? { ord: t.ord, ordRef: t.ordRef } : {}) } }; /* v0.6.39 (T0) */
   if (k !== t.nome.toLowerCase()) delete r.mud['conteudo.tabelas'][t.nome.toLowerCase()];
   return r.mud;
 }

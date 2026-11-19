@@ -46,7 +46,8 @@ test('tabela (v0.6.19): estilo vivo guardado no objeto, filtro e registro em c.t
   const n = aplicar(c, r.mud);
   assert.equal(n.abas.a1.cel.A1.s, undefined, 'nada pintado nas células');
   assert.deepEqual(n.tabelas.pedidos.est, { nome: 'TableStyleMedium2', ll: 1, lc: 0, pc: 0, uc: 0 });
-  assert.deepEqual(n.abas.a1.fil, { fx: 'A1:B4', cr: {} });
+  /* v0.6.40 (T2): as setas são da própria tabela; o filtro da aba não é tocado */
+  assert.deepEqual(n.tabelas.pedidos.fil, { cr: {} }); assert.equal(n.abas.a1.fil, undefined);
   assert.deepEqual(n.tabelas.pedidos.cols, ['Nome', 'Qtd']);
   assert.equal(n.tabelas.pedidos.l2, 3);
   /* refazer com outro estilo troca o estilo sem empilhar */

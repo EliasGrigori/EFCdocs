@@ -175,8 +175,12 @@ test('Design: renomear, estilo, opções, filtro, totais e converter em interval
   assert.equal(c2.tabelas.coletas.est.ll, 1);
   const c3 = aplicar(c, TV.mudarOpcao(c, 'coletas', 'pc').mud);
   assert.equal(c3.tabelas.coletas.est.pc, 1);
-  const c4 = aplicar(c, TV.alternarFiltro(c, co, 'coletas').mud);
-  assert.equal(c4.abas[co].fil.fx, 'A1:E9');
+  /* v0.6.40 (T2): a tabela do Excel já vem com as setas dela (fil); o botão tira (sf) e liga de novo, sem tocar no filtro da aba */
+  assert.ok(TV.filtroLigado(c, co, c.tabelas.coletas));
+  const c3b = aplicar(c, TV.alternarFiltro(c, co, 'coletas').mud);
+  assert.equal(c3b.tabelas.coletas.fil, undefined); assert.equal(c3b.tabelas.coletas.sf, 1); assert.ok(!TV.filtroLigado(c3b, co, c3b.tabelas.coletas));
+  const c4 = aplicar(c3b, TV.alternarFiltro(c3b, co, 'coletas').mud);
+  assert.deepEqual(c4.tabelas.coletas.fil, { cr: {} }); assert.equal(c4.tabelas.coletas.sf, undefined); assert.equal(c4.abas[co].fil, undefined);
   assert.ok(TV.filtroLigado(c4, co, c4.tabelas.coletas));
   /* totais: liga na Coletas (soma na última coluna), troca a função, desliga */
   const c5 = aplicar(c, TV.alternarTotais(c, co, 'coletas').mud);

@@ -136,8 +136,10 @@ function moverLinhas(lote, aba, abaId, f, pares) {
   }
 }
 export const estadoDaOrdem = (fil, col) => (fil && fil.ord && fil.ord.col === col && fil.ord.fx === fil.fx ? fil.ord.dir : null);
-export function cicloDeOrdem(c, abaId, col, { valorDe }) {
-  const aba = c.abas[abaId], fil = aba.fil, f = faixaDoFiltro(fil);
+/** v0.6.40 (T2): fil e guardar(filNovo) → mudanças servem para o filtro de uma tabela (filtrosTabela.js); sem eles, é o da aba. */
+export function cicloDeOrdem(c, abaId, col, { valorDe, fil: dado, guardar }) {
+  const aba = c.abas[abaId], fil = dado || aba.fil, f = faixaDoFiltro(fil);
+  const por = (lote, x) => Object.assign(lote.outras, guardar ? guardar(x) : { [`conteudo.abas.${abaId}.fil`]: x });
   if (!f) return { erro: 'Esta aba não tem filtro.' };
   const ord = fil.ord && fil.ord.fx === fil.fx ? fil.ord : null;
   const agora = estadoDaOrdem(fil, col);
@@ -147,7 +149,7 @@ export function cicloDeOrdem(c, abaId, col, { valorDe }) {
     const orig = (ord && ord.orig) || {};
     const lote = new Lote(c);
     moverLinhas(lote, aba, abaId, f, Object.entries(orig).map(([atual, antes]) => [Number(antes), Number(atual)]));
-    lote.outras[`conteudo.abas.${abaId}.fil`] = semOrd;
+    por(lote, semOrd);
     return { lote, rotulo: 'Voltar à ordem padrão', aviso: 'As linhas voltaram à ordem de antes. Dá para desfazer.', dir: null };
   }
   const desc = agora === 'asc';
@@ -156,7 +158,7 @@ export function cicloDeOrdem(c, abaId, col, { valorDe }) {
   const antes = (ord && ord.orig) || {}, orig = {};
   for (const [destino, origem] of r.perm) { const o = antes[origem] ?? origem; if (o !== destino) orig[destino] = o; }
   for (const k of Object.keys(antes)) { const l = Number(k); if (!r.perm.some((p) => p[0] === l) && antes[k] !== l) orig[l] = antes[k]; }
-  r.lote.outras[`conteudo.abas.${abaId}.fil`] = { ...semOrd, ord: { col, dir: desc ? 'desc' : 'asc', fx: fil.fx, orig } };
+  por(r.lote, { ...semOrd, ord: { col, dir: desc ? 'desc' : 'asc', fx: fil.fx, orig } });
   return { lote: r.lote, rotulo: 'Classificar', aviso: `${r.linhas} linhas em ordem${r.total != null ? `; a linha de total (${r.total + 1}) ficou embaixo` : ''}. Toque de novo para ${desc ? 'voltar à ordem padrão' : 'inverter'}.`, dir: desc ? 'desc' : 'asc' };
 }
 
@@ -326,11 +328,12 @@ export function moverFiltro(fil, eixo, move) {
   }
   const a = move(f.c1), b = move(f.c2);
   if (a == null || b == null) return undefined;
-  const cr = {};
-  for (const k of Object.keys(fil.cr || {})) { const n = move(+k); if (n != null) cr[n] = fil.cr[k]; }
-  const out = { ...fil, fx: textoFaixa({ ...f, c1: a, c2: b }), cr };
-  if (fil.cx) { const cx = {}; for (const k of Object.keys(fil.cx)) { const n = move(+k); if (n != null) cx[n] = fil.cx[k]; } out.cx = cx; }
-  return out;
+  return { ...moverColunasDoFiltro(fil, move), fx: textoFaixa({ ...f, c1: a, c2: b }) };
+}
+/** Os critérios mudam de coluna junto (inserir ou excluir colunas). Serve também para o filtro de uma tabela (v0.6.40). */
+export function moverColunasDoFiltro(fil, move) {
+  const mapa = (o) => { const r = {}; for (const k of Object.keys(o)) { const n = move(+k); if (n != null) r[n] = o[k]; } return r; };
+  return { ...fil, cr: mapa(fil.cr || {}), ...(fil.cx ? { cx: mapa(fil.cx) } : {}) };
 }
 
 /* ---------- Travar modelo ---------- */

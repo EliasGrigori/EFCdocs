@@ -6,7 +6,6 @@ import { chave, normalFaixa, textoFaixa, lerEnderecoCaixa, lerChave, MAX_LIN } f
 import { Lote } from './operacoes.js';
 import { mescladas } from './modelo.js';
 import { novoIdRegra, faixasDe, textoFaixas, tirarDeFaixas } from './regras.js';
-import { novoFiltro } from './dados.js';
 import { trocarTabelas } from './xlsx/formulas.js';
 import { ESTILO_PADRAO } from './tabelaEstilo.js';
 
@@ -90,9 +89,9 @@ export function formatarComoTabela(c, abaId, faixa, op, valorDe) {
   const tabelas = { ...(c.tabelas || {}) };
   if (outra) delete tabelas[outra[0]];
   const est = op.estilo === null ? { sem: 1, ll: op.listras ? 1 : 0, lc: 0, pc: 0, uc: 0 } : { nome: op.estilo || ESTILO_PADRAO, ll: op.listras ? 1 : 0, lc: 0, pc: 0, uc: 0 };
-  tabelas[chaveT] = { nome: op.nome, aba: abaId, l1: f.l1, c1: f.c1, l2: f.l2, c2: f.c2, cols, cab: op.cabecalho ? 1 : 0, tot: 0, est };
+  /* v0.6.40 (T2): as setas são da própria tabela (antes viravam o filtro da aba e tiravam o que a aba tinha) */
+  tabelas[chaveT] = { nome: op.nome, aba: abaId, l1: f.l1, c1: f.c1, l2: f.l2, c2: f.c2, cols, cab: op.cabecalho ? 1 : 0, tot: 0, est, ...(op.filtro && op.cabecalho ? { fil: { cr: {} } } : { sf: 1 }) };
   mud['conteudo.tabelas'] = tabelas;
-  if (op.filtro && op.cabecalho) mud[`conteudo.abas.${abaId}.fil`] = novoFiltro(f);
   return { mud, colunas: cols.length, linhas: f.l2 - f.l1 + 1 - (op.cabecalho ? 1 : 0) };
 }
 

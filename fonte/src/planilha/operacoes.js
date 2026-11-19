@@ -9,7 +9,7 @@ import { reescreverContas, moverTabelas } from './painel.js';
 import { continuarSerie } from './entrada.js';
 import { moverRegras, moverFaixa, faixasDe, textoFaixas, ancoraDe, tirarDeFaixas, novoIdRegra } from './regras.js';
 import { ehFormatoData } from './formato.js';
-import { moverFiltro } from './dados.js';
+import { moverFiltro, moverColunasDoFiltro } from './dados.js';
 
 export const LOTE_INTEIRO = 4000;
 /** Junta mudanças de células de uma aba; com muitas, troca o objeto inteiro (mais rápido e leve). */
@@ -480,7 +480,7 @@ export function estrutura(c, abaId, eixo, i, n) {
       if (na === a && nb === b) { nt[kt] = t; continue; }
       mexeu = true;
       if (nb < na + (eixo === 'l' && t.cab ? 1 : 0)) continue; // a tabela inteira saiu
-      const nova = eixo === 'l' ? { ...t, l1: na, l2: nb } : { ...t, c1: na, c2: nb };
+      const nova = eixo === 'l' ? { ...t, l1: na, l2: nb } : { ...(t.fil ? (({ fcx: _x, ...r }) => r)(t) : t), c1: na, c2: nb, ...(t.fil ? { fil: moverColunasDoFiltro(t.fil, move) } : {}) }; /* v0.6.40 (T2): os critérios do filtro da tabela mudam de coluna junto (o fcx cru, pela posição, sai) */
       if (eixo === 'c' && Array.isArray(t.cols)) nova.cols = undefined; // os títulos são relidos das células ao salvar
       nt[kt] = nova;
     }

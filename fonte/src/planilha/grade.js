@@ -3,7 +3,7 @@
 import { letraCol, MAX_LIN, MAX_COL, chave, lerChave } from './ref.js';
 import { formatar } from './formato.js';
 import { estiloDe, mescladas, mesclaEm, celOuHerdada } from './modelo.js';
-import { faixaDoFiltro } from './dados.js';
+import { faixasDosFiltros } from './filtrosTabela.js'; /* v0.6.40 (T2): o da aba e os das tabelas */
 import { ehErro } from './valores.js';
 import { estiloCondicional, estiloComRegras, barraDeDados, temBarras, corClaraDaBarra } from './regras.js';
 import { estiloDeTabelaEm, juntarComTabela, tabelasVivasDaAba } from './tabelaEstilo.js';
@@ -241,8 +241,8 @@ function retMescla(G, m, reg) {
 }
 
 function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
-  const ffil = p.c.abas[p.abaId] && p.c.abas[p.abaId].fil && !p.editando ? faixaDoFiltro(p.c.abas[p.abaId].fil) : null;
-  const reservaFiltro = ffil ? { l: ffil.l1, c1: ffil.c1, c2: ffil.c2, px: p.celular ? 28 : 18 } : null;
+  const ffil = p.c.abas[p.abaId] && !p.editando ? faixasDosFiltros(p.c, p.abaId) : [];
+  const pxFiltro = p.celular ? 28 : 18, reservaFiltro = ffil.length ? ffil : null;
   const { ctx, c, motor, abaId, G, cores, familia } = p;
   const aba = c.abas[abaId];
   const { z } = G;
@@ -349,9 +349,9 @@ function desenharCelulas(p, [la, lb], [ca, cb], mesc, reg = null) {
       let x = G.xDe(cc), yy = G.yDe(cl), w = w0, hh = h;
       if (m) { const R = retMescla(G, m, reg); if (!R) continue; x = R.x; yy = R.y; w = R.w; hh = R.h; }
       /* v0.6.11 (D-15): na linha dos títulos do filtro, o texto não entra no lugar da seta (18 px; 24 no toque) */
-      const rf = reservaFiltro;
+      const rf = reservaFiltro && reservaFiltro.find((f) => cl === f.l1 && cc >= f.c1 && cc <= f.c2);
       /* v0.6.24.3: e não vaza para a vizinha (vazando, o fundo era apagado a partir da seta e ficava um retângulo branco no título da tabela) */
-      if (rf && !m && cl === rf.l && cc >= rf.c1 && cc <= rf.c2 && w > rf.px + 12) { w -= rf.px; desenharTexto(p, { ...tx, semVazar: true }, x, yy, w, hh, l, col, aba, mesc); continue; }
+      if (rf && !m && w > pxFiltro + 12) { w -= pxFiltro; desenharTexto(p, { ...tx, semVazar: true }, x, yy, w, hh, l, col, aba, mesc); continue; }
       desenharTexto(p, tx, x, yy, w, hh, l, col, aba, mesc);
     }
   }

@@ -35,10 +35,10 @@ const colunaCrua = (bruto, colId) => String(bruto).replace(/^<((?:\w+:)?filterCo
 /** v0.6.3: <autoFilter> com os critérios de lista (textos que ficam; '' = células vazias). */
 function gravarFiltro(fil) {
   if (!fil || !/^[A-Z]+\d+:[A-Z]+\d+$/.test(fil.fx || '')) return '';
-  const a1 = lerChave(fil.fx.split(':')[0]);
-  const cols = Object.keys(fil.cr || {}).map(Number).filter((c) => a1 && c >= a1.c).sort((x, y) => x - y);
+  const [a1, a2] = fil.fx.split(':').map(lerChave), dentroDa = (c) => a1 && a2 && c >= a1.c && c <= a2.c; /* v0.6.40: coluna fora da faixa o Excel "repara" */
+  const cols = Object.keys(fil.cr || {}).map(Number).filter(dentroDa).sort((x, y) => x - y);
   /* v0.6.11 (D-24): critérios guardados como vieram (data, cor...) nas colunas sem critério do app */
-  const crus = Object.keys(fil.cx || {}).map(Number).filter((c) => a1 && c >= a1.c && !cols.includes(c));
+  const crus = Object.keys(fil.cx || {}).map(Number).filter((c) => dentroDa(c) && !cols.includes(c));
   if (!cols.length && !crus.length) return `<autoFilter ref="${fil.fx}"/>`;
   const dentro = [...cols, ...crus].sort((x, y) => x - y).map((col) => {
     if (!fil.cr || !fil.cr[col]) return colunaCrua(fil.cx[col], col - a1.c);
@@ -99,7 +99,7 @@ function xmlDaTabela(tb, id, autoXml, aba) {
   const nome = escapar(t.nome, true);
   return `${XML_CAB}<table xmlns="${NS}" id="${id}" name="${nome}" displayName="${nome}" ref="${ref}"${t.cab ? '' : ' headerRowCount="0"'}${t.tot ? ' totalsRowCount="1"' : ' totalsRowShown="0"'}>` +
     (t.cab ? autoXml : '') +
-    `<tableColumns count="${cols.length}">${cols.map((nm, i) => { const x = extrasDaColuna(t, aba, i); return `<tableColumn id="${i + 1}" name="${nomeDeColunaXlsx(nm)}"${x.atr}${x.filhos ? `>${x.filhos}</tableColumn>` : '/>'}`; }).join('')}</tableColumns>` /* v0.6.39 (T0): totais e coluna calculada */ +
+    `<tableColumns count="${cols.length}">${cols.map((nm, i) => { const x = extrasDaColuna(t, aba, i, nm); return `<tableColumn id="${i + 1}" name="${nomeDeColunaXlsx(nm)}"${x.atr}${x.filhos ? `>${x.filhos}</tableColumn>` : '/>'}`; }).join('')}</tableColumns>` /* v0.6.39 (T0): totais e coluna calculada */ +
     (est.sem ? '' : `<tableStyleInfo${est.nome ? ` name="${escapar(est.nome, true)}"` : ''} showFirstColumn="${est.pc ? 1 : 0}" showLastColumn="${est.uc ? 1 : 0}" showRowStripes="${est.ll ? 1 : 0}" showColumnStripes="${est.lc ? 1 : 0}"/>`) + '</table>';
 }
 
@@ -371,9 +371,12 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
         const n = tabelasG.length + 1;
         /* v0.6.11 (D-24): o filtro da própria tabela volta com os critérios que vieram do Excel */
         const fcx = Object.entries(tb.t.fcx || {}).filter(([k]) => +k >= 0 && +k < tb.cols.length).sort((x, y) => x[0] - y[0]);
-        const auto = tb === filNaTabela ? gravarFiltro(aba.fil).replace(/ref="[^"]+"/, `ref="${tb.refAuto}"`)
+        /* v0.6.40 (T2): o filtro da própria tabela (mexido no app; sem mexer, o fcx volta como veio); sf = tabela sem setas */
+        const auto = tb === filNaTabela ? gravarFiltro(aba.fil).replace(/ref="[^"]+"/, `ref="${tb.refAuto}"`) : tb.t.sf ? ''
+          : tb.t.fil && !tb.t.fcx ? gravarFiltro({ ...tb.t.fil, fx: tb.refAuto })
           : fcx.length ? `<autoFilter ref="${tb.refAuto}">${fcx.map(([k, b]) => colunaCrua(b, +k)).join('')}</autoFilter>` : `<autoFilter ref="${tb.refAuto}"/>`;
-        tabelasG.push({ ia, n, xml: xmlDaTabela(tb, n, tb === filNaTabela && aba.fil && aba.fil.ord ? auto : comOrdenacao(auto, tb.t, tb.ref), aba) }); /* v0.6.39 (T0): ordenação guardada (não volta se a ordem foi refeita no app) */
+        const ordemDoApp = tb === filNaTabela ? aba.fil && aba.fil.ord : tb.t.fil && tb.t.fil.ord;
+        tabelasG.push({ ia, n, xml: xmlDaTabela(tb, n, ordemDoApp ? auto : comOrdenacao(auto, tb.t, tb.ref), aba) }); /* v0.6.39 (T0): ordenação guardada (não volta se a ordem foi refeita no app) */
         return n;
       });
       fim += `<tableParts count="${ids.length}">${ids.map((n) => `<tablePart r:id="rIdT${n}"/>`).join('')}</tableParts>`;

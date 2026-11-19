@@ -95,10 +95,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.39', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.40', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.39'), 'menu sem v0.6.39');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.40'), 'menu sem v0.6.40');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -1903,7 +1903,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.39'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.40'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -4409,7 +4409,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.39'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.40'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4659,7 +4659,7 @@ await caso('v0.6.11: com filtro ligado, o texto do título não passa por baixo 
   await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-real-anonimizada.xlsx', import.meta.url)));
   await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(1200);
   await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('A7:W380'); await p.locator('.pl-nome').press('Enter'); await p.waitForTimeout(300);
-  await cmd(p, 'dados.filtrar'); await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(500); /* v0.6.30 (D4): Filtrar fica na lista Classificar e filtrar */
+  await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(500); /* v0.6.40 (T2): a Tabela1 já abre com as setas dela (antes era preciso Filtrar, que punha um filtro da aba por cima; agora Filtrar dentro da tabela tira as setas dela) */
   let escuros = 0;
   for (const col of [0, 3, 4]) {
     const b = await p.locator(`[data-seta-filtro="${col}"]`).boundingBox();
@@ -4696,7 +4696,7 @@ await caso('v0.6.11.1: setas do filtro de colunas roladas para trás das congela
   await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-real-anonimizada.xlsx', import.meta.url)));
   await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(1200);
   await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('A7:W380'); await p.locator('.pl-nome').press('Enter'); await p.waitForTimeout(300);
-  await cmd(p, 'dados.filtrar'); await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(400);
+  await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(400); /* v0.6.40 (T2): setas da própria Tabela1 */
   await p.mouse.move(1100, 500); await p.mouse.wheel(500, 0); await p.waitForTimeout(800);
   const setas = await p.locator('[data-seta-filtro]').evaluateAll((els) => els.map((e) => [+e.getAttribute('data-seta-filtro'), Math.round(e.getBoundingClientRect().x)]));
   await print(p, 'v06111-setas-com-congelado');
