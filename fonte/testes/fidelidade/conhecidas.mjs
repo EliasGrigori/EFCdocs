@@ -11,6 +11,10 @@ export const CONHECIDAS = {
     { fonte: 'openpyxl', grupo: /^número virou o mesmo texto$/, id: 'L-08', motivo: 'título numérico de tabela volta como texto, como o Excel grava' },
     { fonte: 'openpyxl', grupo: /^fórmula: referência de tabela virou endereço$/, id: 'L-02', motivo: 'o motor trabalha com endereços; a conta é a mesma' },
   ],
+  /* v0.6.39 (gerar-amostra-v0639.py): a coluna calculada e os totais da tabela Colheita vêm com referências de tabela */
+  'amostra-v0639.xlsx': [
+    { fonte: 'openpyxl', grupo: /^fórmula: referência de tabela virou endereço$/, id: 'L-02', motivo: 'o motor trabalha com endereços; a conta é a mesma (a fórmula da coluna calculada da tabela volta igual, com as referências de tabela)' },
+  ],
   /* v0.6.19 (gerar-amostra-v0619.py): o total da tabela de Estoque vem do Excel como Estoque[Qtd] */
   'amostra-v0619.xlsx': [
     { fonte: 'openpyxl', grupo: /^fórmula: referência de tabela virou endereço$/, id: 'L-02', motivo: 'o motor trabalha com endereços; a conta é a mesma' },

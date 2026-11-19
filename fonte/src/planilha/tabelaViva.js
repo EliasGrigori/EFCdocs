@@ -3,7 +3,7 @@
    - Digitar logo abaixo (ou logo à direita) da tabela a faz crescer, com o formato e as colunas calculadas da linha de cima.
    - Tab na última célula abre uma linha nova; Tab no fim de uma linha vai para o começo da próxima (como no Excel).
    - A alça do canto estica ou encolhe a tabela; Design da Tabela: nome, estilo, opções, linha de totais, converter em intervalo.
-   A tabela: c.tabelas[chave] = { nome, aba, l1, c1, l2, c2, cols, cab, tot, est, fcx }. */
+   A tabela: c.tabelas[chave] = { nome, aba, l1, c1, l2, c2, cols, cab, tot, est, fcx, fxc (coluna calculada do Excel, v0.6.39), ord e ordRef (ordenação guardada do Excel, v0.6.39) }. */
 import { chave, textoFaixa, MAX_LIN, MAX_COL } from './ref.js';
 import { Lote, moverFormula, estrutura } from './operacoes.js';
 import { mescladas, estiloDe } from './modelo.js';
@@ -418,7 +418,7 @@ export function vivificar(c, abaId, k) {
   const r = formatarComoTabela(c, abaId, { l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2 }, { nome: t.nome, estilo: ESTILO_PADRAO, cabecalho: !!t.cab, listras: true, filtro: false }, valorDe);
   if (r.erro) return null;
   const tn = r.mud['conteudo.tabelas'][t.nome.toLowerCase()];
-  r.mud['conteudo.tabelas'] = { ...r.mud['conteudo.tabelas'], [k]: { ...tn, tot: t.tot, ...(t.fcx ? { fcx: t.fcx } : {}) } };
+  r.mud['conteudo.tabelas'] = { ...r.mud['conteudo.tabelas'], [k]: { ...tn, tot: t.tot, ...(t.fcx ? { fcx: t.fcx } : {}), ...(t.fxc ? { fxc: t.fxc } : {}), ...(t.ord ? { ord: t.ord, ordRef: t.ordRef } : {}) } }; /* v0.6.39 (T0) */
   if (k !== t.nome.toLowerCase()) delete r.mud['conteudo.tabelas'][t.nome.toLowerCase()];
   return r.mud;
 }

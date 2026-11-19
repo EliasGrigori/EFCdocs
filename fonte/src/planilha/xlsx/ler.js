@@ -15,7 +15,7 @@ import { lerColunas, lerGrupoDaLinha, lerResumoDosGrupos } from './colunasXlsx.j
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
-import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js'; import { criterioDoXlsx } from '../filtroCriterios.js';
+import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js'; import { criterioDoXlsx } from '../filtroCriterios.js'; import { extrasDaTabela } from './tabelasXlsx.js'; /* v0.6.39 (T0) */
 import { ligarCx } from './cxXlsx.js';
 import { noCantoDaAbaDeGrafico } from './abaGraficoXlsx.js';
 import { ligarFormaAoLivro } from './formasXlsx.js';
@@ -162,7 +162,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const fcx = {};
       for (const fc of tags((tag(t.dentro, 'autoFilter') || {}).dentro || '', 'filterColumn')) fcx[+fc.a.colId || 0] = fc.bruto.replace(/\scolId="[^"]*"/, '');
       tabelas.set(nome.toLowerCase(), {
-        nome, aba: f.nome, l1: p1.l, c1: p1.c, l2: p2.l, c2: p2.c, cols,
+        nome, aba: f.nome, l1: p1.l, c1: p1.c, l2: p2.l, c2: p2.c, cols, ...extrasDaTabela(t),
         ...(Object.keys(fcx).length ? { fcx } : {}),
         cab: t.a.headerRowCount === '0' ? 0 : 1, tot: +(t.a.totalsRowCount || 0) > 0 || t.a.totalsRowShown === '1' && +(t.a.totalsRowCount || 0) > 0 ? 1 : 0,
         est: estiloDaTabela(tag(t.dentro, 'tableStyleInfo')) || { sem: 1 }, // v0.6.8 (Grok): sem estilo no arquivo, volta sem estilo
@@ -702,7 +702,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
   if (tabelas.size) {
     const porNome = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));
     const tb = {};
-    for (const [k, t] of tabelas) { const id = porNome.get(String(t.aba).toLowerCase()); if (id) tb[k] = { nome: t.nome, aba: id, l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2, cols: t.cols, cab: t.cab, tot: t.tot, ...(t.est ? { est: t.est } : {}), ...(t.fcx ? { fcx: t.fcx } : {}) }; }
+    for (const [k, t] of tabelas) { const id = porNome.get(String(t.aba).toLowerCase()); if (id) tb[k] = { nome: t.nome, aba: id, l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2, cols: t.cols, cab: t.cab, tot: t.tot, ...(t.est ? { est: t.est } : {}), ...(t.fcx ? { fcx: t.fcx } : {}), ...(t.fxc ? { fxc: t.fxc } : {}), ...(t.ord ? { ord: t.ord, ordRef: t.ordRef } : {}) }; } /* v0.6.39 (T0) */
     if (Object.keys(tb).length) conteudo.tabelas = tb;
   }
 

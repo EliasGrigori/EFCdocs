@@ -14,6 +14,7 @@ import { escapar, XML_CAB } from './xml.js';
 import { gravarEstilos } from './estilos.js';
 import { colunasXml } from './colunasXlsx.js';
 import { nivelMax } from '../contorno.js';
+import { extrasDaColuna, comOrdenacao } from './tabelasXlsx.js';
 import { porPrefixos } from './formulas.js';
 import { lerGuardada } from '../formula.js';
 import { chave, letraCol, lerChave, MAX_COL } from '../ref.js';
@@ -92,13 +93,13 @@ export function nomeDeColunaXlsx(nm) {
   /* o Excel lê a quebra de linha do texto como \n (o XML junta \r\n em \n), e é assim que o nome da coluna tem de ficar */
   return escapar(String(nm).replace(/\r\n?/g, '\n'), true).replace(/&#13;/g, '_x000d_').replace(/&#10;/g, '_x000a_').replace(/&#9;/g, '_x0009_');
 }
-function xmlDaTabela(tb, id, autoXml) {
+function xmlDaTabela(tb, id, autoXml, aba) {
   const { t, ref, cols } = tb;
   const est = t.est || { nome: 'TableStyleLight1', pc: 0, uc: 0, ll: 0, lc: 0 };
   const nome = escapar(t.nome, true);
   return `${XML_CAB}<table xmlns="${NS}" id="${id}" name="${nome}" displayName="${nome}" ref="${ref}"${t.cab ? '' : ' headerRowCount="0"'}${t.tot ? ' totalsRowCount="1"' : ' totalsRowShown="0"'}>` +
     (t.cab ? autoXml : '') +
-    `<tableColumns count="${cols.length}">${cols.map((nm, i) => `<tableColumn id="${i + 1}" name="${nomeDeColunaXlsx(nm)}"/>`).join('')}</tableColumns>` +
+    `<tableColumns count="${cols.length}">${cols.map((nm, i) => { const x = extrasDaColuna(t, aba, i); return `<tableColumn id="${i + 1}" name="${nomeDeColunaXlsx(nm)}"${x.atr}${x.filhos ? `>${x.filhos}</tableColumn>` : '/>'}`; }).join('')}</tableColumns>` /* v0.6.39 (T0): totais e coluna calculada */ +
     (est.sem ? '' : `<tableStyleInfo${est.nome ? ` name="${escapar(est.nome, true)}"` : ''} showFirstColumn="${est.pc ? 1 : 0}" showLastColumn="${est.uc ? 1 : 0}" showRowStripes="${est.ll ? 1 : 0}" showColumnStripes="${est.lc ? 1 : 0}"/>`) + '</table>';
 }
 
@@ -372,7 +373,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
         const fcx = Object.entries(tb.t.fcx || {}).filter(([k]) => +k >= 0 && +k < tb.cols.length).sort((x, y) => x[0] - y[0]);
         const auto = tb === filNaTabela ? gravarFiltro(aba.fil).replace(/ref="[^"]+"/, `ref="${tb.refAuto}"`)
           : fcx.length ? `<autoFilter ref="${tb.refAuto}">${fcx.map(([k, b]) => colunaCrua(b, +k)).join('')}</autoFilter>` : `<autoFilter ref="${tb.refAuto}"/>`;
-        tabelasG.push({ ia, n, xml: xmlDaTabela(tb, n, auto) });
+        tabelasG.push({ ia, n, xml: xmlDaTabela(tb, n, tb === filNaTabela && aba.fil && aba.fil.ord ? auto : comOrdenacao(auto, tb.t, tb.ref), aba) }); /* v0.6.39 (T0): ordenação guardada (não volta se a ordem foi refeita no app) */
         return n;
       });
       fim += `<tableParts count="${ids.length}">${ids.map((n) => `<tablePart r:id="rIdT${n}"/>`).join('')}</tableParts>`;
