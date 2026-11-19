@@ -223,3 +223,18 @@ test('PDF paisagem A4 válido, com título acentuado', async () => {
   assert.equal(textoPdf('a(b)'), '(a\\(b\\))');
   assert.equal(textoPdf('ção'), '(\xE7\xE3o)');
 });
+
+test('v0.6.32 (PL05): coluna nova entra antes da última (o "Feito" continua sendo a última)', () => {
+  const { c } = quadroCom('postit');
+  const nova = Q.adicionarColuna(c, 'Revisão');
+  const c2 = aplicar(c, nova.mudancas);
+  assert.deepEqual(c2.colunas.map((k) => k.nome), ['A fazer', 'Fazendo', 'Revisão', 'Feito']);
+  const um = aplicar({ ...c, colunas: [c.colunas[0]] }, Q.adicionarColuna({ ...c, colunas: [c.colunas[0]] }, 'B').mudancas);
+  assert.deepEqual(um.colunas.map((k) => k.nome), ['A fazer', 'B']);
+});
+
+test('v0.6.32 (PL06): tamanho mínimo deixa lugar para o código e uma linha de texto', () => {
+  assert.deepEqual(Q.tamanhoMinimo({ tipo: 'postit' }), { w: 96, h: 60 });
+  assert.deepEqual(Q.tamanhoMinimo({ tipo: 'processo' }), { w: 96, h: 60 });
+  assert.deepEqual(Q.tamanhoMinimo({ tipo: 'retangulo' }), { w: 40, h: 30 });
+});

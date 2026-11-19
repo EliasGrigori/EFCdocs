@@ -439,3 +439,6 @@ F437;Planilha;faixa;"Página Inicial › Edição › Classificar e filtrar (lis
 F438;Planilha;protecao;"Proteger planilha (antes Travar modelo) em botão, janela e avisos";funciona;"v0.6.30";manter;v0.6.30 (D8)
 F439;Geral;icones;"Ícones da faixa no estilo E: traço 1,3 px, destaque sem fundo na cor da família do botão (claro e escuro); listas e itens com família";funciona;"v0.6.31";manter;v0.6.31 (estilo E)
 F440;Geral;icones;"Outros ícones do app (menu lateral, barra, janelas) com traço 1,5 px";funciona;"v0.6.31";manter;v0.6.31
+F441;Quadro;kanban;"Coluna nova entra antes do Feito (a última coluna é a do andamento)";funciona;"v0.6.32 (PL05)";manter;v0.6.32
+F442;Quadro;celular;"Celular e toque: alvos de 44 px, zoom no alto, item escolhido aparece acima das barras, girar mantém o centro";funciona;"v0.6.32 (PL07, PL09, PL10, PL12)";manter;v0.6.32
+F443;Quadro;edicao;"Arrastar item até a borda rola a tela; tamanho mínimo com código; código Q-001 com contraste 4,5";funciona;"v0.6.32 (PL06, PL08, PL11)";manter;v0.6.32

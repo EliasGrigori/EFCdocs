@@ -335,9 +335,18 @@ export function mudancasMoverKanban(c, id, colId, indice) {
   return mud;
 }
 
+/* v0.6.32 (PL05): a coluna nova entra antes da última, que é a do "Feito" (o andamento conta a última coluna) */
 export function adicionarColuna(c, nome) {
-  const id = idCurto('c');
-  return { id, mudancas: { colunas: [...c.colunas, { id, nome: String(nome || 'Nova coluna').slice(0, 40) }] } };
+  const id = idCurto('c'), nova = { id, nome: String(nome || 'Nova coluna').slice(0, 40) };
+  const cols = c.colunas.length > 1 ? [...c.colunas.slice(0, -1), nova, c.colunas[c.colunas.length - 1]] : [...c.colunas, nova];
+  return { id, mudancas: { colunas: cols } };
+}
+
+/* v0.6.32 (PL06): tamanho mínimo ao redimensionar; quem tem código (Q-001) precisa de lugar para o código e uma linha de texto */
+export function tamanhoMinimo(it) {
+  if (!it) return { w: 40, h: 30 };
+  if (it.tipo === 'assinatura') return { w: ASN.W_MIN, h: ASN.H_MIN };
+  return TIPOS_ITEM[it.tipo] && TIPOS_ITEM[it.tipo].codigo ? { w: 96, h: 60 } : { w: 40, h: 30 };
 }
 
 export function renomearColuna(c, colId, nome) {

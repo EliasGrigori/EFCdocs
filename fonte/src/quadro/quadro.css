@@ -75,7 +75,7 @@ body.relevo .navcel { box-shadow: inset 0 1px #ffffff0f, 0 -3px 10px -6px #00000
 }
 .qi-cod {
   position: absolute; left: 6px; top: 3px; font-size: 11px; font-weight: 700; letter-spacing: .02em;
-  color: rgba(31,35,40,.55); pointer-events: none; font-variant-numeric: tabular-nums;
+  color: rgba(31,35,40,.72); pointer-events: none; font-variant-numeric: tabular-nums; /* v0.6.32 (PL08): contraste de 5,2 a 6,2 em todas as cores */
 }
 .qi-decisao .qi-cod { left: 50%; transform: translateX(-50%); top: 12%; }
 .qi-inicio .qi-cod { left: 18px; }
@@ -370,7 +370,7 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .app.cel .qd-lamp { top: 12px; bottom: auto; right: 10px; }
 .app.cel .qd-assist { top: 58px; bottom: auto; }
 .app.cel .qd-lamp span { display: none; }
-.app.cel .qd-lamp { width: 40px; height: 40px; padding: 0; justify-content: center; border-radius: 50%; }
+.app.cel .qd-lamp { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
 .app.cel .qd-lamp em { position: absolute; top: -4px; right: -4px; }
 .app.cel .qd-assist { right: 8px; width: calc(100% - 16px); }
 @media print { .qd-ferr, .qd-lamp, .qd-assist, .qd-cores-cel { display: none !important; } }
@@ -379,3 +379,24 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .qi-clamp { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; text-overflow: ellipsis; }
 
 .qi-tar-l1 .sem-resp { font-weight: 400; font-style: italic; color: #667085; }
+
+/* v0.6.32 · celular e tela de toque (relatório do Grok de 18/11) */
+/* PL07: alvos de toque de 44 px (abas, barra do item, cores, zoom, pegadores de ligar, "Comece por") */
+.app.cel .qd-vistas button, .app.cel .app .qd-barra .rbi, .app.cel .qd-zoom .rbi, .app.cel .qd-pct, .app.cel .qd-vazio .chipb { min-height: 44px; }
+.app.cel .qd-vistas button { height: 44px; }
+.app.cel .qd-barra .rbi, .app.cel .qd-zoom .rbi { flex: 0 0 44px; width: 44px; height: 44px; }
+.app.cel .qd-pct { height: 44px; }
+.app.cel .qd-cc { flex-basis: 44px; width: 44px; height: 44px; }
+.app.cel .qd-cc-editar { height: 44px; }
+.app.cel .qd-barra { max-width: calc(100% - 16px); overflow-x: auto; scrollbar-width: none; }
+.app.cel .qd-ponto::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; }
+@media (pointer: coarse) {
+  .qd-vistas button, .qd-pct, .qd-vazio .chipb { min-height: 44px; }
+  .app .qd-barra .rbi, .qd-zoom .rbi { width: 44px; height: 44px; }
+  .qd-cc { flex-basis: 44px; width: 44px; height: 44px; }
+  .qd-ponto::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; }
+}
+/* PL09: a barra Quadro/Kanban termina antes da lâmpada */
+.app.cel .qd-vistas { right: 66px; max-width: calc(100% - 76px); }
+/* PL10: no celular o zoom fica no alto, embaixo das abas, e as barras do item escolhido ficam sozinhas embaixo */
+.app.cel .qd-zoom { top: 18px; bottom: auto; }

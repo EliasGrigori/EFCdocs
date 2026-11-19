@@ -15,8 +15,8 @@ import { derivar, mudancasLegenda, alturaLegenda } from './legenda.js';
 import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } from './tarefa.js';
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
+import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
 import { JanelaAssinatura } from '../ui/assinatura.jsx';
-import { ASN } from '../nucleo/assinatura.js';
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -109,8 +109,7 @@ export function Quadro({ arquivo, cx }) {
   useEffect(() => {
     const el = areaRef.current;
     if (!el) return undefined;
-    const medir = () => setArea({ w: el.clientWidth, h: el.clientHeight });
-    medir();
+    const medir = () => manterCentro(el, setArea, setView); medir(); /* v0.6.32 (PL12): girar o celular mantém o centro */
     const ro = new ResizeObserver(medir);
     ro.observe(el);
     return () => ro.disconnect();
@@ -647,8 +646,8 @@ export function Quadro({ arquivo, cx }) {
     g.moveu = true;
     const z = viewRef.current.z;
     if (g.tipo === 'pan') setView({ ...g.v0, x: g.v0.x + dx, y: g.v0.y + dy });
-    else if (g.tipo === 'mover') setArrasto({ tipo: 'mover', ids: g.ids, ...encaixar(g.ids, dx / z, dy / z, z, ev.altKey) });
-    else if (g.tipo === 'tamanho') { const mn = c.itens[g.id] && c.itens[g.id].tipo === 'assinatura' ? { w: ASN.W_MIN, h: ASN.H_MIN } : { w: 40, h: 30 }; setArrasto({ tipo: 'tamanho', id: g.id, w: Math.max(mn.w, Math.round(g.w0 + dx / z)), h: Math.max(mn.h, Math.round(g.h0 + dy / z)) }); }
+    else if (g.tipo === 'mover') { setArrasto({ tipo: 'mover', ids: g.ids, ...encaixar(g.ids, (dx + (g.px || 0)) / z, (dy + (g.py || 0)) / z, z, ev.altKey) }); rolarNaBorda(g, ev, areaRef.current, gesto, setView, aoMover); } /* v0.6.32 (PL11) */
+    else if (g.tipo === 'tamanho') { const mn = Q.tamanhoMinimo(c.itens[g.id]); setArrasto({ tipo: 'tamanho', id: g.id, w: Math.max(mn.w, Math.round(g.w0 + dx / z)), h: Math.max(mn.h, Math.round(g.h0 + dy / z)) }); }
     else if (g.tipo === 'ligar') {
       const p = paraMundo(ev.clientX, ev.clientY);
       const alvo = itemNoPonto(Q.listaItens(c).filter((i) => LIGAVEL(i)), p, g.de);
@@ -827,6 +826,7 @@ export function Quadro({ arquivo, cx }) {
   /* celular: faixa de baixo com "Editar" e as cores, só quando o que está escolhido tem cor */
   const itensSel = selValida.itens.map((id) => c.itens[id]).filter(Boolean);
   const faixaCores = cx.cel && vista === 'quadro' && !somenteLeitura && !arrasto && !editando && !modo && itensSel.length > 0 && itensSel.some(COM_COR);
+  usarItemVisivel(cx.cel && vista === 'quadro', areaRef, selValida.itens, !arrasto && !editando, setView); /* v0.6.32 (PL10) */
 
   /* ---------- barra da seleção ---------- */
   let barra = null;
