@@ -87,6 +87,7 @@ export function lerPedido(id) {
   if (id === 'impressao.quebra' || id === 'impressao.semQuebras') return { fazer: 'quebra', tirar: id === 'impressao.semQuebras' };
   if (id === 'dados.az' || id === 'dados.za') return { fazer: 'ordenar', desc: id === 'dados.za' };
   if (id === 'dados.limparFiltro') return { fazer: 'limparFiltro' };
+  if (id === 'dados.textoColunas') return { fazer: 'textoColunas' }; /* v0.6.36 */
   if (id === 'exibir.zoom100') return { fazer: 'zoom', z: 1 };
   return null;
 }
@@ -123,6 +124,7 @@ export function tratarFaixaExtra(id, p) {
     });
     case 'ordenar': return p.ed(() => p.ordenar(q.desc));
     case 'limparFiltro': return p.ed(() => p.limparFiltro());
+    case 'textoColunas': return p.ed(() => p.textoColunas());
     case 'zoom': p.zoom(q.z); return true;
     case 'congelar': return p.ed(() => {
       const v = congelarPara(q.como, p.ativa);

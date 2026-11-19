@@ -72,6 +72,7 @@ export const DESCRICAO = {
   'dados.reaplicar': 'Refaz o filtro depois que você mudou os dados.',
   'dados.validacao': 'Limita o que pode ser digitado (lista suspensa, números, datas).',
   'dados.duplicados': 'Acha e tira linhas repetidas.',
+  'dados.textoColunas': 'Separa o texto de uma coluna em várias, por ponto e vírgula, vírgula, espaço ou largura fixa.',
   'dados.circular': 'Põe um círculo vermelho nas células com valor fora da validação. Corrigiu, o círculo some.',
   'dados.limparCirculos': 'Tira os círculos dos dados inválidos.',
   'dados.estatistica': 'Média, mediana, desvio padrão, coeficiente de variação e mais de cada coluna, numa aba nova ligada aos dados.',

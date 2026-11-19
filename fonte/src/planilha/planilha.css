@@ -432,3 +432,19 @@ body[data-theme=papel] .tk-num, .pl.clara .pl-edcel .tk-num { color: #1d5fae; }
 
 /* v0.6.20 (regra de fluidez): todo arquivo com movimento desliga com "movimento reduzido" */
 @media (prefers-reduced-motion: reduce) { .pl-fx-alca i { transition: none !important; } }
+
+/* v0.6.36 · Dados › Texto para colunas */
+.pl-jtc { width: min(620px, 96vw); }
+.tc-seps { display: flex; flex-wrap: wrap; gap: 2px 18px; align-items: center; }
+.tc-outro { width: 36px; height: 30px; text-align: center; border: 1px solid var(--border-light); border-radius: var(--r-chip); background: var(--surface); font: inherit; }
+.tc-linha { display: flex; gap: 8px; align-items: center; }
+.tc-linha input { flex: 1; min-width: 0; }
+.tc-previa { max-height: 220px; overflow: auto; border: 1px solid var(--border-light); border-radius: var(--r-ctl); background: var(--surface); }
+.tc-previa table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.tc-previa th, .tc-previa td { padding: 4px 8px; border-right: 1px solid var(--border-light); white-space: nowrap; text-align: left; }
+.tc-previa td { border-top: 1px solid var(--border-light); }
+.tc-previa th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); padding: 4px; }
+.tc-previa th select { font: inherit; font-size: 13px; min-height: 28px; border: 1px solid var(--border-light); border-radius: var(--r-chip); background: var(--surface); color: var(--text); }
+.tc-previa .pulada { color: var(--text-dim); background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--border-light) 6px 7px); }
+.tc-destino input { width: 120px; }
+.app.cel .tc-previa th select, .app.cel .tc-outro, .app.cel .pl-jtc .seg .chipb, .app.cel .tc-destino input, .app.cel .tc-linha input { min-height: 44px; }

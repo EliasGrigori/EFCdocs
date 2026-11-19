@@ -449,3 +449,5 @@ F447;Geral;celular;"Celular deitado: título e ferramentas numa linha só em tod
 F448;Geral;celular;"Celular deitado pequeno: Tema e Painel saem do título (Tema em Opções, Painel em Exibir)";funciona;"v0.6.34 (D1)";manter;v0.6.34
 F449;Geral;celular;"Celular deitado pequeno: só o Salvo no título (sem o nome do arquivo), Painel de volta, Tema em Opções";funciona;"v0.6.35";manter;v0.6.35
 F450;Geral;celular;"Celular grande deitado (acima de 899 px, até 500 px de altura, com toque) entra no modo celular";funciona;"v0.6.35 (S1 da v0.6.34)";manter;v0.6.35
+F451;Planilha;dados;"Dados › Texto para colunas: separado por (tab, ponto e vírgula, vírgula, espaço, outro, seguidos como um, aspas) ou largura fixa; prévia com formato por coluna (Geral, Texto, Pular); destino; aviso de substituição; desfazer num passo";funciona;"v0.6.36 (D9 parte 1)";manter;v0.6.36
+F452;Geral;celular;"Celular deitado pequeno: bolinha verde em cima do Salvo, centralizada";funciona;"v0.6.36";manter;v0.6.36

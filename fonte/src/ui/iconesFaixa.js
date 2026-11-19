@@ -136,6 +136,8 @@ export const NOVOS = {
   filtroRef: '<path class="t" d="M3.5 5h12.5l-4.8 5.8v4.2l-2.9 1.4v-5.6z"/><path d="M20 13.2a3.6 3.6 0 1 0-.9 3.2M20.2 10.4v2.9h-2.9"/>',
   classificar: '<path d="M7 4.5v15M4 16.5l3 3 3-3"/><path d="M13.5 6h7M13.5 11h5M13.5 16h3"/>',
   validacao: '<rect class="t" x="3.5" y="5" width="17" height="14" rx="2"/><path d="M8.3 12.2l2.5 2.5 5-5"/>',
+  /* v0.6.36: uma coluna com texto se abre em três (Texto para colunas) */
+  textoColunas: '<rect x="3.5" y="4" width="5" height="16" rx="1.5"/><path d="M10.5 12h3M12.2 10.3l1.8 1.7-1.8 1.7"/><path class="t" d="M16 4.5v15M19 4.5v15"/>',
   duplicados: '<rect x="3.5" y="3.5" width="11" height="11" rx="2"/><rect class="t" x="9.5" y="9.5" width="11" height="11" rx="2"/><path d="M12.5 15h5"/>',
   /* v0.6.25: círculo em volta da célula errada, borracha no círculo, barras com a média e linhas sorteadas */
   circular: '<rect x="8" y="9.5" width="8" height="5" rx="1"/><ellipse class="t" cx="12" cy="12" rx="8.5" ry="5.5"/>',
@@ -277,7 +279,7 @@ export const MAPA = {
   'impressao.ajustar': 'ajustar', 'impressao.configurar': 'imprimir',
   'formula.inserir': 'funcao', 'formula.nome': 'nome', 'formula.nomes': 'nomes', 'planilha.cabecalho': 'linhaTitulos',
   'formula.explicar': 'explicar', 'formula.origem': 'origem', 'formula.fluxo': 'fluxo', 'formula.problemas': 'verificar', 'formula.montar': 'montar',
-  'dados.classificar': 'classificar', 'dados.reaplicar': 'filtroRef', 'dados.validacao': 'validacao', 'dados.duplicados': 'duplicados', 'dados.dinamica': 'dinamica', 'dados.circular': 'circular', 'dados.limparCirculos': 'limparCirculos', 'dados.estatistica': 'estatistica', 'dados.amostra': 'amostra',
+  'dados.classificar': 'classificar', 'dados.reaplicar': 'filtroRef', 'dados.validacao': 'validacao', 'dados.duplicados': 'duplicados', 'dados.textoColunas': 'textoColunas', 'dados.dinamica': 'dinamica', 'dados.circular': 'circular', 'dados.limparCirculos': 'limparCirculos', 'dados.estatistica': 'estatistica', 'dados.amostra': 'amostra',
   'revisao.ortografia': 'ortografia', 'revisao.comentarios': 'comentarios', 'revisao.travar': 'cadeado',
   'exibir.congelar': 'congelar', 'exibir.grade': 'grade', 'exibir.folhaClara': 'folhaClara', 'exibir.abaGrafico': 'abaGrafico', 'exibir.barraFormula': 'barraFx', 'exibir.zoom': 'zoom',
   'dados.az': 'az', 'dados.za': 'za', 'dados.limparFiltro': 'limparFiltro', 'impressao.papel': 'papel', 'impressao.grade': 'imprimirGrade', 'impressao.titulosLC': 'imprimirTitulos', 'exibir.zoom100': 'zoom100',

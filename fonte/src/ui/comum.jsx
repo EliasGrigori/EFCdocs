@@ -131,6 +131,8 @@ export function Pergunta({ p, aoFechar }) {
     p.aoConfirmar(p.varias ? valor : valor.trim());
     aoFechar();
   };
+  /* v0.6.36: janela própria de um editor (ex.: Texto para colunas), aberta pelo mesmo caminho da pergunta */
+  if (p.Componente) return <p.Componente {...p.props} aoFechar={aoFechar} />;
   return (
     <Janela titulo={p.titulo} icone={p.icone || (p.perigo ? 'lixeira' : 'pergunta')} aoFechar={aoFechar} rodape={(
       <>

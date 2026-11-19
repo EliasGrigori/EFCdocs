@@ -14,5 +14,7 @@
 @media (orientation: landscape) and (max-height: 500px) and (max-width: 719px) {
   .app.cel:has(.sup) .topbar-row [data-tema-botao] { display: none; }
   .app.cel:has(.sup) .tb-tit h1, .app.cel:has(.sup) .tb-tit button.nome { display: none; }
-  .app.cel:has(.sup) .tb-tit { min-width: 0; justify-content: center; }
+  .app.cel:has(.sup) .tb-tit { min-width: 0; justify-content: center; align-items: center; padding: 0 6px; }
+  /* v0.6.36 (comentário do item 1 da v0.6.35): só "Salvo" e a hora, com a bolinha verde em cima, no meio do texto */
+  .app.cel:has(.sup) .tb-tit .salvo { flex-direction: column; gap: 3px; line-height: 1.15; }
 }

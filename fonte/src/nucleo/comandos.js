@@ -181,6 +181,7 @@ export const COMANDOS = [
   C('dados.za', 'Classificar de Z a A', 'classificar', { sin: ['ordem decrescente', 'maior para o menor'], chega: V61, mods: ['planilha'] }),
   C('dados.limparFiltro', 'Limpar filtro', 'filtro', { sin: ['tirar critério', 'mostrar todas as linhas', 'limpar'], chega: V61, mods: ['planilha'] }),
   /* v0.6.25 (ideias do Grok aprovadas em 18/11): circular dados inválidos, estatística descritiva e amostragem */
+  C('dados.textoColunas', 'Texto para colunas', 'n:textoColunas', { sin: ['separar colunas', 'dividir texto', 'quebrar coluna', 'separador', 'ponto e vírgula', 'largura fixa', 'split'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.circular', 'Circular dados inválidos', 'validacao', { sin: ['marcar inválidos', 'fora da validação', 'valores errados', 'círculo vermelho'], chega: V625, mods: ['planilha'] }),
   C('dados.limparCirculos', 'Limpar círculos de validação', 'validacao', { sin: ['tirar círculos', 'apagar círculos'], chega: V625, mods: ['planilha'] }),
   C('dados.estatistica', 'Estatística descritiva', 'grafico', { sin: ['média', 'desvio padrão', 'resumo estatístico', 'análise de dados', 'coeficiente de variação'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
