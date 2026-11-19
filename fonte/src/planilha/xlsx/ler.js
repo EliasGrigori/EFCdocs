@@ -15,7 +15,7 @@ import { lerColunas, lerGrupoDaLinha, lerResumoDosGrupos } from './colunasXlsx.j
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
-import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js'; import { criterioDoXlsx } from '../filtroCriterios.js'; import { extrasDaTabela } from './tabelasXlsx.js'; /* v0.6.39 (T0) */
+import { lerGraficosAba, ligarRefsAoLivro } from './graficosXlsx.js'; import { criterioDoXlsx } from '../filtroCriterios.js'; import { extrasDaTabela } from './tabelasXlsx.js'; /* v0.6.39 (T0) */ import { lerSegmentacoes } from './segmentacaoXlsx.js'; /* v0.6.41 (S1) */
 import { ligarCx } from './cxXlsx.js';
 import { noCantoDaAbaDeGrafico } from './abaGraficoXlsx.js';
 import { ligarFormaAoLivro } from './formasXlsx.js';
@@ -703,7 +703,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     const porNome = new Map(conteudo.ordem.map((id) => [conteudo.abas[id].nome.toLowerCase(), id]));
     const tb = {};
     for (const [k, t] of tabelas) { const id = porNome.get(String(t.aba).toLowerCase()); if (id) tb[k] = { nome: t.nome, aba: id, l1: t.l1, c1: t.c1, l2: t.l2, c2: t.c2, cols: t.cols, cab: t.cab, tot: t.tot, ...(t.est ? { est: t.est } : {}), ...(t.fcx ? { fcx: t.fcx } : {}), ...(t.fxc ? { fxc: t.fxc } : {}), ...(t.ord ? { ord: t.ord, ordRef: t.ordRef } : {}), ...(t.fil ? { fil: t.fil } : {}), ...(t.sf ? { sf: 1 } : {}) }; } /* v0.6.39 (T0); v0.6.40 (T2): fil e sf */
-    if (Object.keys(tb).length) conteudo.tabelas = tb;
+    if (Object.keys(tb).length) { conteudo.tabelas = tb; await lerSegmentacoes(zip, folhas, relsWb, conteudo, lerRels, relsDe, fora); } /* v0.6.41 (S1): segmentações de tabela */
   }
 
   /* abas com nome repetido ou vazio (não deveria acontecer) */

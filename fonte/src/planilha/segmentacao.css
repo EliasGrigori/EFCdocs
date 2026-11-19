@@ -1,0 +1,19 @@
+/* Vértice Docs v0.6.41 — segmentação de dados (S1), no padrão Camadas: cartão de 10 px, sombra em camadas, botões de 8 px. */
+.pl-seg { position: absolute; pointer-events: auto; border-radius: var(--r-card, 10px); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--sh-1); overflow: hidden; z-index: 2; }
+.pl-seg.filtrada { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
+.pl-seg-in { display: flex; flex-direction: column; box-sizing: border-box; padding: 6px 8px 8px; gap: 6px; }
+.seg-cab { display: flex; align-items: center; gap: 2px; min-height: var(--seg-min, 28px); }
+.seg-cab b { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seg-ic { width: var(--seg-min, 28px); height: var(--seg-min, 28px); display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--r-ctl, 8px); background: transparent; color: var(--text-muted); cursor: pointer; padding: 0; }
+.seg-ic svg { width: 18px; height: 18px; }
+.seg-ic:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+.seg-ic.on { background: var(--primary-soft); color: var(--primary); }
+.seg-ic:disabled { opacity: .35; cursor: default; }
+.seg-ic:focus-visible, .seg-it:focus-visible { outline: none; box-shadow: var(--anel); }
+.seg-itens { flex: 1; min-height: 0; overflow: auto; display: grid; grid-auto-rows: var(--seg-alt, 28px); gap: 4px; align-content: start; }
+.seg-it { min-width: 0; border: 1px solid var(--border-light); border-radius: var(--r-ctl, 8px); background: var(--surface); color: var(--text); font-size: 12px; padding: 0 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.seg-it:hover:not(:disabled) { border-color: color-mix(in srgb, var(--primary) 50%, var(--border-light)); }
+.seg-it.on { background: var(--primary-soft); border-color: color-mix(in srgb, var(--primary) 40%, var(--border-light)); color: var(--text); font-weight: 600; }
+.seg-it.sem { color: var(--text-dim); border-style: dashed; }
+.seg-it.sem.on { background: color-mix(in srgb, var(--primary) 5%, var(--surface)); font-weight: 400; }
+.seg-it:disabled { cursor: default; }

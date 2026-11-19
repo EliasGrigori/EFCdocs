@@ -36,7 +36,7 @@ import { JanelaTabela, JanelaStatus, JanelaLink, JanelaBotao, JanelaImagem } fro
 import { usarTabelaViva } from './tabelaUi.jsx';
 import { ligarPinca, pincaRecente, ancoraDaPinca } from './pinca.js';
 import { atalhoDe, fazerAtalho } from './atalhos.js';
-import { tratarFaixaExtra, estadoFaixaExtra, pedirTamanho, ajustarTamanho, quaisDe } from './faixaExtra.js'; import { abrirTextoColunas } from './textoColunasUi.jsx'; /* v0.6.36 */ import * as K from './contorno.js'; import { executarContorno } from './contornoUi.jsx'; /* v0.6.37 */ import { abrirSubtotal } from './subtotalUi.jsx'; /* v0.6.38 */ import { SetasDeFiltro, gravarFiltroComAviso, alternarFiltroDaCelula } from './filtrosUi.jsx'; import { alvoDoFiltro } from './filtrosTabela.js'; /* v0.6.40 (T2) */
+import { tratarFaixaExtra, estadoFaixaExtra, pedirTamanho, ajustarTamanho, quaisDe } from './faixaExtra.js'; import { abrirTextoColunas } from './textoColunasUi.jsx'; /* v0.6.36 */ import * as K from './contorno.js'; import { executarContorno } from './contornoUi.jsx'; /* v0.6.37 */ import { abrirSubtotal } from './subtotalUi.jsx'; /* v0.6.38 */ import { SetasDeFiltro, gravarFiltroComAviso, alternarFiltroDaCelula } from './filtrosUi.jsx'; import { alvoDoFiltro } from './filtrosTabela.js'; /* v0.6.40 (T2) */ import { Segmentacoes } from './segmentacaoUi.jsx'; /* v0.6.41 (S1) */
 import { lerImagem } from './imagem.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
 import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
@@ -3263,7 +3263,7 @@ export function Planilha({ arquivo, cx }) {
           );
         })()}
         {/* v0.6.3: setas do filtro e menu de valores; v0.6.40 (T2): o da aba e o de cada tabela (filtrosUi.jsx) */}
-        {!edit && <SetasDeFiltro c={c} abaId={abaId} G={G} tam={tam} motor={motor} menuFiltro={menuFiltro} setMenuFiltro={setMenuFiltro} textoDe={textoDeDados} valorDe={valorDeDados} xDados={xDados} gravar={gravarFiltro} aplicarLote={aplicarLote} avisar={cx.avisar} voltarFoco={voltarFocoGrade} />}
+        {!painelAtivo && <Segmentacoes c={c} abaId={abaId} G={G} tam={tam} motor={motor} mudar={mudar} avisar={cx.avisar} somenteLeitura={somenteLeitura} />}{!edit && <SetasDeFiltro c={c} abaId={abaId} G={G} tam={tam} motor={motor} menuFiltro={menuFiltro} setMenuFiltro={setMenuFiltro} textoDe={textoDeDados} valorDe={valorDeDados} xDados={xDados} gravar={gravarFiltro} aplicarLote={aplicarLote} avisar={cx.avisar} voltarFoco={voltarFocoGrade} />}
         {!cel && ajuda && <div className="pl-ajuda-ancora">{ajuda}</div>}
         {cel && !edit && !somenteLeitura && !painelAtivo && (<>{alcaCel('a')}{alcaCel('b')}</>)}
         {!painelAtivo && tv.alca({ G, tam, ponto, rolarNaBorda, faixa, toque: cel, editando: !!edit })}
