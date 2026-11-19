@@ -29,7 +29,8 @@ export function usarItemVisivel(ativo, areaRef, ids, livre, setView) {
       const a = el.getBoundingClientRect();
       const barras = [...el.querySelectorAll('.qd-barra, .qd-cores-cel')].map((b) => b.getBoundingClientRect().top).filter((y) => y > a.top);
       const limite = barras.length ? Math.min(...barras) : a.bottom;
-      const topo = a.top + 56; /* abaixo das abas Quadro/Kanban */
+      const ab = el.parentElement && el.parentElement.querySelector('.qd-vistas'); /* v0.6.33: as abas flutuam sobre o quadro */
+      const topo = ab ? Math.max(a.top, ab.getBoundingClientRect().bottom + 6) : a.top + 56; /* abaixo das abas Quadro/Kanban */
       let baixo = -Infinity, cima = Infinity;
       for (const id of chave.split(',')) {
         const it = el.querySelector(`[data-item="${CSS.escape(id)}"]`);

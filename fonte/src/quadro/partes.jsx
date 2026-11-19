@@ -170,7 +170,12 @@ export function BarraSelecao({ ancora, area, botoes, onExcluir, rotuloExcluir, f
     const el = ref.current;
     if (!el) return;
     /* celular: barra presa embaixo, centralizada (não cobre itens nem setas) */
-    if (fixa) { setPos({ x: Math.max(8, (area.w - el.offsetWidth) / 2), y: area.h - el.offsetHeight - folga }); return; }
+    if (fixa) {
+      /* v0.6.33: celular deitado esconde a faixa de cores; a barra desce para o lugar dela */
+      const cc = el.parentElement && el.parentElement.querySelector('.qd-cores-cel');
+      const fg = cc && getComputedStyle(cc).display === 'none' ? 8 : folga;
+      setPos({ x: Math.max(8, (area.w - el.offsetWidth) / 2), y: area.h - el.offsetHeight - fg }); return;
+    }
     const w = el.offsetWidth, h = el.offsetHeight;
     let y = ancora.topo - h - 30;
     if (y < 52) y = ancora.base + 30;

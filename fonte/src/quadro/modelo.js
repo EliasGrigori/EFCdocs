@@ -269,9 +269,12 @@ export function vagaLivre(c, x, y, w, h, passo = 28, dentro = null) {
     for (let i = 0; i < 40 && ocupado(px, py); i++) { px += passo; py += passo; }
     return { x: px, y: py };
   }
-  if (!ocupado(px, py)) return { x: px, y: py };
   const m = 8, gx = w + 24, gy = h + 24;
   const cabe = (a, b) => a >= dentro.x + m && b >= dentro.y + m && a + w <= dentro.x + dentro.w - m && b + h <= dentro.y + dentro.h - m;
+  /* v0.6.33: se o item cabe na parte da tela que aparece, o ponto de partida fica dentro dela (não nasce embaixo das barras) */
+  if (w <= dentro.w - 2 * m) px = Math.round(Math.min(Math.max(px, dentro.x + m), dentro.x + dentro.w - m - w));
+  if (h <= dentro.h - 2 * m) py = Math.round(Math.min(Math.max(py, dentro.y + m), dentro.y + dentro.h - m - h));
+  if (!ocupado(px, py)) return { x: px, y: py };
   let fora = null;
   for (let r = 1; r <= 40; r++) {
     const anel = [];

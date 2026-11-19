@@ -442,3 +442,6 @@ F440;Geral;icones;"Outros ícones do app (menu lateral, barra, janelas) com tra�
 F441;Quadro;kanban;"Coluna nova entra antes do Feito (a última coluna é a do andamento)";funciona;"v0.6.32 (PL05)";manter;v0.6.32
 F442;Quadro;celular;"Celular e toque: alvos de 44 px, zoom no alto, item escolhido aparece acima das barras, girar mantém o centro";funciona;"v0.6.32 (PL07, PL09, PL10, PL12)";manter;v0.6.32
 F443;Quadro;edicao;"Arrastar item até a borda rola a tela; tamanho mínimo com código; código Q-001 com contraste 4,5";funciona;"v0.6.32 (PL06, PL08, PL11)";manter;v0.6.32
+F444;Quadro;celular;"Celular deitado: título e ferramentas numa linha só, abas e zoom lado a lado, só a barra do item com um item escolhido (quadro com 76% da altura)";funciona;"v0.6.33";manter;v0.6.33
+F445;Quadro;edicao;"Item novo nasce na parte da tela que aparece, fora das abas e das barras";funciona;"v0.6.33";manter;v0.6.33
+F446;Quadro;app;"Abas Quadro/Kanban flutuam no canto do quadro (computador e celular), sem ocupar uma faixa";funciona;"v0.6.33 (D-64)";manter;v0.6.33

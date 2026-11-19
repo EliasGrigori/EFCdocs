@@ -400,3 +400,24 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .app.cel .qd-vistas { right: 66px; max-width: calc(100% - 76px); }
 /* PL10: no celular o zoom fica no alto, embaixo das abas, e as barras do item escolhido ficam sozinhas embaixo */
 .app.cel .qd-zoom { top: 18px; bottom: auto; }
+
+/* v0.6.33 · Quadro com o celular deitado */
+/* A barra Quadro/Kanban volta a flutuar sobre o quadro, como foi desenhada: a regra da fluidez (.fz-abas { position: relative })
+   a punha no meio do caminho e o quadro perdia a altura dela (52 px no celular, 38 px no computador). */
+.qd-vistas.fz-abas { position: absolute; }
+.app.cel .qd-zoom { top: 70px; }
+.app.cel .qd-timer { top: 70px; }
+.app.cel .qd .kb { padding-top: 124px; } /* o andamento e as colunas começam abaixo das abas */
+/* Celular deitado (pouca altura): título e ferramentas numa linha só; abas e zoom lado a lado no alto do quadro */
+@media (orientation: landscape) and (max-height: 500px) {
+  .app.cel:has(.sup-postits) .topbar { display: flex; align-items: center; }
+  .app.cel:has(.sup-postits) .topbar-row { flex: 0 1 auto; min-width: 0; }
+  .app.cel:has(.sup-postits) .tb-tit { flex: 0 1 auto; min-width: 72px; max-width: 130px; }
+  .app.cel:has(.sup-postits) .topbar-row > [data-cmd="editar.desfazer"] { display: none; } /* o Desfazer já está na barra das ferramentas */
+  .app.cel:has(.sup-postits) .tbar.cel-rapida { flex: 1 1 0; min-width: 0; border-left: 1px solid var(--border-light); }
+  .app.cel:has(.sup-postits) .qd-vistas { right: auto; }
+  .app.cel:has(.sup-postits) .qd-zoom { top: 10px; left: auto; right: 66px; }
+  .app.cel:has(.sup-postits) .qd-timer { top: 70px; }
+  /* com pouca altura fica só a barra do item (ela já tem Cor e Editar); a faixa grande de cores some */
+  .app.cel:has(.sup-postits) .qd-cores-cel { display: none; }
+}
