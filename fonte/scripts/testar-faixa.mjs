@@ -376,8 +376,8 @@ await caso('Área de impressão e Quebras: listas com Definir/Limpar e Inserir/R
   await celula(r3, 'A1'); await escolhe('quebras', 'impressao.quebra');
   certo(/não pode ser a A1/.test(await r3.locator('body').innerText()), 'avisa');
 });
-await caso('Dados: grupos na ordem do Excel (Classificar e filtrar, Ferramentas de dados, Análise); A a Z e Z a A em coluna à esquerda de Classificar', async () => {
-  await aba3('Dados'); const g = await grupos3(); certo(g === 'Classificar e filtrar|Ferramentas de dados|Análise', g); /* v0.6.25: Análise depois de Ferramentas de dados, como no Excel */
+await caso('Dados: grupos na ordem do Excel (Classificar e filtrar, Ferramentas de dados, Estrutura de tópicos, Análise); A a Z e Z a A em coluna à esquerda de Classificar', async () => {
+  await aba3('Dados'); const g = await grupos3(); certo(g === 'Classificar e filtrar|Ferramentas de dados|Estrutura de tópicos|Análise', g); /* v0.6.25: Análise depois de Ferramentas de dados, como no Excel; v0.6.37: Estrutura de tópicos entre os dois, como no Excel */
   const az = await topo(r3, '.ribbon [data-cmd="dados.az"]'), za = await topo(r3, '.ribbon [data-cmd="dados.za"]'), cl = await topo(r3, '.ribbon [data-cmd="dados.classificar"]'), fi = await topo(r3, '.ribbon [data-cmd="dados.filtrar"]'), li = await topo(r3, '.ribbon [data-cmd="dados.limparFiltro"]');
   certo(Math.abs(az.x - za.x) <= 2 && az.y < za.y && az.x < cl.x && cl.x < fi.x && fi.x < li.x, JSON.stringify({ az, za, cl, fi, li }));
   const rot = await r3.evaluate(() => ['dados.filtrar', 'dados.duplicados', 'dados.validacao', 'dados.limparFiltro'].map((c) => document.querySelector(`.ribbon [data-cmd="${c}"] .rot`).textContent).join('|'));

@@ -437,9 +437,13 @@ export function estrutura(c, abaId, eixo, i, n) {
     if (aba.ocL) mud[`conteudo.abas.${abaId}.ocL`] = mapaIdx(aba.ocL);
     if (aba.ocF) mud[`conteudo.abas.${abaId}.ocF`] = mapaIdx(aba.ocF);
     if (aba.estL) mud[`conteudo.abas.${abaId}.estL`] = mapaIdx(aba.estL); /* v0.6.14 (D-47) */
+    if (aba.grpL) mud[`conteudo.abas.${abaId}.grpL`] = mapaIdx(aba.grpL); /* v0.6.37: grupos andam junto */
+    if (aba.grpFL) mud[`conteudo.abas.${abaId}.grpFL`] = mapaIdx(aba.grpFL);
   } else {
     if (aba.larg) mud[`conteudo.abas.${abaId}.larg`] = mapaIdx(aba.larg);
     if (aba.ocC) mud[`conteudo.abas.${abaId}.ocC`] = mapaIdx(aba.ocC);
+    if (aba.grpC) mud[`conteudo.abas.${abaId}.grpC`] = mapaIdx(aba.grpC); /* v0.6.37 */
+    if (aba.grpFC) mud[`conteudo.abas.${abaId}.grpFC`] = mapaIdx(aba.grpFC);
     /* v0.6.11 (D-23): "ocultas até o fim da aba" anda junto com as colunas */
     if (Number.isInteger(aba.ocCFim)) { const v = move(aba.ocCFim); mud[`conteudo.abas.${abaId}.ocCFim`] = v == null ? undefined : v; }
     if (Number.isInteger(aba.ocCFimAte)) { const v = move(aba.ocCFimAte); mud[`conteudo.abas.${abaId}.ocCFimAte`] = v == null || v >= MAX_COL - 1 ? undefined : v; } /* v0.6.14 (D-52) */

@@ -38,7 +38,7 @@ import { JanelaTabela, JanelaStatus, JanelaLink, JanelaBotao, JanelaImagem } fro
 import { usarTabelaViva } from './tabelaUi.jsx';
 import { ligarPinca, pincaRecente, ancoraDaPinca } from './pinca.js';
 import { atalhoDe, fazerAtalho } from './atalhos.js';
-import { tratarFaixaExtra, estadoFaixaExtra, pedirTamanho, ajustarTamanho, quaisDe } from './faixaExtra.js'; import { abrirTextoColunas } from './textoColunasUi.jsx'; /* v0.6.36 */
+import { tratarFaixaExtra, estadoFaixaExtra, pedirTamanho, ajustarTamanho, quaisDe } from './faixaExtra.js'; import { abrirTextoColunas } from './textoColunasUi.jsx'; /* v0.6.36 */ import * as K from './contorno.js'; import { executarContorno } from './contornoUi.jsx'; /* v0.6.37 */
 import { lerImagem } from './imagem.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
 import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
@@ -272,7 +272,7 @@ export function Planilha({ arquivo, cx }) {
   const fatorY = conteudoH + tam.H > ESP_MAX ? (conteudoH) / (ESP_MAX - tam.H) : 1;
   const fatorX = conteudoW + tam.W > ESP_MAX ? (conteudoW) / (ESP_MAX - tam.W) : 1;
 
-  const G = useMemo(() => geometria({ linhas, colunas, z, sx: rol.x, sy: rol.y, cong, W: tam.W, H: tam.H }), [linhas, colunas, z, rol, cong, tam]);
+  const G = useMemo(() => geometria({ linhas, colunas, z, sx: rol.x, sy: rol.y, cong, W: tam.W, H: tam.H, contorno: K.contornoDe(aba) }), [linhas, colunas, z, rol, cong, tam, aba.grpL, aba.grpC, aba.grpFL, aba.grpFC, aba.grpAcima, aba.grpEsq]); /* v0.6.37: margem dos grupos */
 
   const snapRol = useRef(null);
   const aoRolar = () => {
@@ -301,7 +301,7 @@ export function Planilha({ arquivo, cx }) {
   const mostrarCelula = useCallback((l, col, { centro = false } = {}) => {
     const el = rolRef.current;
     if (!el) return;
-    const Gx = geometria({ linhas, colunas, z, sx: rol.x, sy: rol.y, cong, W: el.clientWidth, H: el.clientHeight });
+    const Gx = geometria({ linhas, colunas, z, sx: rol.x, sy: rol.y, cong, W: el.clientWidth, H: el.clientHeight, contorno: K.contornoDe(aba) });
     let { x, y } = rol;
     if (l >= cl) {
       const topo = linhas.pos(l) - linhas.pos(cl), alt = linhas.tam(l);
@@ -1379,7 +1379,7 @@ export function Planilha({ arquivo, cx }) {
     if (k === 'ArrowDown' && ev.altKey && listaDaCelula(aba, sel.ativa.l, sel.ativa.c)) { ev.preventDefault(); abrirLista(); return; }
     if (k === 'F2' && ev.shiftKey && !somenteLeitura) { ev.preventDefault(); setJanela({ tipo: 'comentario', l: sel.ativa.l, c: sel.ativa.c }); return; }
     const setas = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
-    if (setas[k]) { ev.preventDefault(); andar(setas[k][0], setas[k][1], { estender: ev.shiftKey, pular: ctrl }); return; }
+    if (setas[k] && !(ev.altKey && ev.shiftKey && (k === 'ArrowLeft' || k === 'ArrowRight'))) { ev.preventDefault(); andar(setas[k][0], setas[k][1], { estender: ev.shiftKey, pular: ctrl }); return; } /* v0.6.37: Shift+Alt+→/← agrupa (atalhos.js) */
     if (k === 'Tab') { ev.preventDefault(); if (!tv.aoTab(sel.ativa.l, sel.ativa.c, ev.shiftKey)) andar(0, ev.shiftKey ? -1 : 1); return; }
     if (k === 'Enter') { ev.preventDefault(); andar(ev.shiftKey ? -1 : 1, 0); return; }
     if (k === 'PageDown' || k === 'PageUp') {
@@ -2160,7 +2160,7 @@ export function Planilha({ arquivo, cx }) {
     }
     if (id.startsWith('tabela.')) return tv.executar(id);
     /* v0.6.21 parte 2: tipo do gráfico, conta da AutoSoma, função da Biblioteca e Formatar › altura e largura (faixaExtra.js) */
-    const extra = tratarFaixaExtra(id, { ed, textoColunas: () => abrirTextoColunas({ c, abaId, faixa, textoDe: textoDeDados, aplicarLote, cx }), novoGrafico: novoGraficoJanela, autoSoma, usarFuncao, procurarFuncao: (cat) => setJanela({ tipo: 'funcoes', cat }), tamanho: (a) => pedirTamanho({ cx, mudar, abaId, ...a }), ajustar: (a) => ajustarTamanho({ mudar, abaId, autoAjustar, ...a }),
+    const extra = tratarFaixaExtra(id, { ed, contorno: (cmd) => executarContorno(cmd, { aba, abaId, faixa, mudar, cx }), textoColunas: () => abrirTextoColunas({ c, abaId, faixa, textoDe: textoDeDados, aplicarLote, cx }), novoGrafico: novoGraficoJanela, autoSoma, usarFuncao, procurarFuncao: (cat) => setJanela({ tipo: 'funcoes', cat }), tamanho: (a) => pedirTamanho({ cx, mudar, abaId, ...a }), ajustar: (a) => ajustarTamanho({ mudar, abaId, autoAjustar, ...a }),
       medida: (ehCol) => { const f = normalFaixa(faixa), i = ehCol ? f.c1 : f.l1, n = (ehCol ? f.c2 : f.l2) - i + 1; return { i, n, atual: ehCol ? colunas.tam(i) || largPadrao(aba) : linhas.tam(i) || altPadrao(aba) }; },
       imp: normalizarImp(aba.imp), mudarImp, janelaImp: (secao) => setJanela({ tipo: 'imprimir', secao }), avisar: cx.avisar, faixa, ativa: sel.ativa, zoom: setZ, congelar: (v, rot) => mudar({ [`conteudo.abas.${abaId}.cong`]: v }, rot),
       ordenar: (desc) => { const f = areaDeDados(), rg = D.pedeExpandir(f, regiaoAtual(f.l1, f.c1)); if (rg) { setJanela({ tipo: 'expandirOrdem', f, rg, desc, col: sel.ativa.c }); return; } const e = f.l2 - f.l1 < 1 ? 'Clique numa célula da tabela para pôr em ordem.' : aplicarClassificar(f, { niveis: [{ col: sel.ativa.c, desc }], cabecalho: temCabecalho(f) }); if (e) cx.avisar(e, { ic: 'aviso' }); },
@@ -2580,6 +2580,7 @@ export function Planilha({ arquivo, cx }) {
     if (objSelRef.current) setObjSel(null);
     const p = ponto(ev);
     const o = ondeCaiu(G, p.x, p.y);
+    if (o.tipo === 'contorno') { ev.preventDefault(); const r = K.tocarContorno(aba, abaId, o); if (r && !somenteLeitura) mudar(r.mud, r.rotulo); return; } /* v0.6.37: botões da margem dos grupos */
     const toqueDedo = ev.pointerType === 'touch';
     if (toqueDedo) {
       /* no dedo: decide no soltar (para não atrapalhar a rolagem) */

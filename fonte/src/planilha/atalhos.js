@@ -15,6 +15,8 @@ export function atalhoDe({ key = '', code = '', ctrlKey = false, metaKey = false
     if (key === 'F7' && !shiftKey && !altKey) return 'revisao.ortografia';
     if ((key === 'F11' && shiftKey && !altKey) || (key === 'F1' && shiftKey && altKey)) return 'planilha.novaAba';
     if (altKey && !shiftKey && (key === '=' || code === 'Equal')) return 'formula.autosoma';
+    if (altKey && shiftKey && key === 'ArrowRight') return 'dados.agrupar'; /* v0.6.37 */
+    if (altKey && shiftKey && key === 'ArrowLeft') return 'dados.desagrupar';
     return null;
   }
   if (altKey) {

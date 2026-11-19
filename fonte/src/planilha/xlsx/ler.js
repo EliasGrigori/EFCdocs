@@ -11,7 +11,7 @@ import { atributos, tags, tag, desescapar, textoRico } from './xml.js';
 import { lerTema, lerEstilos, corDe } from './estilos.js';
 import { tirarPrefixos, trocarTabelas, porPrefixos } from './formulas.js';
 import { chave, letraCol, lerChave, numCol, MAX_LIN, MAX_COL } from '../ref.js';
-import { lerColunas } from './colunasXlsx.js';
+import { lerColunas, lerGrupoDaLinha, lerResumoDosGrupos } from './colunasXlsx.js';
 import { lerGuardada, deslocar, escrever, dependencias } from '../formula.js';
 import { IMPL } from '../funcoes.js';
 import { lerValidacoes, lerCondicionais, lerComentarios, lerPessoas } from './extras.js';
@@ -325,7 +325,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       }
       /* v0.6.8 (Grok): altura escolhida à mão no Excel fica guardada mesmo igual à padrão (o Alt+Enter não pode mudar) */
       if (L.ht != null && (L.ht !== altDaAba() || L.mao)) { (aba.alt || (aba.alt = {}))[L.r] = L.ht; }
-      if (L.oculta) { (aba.ocL || (aba.ocL = {}))[L.r] = 1; }
+      if (L.oculta) { (aba.ocL || (aba.ocL = {}))[L.r] = 1; } lerGrupoDaLinha(aba, L); /* v0.6.37: grupo de linhas (Agrupar) */
       /* v0.6.14 (D-47): estilo da linha inteira (customFormat) */
       if (L.s) (aba.estL || (aba.estL = {}))[L.r] = L.s;
     };
@@ -354,7 +354,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
       const r = (a.r ? +a.r : (linha.ult ?? -1) + 2) - 1;
       linha.ult = r;
       if (r >= MAX_LIN) return;
-      const L = { r, cells: [], oculta: a.hidden === '1' || a.hidden === 'true', ht: null, s: a.customFormat === '1' ? sDe(a.s) : 0 };
+      const L = { r, cells: [], oculta: a.hidden === '1' || a.hidden === 'true', ht: null, s: a.customFormat === '1' ? sDe(a.s) : 0, niv: Math.min(7, +(a.outlineLevel || 0) || 0), fech: a.collapsed === '1' || a.collapsed === 'true' };
       if (!L.oculta) linhasDef.add(r);
       /* v0.6.6: a linha guarda a altura dela quando é diferente da padrão do arquivo (aba.altP), como o Excel mostra */
       if (a.ht && (a.customHeight === '1' || a.customHeight === 'true')) { L.ht = Math.max(0, Math.round(parseFloat(a.ht) * 4 / 3)); L.mao = true; }
@@ -500,7 +500,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
 
     /* ---------- cabeçalho: congelar, cor, colunas ---------- */
     const sp = tag(cab, 'sheetPr');
-    if (sp) { const tc = tag(sp.dentro, 'tabColor'); if (tc) { const cor = corDe(tc.a, tema); if (cor) aba.cor = cor; } }
+    if (sp) { const tc = tag(sp.dentro, 'tabColor'); if (tc) { const cor = corDe(tc.a, tema); if (cor) aba.cor = cor; } lerResumoDosGrupos(aba, tag(sp.dentro, 'outlinePr')); } /* v0.6.37 */
     const pane = tag(cab, 'pane');
     if (pane && /frozen/i.test(pane.a.state || '')) {
       const l = Math.round(+(pane.a.ySplit || 0)), c = Math.round(+(pane.a.xSplit || 0));

@@ -1,0 +1,48 @@
+  ok    banco · postits: 1ª volta igual (gzip, 1600 → 689 bytes)
+  ok    banco · postits: 2ª volta igual
+  ok    banco · postits: abrir de novo não muda nada
+  ok    banco · postits: ficha igual
+  ok    banco · docx: 1ª volta igual (gzip, 1397 → 569 bytes)
+  ok    banco · docx: 2ª volta igual
+  ok    banco · docx: abrir de novo não muda nada
+  ok    banco · docx: ficha igual
+  ok    banco · planilha: 1ª volta igual (gzip, 14197 → 2840 bytes)
+  ok    banco · planilha: 2ª volta igual
+  ok    banco · planilha: abrir de novo não muda nada
+  ok    banco · planilha: ficha igual
+  ok    dados antigos: registros-v0.6.21.json: 2 registros gravados pela v0.6.21 abrem com os mesmos textos
+  ok    conferente de fora (Python): banco: 3 registros, um para cada arquivo pedido
+  ok    conferente de fora (Python): ficha de 'Quadro inventado': tipo, nome e situação
+  ok    conferente de fora (Python): pacote de 'Quadro inventado' abre fora do app (gzip, 1600 bytes, como o app anotou)
+  ok    conferente de fora (Python): quadro: 9 itens (pedido: 9)
+  ok    conferente de fora (Python): quadro: 2 setas (pedido: 2)
+  ok    conferente de fora (Python): quadro: os textos dos itens são os pedidos, com acento, aspas e quebra de linha
+  ok    conferente de fora (Python): quadro: rótulos das setas
+  ok    conferente de fora (Python): quadro: colunas do Kanban na ordem
+  ok    conferente de fora (Python): quadro: responsável, prazo e nota GUT da tarefa
+  ok    conferente de fora (Python): quadro: 6 códigos Q sem repetir
+  ok    conferente de fora (Python): quadro: toda seta liga dois itens que existem
+  ok    conferente de fora (Python): ficha de 'Documento inventado': tipo, nome e situação
+  ok    conferente de fora (Python): pacote de 'Documento inventado' abre fora do app (gzip, 1397 bytes, como o app anotou)
+  ok    conferente de fora (Python): documento: 12 blocos (pedido: 12)
+  ok    conferente de fora (Python): documento: tipos dos blocos na ordem
+  ok    conferente de fora (Python): documento: textos dos blocos na ordem, com acento
+  ok    conferente de fora (Python): documento: o trecho em negrito é 'negrito'
+  ok    conferente de fora (Python): documento: assinatura com nome e cargo
+  ok    conferente de fora (Python): documento: nenhum bloco com id repetido
+  ok    conferente de fora (Python): documento: página, cabeçalho e rodapé guardados
+  ok    conferente de fora (Python): ficha de 'Planilha inventada': tipo, nome e situação
+  ok    conferente de fora (Python): pacote de 'Planilha inventada' abre fora do app (gzip, 14197 bytes, como o app anotou)
+  ok    conferente de fora (Python): planilha: 3 abas na mesma ordem do arquivo
+  ok    conferente de fora (Python): planilha: 71 células com valor iguais às do arquivo lido pelo openpyxl
+  ok    conferente de fora (Python): planilha: 10 fórmulas guardadas como fórmula
+  ok    PDF do Quadro (pypdf): 3 folhas (pedido: 3)
+  ok    PDF do Quadro (pypdf): todas as folhas em A4 deitado (842 x 595 pontos)
+  ok    PDF do Quadro (pypdf): título em todas as folhas, com acento
+  ok    PDF do Quadro (pypdf): rodapé com 'folha X de N' em cada folha
+  ok    PDF do Quadro (pypdf): uma imagem por folha
+  ok    PDF do Quadro (pypdf): título nas propriedades do arquivo
+  ok    Documento em Word: ainda não existe (chega na v0.7.0); a trava está armada
+  ok    Planilha em Excel: rede de ida e volta do .xlsx no lugar (npm run test:fidelidade)
+
+ida e volta: 46 conferências, 0 diferença(s), 0 pulada(s) · conferentes: Python sim · openpyxl sim · pypdf sim

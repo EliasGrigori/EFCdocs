@@ -7,6 +7,7 @@ import { faixaDoFiltro } from './dados.js';
 import { ehErro } from './valores.js';
 import { estiloCondicional, estiloComRegras, barraDeDados, temBarras, corClaraDaBarra } from './regras.js';
 import { estiloDeTabelaEm, juntarComTabela, tabelasVivasDaAba } from './tabelaEstilo.js';
+import { margemDe, contornoEm, desenharContorno, passoDoAparelho } from './contorno.js'; /* v0.6.37 */
 
 /** Estilo da célula com as regras de cor (formatação condicional) por cima. */
 export function estiloVisto(c, cel, motor, abaId, l, col) {
@@ -26,11 +27,13 @@ const PAD = 4;
 /** v0.6.27: rolagem (px na tela) que deixa a linha ou coluna inteira logo depois da parte congelada n0 (a mais perto). */
 export function divisaMaisPerto(eixo, n0, rolado, z) { const v = rolado / z, base = eixo.pos(n0), k = eixo.em(base + v + 0.5), ini = eixo.pos(k) - base, fim = eixo.pos(k + 1) - base; return (v - ini < fim - v ? ini : fim) * z; }
 
-export function geometria({ linhas, colunas, z, sx, sy, cong, W, H }) {
+export function geometria({ linhas, colunas, z, sx, sy, cong, W, H, contorno = null }) {
   const cl = cong ? cong.l : 0, cc = cong ? cong.c : 0;
   /* a coluna dos números das linhas alarga quando a linha passa de 9999 */
   const ultimaVisivel = Math.min(MAX_LIN, linhas.em(linhas.pos(cl) + sy + H / z) + 2);
-  const hw = Math.round(Math.max(CAB_W, 10 + 7 * String(ultimaVisivel).length) * Math.max(0.8, z)), hh = Math.round(CAB_H * Math.max(0.8, z));
+  /* v0.6.37: com grupos (Agrupar), a margem da barra fica à esquerda dos números e em cima das letras */
+  const zz = Math.max(0.8, z), { mL, mC, passo } = margemDe(contorno, zz, passoDoAparelho());
+  const hw = mL + Math.round(Math.max(CAB_W, 10 + 7 * String(ultimaVisivel).length) * zz), hh = mC + Math.round(CAB_H * zz);
   const fy = linhas.pos(cl) * z, fx = colunas.pos(cc) * z;
   /* v0.6.27 (Elias, 18/11: "parece que pula de fileira em fileira e coluna em coluna"): a rolagem anda pixel a pixel também com
      linhas e colunas congeladas. Desde a v0.6.8 ela andava de linha em linha para a linha não aparecer cortada por cima das
@@ -57,7 +60,7 @@ export function geometria({ linhas, colunas, z, sx, sy, cong, W, H }) {
   const l0 = linhas.em(baseY), c0 = colunas.em(baseX);
   let l1 = linEm(H - 1); if (l1 < 0) l1 = l0;
   let c1 = colEm(W - 1); if (c1 < 0) c1 = c0;
-  return { hw, hh, fy, fx, cl, cc, yDe, xDe, yFim, xFim, linEm, colEm, l0, l1: Math.min(MAX_LIN - 1, l1 + 1), c0, c1: Math.min(MAX_COL - 1, c1 + 1), z, W, H, linhas, colunas };
+  return { hw, hh, fy, fx, cl, cc, yDe, xDe, yFim, xFim, linEm, colEm, l0, l1: Math.min(MAX_LIN - 1, l1 + 1), c0, c1: Math.min(MAX_COL - 1, c1 + 1), z, W, H, linhas, colunas, mL, mC, zz, contorno, passo };
 }
 
 /* ---------- cores ---------- */
@@ -650,6 +653,7 @@ function desenharSelecao(p, q) {
 function desenharCabecalhos(p, mesc) {
   const { ctx, G, cores, sel, familia } = p;
   const { W, H, hw, hh, z } = G;
+  const mL = G.mL || 0, mC = G.mC || 0; /* v0.6.37: margem da barra dos grupos */
   ctx.fillStyle = cores.cab;
   ctx.fillRect(0, 0, W, hh);
   ctx.fillRect(0, 0, hw, H);
@@ -672,12 +676,12 @@ function desenharCabecalhos(p, mesc) {
     if (!w) return;
     const x = G.xDe(c);
     if (x > W || x + w < hw) return;
-    ctx.fillStyle = cores.cab; ctx.fillRect(x, 0, w, hh);
-    if (destaqueC(c)) { ctx.fillStyle = cores.cabSel; ctx.fillRect(x, 0, w, hh); ctx.fillStyle = cores.sel; ctx.fillRect(x, hh - 2, w, 2); }
+    ctx.fillStyle = cores.cab; ctx.fillRect(x, mC, w, hh - mC);
+    if (destaqueC(c)) { ctx.fillStyle = cores.cabSel; ctx.fillRect(x, mC, w, hh - mC); ctx.fillStyle = cores.sel; ctx.fillRect(x, hh - 2, w, 2); }
     ctx.fillStyle = destaqueC(c) ? cores.cabSelTexto : cores.cabTexto;
-    ctx.fillText(letraCol(c), x + w / 2, hh / 2 + 1);
+    ctx.fillText(letraCol(c), x + w / 2, mC + (hh - mC) / 2 + 1);
     ctx.fillStyle = cores.cabLinha;
-    ctx.fillRect(Math.round(x + w) - 1, 0, 1, hh);
+    ctx.fillRect(Math.round(x + w) - 1, mC, 1, hh - mC);
   };
   ctx.save(); ctx.beginPath(); ctx.rect(hw + G.fx, 0, Math.max(0, W - hw - G.fx), hh); ctx.clip();
   for (let c = Math.max(G.cc, G.c0); c <= G.c1; c++) umaCol(c);
@@ -693,12 +697,12 @@ function desenharCabecalhos(p, mesc) {
     if (!h) return;
     const y = G.yDe(l);
     if (y > H || y + h < hh) return;
-    ctx.fillStyle = cores.cab; ctx.fillRect(0, y, hw, h);
-    if (destaqueL(l)) { ctx.fillStyle = cores.cabSel; ctx.fillRect(0, y, hw, h); ctx.fillStyle = cores.sel; ctx.fillRect(hw - 2, y, 2, h); }
+    ctx.fillStyle = cores.cab; ctx.fillRect(mL, y, hw - mL, h);
+    if (destaqueL(l)) { ctx.fillStyle = cores.cabSel; ctx.fillRect(mL, y, hw - mL, h); ctx.fillStyle = cores.sel; ctx.fillRect(hw - 2, y, 2, h); }
     ctx.fillStyle = destaqueL(l) ? cores.cabSelTexto : cores.cabTexto;
-    ctx.fillText(String(l + 1), hw / 2, y + h / 2 + 1);
+    ctx.fillText(String(l + 1), mL + (hw - mL) / 2, y + h / 2 + 1);
     ctx.fillStyle = cores.cabLinha;
-    ctx.fillRect(0, Math.round(y + h) - 1, hw, 1);
+    ctx.fillRect(mL, Math.round(y + h) - 1, hw - mL, 1);
   };
   ctx.save(); ctx.beginPath(); ctx.rect(0, hh + G.fy, hw, Math.max(0, H - hh - G.fy)); ctx.clip();
   for (let l = Math.max(G.cl, G.l0); l <= G.l1; l++) umaLin(l);
@@ -716,11 +720,13 @@ function desenharCabecalhos(p, mesc) {
   ctx.fillRect(0, hh - 1, W, 1);
   ctx.fillRect(hw - 1, 0, 1, H);
   ctx.textAlign = 'left';
+  if (G.contorno) { desenharContorno(ctx, G, cores, familia); ctx.textAlign = 'left'; }
 }
 
 /** O que está sob o ponto (x, y) da tela. */
 export function ondeCaiu(G, x, y) {
   const { hw, hh } = G;
+  if (G.contorno && (x < G.mL || y < G.mC)) { const r = contornoEm(G, x, y); if (r) return r; } /* v0.6.37: margem dos grupos */
   if (x < hw && y < hh) return { tipo: 'canto' };
   if (y < hh) {
     const c = G.colEm(x);

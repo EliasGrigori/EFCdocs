@@ -11,6 +11,7 @@ import { letraCol, textoFaixa, normalFaixa } from './ref.js';
 import { MARGENS, PAPEIS } from './impressao.js';
 
 const TIPOS = new Set(TIPOS_GRAFICO.map(([t]) => t));
+const CONTORNO = new Set(['dados.agrupar', 'dados.desagrupar', 'dados.mostrarDetalhe', 'dados.ocultarDetalhe', 'dados.limparEstrutura']); /* v0.6.37 */
 /* parte 3: as opções das listas do Layout da Página e do Congelar painéis (os nomes são os do Excel) */
 export const AJUSTES = { nenhum: 'Sem ajuste (tamanho real)', pagina: 'Caber a aba numa página', colunas: 'Caber todas as colunas numa página', linhas: 'Caber todas as linhas numa página' };
 export const CONGELAR = { ativa: 'Congelar painéis', linha: 'Congelar linha superior', coluna: 'Congelar primeira coluna', nada: 'Descongelar painéis' };
@@ -88,6 +89,7 @@ export function lerPedido(id) {
   if (id === 'dados.az' || id === 'dados.za') return { fazer: 'ordenar', desc: id === 'dados.za' };
   if (id === 'dados.limparFiltro') return { fazer: 'limparFiltro' };
   if (id === 'dados.textoColunas') return { fazer: 'textoColunas' }; /* v0.6.36 */
+  if (CONTORNO.has(id)) return { fazer: 'contorno', id }; /* v0.6.37 */
   if (id === 'exibir.zoom100') return { fazer: 'zoom', z: 1 };
   return null;
 }
@@ -125,6 +127,7 @@ export function tratarFaixaExtra(id, p) {
     case 'ordenar': return p.ed(() => p.ordenar(q.desc));
     case 'limparFiltro': return p.ed(() => p.limparFiltro());
     case 'textoColunas': return p.ed(() => p.textoColunas());
+    case 'contorno': return p.ed(() => p.contorno(q.id));
     case 'zoom': p.zoom(q.z); return true;
     case 'congelar': return p.ed(() => {
       const v = congelarPara(q.como, p.ativa);

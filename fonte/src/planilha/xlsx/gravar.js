@@ -13,6 +13,7 @@ import { devolver } from './devolver.js';
 import { escapar, XML_CAB } from './xml.js';
 import { gravarEstilos } from './estilos.js';
 import { colunasXml } from './colunasXlsx.js';
+import { nivelMax } from '../contorno.js';
 import { porPrefixos } from './formulas.js';
 import { lerGuardada } from '../formula.js';
 import { chave, letraCol, lerChave, MAX_COL } from '../ref.js';
@@ -196,6 +197,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       }
     }
     for (const k of Object.keys(aba.alt || {})) if (!linhas.has(+k)) linhas.set(+k, new Map());
+    /* v0.6.37: linhas de grupo e a do botão fechado vão listadas, mesmo vazias */
+    for (const k of [...Object.keys(aba.grpL || {}), ...Object.keys(aba.grpFL || {})]) if (!linhas.has(+k)) linhas.set(+k, new Map());
     /* v0.6.14 (D-47): linha com estilo da linha inteira vai listada, mesmo vazia */
     for (const k of Object.keys(aba.estL || {})) if (aba.estL[k] && !linhas.has(+k)) linhas.set(+k, new Map());
     /* v0.6.8 (Grok): com zeroHeight, linha oculta e vazia não precisa ir listada (o Excel já esconde quem não está na lista) */
@@ -217,6 +220,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       let atr = ` r="${l + 1}"`;
       const alt = aba.alt && aba.alt[l];
       if (aba.ocL && aba.ocL[l]) atr += ' hidden="1"';
+      if (aba.grpL && aba.grpL[l]) atr += ` outlineLevel="${aba.grpL[l]}"`; /* v0.6.37 */
+      if (aba.grpFL && aba.grpFL[l]) atr += ' collapsed="1"';
       if (alt != null && alt !== altPadrao(aba)) atr += ` ht="${ptDe(alt)}" customHeight="1"`;
       if (aba.estL && aba.estL[l] && c.estilos && c.estilos[aba.estL[l]]) atr += ` s="${aba.estL[l]}" customFormat="1"`;
       const cels = [];
@@ -284,6 +289,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     const colunas = new Map();
     for (const [k, w] of Object.entries(aba.larg || {})) colunas.set(+k, { w });
     for (const [k, o] of Object.entries(aba.ocC || {})) if (o) colunas.set(+k, { ...(colunas.get(+k) || {}), oculta: true });
+    for (const [k, n] of Object.entries(aba.grpC || {})) if (n) colunas.set(+k, { ...(colunas.get(+k) || {}), niv: n }); /* v0.6.37 */
+    for (const [k, o] of Object.entries(aba.grpFC || {})) if (o) colunas.set(+k, { ...(colunas.get(+k) || {}), fech: true });
     /* v0.6.11 (D-23): colunas ocultas até o fim da aba voltam como uma faixa só até XFD. Se a pessoa reexibiu alguma no meio,
        a faixa começa depois da última reexibida. */
     let fimOculto = null;
@@ -298,7 +305,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     let cab = '';
     const ip = gravarImpressaoAba(aba.imp, aba.nome);
     for (const nm of ip.nomes) nomesImp.push({ ...nm, ia });
-    if (aba.cor || ip.sheetPr) cab += `<sheetPr>${aba.cor ? `<tabColor rgb="${hexArgb(aba.cor)}"/>` : ''}${ip.sheetPr}</sheetPr>`;
+    const outlinePr = aba.grpAcima || aba.grpEsq ? `<outlinePr${aba.grpAcima ? ' summaryBelow="0"' : ''}${aba.grpEsq ? ' summaryRight="0"' : ''}/>` : ''; /* v0.6.37 */
+    if (aba.cor || ip.sheetPr || outlinePr) cab += `<sheetPr>${aba.cor ? `<tabColor rgb="${hexArgb(aba.cor)}"/>` : ''}${outlinePr}${ip.sheetPr}</sheetPr>`;
     cab += `<dimension ref="A1${lMax || cMax ? ':' + letraCol(cMax) + (lMax + 1) : ''}"/>`;
     let vista = `<sheetView workbookViewId="0"${ia === primeiraVisivel ? ' tabSelected="1"' : ''}>`;
     const cg = aba.cong;
@@ -309,7 +317,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     }
     vista += '</sheetView>';
     cab += `<sheetViews>${vista}</sheetViews>`;
-    cab += `<sheetFormatPr defaultColWidth="${larguraExcel(largPadrao(aba))}" defaultRowHeight="${ptDe(altPadrao(aba))}" customHeight="1"${aba.zeroH ? ' zeroHeight="1"' : ''}/>`;
+    cab += `<sheetFormatPr defaultColWidth="${larguraExcel(largPadrao(aba))}" defaultRowHeight="${ptDe(altPadrao(aba))}" customHeight="1"${aba.zeroH ? ' zeroHeight="1"' : ''}${nivelMax(aba, 'l') ? ` outlineLevelRow="${nivelMax(aba, 'l')}"` : ''}${nivelMax(aba, 'c') ? ` outlineLevelCol="${nivelMax(aba, 'c')}"` : ''}/>`;
     if (cols.length) cab += `<cols>${cols.join('')}</cols>`;
     let fim = '';
     /* v0.6.3: aba protegida e filtro automático (antes das mescladas, como o Excel exige) */

@@ -182,6 +182,11 @@ export const COMANDOS = [
   C('dados.limparFiltro', 'Limpar filtro', 'filtro', { sin: ['tirar critério', 'mostrar todas as linhas', 'limpar'], chega: V61, mods: ['planilha'] }),
   /* v0.6.25 (ideias do Grok aprovadas em 18/11): circular dados inválidos, estatística descritiva e amostragem */
   C('dados.textoColunas', 'Texto para colunas', 'n:textoColunas', { sin: ['separar colunas', 'dividir texto', 'quebrar coluna', 'separador', 'ponto e vírgula', 'largura fixa', 'split'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
+  C('dados.agrupar', 'Agrupar', 'n:agrupar', { sin: ['agrupar linhas', 'agrupar colunas', 'estrutura de tópicos', 'tópicos', 'recolher', 'outline'], atalho: 'Shift+Alt+→', chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
+  C('dados.desagrupar', 'Desagrupar', 'n:desagrupar', { sin: ['desagrupar linhas', 'tirar grupo'], atalho: 'Shift+Alt+←', chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
+  C('dados.mostrarDetalhe', 'Mostrar detalhe', 'n:mostrarDetalhe', { sin: ['expandir grupo', 'abrir grupo'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
+  C('dados.ocultarDetalhe', 'Ocultar detalhe', 'n:ocultarDetalhe', { sin: ['recolher grupo', 'fechar grupo'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
+  C('dados.limparEstrutura', 'Limpar estrutura de tópicos', 'n:limparEstrutura', { sin: ['tirar todos os grupos', 'remover agrupamento'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.circular', 'Circular dados inválidos', 'validacao', { sin: ['marcar inválidos', 'fora da validação', 'valores errados', 'círculo vermelho'], chega: V625, mods: ['planilha'] }),
   C('dados.limparCirculos', 'Limpar círculos de validação', 'validacao', { sin: ['tirar círculos', 'apagar círculos'], chega: V625, mods: ['planilha'] }),
   C('dados.estatistica', 'Estatística descritiva', 'grafico', { sin: ['média', 'desvio padrão', 'resumo estatístico', 'análise de dados', 'coeficiente de variação'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),

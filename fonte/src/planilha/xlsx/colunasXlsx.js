@@ -6,6 +6,17 @@ import { largPadrao } from '../modelo.js';
 const larguraExcel = (px) => Math.max(0, Math.trunc((px / 7) * 256) / 256);
 const ehOculta = (cd) => cd.a.hidden === '1' || cd.a.hidden === 'true';
 
+/** v0.6.37: linha lida com grupo (outlineLevel) e botão fechado (collapsed) → aba.grpL e aba.grpFL. */
+export function lerGrupoDaLinha(aba, L) {
+  if (L.niv > 0) (aba.grpL || (aba.grpL = {}))[L.r] = L.niv;
+  if (L.fech) (aba.grpFL || (aba.grpFL = {}))[L.r] = 1;
+}
+/** v0.6.37: onde fica o resumo dos grupos (<outlinePr>); o padrão do Excel é embaixo e à direita. */
+export function lerResumoDosGrupos(aba, op) {
+  if (op && (op.a.summaryBelow === '0' || op.a.summaryBelow === 'false')) aba.grpAcima = 1;
+  if (op && (op.a.summaryRight === '0' || op.a.summaryRight === 'false')) aba.grpEsq = 1;
+}
+
 /** <col> lidos → aba.larg, aba.ocC, aba.ocCFim (e ocCFimAte), aba.estC, aba.estCFim. ultCol = até onde vão uma a uma. */
 export function lerColunas(aba, colsDef, ultCol, sDe) {
   for (const cd of colsDef) {
@@ -25,7 +36,11 @@ export function lerColunas(aba, colsDef, ultCol, sDe) {
       for (let c = c1; c <= ate; c++) (aba.estC || (aba.estC = {}))[c] = sc;
       if (+cd.a.max >= MAX_COL && ate + 1 < MAX_COL) aba.estCFim = { c: Math.max(c1, ate + 1), s: sc };
     }
+    /* v0.6.37: grupos de colunas. Faixa de mais de 64 colunas (ex.: ocultas até o fim, AY:XFD) fica sem grupo, como antes (L-20) */
+    const curta = +cd.a.max - +cd.a.min < 64, niv = curta ? Math.min(7, +(cd.a.outlineLevel || 0) || 0) : 0, fech = curta && (cd.a.collapsed === '1' || cd.a.collapsed === 'true');
     for (let c = c1; c <= c2; c++) {
+      if (niv > 0) (aba.grpC || (aba.grpC = {}))[c] = niv;
+      if (fech) (aba.grpFC || (aba.grpFC = {}))[c] = 1;
       const oculta = ehOculta(cd);
       if (oculta) (aba.ocC || (aba.ocC = {}))[c] = 1;
       /* v0.6.9.2 (Grok, D-09): a coluna oculta também guarda a largura (volta igual ao exportar e ao reexibir) */
@@ -70,7 +85,7 @@ export function colunasXml(aba, colunas, fimOculto, estilos) {
     const s = estDe(c1);
     const st = s ? ` style="${s}"` : '';
     if (oc) { const w = (aba.larg && aba.larg[fimOculto]) ?? largPadrao(aba); out.push(`<col min="${c1 + 1}" max="${c2 + 1}" width="${larguraExcel(w)}"${st} customWidth="1" hidden="1"/>`); continue; }
-    if (x) { const w = x.w != null ? x.w : largPadrao(aba); out.push(`<col min="${c1 + 1}" max="${c1 + 1}" width="${larguraExcel(w)}"${st} customWidth="1"${x.oculta ? ' hidden="1"' : ''}/>`); if (c2 > c1 && s) out.push(`<col min="${c1 + 2}" max="${c2 + 1}" width="${larguraExcel(largPadrao(aba))}"${st}/>`); continue; }
+    if (x) { const w = x.w != null ? x.w : largPadrao(aba); const grp = `${x.niv ? ` outlineLevel="${x.niv}"` : ''}${x.fech ? ' collapsed="1"' : ''}`; out.push(`<col min="${c1 + 1}" max="${c1 + 1}" width="${larguraExcel(w)}"${st}${x.w != null || x.oculta ? ' customWidth="1"' : ''}${x.oculta ? ' hidden="1"' : ''}${grp}/>`); if (c2 > c1 && s) out.push(`<col min="${c1 + 2}" max="${c2 + 1}" width="${larguraExcel(largPadrao(aba))}"${st}/>`); continue; }
     if (s) out.push(`<col min="${c1 + 1}" max="${c2 + 1}" width="${larguraExcel(largPadrao(aba))}"${st}/>`);
   }
   /* faixas vizinhas iguais (só estilo) viram uma */

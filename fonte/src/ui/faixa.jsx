@@ -82,6 +82,8 @@ const FAIXAS = {
     { id: 'dados', nome: 'Dados', grupos: [
       { nome: 'Classificar e filtrar', itens: [['col', ['dados.az', 'dados.za']], ['g', 'dados.classificar'], ['g', 'dados.filtrar', 'Filtro'], ['col', [['r', 'dados.limparFiltro', 'Limpar'], ['r', 'dados.reaplicar', 'Reaplicar']]]] },
       { nome: 'Ferramentas de dados', itens: [['g', 'dados.textoColunas', 'Texto para colunas'], ['g', 'dados.duplicados', 'Remover duplicatas'], ['g', 'dados.validacao', 'Validação de dados'], ['col', [['r', 'dados.circular', 'Circular inválidos'], ['r', 'dados.limparCirculos', 'Limpar círculos']]]] },
+      /* v0.6.37: Estrutura de tópicos, como no Excel (o Subtotal entra na v0.6.38) */
+      { nome: 'Estrutura de tópicos', itens: [['g', 'dados.agrupar', 'Agrupar'], ['g', 'dados.desagrupar', 'Desagrupar'], ['col', [['r', 'dados.mostrarDetalhe', 'Mostrar detalhe'], ['r', 'dados.ocultarDetalhe', 'Ocultar detalhe'], ['r', 'dados.limparEstrutura', 'Limpar estrutura']]]] },
       /* v0.6.25: no lugar do grupo Análise do Excel (Análise de Dados) */
       { nome: 'Análise', itens: [['g', 'dados.estatistica', 'Estatística descritiva'], ['g', 'dados.amostra', 'Amostragem']] }] },
     { id: 'revisao', nome: 'Revisão', grupos: [
@@ -192,7 +194,7 @@ export const ROTULO_CURTO = {
   'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Verificação de erros', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
   'inserir.formas': 'Formas', 'inserir.status': 'Coluna de status', 'inserir.foto': 'Foto na célula', 'inserir.assinatura': 'Linha de assinatura', 'inserir.imagem': 'Imagens',
   'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
-  'dados.validacao': 'Validação', 'dados.textoColunas': 'Texto para colunas', 'dados.circular': 'Circular inválidos', 'dados.limparCirculos': 'Limpar círculos', 'dados.estatistica': 'Estatística', 'dados.amostra': 'Amostragem', 'formatar.condicional': 'Formatação condicional', 'editar.localizar': 'Localizar',
+  'dados.validacao': 'Validação', 'dados.textoColunas': 'Texto para colunas', 'dados.agrupar': 'Agrupar', 'dados.desagrupar': 'Desagrupar', 'dados.mostrarDetalhe': 'Mostrar detalhe', 'dados.ocultarDetalhe': 'Ocultar detalhe', 'dados.limparEstrutura': 'Limpar estrutura', 'dados.circular': 'Circular inválidos', 'dados.limparCirculos': 'Limpar círculos', 'dados.estatistica': 'Estatística', 'dados.amostra': 'Amostragem', 'formatar.condicional': 'Formatação condicional', 'editar.localizar': 'Localizar',
   'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.interno': 'Documento interno', 'arquivo.camposCwork': 'Campos do Cwork', 'arquivo.compartilharCwork': 'Compartilhar com o Cwork', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
   'arquivo.abrir': 'Abrir Excel', 'arquivo.exportarExcel': 'Salvar como Excel', 'arquivo.relatorioExcel': 'O que veio do Excel', 'arquivo.baixarOriginal': 'Baixar original',
   'editar.comentar': 'Comentário', 'revisao.comentarios': 'Comentários', 'organizar.temporizador': 'Temporizador', 'revisao.comparar': 'Comparar',
