@@ -90,6 +90,7 @@ export function lerPedido(id) {
   if (id === 'dados.limparFiltro') return { fazer: 'limparFiltro' };
   if (id === 'dados.textoColunas') return { fazer: 'textoColunas' }; /* v0.6.36 */
   if (CONTORNO.has(id)) return { fazer: 'contorno', id }; /* v0.6.37 */
+  if (id === 'dados.subtotal') return { fazer: 'subtotal' }; /* v0.6.38 */
   if (id === 'exibir.zoom100') return { fazer: 'zoom', z: 1 };
   return null;
 }
@@ -128,6 +129,7 @@ export function tratarFaixaExtra(id, p) {
     case 'limparFiltro': return p.ed(() => p.limparFiltro());
     case 'textoColunas': return p.ed(() => p.textoColunas());
     case 'contorno': return p.ed(() => p.contorno(q.id));
+    case 'subtotal': return p.ed(() => p.subtotal());
     case 'zoom': p.zoom(q.z); return true;
     case 'congelar': return p.ed(() => {
       const v = congelarPara(q.como, p.ativa);

@@ -184,6 +184,7 @@ export const COMANDOS = [
   C('dados.textoColunas', 'Texto para colunas', 'n:textoColunas', { sin: ['separar colunas', 'dividir texto', 'quebrar coluna', 'separador', 'ponto e vírgula', 'largura fixa', 'split'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.agrupar', 'Agrupar', 'n:agrupar', { sin: ['agrupar linhas', 'agrupar colunas', 'estrutura de tópicos', 'tópicos', 'recolher', 'outline'], atalho: 'Shift+Alt+→', chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.desagrupar', 'Desagrupar', 'n:desagrupar', { sin: ['desagrupar linhas', 'tirar grupo'], atalho: 'Shift+Alt+←', chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
+  C('dados.subtotal', 'Subtotal', 'n:subtotal', { sin: ['subtotais', 'total por grupo', 'somar por categoria', 'total geral', 'soma por fruta'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.mostrarDetalhe', 'Mostrar detalhe', 'n:mostrarDetalhe', { sin: ['expandir grupo', 'abrir grupo'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.ocultarDetalhe', 'Ocultar detalhe', 'n:ocultarDetalhe', { sin: ['recolher grupo', 'fechar grupo'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),
   C('dados.limparEstrutura', 'Limpar estrutura de tópicos', 'n:limparEstrutura', { sin: ['tirar todos os grupos', 'remover agrupamento'], chega: V625, mods: ['planilha'], acao: 'planilha.editar' }),

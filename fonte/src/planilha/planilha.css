@@ -448,3 +448,9 @@ body[data-theme=papel] .tk-num, .pl.clara .pl-edcel .tk-num { color: #1d5fae; }
 .tc-previa .pulada { color: var(--text-dim); background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--border-light) 6px 7px); }
 .tc-destino input { width: 120px; }
 .app.cel .tc-previa th select, .app.cel .tc-outro, .app.cel .pl-jtc .seg .chipb, .app.cel .tc-destino input, .app.cel .tc-linha input { min-height: 44px; }
+
+/* v0.6.38 · Dados › Subtotal */
+.pl-jsub { width: min(460px, 96vw); }
+.pl-jsub .campo-t select { height: 36px; }
+.pl-jsub .janela-r .sp { flex: 1; }
+.app.cel .pl-jsub .campo-t select { height: 44px; }

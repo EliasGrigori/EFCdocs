@@ -38,7 +38,7 @@ import { JanelaTabela, JanelaStatus, JanelaLink, JanelaBotao, JanelaImagem } fro
 import { usarTabelaViva } from './tabelaUi.jsx';
 import { ligarPinca, pincaRecente, ancoraDaPinca } from './pinca.js';
 import { atalhoDe, fazerAtalho } from './atalhos.js';
-import { tratarFaixaExtra, estadoFaixaExtra, pedirTamanho, ajustarTamanho, quaisDe } from './faixaExtra.js'; import { abrirTextoColunas } from './textoColunasUi.jsx'; /* v0.6.36 */ import * as K from './contorno.js'; import { executarContorno } from './contornoUi.jsx'; /* v0.6.37 */
+import { tratarFaixaExtra, estadoFaixaExtra, pedirTamanho, ajustarTamanho, quaisDe } from './faixaExtra.js'; import { abrirTextoColunas } from './textoColunasUi.jsx'; /* v0.6.36 */ import * as K from './contorno.js'; import { executarContorno } from './contornoUi.jsx'; /* v0.6.37 */ import { abrirSubtotal } from './subtotalUi.jsx'; /* v0.6.38 */
 import { lerImagem } from './imagem.js';
 import { TEMA_CLARO, TEMA_ESCURO } from './desenhoGrafico.js';
 import { JanelaGrafico, GraficoView, BarraGrafico } from './graficosUi.jsx';
@@ -2160,7 +2160,7 @@ export function Planilha({ arquivo, cx }) {
     }
     if (id.startsWith('tabela.')) return tv.executar(id);
     /* v0.6.21 parte 2: tipo do gráfico, conta da AutoSoma, função da Biblioteca e Formatar › altura e largura (faixaExtra.js) */
-    const extra = tratarFaixaExtra(id, { ed, contorno: (cmd) => executarContorno(cmd, { aba, abaId, faixa, mudar, cx }), textoColunas: () => abrirTextoColunas({ c, abaId, faixa, textoDe: textoDeDados, aplicarLote, cx }), novoGrafico: novoGraficoJanela, autoSoma, usarFuncao, procurarFuncao: (cat) => setJanela({ tipo: 'funcoes', cat }), tamanho: (a) => pedirTamanho({ cx, mudar, abaId, ...a }), ajustar: (a) => ajustarTamanho({ mudar, abaId, autoAjustar, ...a }),
+    const extra = tratarFaixaExtra(id, { ed, subtotal: () => abrirSubtotal({ c, abaId, area: areaDeDados(), textoDe: textoDeDados, mudar, cx }), contorno: (cmd) => executarContorno(cmd, { aba, abaId, faixa, mudar, cx }), textoColunas: () => abrirTextoColunas({ c, abaId, faixa, textoDe: textoDeDados, aplicarLote, cx }), novoGrafico: novoGraficoJanela, autoSoma, usarFuncao, procurarFuncao: (cat) => setJanela({ tipo: 'funcoes', cat }), tamanho: (a) => pedirTamanho({ cx, mudar, abaId, ...a }), ajustar: (a) => ajustarTamanho({ mudar, abaId, autoAjustar, ...a }),
       medida: (ehCol) => { const f = normalFaixa(faixa), i = ehCol ? f.c1 : f.l1, n = (ehCol ? f.c2 : f.l2) - i + 1; return { i, n, atual: ehCol ? colunas.tam(i) || largPadrao(aba) : linhas.tam(i) || altPadrao(aba) }; },
       imp: normalizarImp(aba.imp), mudarImp, janelaImp: (secao) => setJanela({ tipo: 'imprimir', secao }), avisar: cx.avisar, faixa, ativa: sel.ativa, zoom: setZ, congelar: (v, rot) => mudar({ [`conteudo.abas.${abaId}.cong`]: v }, rot),
       ordenar: (desc) => { const f = areaDeDados(), rg = D.pedeExpandir(f, regiaoAtual(f.l1, f.c1)); if (rg) { setJanela({ tipo: 'expandirOrdem', f, rg, desc, col: sel.ativa.c }); return; } const e = f.l2 - f.l1 < 1 ? 'Clique numa célula da tabela para pôr em ordem.' : aplicarClassificar(f, { niveis: [{ col: sel.ativa.c, desc }], cabecalho: temCabecalho(f) }); if (e) cx.avisar(e, { ic: 'aviso' }); },
