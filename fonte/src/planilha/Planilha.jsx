@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { ler, gravar } from '../nucleo/armazem.js';
-import { Icone, Janela, usarEsc, rolarSuave, rodaDeMouse, deltaEmPx, faltaAndar } from '../ui/comum.jsx';
+import { Icone, Janela, usarEsc, rolarSuave, rodaDeMouse, deltaEmPx, faltaAndar, panComEmbalo } from '../ui/comum.jsx';
 import { coresDaPlanilha, trocarCorNaAba } from './cores.jsx';
 import { lerOriginal } from '../nucleo/originais.js';
 import { PortalPainel } from '../quadro/partes.jsx';
@@ -139,6 +139,8 @@ function familiaDa(c) {
   return c && c.fonteBase && /^[\w À-ÿ-]{1,40}$/.test(c.fonteBase) ? `"${c.fonteBase}", ${base}` : base;
 }
 
+/* v0.6.28: no toque, mover objeto pede segurar o dedo (trava de toque acidental) */
+const COMO_MOVER = () => (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 'Segure o dedo e arraste para mover' : 'Arraste para mover');
 export function Planilha({ arquivo, cx }) {
   const ficha = arquivo.ficha;
   const c = arquivo.conteudo;
@@ -703,7 +705,7 @@ export function Planilha({ arquivo, cx }) {
       if (objs.length >= MAX_OBJETOS) { cx.avisar(`No máximo ${MAX_OBJETOS} assinaturas por aba.`, { ic: 'aviso' }); return; }
       /* entra na célula ativa; se ela não está à vista, na primeira célula que aparece */
       const o = novaAssinatura(v, ancoraNova());
-      if (gravarObjs([...objs, o], 'Nova assinatura') !== false) { setObjSel(o.id); cx.avisar('Assinatura inserida. Arraste para mover; dois cliques para mudar o nome ou a rubrica.', { ic: 'assinatura' }); }
+      if (gravarObjs([...objs, o], 'Nova assinatura') !== false) { setObjSel(o.id); cx.avisar('Assinatura inserida. ' + COMO_MOVER() + '; dois cliques para mudar o nome ou a rubrica.', { ic: 'assinatura' }); }
     }
     setTimeout(voltarFocoGrade, 0);
   };
@@ -746,7 +748,7 @@ export function Planilha({ arquivo, cx }) {
       if (objs.length >= MAX_OBJETOS) { cx.avisar(`No máximo ${MAX_OBJETOS} objetos por aba.`, { ic: 'aviso' }); return; }
       const t = caberImagem(im.w, im.h);
       const o = novaImagem({ src: im.src, nome: im.nome, w: t.w, h: t.h }, ancoraNova());
-      if (gravarObjs([...objs, o], 'Inserir imagem') !== false) { setObjSel(o.id); cx.avisar(im.animada ? 'Esse GIF é animado: aqui ele fica parado, só com o primeiro quadro. Arraste para mover.' : 'Imagem inserida. Arraste para mover; dois cliques mudam o tamanho e o texto.', { ic: im.animada ? 'aviso' : 'imagem' }); }
+      if (gravarObjs([...objs, o], 'Inserir imagem') !== false) { setObjSel(o.id); cx.avisar(im.animada ? 'Esse GIF é animado: aqui ele fica parado, só com o primeiro quadro. ' + COMO_MOVER() + '.' : 'Imagem inserida. ' + COMO_MOVER() + '; dois cliques mudam o tamanho e o texto.', { ic: im.animada ? 'aviso' : 'imagem' }); }
     } catch (e) {
       cx.avisar(e && e.message ? e.message : 'Não consegui usar essa imagem.', { ic: 'aviso' });
     }
@@ -1088,7 +1090,7 @@ export function Planilha({ arquivo, cx }) {
     }
     const o = novoGrafico(gg, { ...ancora, w, h });
     const toque = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-    if (gravarObjs([...lista, o], 'Inserir gráfico') !== false) { setObjSel(o.id); cx.avisar(toque ? 'Gráfico inserido. Arraste para mover; puxe o canto para mudar o tamanho; toque duas vezes para editar.' : 'Gráfico inserido. Arraste para mover; puxe o canto para mudar o tamanho; dois cliques para editar.', { ic: 'grafico' }); }
+    if (gravarObjs([...lista, o], 'Inserir gráfico') !== false) { setObjSel(o.id); cx.avisar(toque ? 'Gráfico inserido. Segure o dedo e arraste para mover; puxe o canto para mudar o tamanho; toque duas vezes para editar.' : 'Gráfico inserido. Arraste para mover; puxe o canto para mudar o tamanho; dois cliques para editar.', { ic: 'grafico' }); }
   };
 
   const toqueObj = useRef(null);
@@ -1109,12 +1111,14 @@ export function Planilha({ arquivo, cx }) {
     }
     const comoBotao = (o.tipo === 'botao' || !!linkP) && modo === 'mover';
     /* v0.6.3: o botão que leva a outra aba vale também para quem só pode ler */
-    if (comoBotao && somenteLeitura) { if (linkP) irAoLink(linkP); else irAoBotao(o); return; }
+    if (comoBotao && somenteLeitura && ev.pointerType !== 'touch') { if (linkP) irAoLink(linkP); else irAoBotao(o); return; } /* v0.6.28: pelo dedo, só no fim do toque (arrastar rola) */
     if (comoBotao) toqueObj.current = null; // o clique leva à aba: não vale como dois cliques
     if (modo === 'mover' && !comoBotao && ult && ult.id === o.id && agora - ult.t < 450) { toqueObj.current = null; setObjSel(o.id); abrirObjeto(o); return; }
-    setObjSel(o.id);
+    /* v0.6.28 (Elias: trava de toque acidental no celular): pelo dedo, tocar só escolhe, arrastar rola a planilha e mover pede segurar meio segundo */
+    const peloDedo = ev.pointerType === 'touch' && modo === 'mover';
+    if (!peloDedo || comoBotao) setObjSel(o.id);
     voltarFocoGrade();
-    if (somenteLeitura) { avisarLeitura(); return; }
+    if (somenteLeitura && !peloDedo) { avisarLeitura(); return; }
     try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* sem captura */ }
     const r = retDoObjeto(o, G);
     const novo = { id: o.id, modo, px: ev.clientX, py: ev.clientY, r0: r, ...r, moveu: false };
@@ -1124,11 +1128,13 @@ export function Planilha({ arquivo, cx }) {
       /* segurar o dedo (ou Ctrl + clique) só escolhe o botão, para mover ou mudar, sem ir à outra aba */
       novo.pressao = setTimeout(() => { const x = arrObjRef.current; if (x && x.id === o.id && !x.moveu) { arrObjRef.current = { ...x, longo: true }; setObjSel(o.id); if (navigator.vibrate) { try { navigator.vibrate(15); } catch { /* sem vibração */ } } } }, 450);
     }
+    if (peloDedo && rolRef.current) { clearTimeout(novo.pressao); novo.botao = comoBotao; novo.dedo = panComEmbalo(rolRef.current); novo.dedo.comecar(ev.clientX, ev.clientY, ev.timeStamp); novo.pressao = setTimeout(() => { const x = arrObjRef.current; if (x && x.id === o.id && !x.rolou && !somenteLeitura) { arrObjRef.current = { ...x, armado: true, longo: true }; setObjSel(o.id); if (navigator.vibrate) { try { navigator.vibrate(15); } catch { /* sem vibração */ } } } }, 450); }
     setArrObj(novo);
   };
   const aoMoverObj = (ev) => {
-    const a = arrObjRef.current;
+    let a = arrObjRef.current;
     if (!a) return;
+    if (a.dedo && !a.armado) { if (!a.rolou && Math.hypot(ev.clientX - a.px, ev.clientY - a.py) < 6) return; if (!a.rolou) { clearTimeout(a.pressao); a = arrObjRef.current = { ...a, rolou: true }; } a.dedo.mover(ev.clientX, ev.clientY, ev.timeStamp); return; } /* v0.6.28: o dedo rola a planilha */
     const dx = ev.clientX - a.px, dy = ev.clientY - a.py;
     if (!a.moveu && Math.hypot(dx, dy) < (ev.pointerType === 'touch' ? 6 : 3)) return;
     if (a.modo === 'mover') setArrObj({ ...a, moveu: true, x: a.r0.x + dx, y: a.r0.y + dy });
@@ -1141,6 +1147,7 @@ export function Planilha({ arquivo, cx }) {
   };
   const aoSoltarObj = () => {
     const a = arrObjRef.current;
+    if (a && a.dedo && !a.armado && (a.rolou || !a.botao)) { setArrObj(null); clearTimeout(a.pressao); if (a.rolou) a.dedo.soltar(); else { setObjSel(a.id); try { if (!somenteLeitura && !localStorage.getItem('vd-dica-mover-obj')) { localStorage.setItem('vd-dica-mover-obj', '1'); cx.avisar('Para mover no celular, segure o dedo meio segundo e arraste.', { ic: 'mao' }); } } catch { /* sem armazenamento */ } } return; } /* v0.6.28 */
     setArrObj(null);
     if (a && a.pressao) { clearTimeout(a.pressao); }
     const oBotao = a && objs.find((x) => x.id === a.id);
@@ -3384,7 +3391,7 @@ export function Planilha({ arquivo, cx }) {
             if (janela.id) gravarObjs(objs.map((x) => (x.id === janela.id ? v : x)), 'Mudar a forma');
             else {
               if (objs.length >= MAX_OBJETOS) return `No máximo ${MAX_OBJETOS} objetos por aba.`;
-              if (gravarObjs([...objs, v], 'Inserir forma') !== false) { setObjSel(v.id); cx.avisar('Forma inserida. Arraste para mover; dois cliques para mudar.', { ic: 'forma' }); }
+              if (gravarObjs([...objs, v], 'Inserir forma') !== false) { setObjSel(v.id); cx.avisar('Forma inserida. ' + COMO_MOVER() + '; dois cliques para mudar.', { ic: 'forma' }); }
             }
             setJanela(null); setTimeout(voltarFocoGrade, 0);
             return '';

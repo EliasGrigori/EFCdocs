@@ -173,3 +173,5 @@ export function Avisos({ lista, tirar, menu }) {
 }
 /* v0.6.27: rolagem suave da roda do mouse (planilha e quadro) */
 export { rolarSuave, andarSuave, pararSuave, rodaDeMouse, deltaEmPx, faltaAndar } from './rodaSuave.js';
+/* v0.6.28: rolar com o dedo a partir de imagens e gráficos da planilha */
+export { panComEmbalo, pararEmbalo } from './panToque.js';
