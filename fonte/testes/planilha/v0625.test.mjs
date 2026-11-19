@@ -56,7 +56,7 @@ test('I02: corrigiu o valor, o círculo some; texto numa célula de número é i
 
 test('I01: resumo conta igual ao Excel (média, mediana, moda, desvio da amostra, CV, amplitude)', () => {
   const r = A.resumo([0.4, 1.2, 0.8, 2.5, 3, 0.8]);
-  const [media, erroP, med, moda, dp, vari, cv, min, max, amp, soma, n] = r;
+  const [media, erroP, med, moda, dp, vari, , , cv, min, max, amp, soma, n] = r;
   assert.ok(Math.abs(media - 1.45) < 1e-9);
   assert.ok(Math.abs(med - 1) < 1e-9);
   assert.equal(moda, 0.8);
@@ -80,10 +80,10 @@ test('I01: aba nova "Estatística" com fórmulas ligadas aos dados; o motor calc
   const m = new Motor(c2);
   const esperado = A.resumo([0.4, 1.2, 0.8, 2.5, 3, 0.8]);
   A.MEDIDAS.forEach(([rot], k) => assert.ok(Math.abs(val(m, r.id, 'B' + (k + 2)) - esperado[k]) < 1e-9, rot + ': ' + val(m, r.id, 'B' + (k + 2))));
-  assert.equal(c2.estilos[cel.B8.s].nf, '0.0%', 'coeficiente de variação em porcentagem');
-  assert.equal(c2.estilos[cel.B2.s].nf, '#,##0.000', 'três casas'); assert.ok(!cel.B13.s, 'contagem sem formato');
+  assert.equal(c2.estilos[cel.B10.s].nf, '0.0%', 'coeficiente de variação em porcentagem');
+  assert.equal(c2.estilos[cel.B2.s].nf, '#,##0.000', 'três casas'); assert.ok(!cel.B15.s, 'contagem sem formato');
   const c3 = aplicar(c2, { 'conteudo.abas.a1.cel.B2': { v: 10 } });
-  assert.equal(val(new Motor(c3), r.id, 'B10'), 10, 'máximo acompanha o dado novo');
+  assert.equal(val(new Motor(c3), r.id, 'B12'), 10, 'máximo acompanha o dado novo');
   /* segunda vez: nome sem repetir */
   assert.equal(A.montarEstatistica(c2, 'a1', f, { cols: [1], cabecalho: true, titulos: () => 'Cloro' }).nome, 'Estatística 2');
   assert.ok(A.montarEstatistica(c, 'a1', f, { cols: [], cabecalho: true }).erro);

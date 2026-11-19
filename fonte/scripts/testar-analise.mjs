@@ -71,12 +71,12 @@ await caso('I01: janela marca só as colunas com números, mostra a prévia e cr
   await p.click('[data-estat-ok]'); await p.waitForTimeout(400);
   certo(/Estatística/.test(await abaAtiva()), 'aba ativa: ' + await abaAtiva());
   await cel('B2'); certo(/^=MÉDIA\(Planilha1!\$B\$2:\$B\$7\)$/.test(await fx()), 'fórmula: ' + await fx());
-  await cel('B10:B11'); await p.waitForTimeout(100);
+  await cel('B12:B13'); await p.waitForTimeout(100);
   const st = await status(); certo(st.includes('Soma: 5,6'), 'máximo + amplitude: ' + st);
 });
 
 await caso('I01: o resumo acompanha o dado (pH de 7,1 para 10 muda máximo e amplitude) e o Ctrl+Z volta', async () => {
-  const pH = async () => { await p.locator('.pl-aba:has-text("Estatística")').click(); await p.waitForTimeout(200); await cel('C10:C11'); await p.waitForTimeout(80); return status(); };
+  const pH = async () => { await p.locator('.pl-aba:has-text("Estatística")').click(); await p.waitForTimeout(200); await cel('C12:C13'); await p.waitForTimeout(80); return status(); };
   certo((await pH()).includes('Soma: 7,9'), 'antes (7,4 + 0,5): ' + await status());
   await p.locator('.pl-aba:has-text("Planilha1")').click(); await p.waitForTimeout(200);
   await cel('C2'); await p.keyboard.type('10'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);

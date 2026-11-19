@@ -263,6 +263,8 @@ export function usarTabelaViva(p) {
     return null;
   };
 
-  return { ativa: naCelula, criar, executar, ligado, bloqueado, janela, aoTab, aoConfirmar, alca, viva: naCelula ? temEstiloVivo(naCelula.t) : false };
+  /* v0.6.29: Ctrl+seta para na borda da tabela */
+  const pararNaTabela = (l, col, dl, dc, alvo) => TV.pararNaTabela(c, abaId, l, col, dl, dc, alvo);
+  return { ativa: naCelula, criar, executar, ligado, bloqueado, janela, aoTab, aoConfirmar, alca, pararNaTabela, viva: naCelula ? temEstiloVivo(naCelula.t) : false };
 }
 

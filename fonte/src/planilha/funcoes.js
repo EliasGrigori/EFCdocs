@@ -3,7 +3,7 @@
 import { E, Erro, ehErro, aNumero, aTexto, aLogico, comparar, compararVazioNoFim, serialDe, dataDe, horaDe, diaSemana, diasNoMes,
   serialHoje, serialAgora, lerDataTexto, lerHoraTexto, lerNumeroPt } from './valores.js';
 import { Ref, Mat, ehRef, ehMat, ehMultiplo } from './tipos.js';
-import { criterio, curingaParaRegex } from './criterios.js';
+import { criterio, curingaParaRegex } from './criterios.js'; import { estatisticasExtras } from './funcoesEstat.js'; /* v0.6.29: CURT, DISTORÇÃO */
 import { formatar, codigoDePt } from './formato.js';
 import { lerEndereco, MAX_LIN, MAX_COL } from './ref.js';
 
@@ -1055,4 +1055,4 @@ function procVH(args, ctx, horizontal) {
 
 /** Funções que o motor sabe calcular (as outras ficam guardadas e mostram o último valor do Excel). */
 export const sabeCalcular = (en) => Object.prototype.hasOwnProperty.call(IMPL, en);
-export { lerEndereco };
+export { lerEndereco }; Object.assign(IMPL, estatisticasExtras({ numeros, ehErro, E })); /* v0.6.29 (D17): curtose e assimetria em funcoesEstat.js */

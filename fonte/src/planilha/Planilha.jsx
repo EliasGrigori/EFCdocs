@@ -398,8 +398,8 @@ export function Planilha({ arquivo, cx }) {
     const base = estender ? { l: faixaPonta().l, c: faixaPonta().c } : sel.ativa;
     let l = base.l, col = base.c;
     if (pular) {
-      if (dl) l = pularBorda(cheias.porCol.get(col), l, dl, MAX_LIN - 1);
-      if (dc) col = pularBorda(cheias.porLin.get(l), col, dc, MAX_COL - 1);
+      if (dl) l = tv.pararNaTabela(l, col, dl, 0, pularBorda(cheias.porCol.get(col), l, dl, MAX_LIN - 1)); /* v0.6.29: para na borda da tabela */
+      if (dc) col = tv.pararNaTabela(l, col, 0, dc, pularBorda(cheias.porLin.get(l), col, dc, MAX_COL - 1));
     } else {
       /* pula linhas/colunas ocultas e mescladas */
       l += dl; col += dc;

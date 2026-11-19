@@ -63,12 +63,13 @@ function abaComCelulas(c, abaId, base, cel, larg, estilos) {
 
 /* ---------------- I01 · estatística descritiva ---------------- */
 
-/** As medidas, na ordem do LibreOffice (sem curtose e assimetria, que o motor ainda não tem), mais o coeficiente de variação,
+/** As medidas, na ordem do LibreOffice (curtose e assimetria desde a v0.6.29), mais o coeficiente de variação,
     que é o que o controle de qualidade mais usa. § = a faixa da coluna. Fórmulas no formato guardado (inglês, vírgula, sem "="). */
 const D3 = '#,##0.000'; /* três casas, como um laudo; o coeficiente de variação em porcentagem e a contagem inteira */
 export const MEDIDAS = [
   ['Média', 'AVERAGE(§)', D3], ['Erro padrão', 'STDEV.S(§)/SQRT(COUNT(§))', D3], ['Mediana', 'MEDIAN(§)', D3], ['Moda', 'MODE.SNGL(§)', D3],
-  ['Desvio padrão', 'STDEV.S(§)', D3], ['Variância', 'VAR.S(§)', D3], ['Coeficiente de variação', 'STDEV.S(§)/AVERAGE(§)', '0.0%'],
+  ['Desvio padrão', 'STDEV.S(§)', D3], ['Variância', 'VAR.S(§)', D3], ['Curtose', 'KURT(§)', D3], ['Assimetria', 'SKEW(§)', D3], /* v0.6.29 (D17) */
+  ['Coeficiente de variação', 'STDEV.S(§)/AVERAGE(§)', '0.0%'],
   ['Mínimo', 'MIN(§)', D3], ['Máximo', 'MAX(§)', D3], ['Amplitude', 'MAX(§)-MIN(§)', D3], ['Soma', 'SUM(§)', D3], ['Contagem', 'COUNT(§)'],
 ];
 
@@ -83,7 +84,10 @@ export function resumo(nums) {
   for (const x of nums) { const k = (cont.get(x) || 0) + 1; cont.set(x, k); if (k > max) { max = k; moda = x; } }
   const vari = n > 1 ? nums.reduce((s, x) => s + (x - media) ** 2, 0) / (n - 1) : null;
   const dp = vari == null ? null : Math.sqrt(vari);
-  return [media, dp == null ? null : dp / Math.sqrt(n), med, moda, dp, vari, dp == null || !media ? null : dp / media, ord[0], ord[n - 1], ord[n - 1] - ord[0], soma, n];
+  const z = (k) => (dp ? nums.reduce((s, x) => s + ((x - media) / dp) ** k, 0) : 0);
+  const curt = n >= 4 && dp ? (n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3)) * z(4) - (3 * (n - 1) ** 2) / ((n - 2) * (n - 3)) : null;
+  const assim = n >= 3 && dp ? n / ((n - 1) * (n - 2)) * z(3) : null;
+  return [media, dp == null ? null : dp / Math.sqrt(n), med, moda, dp, vari, curt, assim, dp == null || !media ? null : dp / media, ord[0], ord[n - 1], ord[n - 1] - ord[0], soma, n];
 }
 
 /** Os números de uma coluna da área (sem o cabeçalho). */

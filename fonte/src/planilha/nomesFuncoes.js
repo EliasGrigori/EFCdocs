@@ -44,6 +44,10 @@ export const FUNCOES = [
   F('STDEV.S', 'DESVPAD.A', 'est', 'Desvio padrão de uma amostra.', ['núm1|número ou faixa', '[núm2]...|mais números'], '=DESVPAD.A(B2:B25)'),
   F('STDEV.P', 'DESVPAD.P', 'est', 'Desvio padrão da população inteira.', ['núm1|número ou faixa', '[núm2]...|mais números'], '=DESVPAD.P(B2:B25)'),
   F('STDEV', 'DESVPAD', 'est', 'Desvio padrão de uma amostra (nome antigo do DESVPAD.A).', ['núm1|número ou faixa', '[núm2]...|mais números'], '=DESVPAD(B2:B25)'),
+  /* v0.6.29 (D17) */
+  F('KURT', 'CURT', 'est', 'Curtose: quanto os valores se concentram no meio e nas pontas, comparado à curva normal (0). Precisa de 4 números.', ['núm1|número ou faixa', '[núm2]...|mais números'], '=CURT(B2:B25)'),
+  F('SKEW', 'DISTORÇÃO', 'est', 'Assimetria de uma amostra: positiva quando a cauda é para os valores altos. Precisa de 3 números.', ['núm1|número ou faixa', '[núm2]...|mais números'], '=DISTORÇÃO(B2:B25)'),
+  F('SKEW.P', 'DISTORÇÃO.P', 'est', 'Assimetria da população inteira.', ['núm1|número ou faixa', '[núm2]...|mais números'], '=DISTORÇÃO.P(B2:B25)'),
   F('VAR.S', 'VAR.A', 'est', 'Variância de uma amostra.', ['núm1|número ou faixa', '[núm2]...|mais números'], '=VAR.A(B2:B25)'),
   F('VAR.P', 'VAR.P', 'est', 'Variância da população inteira.', ['núm1|número ou faixa', '[núm2]...|mais números'], '=VAR.P(B2:B25)'),
   F('MODE.SNGL', 'MODO.ÚNICO', 'est', 'O número que mais se repete.', ['núm1|número ou faixa', '[núm2]...|mais números'], '=MODO.ÚNICO(B2:B25)'),

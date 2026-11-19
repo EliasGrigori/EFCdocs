@@ -21,6 +21,23 @@ export function tabelaEm(c, abaId, l, col) {
   return null;
 }
 
+/**
+ * v0.6.29 (Elias, 18/11: "Ctrl+Shift+Baixo deveria parar no final da tabela, porém passa para a última célula da coluna"):
+ * Ctrl+seta dentro de uma tabela para na borda dela, como no Excel. alvo = aonde o salto comum levaria (pela regra das
+ * células cheias). Se a partida está dentro da tabela e o alvo sai dela, fica na borda; partindo da própria borda, o salto
+ * segue normal para fora (um segundo Ctrl+seta sai da tabela).
+ */
+export function pararNaTabela(c, abaId, l, col, dl, dc, alvo) {
+  const r = tabelaEm(c, abaId, l, col);
+  if (!r) return alvo;
+  const { t } = r;
+  if (dl > 0 && l < t.l2 && alvo > t.l2) return t.l2;
+  if (dl < 0 && l > t.l1 && alvo < t.l1) return t.l1;
+  if (dc > 0 && col < t.c2 && alvo > t.c2) return t.c2;
+  if (dc < 0 && col > t.c1 && alvo < t.c1) return t.c1;
+  return alvo;
+}
+
 /** Fórmula da coluna calculada (como fica na primeira linha de dados) ou null: todas as linhas com a mesma fórmula. */
 function formulaDaColuna(pegar, t, col) {
   const { d0, dN } = linhasDeDados(t);
