@@ -434,3 +434,6 @@ F432;Geral;rolagem;"Roda do mouse suave na planilha e no Quadro (clique da roda 
 F433;Planilha;objetos;"Trava de toque em imagens, gráficos, formas, assinaturas e botões: toque rápido escolhe (ou vai, no botão), arrastar o dedo rola a planilha com embalo, mover pede segurar meio segundo; o mouse continua igual";funciona;"v0.6.28";manter;v0.6.28 (pedido do Elias, 18/11 20:59)
 F434;Planilha;funcoes;"CURT (KURT), DISTORÇÃO (SKEW) e DISTORÇÃO.P (SKEW.P), também na Estatística descritiva";funciona;"v0.6.29";manter;v0.6.29 (D17, aprovada 18/11)
 F435;Planilha;navegacao;"Ctrl+seta (e Ctrl+Shift+seta) dentro de uma tabela para na borda dela; da borda, segue para fora";funciona;"v0.6.29";manter;v0.6.29 (defeito do Elias, 18/11 21:44)
+F436;Geral;faixa;"Exibir › Do Vértice: barra de cima, menu lateral, layout e aparência em listas que marcam o que está ligado (Planilha, Documento e Quadro)";funciona;"v0.6.30";manter;v0.6.30 (D7)
+F437;Planilha;faixa;"Página Inicial › Edição › Classificar e filtrar (lista do Excel)";funciona;"v0.6.30";manter;v0.6.30 (D4)
+F438;Planilha;protecao;"Proteger planilha (antes Travar modelo) em botão, janela e avisos";funciona;"v0.6.30";manter;v0.6.30 (D8)

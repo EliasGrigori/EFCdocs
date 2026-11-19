@@ -127,19 +127,19 @@ export function JanelaTravar({ travada, liberadas, selecao, selecaoLivre, temSel
     aoDestravar();
   };
   return (
-    <Janela titulo="Travar modelo" icone="cadeado" subtitulo={travada ? 'Esta aba está travada' : 'Esta aba está livre'} aoFechar={aoFechar} classe="pl-jdados" rodape={(
+    <Janela titulo="Proteger planilha" icone="cadeado" subtitulo={travada ? 'Esta aba está protegida' : 'Esta aba está livre'} aoFechar={aoFechar} classe="pl-jdados" rodape={(
       <>
         <button type="button" className="btn sm" onClick={aoFechar}>Fechar</button>
         {!somenteLeitura && (travada
-          ? <button type="button" className="btn sm primary" data-foco={comSenha ? undefined : ''} data-destravar onClick={destravar}>Destravar a aba</button>
-          : <button type="button" className="btn sm primary" data-foco onClick={aoTravar}>Travar a aba</button>)}
+          ? <button type="button" className="btn sm primary" data-foco={comSenha ? undefined : ''} data-destravar onClick={destravar}>Desproteger a aba</button>
+          : <button type="button" className="btn sm primary" data-foco onClick={aoTravar}>Proteger a aba</button>)}
       </>
     )}>
       <div className="janela-c rg-corpo">
         <section className="rg-cartao">
           <span className="rg-cab">Células que ficam livres</span>
-          <p className="dd-texto">{liberadas ? `${liberadas} célula${liberadas > 1 ? 's' : ''} liberada${liberadas > 1 ? 's' : ''} para preencher.` : 'Nenhuma célula liberada ainda: com a aba travada, nada pode ser mudado.'}</p>
-          {travada && <p className="dd-dica">Destrave a aba para escolher outras células livres.</p>}
+          <p className="dd-texto">{liberadas ? `${liberadas} célula${liberadas > 1 ? 's' : ''} liberada${liberadas > 1 ? 's' : ''} para preencher.` : 'Nenhuma célula liberada ainda: com a aba protegida, nada pode ser mudado.'}</p>
+          {travada && <p className="dd-dica">Desproteja a aba para escolher outras células livres.</p>}
           {travada && comSenha && (
             <label className="dd-campo">Senha da aba (veio do Excel)
               <input type="password" data-foco data-senha-aba autoComplete="off" value={senha} onChange={(ev) => { setSenha(ev.target.value); setErro(''); }} onKeyDown={(ev) => { if (ev.key === 'Enter') destravar(); }} />
@@ -149,11 +149,11 @@ export function JanelaTravar({ travada, liberadas, selecao, selecaoLivre, temSel
           {temSelecao && !somenteLeitura && !travada && (
             <div className="dd-atalhos">
               <button type="button" className="btn sm" data-liberar onClick={() => aoLiberar(true)}><Icone n="check" />Liberar {selecao}</button>
-              {selecaoLivre && <button type="button" className="btn sm" data-travar-sel onClick={() => aoLiberar(false)}>Travar {selecao}</button>}
+              {selecaoLivre && <button type="button" className="btn sm" data-travar-sel onClick={() => aoLiberar(false)}>Bloquear {selecao}</button>}
             </div>
           )}
         </section>
-        <p className="dd-dica">Com a aba travada só as células liberadas aceitam digitação, colagem e apagar; o resto fica protegido contra erro de mão. O filtro continua funcionando. Travar aqui não usa senha: serve para evitar acidente, e quem abre a janela pode destravar. Se a aba veio do Excel com senha, a senha continua valendo e é pedida para destravar. No Excel o arquivo sai com a aba protegida.</p>
+        <p className="dd-dica">Com a aba protegida só as células liberadas aceitam digitação, colagem e apagar; o resto fica a salvo de erro de mão. O filtro continua funcionando. Proteger aqui não usa senha: serve para evitar acidente, e quem abre a janela pode desproteger. Se a aba veio do Excel com senha, a senha continua valendo e é pedida para desproteger. No Excel o arquivo sai com a aba protegida.</p>
       </div>
     </Janela>
   );

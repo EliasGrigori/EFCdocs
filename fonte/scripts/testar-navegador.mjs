@@ -62,6 +62,8 @@ const contar = async (p) => {
 /* v0.6.21 (faixa igual ao Excel): na Página Inicial, inserir/excluir/ocultar/reexibir ficam nas listas de Inserir, Excluir e Formatar */
 /* v0.6.21 parte 3: Layout da Página e Congelar painéis com listas, como no Excel */
 const NA_LISTA = { 'impressao.area': 'areaImp', 'impressao.limparArea': 'areaImp', 'impressao.quebra': 'quebras', 'impressao.semQuebras': 'quebras', 'impressao.orientacao|retrato': 'orientacao', 'impressao.orientacao|paisagem': 'orientacao', 'exibir.congelar|linha': 'congelar', 'planilha.ocultarColuna': 'formatar', 'planilha.ocultarLinha': 'formatar', 'planilha.inserirLinha': 'inserir', 'planilha.inserirColuna': 'inserir', 'planilha.excluirLinha': 'excluir', 'planilha.excluirColuna': 'excluir', 'planilha.reexibir': 'formatar', 'planilha.reexibirColuna': 'formatar' };
+/* v0.6.30 (D7, D4): Exibir › Do Vértice e Página Inicial › Classificar e filtrar em listas */
+Object.assign(NA_LISTA, { 'exibir.topoCompleto': 'vtBarra', 'exibir.topoCompacto': 'vtBarra', 'exibir.faixaTudo': 'vtBarra', 'exibir.faixaAbas': 'vtBarra', 'exibir.faixaOculta': 'vtBarra', 'exibir.menuCompleto': 'vtMenu', 'exibir.menuIcones': 'vtMenu', 'exibir.menuOculto': 'vtMenu', 'exibir.painel': 'vtLayout', 'exibir.layoutA': 'vtLayout', 'exibir.layoutB': 'vtLayout', 'exibir.tema': 'vtAparencia', 'exibir.relevo': 'vtAparencia', 'exibir.mesa': 'vtAparencia', 'dados.filtrar': 'classificarFiltrar' });
 const abreLista = async (p, id) => { const m = NA_LISTA[id]; if (m && !(await p.locator(`[data-cmd="${id}"]`).count()) && await p.locator(`[data-menu-faixa=${m}]`).count()) { await p.click(`[data-menu-faixa=${m}]`); await p.waitForSelector(`.rb-lista [data-cmd="${id}"]`); return true; } return false; };
 const cmd = async (p, id) => { await abreLista(p, id); await p.locator(`[data-cmd="${id}"]`).first().click(); };
 const caixa = async (p, sel) => p.locator(sel).first().boundingBox();
@@ -93,10 +95,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.29', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.30', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.29'), 'menu sem v0.6.29');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.30'), 'menu sem v0.6.30');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -1900,7 +1902,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.29'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.30'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -2665,7 +2667,7 @@ await caso('v0.4.8: "Número fixo na conta" é uma Dica (não conta como problem
   await p.waitForSelector('.pl-problemas li.dica');
   await p.click('.pl-lamp');
 });
-await caso('v0.4.8: Exibir tem o grupo "Mesa"; desligar tira a classe do corpo e volta ao ligar', async () => {
+await caso('v0.4.8: Exibir tem a opção "Mesa" (na lista Aparência desde a v0.6.30); desligar tira a classe do corpo e volta ao ligar', async () => {
   await p.click('.tabs .tab:has-text("Exibir")');
   await cmd(p, 'exibir.mesa');
   certo(!(await p.evaluate(() => document.body.classList.contains('mesa'))), 'ainda com mesa');
@@ -3698,23 +3700,23 @@ await caso('v0.6.3: Remover duplicados: mostra quantas, remove e deixa desfazer'
   await p.keyboard.press('Control+z'); await p.waitForTimeout(200);
   igual(await celula(p, 'A6'), 'Ana');
 });
-await caso('v0.6.3: Travar modelo: só a célula liberada aceita mudança; destravar solta tudo', async () => {
+await caso('v0.6.3: Proteger planilha (antes Travar modelo; v0.6.30 D8): só a célula liberada aceita mudança; desproteger solta tudo', async () => {
   await celula(p, 'B2:B6');
   await p.click('.tabs .tab:has-text("Revisão")');
   await cmd(p, 'revisao.travar');
   await p.waitForSelector('.pl-jdados');
   await p.locator('[data-liberar]').click(); await p.waitForTimeout(150);
   certo(/5 células liberadas/.test(await p.locator('.pl-jdados').innerText()), 'conta as liberadas');
-  await p.locator('.pl-jdados .btn.primary:has-text("Travar a aba")').click();
+  await p.locator('.pl-jdados .btn.primary:has-text("Proteger a aba")').click();
   await p.waitForTimeout(250);
   await print(p, 'v063-travar');
   await digitarEm(p, 'A2', ['XX']);
-  certo(/travada/.test(await p.locator('.toasts').innerText()), 'aviso de célula travada');
+  certo(/protegida/.test(await p.locator('.toasts').innerText()), 'aviso de célula travada');
   certo((await celula(p, 'A2')) !== 'XX', 'A2 não mudou');
   await digitarEm(p, 'B2', ['99']);
   igual(await celula(p, 'B2'), '99', 'a liberada aceita');
   await cmd(p, 'revisao.travar');
-  await p.locator('.pl-jdados .btn.primary:has-text("Destravar")').click(); await p.waitForTimeout(200);
+  await p.locator('.pl-jdados .btn.primary:has-text("Desproteger")').click(); await p.waitForTimeout(200);
   await digitarEm(p, 'A2', ['YY']);
   igual(await celula(p, 'A2'), 'YY', 'depois de destravar, tudo livre');
 });
@@ -4129,12 +4131,12 @@ await caso('v0.6.6: aba travada: Ctrl + clique e Enter na forma não abrem a jan
   await p.click('.tabs .tab:has-text("Revisão")');
   await cmd(p, 'revisao.travar');
   await p.waitForSelector('.pl-jdados');
-  await p.locator('.pl-jdados .btn.primary:has-text("Travar a aba")').click(); await p.waitForTimeout(300);
+  await p.locator('.pl-jdados .btn.primary:has-text("Proteger a aba")').click(); await p.waitForTimeout(300);
   await p.locator('.pl-obj-fm.com-link').first().locator('[data-parte="0"] path').first().click({ modifiers: ['Control'] });
   await p.waitForTimeout(200);
   await p.keyboard.press('Enter'); await p.waitForTimeout(400);
   igual(await p.locator('[data-forma-janela]').count(), 0, 'janela não abriu');
-  certo(/travada/.test(await p.locator('.toasts').innerText()), 'avisa que está travada');
+  certo(/protegida/.test(await p.locator('.toasts').innerText()), 'avisa que está travada');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   await celula(p, 'A1');
   await p.locator('.pl-obj-fm.com-link').first().locator('[data-parte="1"] path').first().click();
@@ -4143,7 +4145,7 @@ await caso('v0.6.6: aba travada: Ctrl + clique e Enter na forma não abrem a jan
   await p.locator('.pl-abas').getByText('Painel').click(); await p.waitForTimeout(250);
   await p.click('.tabs .tab:has-text("Revisão")');
   await cmd(p, 'revisao.travar');
-  await p.locator('.pl-jdados .btn.primary:has-text("Destravar")').click(); await p.waitForTimeout(200);
+  await p.locator('.pl-jdados .btn.primary:has-text("Desproteger")').click(); await p.waitForTimeout(200);
 });
 await caso('v0.6.6: botões de ligar/desligar dizem aria-pressed true/false; os outros não têm; "Descartar" legível; a opção da faixa não repete a setinha', async () => {
   await abrirAmostraNaPlanilha(p);
@@ -4406,7 +4408,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.29'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.30'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -4656,7 +4658,7 @@ await caso('v0.6.11: com filtro ligado, o texto do título não passa por baixo 
   await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-real-anonimizada.xlsx', import.meta.url)));
   await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(1200);
   await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('A7:W380'); await p.locator('.pl-nome').press('Enter'); await p.waitForTimeout(300);
-  await p.locator('button:has-text("Filtrar")').first().click(); await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(500);
+  await cmd(p, 'dados.filtrar'); await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(500); /* v0.6.30 (D4): Filtrar fica na lista Classificar e filtrar */
   let escuros = 0;
   for (const col of [0, 3, 4]) {
     const b = await p.locator(`[data-seta-filtro="${col}"]`).boundingBox();
@@ -4693,7 +4695,7 @@ await caso('v0.6.11.1: setas do filtro de colunas roladas para trás das congela
   await abrirAmostra(p, fileURLToPath(new URL('../testes/amostras/amostra-real-anonimizada.xlsx', import.meta.url)));
   await p.click('[data-excel-abrir]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(1200);
   await p.locator('.pl-nome').click(); await p.locator('.pl-nome').fill('A7:W380'); await p.locator('.pl-nome').press('Enter'); await p.waitForTimeout(300);
-  await p.locator('button:has-text("Filtrar")').first().click(); await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(400);
+  await cmd(p, 'dados.filtrar'); await p.waitForSelector('[data-seta-filtro]'); await p.waitForTimeout(400);
   await p.mouse.move(1100, 500); await p.mouse.wheel(500, 0); await p.waitForTimeout(800);
   const setas = await p.locator('[data-seta-filtro]').evaluateAll((els) => els.map((e) => [+e.getAttribute('data-seta-filtro'), Math.round(e.getBoundingClientRect().x)]));
   await print(p, 'v06111-setas-com-congelado');

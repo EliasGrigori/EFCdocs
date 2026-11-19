@@ -191,7 +191,7 @@ export const COMANDOS = [
   C('revisao.controlar', 'Controlar alterações', 'revisao', { sin: ['marcas de revisão'], chega: V7, mods: ['docx'] }),
   C('revisao.concluir', 'Concluir revisão', 'assinatura', { sin: ['nova revisão', 'mandar para aprovação'], chega: V7, mods: ['docx'], acao: 'revisao.concluir' }),
   C('revisao.comparar', 'Comparar revisões', 'comparar', { sin: ['diferença entre versões', 'o que mudou'], chega: V7, mods: ['docx'] }),
-  C('revisao.travar', 'Travar modelo', 'cadeado', { sin: ['proteger', 'bloquear', 'senha'], chega: V61, mods: ['planilha'] }),
+  C('revisao.travar', 'Proteger planilha', 'cadeado', { sin: ['travar modelo', 'travar', 'bloquear', 'senha', 'desproteger'], /* v0.6.30 (D8): nome do Excel */ chega: V61, mods: ['planilha'] }),
 
   C('organizar.kanban', 'Kanban', 'kanban', { sin: ['colunas de status', 'a fazer', 'fazendo', 'feito'], mods: ['postits'] }),
   C('organizar.quadro', 'Quadro livre', 'quadro', { sin: ['voltar ao quadro', 'tela livre', 'fluxograma'], mods: ['postits'] }),

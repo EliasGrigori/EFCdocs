@@ -187,7 +187,7 @@ await caso("Ctrl+' começa a editar com a fórmula da célula de cima; Esc cance
 await caso('Ctrl+Shift+* escolhe a região dos dados; Shift+F3 abre Inserir função; Ctrl+Shift+L liga o filtro', async () => {
   await vai('B3'); await r.keyboard.press('Control+Shift+Digit8'); await espera(200); const reg = await r.locator('.foot').innerText();
   await r.keyboard.press('Shift+F3'); await espera(400); const fn = await r.locator('.janela.pl-jfun').count(); await r.keyboard.press('Escape'); await espera(300);
-  await vai('A1'); await r.keyboard.press('Control+Shift+L'); await espera(300); const fil = await ligado('dados.filtrar');
+  await vai('A1'); await r.keyboard.press('Control+Shift+L'); await espera(300); const fil = (await r.locator('[data-seta-filtro]').count()) > 0 ? 'true' : 'false'; /* v0.6.30 (D4): o Filtrar da Página Inicial fica na lista; as setas nos títulos dizem que ligou */
   await r.keyboard.press('Control+Shift+L'); await espera(300);
   certo(/Contagem: 11/.test(reg) && fn === 1 && fil === 'true', `região ${reg.replace(/\s+/g, ' ').slice(0, 80)}, função ${fn}, filtro ${fil}`);
 });

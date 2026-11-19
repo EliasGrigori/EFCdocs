@@ -403,17 +403,17 @@ export function bloqueioDaProtecao(c, mud) {
     const aba = c.abas[abaId];
     const filtrando = lista.some((x) => x.campo === 'fil' || x.campo === 'ocF');
     for (const { campo, resto, valor } of lista) {
-      if (campo === 'ocL' && !filtrando) return 'Esta aba está travada: não dá para esconder ou mostrar linhas.';
+      if (campo === 'ocL' && !filtrando) return 'Esta aba está protegida: não dá para esconder ou mostrar linhas.';
       if (!TRAVADOS.has(campo)) continue;
-      if (campo !== 'cel') return 'Esta aba está travada: só dá para mudar as células liberadas.';
+      if (campo !== 'cel') return 'Esta aba está protegida: só dá para mudar as células liberadas.';
       if (resto.length) {
-        if (!celulaLivre(c, aba.cel[resto[0]])) return 'Esta célula está travada. Para mexer, tire a trava da aba em Revisão > Travar modelo.';
+        if (!celulaLivre(c, aba.cel[resto[0]])) return 'Esta célula está protegida. Para mexer, desproteja a aba em Revisão › Proteger planilha.';
       } else {
         const novo = valor || {};
         const ks = new Set([...Object.keys(aba.cel), ...Object.keys(novo)]);
         for (const k of ks) {
           if (aba.cel[k] === novo[k]) continue;
-          if (!celulaLivre(c, aba.cel[k])) return 'Esta aba está travada: só dá para mudar as células liberadas.';
+          if (!celulaLivre(c, aba.cel[k])) return 'Esta aba está protegida: só dá para mudar as células liberadas.';
         }
       }
     }

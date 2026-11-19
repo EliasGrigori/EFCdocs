@@ -22,11 +22,9 @@ const ABA_ARQUIVO = {
     { nome: 'Cwork', itens: [['g', 'arquivo.interno'], ['g', 'arquivo.camposCwork'], ['g', 'arquivo.compartilharCwork']] },
   ],
 };
+/* v0.6.30 (D7): os quatro grupos do Vértice (barra de cima, menu lateral, layout, aparência) num grupo só, com listas, como no Inserir */
 const GRUPOS_EXIBIR = [
-  { nome: 'Barra de cima e faixa', itens: [['col', ['exibir.topoCompleto', 'exibir.topoCompacto']], ['col', ['exibir.faixaTudo', 'exibir.faixaAbas', 'exibir.faixaOculta']]] },
-  { nome: 'Menu lateral', itens: [['col', ['exibir.menuCompleto', 'exibir.menuIcones', 'exibir.menuOculto']]] },
-  { nome: 'Layout', itens: [['g', 'exibir.painel'], ['col', ['exibir.layoutA', 'exibir.layoutB']]] },
-  { nome: 'Aparência', itens: [['col', ['exibir.tema', 'exibir.relevo', 'exibir.mesa']], ['g', 'exibir.telaCheia']] },
+  { nome: 'Do Vértice', itens: [['gm', 'vtBarra'], ['gm', 'vtMenu'], ['gm', 'vtLayout'], ['gm', 'vtAparencia'], ['g', 'exibir.telaCheia']] },
 ];
 const GRUPO_TRANSFERENCIA = { nome: 'Área de transferência', itens: [['g', 'editar.colar'], ['col', ['editar.recortar', 'editar.copiar', 'editar.pincel']]] };
 
@@ -52,7 +50,7 @@ const FAIXAS = {
         ['formatar.moeda', 'formatar.porcentagem', 'formatar.milhar', '|', 'formatar.maisCasas', 'formatar.menosCasas']]]] },
       { nome: 'Estilos', itens: [['g', 'formatar.condicional'], ['g', 'inserir.tabela', 'Formatar como tabela']] }, /* parte 2 (D1): os nomes do Excel */
       { nome: 'Células', itens: [['col', [['menu', 'inserir'], ['menu', 'excluir'], ['menu', 'formatar']]]] },
-      { nome: 'Edição', itens: [['col', ['formula.autosoma', ['menu', 'preencher'], ['menu', 'limpar']]], ['g', 'dados.filtrar'], ['g', 'editar.localizar']] }] },
+      { nome: 'Edição', itens: [['col', ['formula.autosoma', ['menu', 'preencher'], ['menu', 'limpar']]], ['gm', 'classificarFiltrar'], ['g', 'editar.localizar']] }] }, /* v0.6.30 (D4) */
     /* v0.6.21 parte 2 (R25): Inserir nos lugares do Excel (Tabelas, Ilustrações, Gráficos, Links, Comentários, Texto); o que o Excel não tem fica no fim, em "Do Vértice".
        Nova aba, Inserir linha e Inserir coluna moram em Página Inicial › Células › Inserir, como no Excel. */
     { id: 'inserir', nome: 'Inserir', grupos: [
@@ -300,9 +298,10 @@ function BotaoMenuFaixa({ chave, cx, soIcone, grande }) {
         if (!cmd) return null;
         const bloq = cx.bloqueado(base(x)), info = dicaDoComando(cmd, cx.mod), puro = typeof x === 'string';
         const ic = puro ? (ICONE_FAIXA[id] ? 'n:' + ICONE_FAIXA[id] : cmd.ic) : x.ic;
-        const marcado = !puro && x.v !== undefined && x.v === atual;
+        const ligado = m.marcaLigado && cx.ligado ? cx.ligado(base(x)) === true : false; /* v0.6.30: lista de opções que ligam e desligam */
+        const marcado = (!puro && x.v !== undefined && x.v === atual) || ligado;
         return (
-          <button key={id} type="button" role={!puro && x.v !== undefined ? 'menuitemradio' : 'menuitem'} aria-checked={!puro && x.v !== undefined ? marcado : undefined}
+          <button key={id} type="button" role={!puro && x.v !== undefined ? 'menuitemradio' : m.marcaLigado ? 'menuitemcheckbox' : 'menuitem'} aria-checked={(!puro && x.v !== undefined) || m.marcaLigado ? marcado : undefined}
             className={'rb-lista-it' + (m.classe ? ' ' + m.classe : '') + (x.fim ? ' fim' : '') + (marcado ? ' on' : '')} data-cmd={id} data-dica={x.dica} disabled={!!bloq} title={bloq || undefined}
             onClick={() => { setAberto(false); cx.executar(id); }}>
             {ic && <Icone n={ic} />}<span>{puro ? cmd.nome : x.nome}</span>{(puro || id === m.direto) && info.atalho && <kbd>{info.atalho}</kbd>}{marcado && <Icone n="check" className="ok" />}

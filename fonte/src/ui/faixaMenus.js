@@ -36,6 +36,15 @@ export const MENUS_FAIXA = {
       { id: 'exibir.congelar|linha', v: 'linha', nome: CONGELAR.linha, dica: 'Congelar linha superior|A primeira linha fica parada ao rolar para baixo.' },
       { id: 'exibir.congelar|coluna', v: 'coluna', nome: CONGELAR.coluna, dica: 'Congelar primeira coluna|A coluna A fica parada ao rolar para o lado.' },
       '-', { id: 'exibir.congelar|nada', nome: CONGELAR.nada, dica: 'Descongelar painéis|Tudo volta a rolar.' }] },
+  /* v0.6.30 (D4): Página Inicial › Edição › Classificar e filtrar, como no Excel; marcaLigado: o item ligado (Filtro) ganha a marca */
+  classificarFiltrar: { nome: 'Classificar e filtrar', ic: 'n:filtro', marcaLigado: true, dica: 'Classificar e filtrar|Põe em ordem de A a Z ou de Z a A, liga o filtro nos títulos, limpa ou reaplica.',
+    itens: ['dados.az', 'dados.za', { id: 'dados.classificar', nome: 'Personalizar classificação…', ic: 'n:classificar' }, '-', 'dados.filtrar', 'dados.limparFiltro', 'dados.reaplicar'] },
+  /* v0.6.30 (D7): os quatro grupos do Vértice no Exibir viram listas de um grupo só (Planilha, Documento e Quadro) */
+  vtBarra: { nome: 'Barra de cima', ic: 'n:topoCompleto', marcaLigado: true, dica: 'Barra de cima e faixa|A barra de cima completa ou compacta; a faixa inteira, só as abas ou escondida.',
+    itens: [{ cab: 'Barra de cima' }, 'exibir.topoCompleto', 'exibir.topoCompacto', '-', { cab: 'Faixa' }, 'exibir.faixaTudo', 'exibir.faixaAbas', 'exibir.faixaOculta'] },
+  vtMenu: { nome: 'Menu lateral', ic: 'n:menuCompleto', marcaLigado: true, dica: 'Menu lateral|Completo, só com os ícones ou escondido.', itens: ['exibir.menuCompleto', 'exibir.menuIcones', 'exibir.menuOculto'] },
+  vtLayout: { nome: 'Layout', ic: 'n:layoutA', marcaLigado: true, dica: 'Layout|O painel do lado e os dois jeitos de arrumar a tela.', itens: ['exibir.painel', '-', 'exibir.layoutA', 'exibir.layoutB'] },
+  vtAparencia: { nome: 'Aparência', ic: 'n:tema', marcaLigado: true, dica: 'Aparência|Tema claro ou escuro, relevo e mesa.', itens: ['exibir.tema', 'exibir.relevo', 'exibir.mesa'] },
   limpar: { nome: 'Limpar', ic: 'n:limparFormato', dica: 'Limpar|Apaga só o que está escrito ou só a aparência da célula.', itens: ['planilha.limparConteudo', 'formatar.limpar'] },
 };
 

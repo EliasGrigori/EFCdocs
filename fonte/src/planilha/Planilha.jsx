@@ -712,7 +712,7 @@ export function Planilha({ arquivo, cx }) {
   /* ---------- v0.6.3: imagem e botão que leva a outra aba ---------- */
   const abrirObjeto = (o) => {
     /* v0.6.6 (Grok): aba travada: forma, imagem, botão e gráfico não abrem a janela de mudar (o link da forma continua funcionando) */
-    if (aba.prot && !somenteLeitura) { setObjSel(o.id); cx.avisar('Esta aba está travada: formas, imagens, gráficos e assinaturas não mudam. Para mexer, tire a trava em Revisão › Travar modelo.', { ic: 'cadeado' }); return; }
+    if (aba.prot && !somenteLeitura) { setObjSel(o.id); cx.avisar('Esta aba está protegida: formas, imagens, gráficos e assinaturas não mudam. Para mexer, desproteja a aba em Revisão › Proteger planilha.', { ic: 'cadeado' }); return; }
     if (o.tipo === 'grafico') abrirGrafico(o);
     else if (o.tipo === 'imagem') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'imagem', id: o.id }); }
     else if (o.tipo === 'botao') { if (somenteLeitura) { avisarLeitura(); return; } setObjSel(o.id); setJanela({ tipo: 'botao', id: o.id }); }
@@ -3419,9 +3419,9 @@ export function Planilha({ arquivo, cx }) {
       {janela && janela.tipo === 'travar' && (
         <JanelaTravar travada={!!aba.prot} liberadas={D.contarLiberadas(c, aba)} selecao={nomeSel()} temSelecao
           selecaoLivre={sel.faixas.some((f0) => O.existentes(aba, normalFaixa(f0)).some(([, , k]) => D.celulaLivre(c, aba.cel[k])))} somenteLeitura={somenteLeitura}
-          aoTravar={() => { setJanela(null); if (mudar({ [`conteudo.abas.${abaId}.prot`]: 1 }, 'Travar a aba', 'editou', { limparHistorico: true })) cx.avisar('Aba travada: só as células liberadas aceitam mudança. O desfazer foi limpo; para soltar, use Revisão › Travar.', { ic: 'cadeado' }); }}
+          aoTravar={() => { setJanela(null); if (mudar({ [`conteudo.abas.${abaId}.prot`]: 1 }, 'Proteger a aba', 'editou', { limparHistorico: true })) cx.avisar('Aba protegida: só as células liberadas aceitam mudança. O desfazer foi limpo; para soltar, use Revisão › Proteger planilha.', { ic: 'cadeado' }); }}
           comSenha={!!D.senhaDaAba(aba)} conferirSenha={(t) => D.conferirSenha(D.senhaDaAba(aba), t)}
-          aoDestravar={() => { setJanela(null); if (mudar({ [`conteudo.abas.${abaId}.prot`]: undefined }, 'Destravar a aba', 'editou', { limparHistorico: true })) cx.avisar('Aba destravada.', { ic: 'cadeado' }); }}
+          aoDestravar={() => { setJanela(null); if (mudar({ [`conteudo.abas.${abaId}.prot`]: undefined }, 'Desproteger a aba', 'editou', { limparHistorico: true })) cx.avisar('Aba desprotegida.', { ic: 'cadeado' }); }}
           aoLiberar={liberarSelecao} aoFechar={() => setJanela(null)} />
       )}
       {janela && janela.tipo === 'validacao' && (

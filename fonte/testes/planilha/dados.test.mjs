@@ -141,14 +141,14 @@ test('travar: só mexe em célula liberada; filtro continua livre; destravada n�
   assert.equal(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.cel.B1': { v: 9 } }), null, 'sem trava pode');
   c2.abas.a1.prot = 1;
   assert.equal(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.cel.A1': { ...c2.abas.a1.cel.A1, v: 9 } }), null);
-  assert.match(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.cel.B1': { v: 9 } }), /travada/);
-  assert.match(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.larg': { 0: 100 } }), /travada/);
-  assert.match(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.ocL': { 1: 1 } }), /travada/);
+  assert.match(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.cel.B1': { v: 9 } }), /protegida/);
+  assert.match(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.larg': { 0: 100 } }), /protegida/);
+  assert.match(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.ocL': { 1: 1 } }), /protegida/);
   assert.equal(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.ocL': { 1: 1 }, 'conteudo.abas.a1.ocF': { 1: 1 }, 'conteudo.abas.a1.fil': {} }), null);
   assert.equal(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.prot': undefined }), null, 'destravar sempre pode');
   /* troca do objeto inteiro: só vale se mexeu em liberadas */
   assert.equal(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.cel': { ...c2.abas.a1.cel, A1: { ...c2.abas.a1.cel.A1, v: 5 } } }), null);
-  assert.match(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.cel': { ...c2.abas.a1.cel, B2: { v: 5 } } }), /travada/);
+  assert.match(bloqueioDaProtecao(c2, { 'conteudo.abas.a1.cel': { ...c2.abas.a1.cel, B2: { v: 5 } } }), /protegida/);
 });
 
 /* ---------- Excel: ida e volta do filtro e da proteção ---------- */

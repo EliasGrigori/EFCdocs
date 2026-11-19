@@ -403,7 +403,40 @@ await caso('Revisão: grupos do Excel (Revisão de texto, Comentários, Proteger
 });
 await caso('Exibir: Mostrar, Zoom e Janela na ordem do Excel; o que é só do Vértice depois', async () => {
   await aba3('Exibir'); const g = await grupos3();
-  certo(g.startsWith('Mostrar|Zoom|Janela|') && g.includes('Barra de cima e faixa'), g);
+  certo(g === 'Mostrar|Zoom|Janela|Do Vértice', g); /* v0.6.30 (D7): os quatro grupos do Vértice viraram um só */
+});
+await caso('D7: Exibir › Do Vértice com quatro listas (barra de cima, menu lateral, layout, aparência) e Tela cheia; a lista marca o que está ligado', async () => {
+  await aba3('Exibir');
+  for (const k of ['vtBarra', 'vtMenu', 'vtLayout', 'vtAparencia']) certo(await r3.locator(`[data-menu-faixa=${k}]`).count() === 1, 'falta a lista ' + k);
+  certo(await r3.locator('.ribbon [data-cmd="exibir.telaCheia"]').count() === 1, 'falta Tela cheia');
+  await abreLista('vtMenu');
+  const m = await marcado();
+  certo(/exibir\.menu(Completo|Icones|Oculto)/.test(m) && m.split(',').length === 1, 'a lista do menu lateral marca um só: ' + m);
+  await r3.keyboard.press('Escape'); await espera(150);
+  await abreLista('vtBarra');
+  const it = await r3.evaluate((s) => [...document.querySelectorAll(s + ' .rb-lista-cab')].map((b) => b.textContent).join('|'), LST);
+  certo(it === 'Barra de cima|Faixa', 'seções da lista: ' + it);
+  await r3.keyboard.press('Escape'); await espera(150);
+});
+await caso('D4: Página Inicial › Edição › Classificar e filtrar abre a lista do Excel; com o filtro ligado, Filtro fica marcado', async () => {
+  await aba3('Página Inicial');
+  certo(await r3.locator('.ribbon [data-menu-faixa=classificarFiltrar]').count() === 1, 'sem Classificar e filtrar');
+  certo(await r3.locator('.ribbon > .rb-g[aria-label="Edição"] [data-cmd="dados.filtrar"]').count() === 0, 'o botão Filtrar solto continua');
+  await abreLista('classificarFiltrar');
+  const ids = await r3.evaluate((s) => [...document.querySelectorAll(s + ' [data-cmd]')].map((b) => b.dataset.cmd).join(','), LST);
+  certo(ids === 'dados.az,dados.za,dados.classificar,dados.filtrar,dados.limparFiltro,dados.reaplicar', ids);
+  await r3.click(`${LST} [data-cmd="dados.filtrar"]`); await espera(300);
+  await abreLista('classificarFiltrar');
+  certo((await marcado()).includes('dados.filtrar'), 'Filtro não ficou marcado: ' + await marcado());
+  await r3.click(`${LST} [data-cmd="dados.filtrar"]`); await espera(300);
+});
+await caso('D8: Revisão › Proteger planilha (antes Travar modelo): botão, janela e avisos com o nome do Excel', async () => {
+  await aba3('Revisão');
+  certo((await r3.locator('.ribbon [data-cmd="revisao.travar"]').innerText()).includes('Proteger planilha'), 'nome do botão');
+  await r3.click('.ribbon [data-cmd="revisao.travar"]'); await r3.waitForSelector('.pl-jdados');
+  const t = await r3.locator('.pl-jdados').innerText();
+  certo(/Proteger planilha/.test(t) && /Proteger a aba/.test(t) && !/Travar/.test(t), 'janela: ' + t.slice(0, 160));
+  await r3.keyboard.press('Escape'); await espera(150);
 });
 await caso('Congelar painéis: a lista do Excel; Congelar linha superior fica marcada; Descongelar tira a marca; Ctrl+Z volta', async () => {
   await aba3('Exibir'); await abreLista('congelar');
