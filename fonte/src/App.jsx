@@ -91,8 +91,8 @@ export function App() {
   const escuro = typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches;
   const [prefs, setPrefs] = useState(() => normalizarPrefs(ler('prefs', null, { demo }), escuro));
   const setPref = useCallback((k, v) => setPrefs((p) => ({ ...p, [k]: v })), []);
-  const cel = useMedia('(max-width: 899px)');
-  const media = useMedia('(min-width: 900px) and (max-width: 1499px)'); /* v0.6.22 (D3): tela média */
+  const cel = useMedia('(max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse)'); /* v0.6.35 (S1): celular grande deitado também é celular */
+  const media = useMedia('(min-width: 900px) and (max-width: 1499px)') && !cel; /* v0.6.22 (D3): tela média */
   const [menuNaPlanilha, setMenuNaPlanilha] = useState(false); /* a pessoa abriu o menu com a planilha aberta */
   const rota = useRota();
   const banco = useMemo(() => criarBanco({ demo }), [demo]);

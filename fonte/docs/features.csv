@@ -447,3 +447,5 @@ F445;Quadro;edicao;"Item novo nasce na parte da tela que aparece, fora das abas 
 F446;Quadro;app;"Abas Quadro/Kanban flutuam no canto do quadro (computador e celular), sem ocupar uma faixa";funciona;"v0.6.33 (D-64)";manter;v0.6.33
 F447;Geral;celular;"Celular deitado: título e ferramentas numa linha só em todo arquivo aberto (Planilha, Documento e Quadro); Abas abre embaixo em linhas inteiras";funciona;"v0.6.34 (S1 e D-65)";manter;v0.6.34
 F448;Geral;celular;"Celular deitado pequeno: Tema e Painel saem do título (Tema em Opções, Painel em Exibir)";funciona;"v0.6.34 (D1)";manter;v0.6.34
+F449;Geral;celular;"Celular deitado pequeno: só o Salvo no título (sem o nome do arquivo), Painel de volta, Tema em Opções";funciona;"v0.6.35";manter;v0.6.35
+F450;Geral;celular;"Celular grande deitado (acima de 899 px, até 500 px de altura, com toque) entra no modo celular";funciona;"v0.6.35 (S1 da v0.6.34)";manter;v0.6.35

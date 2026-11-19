@@ -1,6 +1,6 @@
 # MEMÓRIA DO PROJETO · Vértice Docs (EFCdocs)
 
-Atualizado em 19/11/2026 · Organizada pelo modelo do Método Sabiá 2.1 (`scripts/sabia/modelos/MEMORIA-DO-PROJETO.modelo.md`) · No ar: **v0.6.34** (celular deitado em todos os módulos, publicada em 19/11) · Próximo: v0.6.35 (comentário do item 3 e S1 da v0.6.34)
+Atualizado em 19/11/2026 · Organizada pelo modelo do Método Sabiá 2.1 (`scripts/sabia/modelos/MEMORIA-DO-PROJETO.modelo.md`) · No ar: **v0.6.35** (deitado pequeno sem o nome; celular grande deitado, publicada em 19/11) · Próximo: v0.6.36 ("Salvo" do deitado pequeno com a bolinha em cima + a próxima etapa)
 
 Arquivo único com tudo que foi feito, o que falta e as versões. Ler antes de qualquer trabalho. Sobe junto com cada versão. Nunca guardar aqui dado real, senha ou chave.
 
@@ -136,7 +136,7 @@ Vértice Docs (repositório e endereço: EFCdocs): app instalável (PWA) com **P
 ## 4. Estado atual
 
 - **Fase do método:** Fase 2 (ciclos de versão). Fase 0 aprovada em 11/11; Fase 1 (rede de segurança) em 11/11, completada pelo Sabiá 2.1 na v0.6.21 parte 2 (ida e volta do que fica no aparelho).
-- **No ar:** v0.6.34 (celular deitado em todos os módulos), aprovada inteira e publicada em 19/11/2026, `eliasgrigori.github.io/EFCdocs/`. Antes: v0.6.33 (commit `accfe24`), v0.6.32 (commit `5a8b6d3`). Da v0.6.21 parte 3 (17/11) em diante: ver a tabela da seção 8.
+- **No ar:** v0.6.35, aprovada inteira e publicada em 19/11/2026, `eliasgrigori.github.io/EFCdocs/`. Antes: v0.6.34 (commit `ebb5d41`), v0.6.33 (commit `accfe24`), v0.6.32 (commit `5a8b6d3`). Da v0.6.21 parte 3 (17/11) em diante: ver a tabela da seção 8.
 - **Prontas e não publicadas:** nenhuma.
 - **Abertos de destaque:** PL13 (não reproduziu duas vezes; aguarda print do Grok), D-63 só como histórico (fechado na v0.6.24.1), o teste de estabilização que às vezes falha, D-07 (print), D-19 (histórico do Git), D-30 e listras do D-17 (ver a seção 5).
 - **Linha de base das auditorias:** `docs/auditorias/base-v0.6.26/` (rapidez nova da v0.6.27, D16; kit 2.1.0). A de `base-v0.6.21-parte1` fica como história.
@@ -278,8 +278,7 @@ Vértice Docs (repositório e endereço: EFCdocs): app instalável (PWA) com **P
 8. Relatórios do Grok pendentes (R15: a IA não espera por eles).
 
 **Da IA (ordem sugerida, a confirmar com o Elias):**
-1. **v0.6.35** (aprovados na v0.6.34): comentário do item 3, no deitado pequeno o nome do arquivo some e fica só o "Salvo", e o Painel volta ao título; S1, modo celular também para celular deitado largo (mais de 899 px de largura, até 500 px de altura, com toque).
-2. (livre)
+1. **v0.6.36:** comentário do item 1 da v0.6.35 (no deitado pequeno, só "Salvo" e a hora, com a bolinha verde em cima, centralizada no texto) junto com a próxima etapa (a escolher: D9, T0 ou v0.7.0).
 3. PL13, quando o Grok mandar o print (não reproduziu duas vezes: gatilho de estabilização, pedir o dado antes de tentar de novo).
 4. D9: Texto para colunas e Agrupar/Subtotal primeiro; depois Obter dados, Temas, Plano de fundo, Organizar, Modos de exibição e Nova janela.
 5. Estudo de tabelas e segmentação: T0 (guardar função e rótulo de totais, coluna calculada, formatos, ordenação, estilo personalizado), T2 (um filtro por tabela), S1 a S3 (segmentação).
@@ -334,7 +333,8 @@ Vértice Docs (repositório e endereço: EFCdocs): app instalável (PWA) com **P
 | v0.6.31 | 19/11/2026 | Ícones no estilo E escolhido pelo Elias: traço 1,3 px na faixa e 1,5 px no resto, destaque sem fundo na cor da família do botão (6 cores, claro e escuro), listas e itens com família | Leve (visual, sem dados) | APROVADA inteira (19/11, 04:58) e PUBLICADA | 19/11 04:21 a 04:58 (37 min) | a contar |
 | v0.6.32 | 19/11/2026 | Quadro, defeitos menores do relatório do Grok: PL05 coluna nova antes do Feito, PL06 tamanho mínimo, PL07 alvos de 44 px, PL08 contraste do código, PL09 lâmpada, PL10 barras do item no celular, PL11 arrastar até a borda rola, PL12 girar mantém o centro; PL13 não reproduzido | Leve (Quadro, sem mudar o formato do arquivo) | APROVADA inteira (19/11, 05:51) e PUBLICADA | 19/11 05:06 a 05:51 (45 min) | a contar |
 | v0.6.33 | 19/11/2026 | Quadro com o celular deitado: título e ferramentas numa linha, abas e zoom lado a lado, só a barra do item, item novo à vista; abas Quadro/Kanban flutuando de novo (D-64); PL13 não reproduzido | Leve (Quadro e estilo, sem dados nem formato de arquivo) | APROVADA inteira (19/11, 07:23) e PUBLICADA (commit `accfe24`) | 06:08 a 07:23 (1 h 15 min, com a espera da aprovação) | 1 (D-65, achado na v0.6.34) |
-| v0.6.34 | 19/11/2026 | Celular deitado em todos os módulos: linha única na Planilha e no Documento (S1), Tema e Painel fora do título no deitado pequeno (D1), Abas deitado em linhas inteiras (D-65) | Leve (estilo, sem dados) | APROVADA inteira (19/11, 08:06) e PUBLICADA | 07:25 a 08:06 (41 min) | D-65 conta para a v0.6.33 (1 defeito achado depois da entrega) |
+| v0.6.34 | 19/11/2026 | Celular deitado em todos os módulos: linha única na Planilha e no Documento (S1), Tema e Painel fora do título no deitado pequeno (D1), Abas deitado em linhas inteiras (D-65) | Leve (estilo, sem dados) | APROVADA inteira (19/11, 08:06) e PUBLICADA (commit `ebb5d41`) | 07:25 a 08:06 (41 min) | D-65 conta para a v0.6.33 (1 defeito achado depois da entrega) |
+| v0.6.35 | 19/11/2026 | Deitado pequeno só com o "Salvo" e o Painel de volta (comentário do item 3 da v0.6.34); celular grande deitado vira modo celular (S1 da v0.6.34) | Completo na prova (muda a regra do modo celular do app inteiro) | APROVADA inteira (19/11, 08:54) e PUBLICADA | 08:08 a 08:54 (46 min) | a contar |
 
 As versões anteriores não têm os dois números (o método 2.0 não pedia). O que se sabe delas está na tabela de baixo e no registro.
 
@@ -566,3 +566,8 @@ Cada linha completa (itens aprovados, achados do Grok, números dos testes, comm
 - 19/11/2026 (07:25) · "Pode iniciar": v0.6.34 com S1 e D1 aprovados na v0.6.33.
 - 19/11/2026 · **v0.6.34 ENTREGUE para aprovação; não publicada.** Arquivo novo `src/ui/deitado.css` (importado em `main.jsx`): linha única deitada para `.app.cel:has(.sup)` (todo arquivo aberto), `flex-wrap` com abas e faixa em linha inteira (D-65), Tema e Painel escondidos até 719 px de largura (D1). O bloco da linha única saiu do `quadro.css` (lá ficam só abas, zoom e cores do Quadro). Medido em 844 × 390: Planilha 71% → 84%, Documento 62% → 76%. Teste novo `scripts/testar-deitado.mjs` (`npm run test:deitado`, 19 casos; na v0.6.33, 10 de 19). Achado: celular deitado com mais de 899 px de largura não entra no modo celular (sugestão S1 da v0.6.34).
 - 19/11/2026 (08:06) · **v0.6.34 APROVADA inteira** (1 a 4 e S1). Comentário do item 3: "O nome da planilha pode sumir também e salvo ficar só nome salvo aí teremos mais espaço para painel" (no deitado pequeno: sem o nome do arquivo, só o "Salvo", e o Painel de volta). S1 aprovado: modo celular para celular deitado largo. "Pode ir para prx": v0.6.34 publicada; próxima, v0.6.35. Perguntou se os modelos sugeridos estão corretos (resposta na conversa, pela tabela de papéis do Sabiá).
+- 19/11/2026 (08:06) · Elias sobre os modelos: "antes não fizemos nada [que prestasse] com o Opus médio, quem dirá no Sonnet". A IA passou a sugerir **Opus 5.5 alto** para versões do Vértice; Sonnet só para tarefa sem código. Perguntado se vira regra permanente: ainda sem resposta.
+- 19/11/2026 (08:08) · "Pode continuar": v0.6.35. v0.6.34 publicada antes (commit `ebb5d41`, conferido com `git ls-remote`).
+- 19/11/2026 · **v0.6.35 ENTREGUE para aprovação; não publicada.** `App.jsx`: `cel` = até 899 px OU deitado com até 500 px de altura e toque (`pointer: coarse`); `media` (tela média) não vale quando é celular. `ui/deitado.css`: no deitado pequeno some o nome do arquivo (fica o "Salvo") e o Painel volta. Medido: celular grande deitado 915 × 412, Planilha 45% → 85%. Conferido que tablet 1024 × 768, computador de toque 1366 × 768 e janela baixa com mouse continuam no modo do computador. `scripts/testar-deitado.mjs` agora com 24 casos (v0.6.34: 19 de 24). Limite anotado: `efc-layout.js` (igual ao EFCwork, não se edita) decide algumas coisas das listas pela largura de 900 px.
+- 19/11/2026 · v0.6.35, provas: suíte do navegador 277 de 278; o que falhou foi o caso "v0.6.7 aba Gráfico ... meta arrastável" (null em `.x`), que passou 3 de 3 rodado sozinho na v0.6.35 e passa na v0.6.34: instabilidade do teste, não defeito novo (mesma família do antigo D-63). `npm test` 482, fidelidade 35, deitado 24 de 24, faixa 62, layout 27, fluidez 22, toque e arquivos 21, estabilização 6; cinco auditorias sem piora.
+- 19/11/2026 (08:54) · **v0.6.35 APROVADA inteira** (1 a 3). Comentário do item 1: "Pode abreviar nesse salvo, fica somente o nome salvo e as horas e ponto verde acima do nome salvo e centralizado levando em referência ao nome salvo" (vai para a v0.6.36, junto com a próxima etapa, a pedido). Elias: "Não mandei vc remover EFC" e ainda não entendeu a lista de palavras do dono; a IA esclareceu que nada é removido do app (a lista só barra nomes reais no repositório público). v0.6.35 publicada.

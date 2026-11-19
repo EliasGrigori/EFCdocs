@@ -9,9 +9,10 @@
   .app.cel:has(.sup) .topbar-row > [data-cmd="editar.desfazer"] { display: none; } /* o Desfazer já está na barra das ferramentas */
   .app.cel:has(.sup) .tbar.cel-rapida { flex: 1 1 0; min-width: 0; border-left: 1px solid var(--border-light); }
 }
-/* D1 (aprovado em 19/11): no deitado pequeno, Tema e Painel saem do título para caberem mais ferramentas
-   (o Tema continua em Opções; o Painel em Abas › Exibir › Layout) */
+/* D1 (aprovado em 19/11): no deitado pequeno, o Tema sai do título (continua em Opções).
+   v0.6.35 (comentário do item 3 da v0.6.34): o nome do arquivo também sai, fica só o "Salvo", e o Painel volta. */
 @media (orientation: landscape) and (max-height: 500px) and (max-width: 719px) {
-  .app.cel:has(.sup) .topbar-row [data-tema-botao],
-  .app.cel:has(.sup) .topbar-row [data-cmd="exibir.painel"] { display: none; }
+  .app.cel:has(.sup) .topbar-row [data-tema-botao] { display: none; }
+  .app.cel:has(.sup) .tb-tit h1, .app.cel:has(.sup) .tb-tit button.nome { display: none; }
+  .app.cel:has(.sup) .tb-tit { min-width: 0; justify-content: center; }
 }
