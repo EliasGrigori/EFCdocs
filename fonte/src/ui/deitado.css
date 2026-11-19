@@ -1,0 +1,17 @@
+/* Vértice Docs v0.6.34 · celular deitado (pouca altura): título e ferramentas numa linha só, em todo arquivo aberto
+   (Planilha, Documento e Quadro). Nasceu no Quadro na v0.6.33 (S1 aprovado em 19/11: levar para os outros módulos). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .app.cel:has(.sup) .topbar { display: flex; flex-wrap: wrap; align-items: center; }
+  /* D-65: as abas e a faixa (botão Abas) continuam em linhas inteiras, embaixo */
+  .app.cel:has(.sup) .topbar > :not(.topbar-row):not(.cel-rapida) { flex: 0 0 100%; min-width: 0; }
+  .app.cel:has(.sup) .topbar-row { flex: 0 1 auto; min-width: 0; }
+  .app.cel:has(.sup) .tb-tit { flex: 0 1 auto; min-width: 72px; max-width: 130px; }
+  .app.cel:has(.sup) .topbar-row > [data-cmd="editar.desfazer"] { display: none; } /* o Desfazer já está na barra das ferramentas */
+  .app.cel:has(.sup) .tbar.cel-rapida { flex: 1 1 0; min-width: 0; border-left: 1px solid var(--border-light); }
+}
+/* D1 (aprovado em 19/11): no deitado pequeno, Tema e Painel saem do título para caberem mais ferramentas
+   (o Tema continua em Opções; o Painel em Abas › Exibir › Layout) */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 719px) {
+  .app.cel:has(.sup) .topbar-row [data-tema-botao],
+  .app.cel:has(.sup) .topbar-row [data-cmd="exibir.painel"] { display: none; }
+}

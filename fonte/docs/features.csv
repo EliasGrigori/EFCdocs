@@ -445,3 +445,5 @@ F443;Quadro;edicao;"Arrastar item até a borda rola a tela; tamanho mínimo com 
 F444;Quadro;celular;"Celular deitado: título e ferramentas numa linha só, abas e zoom lado a lado, só a barra do item com um item escolhido (quadro com 76% da altura)";funciona;"v0.6.33";manter;v0.6.33
 F445;Quadro;edicao;"Item novo nasce na parte da tela que aparece, fora das abas e das barras";funciona;"v0.6.33";manter;v0.6.33
 F446;Quadro;app;"Abas Quadro/Kanban flutuam no canto do quadro (computador e celular), sem ocupar uma faixa";funciona;"v0.6.33 (D-64)";manter;v0.6.33
+F447;Geral;celular;"Celular deitado: título e ferramentas numa linha só em todo arquivo aberto (Planilha, Documento e Quadro); Abas abre embaixo em linhas inteiras";funciona;"v0.6.34 (S1 e D-65)";manter;v0.6.34
+F448;Geral;celular;"Celular deitado pequeno: Tema e Painel saem do título (Tema em Opções, Painel em Exibir)";funciona;"v0.6.34 (D1)";manter;v0.6.34

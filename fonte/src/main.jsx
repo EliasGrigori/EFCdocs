@@ -19,6 +19,7 @@ import './quadro/kanban.css';
 import './ui/parte4.css';
 import './ui/faixa-excel.css';
 import './ui/soltar.css'; /* v0.6.22 (D-62) */
+import './ui/deitado.css'; /* v0.6.34 (S1 e D1 da v0.6.33) */
 import { instalarFluidez } from './ui/fluidez.js';
 
 createRoot(document.getElementById('raiz')).render(<App />);

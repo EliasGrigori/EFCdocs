@@ -408,13 +408,8 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .app.cel .qd-zoom { top: 70px; }
 .app.cel .qd-timer { top: 70px; }
 .app.cel .qd .kb { padding-top: 124px; } /* o andamento e as colunas começam abaixo das abas */
-/* Celular deitado (pouca altura): título e ferramentas numa linha só; abas e zoom lado a lado no alto do quadro */
+/* Celular deitado (pouca altura): abas e zoom lado a lado no alto do quadro (a linha única de cima está em ui/deitado.css, v0.6.34) */
 @media (orientation: landscape) and (max-height: 500px) {
-  .app.cel:has(.sup-postits) .topbar { display: flex; align-items: center; }
-  .app.cel:has(.sup-postits) .topbar-row { flex: 0 1 auto; min-width: 0; }
-  .app.cel:has(.sup-postits) .tb-tit { flex: 0 1 auto; min-width: 72px; max-width: 130px; }
-  .app.cel:has(.sup-postits) .topbar-row > [data-cmd="editar.desfazer"] { display: none; } /* o Desfazer já está na barra das ferramentas */
-  .app.cel:has(.sup-postits) .tbar.cel-rapida { flex: 1 1 0; min-width: 0; border-left: 1px solid var(--border-light); }
   .app.cel:has(.sup-postits) .qd-vistas { right: auto; }
   .app.cel:has(.sup-postits) .qd-zoom { top: 10px; left: auto; right: 66px; }
   .app.cel:has(.sup-postits) .qd-timer { top: 70px; }
