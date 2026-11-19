@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { ler, gravar } from '../nucleo/armazem.js';
-import { Icone, Janela, usarEsc } from '../ui/comum.jsx';
+import { Icone, Janela, usarEsc, rolarSuave, rodaDeMouse, deltaEmPx, faltaAndar } from '../ui/comum.jsx';
 import { coresDaPlanilha, trocarCorNaAba } from './cores.jsx';
 import { lerOriginal } from '../nucleo/originais.js';
 import { PortalPainel } from '../quadro/partes.jsx';
@@ -15,7 +15,7 @@ import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, textoFaixaCaix
 import { indiceDe } from './indice.js';
 import { esperaDeConferir } from '../nucleo/ritmo.js';
 import { eixo, ALT_PADRAO, LARG_PADRAO, largPadrao, altPadrao, estiloDe, celOuHerdada, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
-import { geometria, pintarGrade, mesmasCores, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, corDaGrade, estiloVisto } from './grade.js';
+import { geometria, divisaMaisPerto, pintarGrade, mesmasCores, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, corDaGrade, estiloVisto } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData, FORMATOS } from './formato.js';
 import { TAMANHOS_LETRA } from './fontes.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
@@ -278,17 +278,16 @@ export function Planilha({ arquivo, cx }) {
     if (!el) return;
     const y = (el.scrollTop * fatorY) / z, x = (el.scrollLeft * fatorX) / z;
     setRol({ x, y });
-    /* v0.6.4: com linhas congeladas a rolagem termina sempre numa linha inteira (como o Excel): nenhuma linha fica cortada embaixo da parte fixa */
-    if (cl > 0 && fatorY === 1 && !cel) {
+    /* v0.6.4: com linhas congeladas a rolagem termina sempre numa linha inteira (como o Excel): nenhuma linha fica cortada embaixo da parte fixa.
+       v0.6.27: o fim desliza até a linha (e até a coluna, com colunas congeladas), em vez de pular; durante a rolagem anda pixel a pixel */
+    if (((cl > 0 && fatorY === 1) || (cc0 > 0 && fatorX === 1)) && !cel) {
       clearTimeout(snapRol.current);
       snapRol.current = setTimeout(() => {
         const e2 = rolRef.current;
         if (!e2 || arrasto) return;
-        const yy = e2.scrollTop / z, base = linhas.pos(cl);
-        const k = linhas.em(base + yy + 0.5);
-        const ini = linhas.pos(k) - base, fim = linhas.pos(k + 1) - base;
-        const alvo = (yy - ini < fim - yy ? ini : fim) * z;
-        if (Math.abs(alvo - e2.scrollTop) > 0.5) e2.scrollTop = alvo;
+        const falta = faltaAndar(e2); if (falta.dx || falta.dy) return; /* a roda ainda está andando (e já mira a linha inteira) */
+        const dy = cl > 0 && fatorY === 1 ? divisaMaisPerto(linhas, cl, e2.scrollTop, z) - e2.scrollTop : 0, dx = cc0 > 0 && fatorX === 1 ? divisaMaisPerto(colunas, cc0, e2.scrollLeft, z) - e2.scrollLeft : 0;
+        if (Math.abs(dy) > 0.5 || Math.abs(dx) > 0.5) rolarSuave(e2, Math.abs(dx) > 0.5 ? dx : 0, Math.abs(dy) > 0.5 ? dy : 0);
       }, 140);
     }
     /* perto do fim: estica a área */
@@ -2813,7 +2812,7 @@ export function Planilha({ arquivo, cx }) {
     abrirMenuCelula(ev.clientX, ev.clientY, ondeCaiu(G, p.x, p.y));
   };
 
-  const aoRoda = (ev) => { if (ev.ctrlKey || ev.metaKey) { ev.preventDefault(); setZ((zz) => Math.max(Z_MIN, Math.min(Z_MAX, Math.round((zz * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)) * 20) / 20))); } };
+  const aoRoda = (ev) => { if (ev.ctrlKey || ev.metaKey) { ev.preventDefault(); setZ((zz) => Math.max(Z_MIN, Math.min(Z_MAX, Math.round((zz * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)) * 20) / 20))); } else if (rodaDeMouse(ev) && rolRef.current) { ev.preventDefault(); const el = rolRef.current, d = deltaEmPx(ev, tam.H * 0.85), f = faltaAndar(el); if (cl > 0 && fatorY === 1 && d.dy) { const y0 = el.scrollTop + f.dy, a = divisaMaisPerto(linhas, cl, Math.max(0, y0 + d.dy), z) - y0; if (a * d.dy > 0) d.dy = a; } if (cc0 > 0 && fatorX === 1 && d.dx) { const x0 = el.scrollLeft + f.dx, a = divisaMaisPerto(colunas, cc0, Math.max(0, x0 + d.dx), z) - x0; if (a * d.dx > 0) d.dx = a; } rolarSuave(el, d.dx, d.dy); } }; /* v0.6.27: o clique da roda vira uma transição curta (com congeladas, já mira a linha inteira: um movimento só) */
   const pincaRef = useRef({ d0: 0, z0: 1 }); /* v0.6.22 (D-61): pinça de dois dedos no celular e na tela de toque; ela cancela o toque de um dedo */
   pincaRef.current.aoComecar = () => { if (toque.current) { clearTimeout(toque.current.longo); toque.current = null; } setArrasto((a) => (a && a.tipo === 'alcaCel' ? null : a)); };
   useEffect(() => {
@@ -3107,7 +3106,7 @@ export function Planilha({ arquivo, cx }) {
                     style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
                     onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
                     onDoubleClick={() => abrirObjeto(o)}
-                    onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
+                    onWheel={(ev) => { if (rolRef.current) { const d = deltaEmPx(ev, tam.H * 0.85); if (rodaDeMouse(ev)) rolarSuave(rolRef.current, d.dx, d.dy); else rolRef.current.scrollBy({ left: d.dx, top: d.dy }); } }}>
                     <div style={{ width: r.w / z, height: r.h / z, transform: `scale(${z})`, transformOrigin: '0 0' }}>
                       <GraficoView g={o.g} dados={ld.d} w={Math.round(r.w / z)} h={Math.round(r.h / z)} tema={temaGrafico} lerFaixa={xl ? lerFaixaDoLivro(c, motor, abaId, o.g.plano && o.g.plano.soVisiveis === false) : undefined} />
                     </div>
@@ -3122,7 +3121,7 @@ export function Planilha({ arquivo, cx }) {
                   <div key={o.id} className={'pl-obj pl-obj-fm' + (comLink ? ' com-link' : '') + (escolhida ? ' sel' : '')} data-obj={o.id} data-obj-tipo="forma" role={comLink ? 'button' : 'img'} aria-label={(comLink ? 'Botão' : 'Forma') + (txt ? ': ' + txt.slice(0, 80) : '')}
                     style={{ left: r.x - G.hw, top: r.y - G.hh, width: Math.max(1, r.w), height: Math.max(1, r.h), zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
                     onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
-                    onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
+                    onWheel={(ev) => { if (rolRef.current) { const d = deltaEmPx(ev, tam.H * 0.85); if (rodaDeMouse(ev)) rolarSuave(rolRef.current, d.dx, d.dy); else rolRef.current.scrollBy({ left: d.dx, top: d.dy }); } }}>
                     <div style={{ width: Math.max(1, o.w), height: Math.max(1, o.h), transform: `scale(${z})`, transformOrigin: '0 0' }}>
                       <FormaView o={o} w={Math.max(1, o.w)} h={Math.max(1, o.h)} lerLigado={lerLigado} valores={valoresLigados(o, lerLigado)} />
                     </div>
@@ -3138,7 +3137,7 @@ export function Planilha({ arquivo, cx }) {
                     style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)`, ...(ehImg ? {} : { background: o.cor || '#1f6f8b', fontSize: Math.max(10, Math.min(16, r.h * 0.4)) }) }}
                     onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
                     onDoubleClick={() => { if (ehImg) abrirObjeto(o); }}
-                    onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
+                    onWheel={(ev) => { if (rolRef.current) { const d = deltaEmPx(ev, tam.H * 0.85); if (rodaDeMouse(ev)) rolarSuave(rolRef.current, d.dx, d.dy); else rolRef.current.scrollBy({ left: d.dx, top: d.dy }); } }}>
                     {ehImg ? <img src={o.src} alt={o.nome || ''} draggable={false} /> : <span className="pl-btn-t"><Icone n="seta" />{o.nome || 'Botão'}</span>}
                     {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
                   </div>
@@ -3149,7 +3148,7 @@ export function Planilha({ arquivo, cx }) {
                   style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
                   onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
                   onDoubleClick={() => abrirAssinatura(o)}
-                  onWheel={(ev) => { if (rolRef.current) rolRef.current.scrollBy({ left: ev.deltaX, top: ev.deltaY }); }}>
+                  onWheel={(ev) => { if (rolRef.current) { const d = deltaEmPx(ev, tam.H * 0.85); if (rodaDeMouse(ev)) rolarSuave(rolRef.current, d.dx, d.dy); else rolRef.current.scrollBy({ left: d.dx, top: d.dy }); } }}>
                   <div style={{ width: r.w / z, height: r.h / z, transform: `scale(${z})`, transformOrigin: '0 0' }}>
                     <AssinaturaView nome={o.nome} rub={o.rub} w={Math.round(r.w / z)} h={Math.round(r.h / z)} />
                   </div>

@@ -130,9 +130,10 @@ test('v0.6.8: seleção na última linha congelada com a planilha rolada fica no
   const y = G.yDe(6), fim = G.yFim(6);
   assert.ok(fim - y > 15 && fim - y < 17, `altura ${fim - y}`);
   assert.ok(G.yDe(7) < y, 'yDe(7) é da parte que rola (por isso não serve como borda)');
-  /* com linhas congeladas, a rolagem anda de linha em linha */
+  /* v0.6.27 (Elias, rolagem suave): com linhas congeladas a rolagem anda pixel a pixel; a linha que rola passa por baixo
+     da parte congelada (desenho próprio, v0.6.9). Antes (v0.6.8) andava de linha em linha. */
   const G2 = geometria({ linhas: tam(20), colunas: tam(64), z: 1, sx: 0, sy: 13, cong: { l: 7, c: 0 }, W: 1000, H: 600 });
-  assert.equal(G2.yDe(8) - G2.yFim(6), 0, 'a primeira linha que rola começa logo abaixo do congelado');
+  assert.equal(G2.yDe(7) - G2.yFim(6), -13, 'a primeira linha que rola está 13 px por baixo do congelado');
 });
 
 test('v0.6.8: Imprimir: formas e gráficos espalhados além do papel já vêm em uma página (Grok A02)', () => {

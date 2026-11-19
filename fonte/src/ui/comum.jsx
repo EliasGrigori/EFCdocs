@@ -171,3 +171,5 @@ export function Avisos({ lista, tirar, menu }) {
     </div>
   );
 }
+/* v0.6.27: rolagem suave da roda do mouse (planilha e quadro) */
+export { rolarSuave, andarSuave, pararSuave, rodaDeMouse, deltaEmPx, faltaAndar } from './rodaSuave.js';

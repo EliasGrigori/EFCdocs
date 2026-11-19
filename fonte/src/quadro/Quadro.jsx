@@ -4,7 +4,7 @@
    Toda mudança vira um diff: entra no desfazer/refazer e grava só o que mudou. */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ler, gravar } from '../nucleo/armazem.js';
-import { Icone, Janela } from '../ui/comum.jsx';
+import { Icone, Janela, andarSuave, rodaDeMouse, deltaEmPx } from '../ui/comum.jsx';
 import * as Q from './modelo.js';
 import { itemNoPonto, itensNoRet, normalizarRet, enquadrar, ancora, limites, areaLivre } from './geometria.js';
 import { limitesDoQuadro } from './desenho.js';
@@ -747,7 +747,7 @@ export function Quadro({ arquivo, cx }) {
       ev.preventDefault();
       const r = el.getBoundingClientRect();
       if (ev.ctrlKey || ev.metaKey) zoomEm(Math.exp(-ev.deltaY * 0.0015), ev.clientX - r.left, ev.clientY - r.top);
-      else setView((v) => ({ ...v, x: v.x - ev.deltaX, y: v.y - ev.deltaY }));
+      else { const d = deltaEmPx(ev, area.h * 0.85), mover = (px, py) => setView((v) => ({ ...v, x: v.x - px, y: v.y - py })); if (rodaDeMouse(ev)) andarSuave(el, d.dx, d.dy, mover); else mover(d.dx, d.dy); } /* v0.6.27: o clique da roda desliza o quadro (o touchpad segue direto) */
     };
     el.addEventListener('wheel', roda, { passive: false });
     return () => el.removeEventListener('wheel', roda);

@@ -1,0 +1,162 @@
+{
+ "metas": {
+  "comum": 100,
+  "pesada": 1000,
+  "lento": 3
+ },
+ "base": null,
+ "piorou": 0,
+ "medidas": [
+  {
+   "acao": "Digitar um número e Enter",
+   "freio": 1,
+   "ms": 67,
+   "vezes": [
+    84,
+    66,
+    67,
+    84,
+    51,
+    83,
+    66,
+    67,
+    67,
+    67,
+    83,
+    53,
+    67,
+    70,
+    66
+   ],
+   "meta": 100,
+   "fora": false,
+   "conta": "pior das 3 rodadas (D16)"
+  },
+  {
+   "acao": "Mover a seleção",
+   "freio": 1,
+   "ms": 36,
+   "vezes": [
+    37,
+    47,
+    33,
+    34,
+    36,
+    34,
+    44,
+    34,
+    34,
+    36,
+    36,
+    34,
+    34,
+    35,
+    33
+   ],
+   "meta": 100,
+   "fora": false,
+   "conta": "pior das 3 rodadas (D16)"
+  },
+  {
+   "acao": "Desfazer",
+   "freio": 1,
+   "ms": 49,
+   "vezes": [
+    38,
+    53,
+    35,
+    75,
+    49,
+    40,
+    39,
+    35,
+    34,
+    49,
+    41,
+    34,
+    32,
+    29,
+    37
+   ],
+   "meta": 100,
+   "fora": false,
+   "conta": "pior das 3 rodadas (D16)"
+  },
+  {
+   "acao": "Digitar um número e Enter",
+   "freio": 4,
+   "ms": 266,
+   "vezes": [
+    269,
+    200,
+    267,
+    266,
+    235,
+    316,
+    234,
+    215,
+    234,
+    218,
+    400,
+    217,
+    185,
+    216,
+    233
+   ],
+   "meta": 300,
+   "fora": false,
+   "conta": "pior das 3 rodadas (D16)"
+  },
+  {
+   "acao": "Mover a seleção",
+   "freio": 4,
+   "ms": 108,
+   "vezes": [
+    72,
+    68,
+    117,
+    108,
+    117,
+    79,
+    76,
+    78,
+    100,
+    85,
+    98,
+    93,
+    85,
+    81,
+    69
+   ],
+   "meta": 300,
+   "fora": false,
+   "conta": "pior das 3 rodadas (D16)"
+  },
+  {
+   "acao": "Desfazer",
+   "freio": 4,
+   "ms": 151,
+   "vezes": [
+    140,
+    190,
+    156,
+    142,
+    151,
+    92,
+    106,
+    142,
+    156,
+    125,
+    127,
+    121,
+    143,
+    112,
+    97
+   ],
+   "meta": 300,
+   "fora": false,
+   "conta": "pior das 3 rodadas (D16)"
+  }
+ ],
+ "conta": "D16 (Elias, 18/11 19:13: pode fazer bem maior desde que o app não fique travado): pior das 3 rodadas da v0.6.26 publicada, para a oscilação da máquina não barrar. As metas absolutas (100 ms; 300 ms freado) continuam."
+}

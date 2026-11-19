@@ -1,0 +1,56 @@
+Arquivos de texto lidos: 439
+Nada achado nos textos.
+
+PARA OLHAR À MÃO (52 imagens, PDFs e arquivos de escritório: um print pode ter dado real):
+  icon-maskable-512.png
+  icon-192.png
+  apple-touch-icon.png
+  logo-abertura.png
+  icon-512.png
+  fonte/testes/amostras/amostra-v0692.xlsx
+  fonte/testes/amostras/amostra-qualidade.xlsx
+  fonte/testes/amostras/amostra-v0617.xlsx
+  fonte/testes/amostras/amostra-painel.xlsx
+  fonte/testes/amostras/amostra-painel-excel.xlsx
+  fonte/testes/amostras/amostra-congelada.xlsx
+  fonte/testes/amostras/amostra-v0610.xlsx
+  fonte/testes/amostras/amostra-impressao.xlsx
+  fonte/testes/amostras/amostra-v069.xlsx
+  fonte/testes/amostras/amostra-formas.xlsx
+  fonte/testes/amostras/amostra-v0691.xlsx
+  fonte/testes/amostras/amostra-v0616.xlsx
+  fonte/testes/amostras/amostra-v0613.xlsx
+  fonte/testes/amostras/amostra-auditoria.xlsx
+  fonte/testes/amostras/amostra-v0618.xlsx
+  fonte/testes/amostras/amostra-v066.xlsx
+  fonte/testes/amostras/amostra-v068.xlsx
+  fonte/testes/amostras/amostra-v064.xlsx
+  fonte/testes/amostras/amostra-real-anonimizada.xlsx
+  fonte/testes/amostras/amostra-anonimizar.xlsx
+  fonte/testes/amostras/amostra-v0619.xlsx
+  fonte/testes/amostras/amostra-v0611.xlsx
+  fonte/publico/icon-maskable-512.png
+  fonte/publico/icon-192.png
+  fonte/publico/apple-touch-icon.png
+  fonte/publico/logo-abertura.png
+  fonte/publico/icon-512.png
+  fonte/docs/marca/vertice-docs_icone_com-nome.png
+  fonte/docs/marca/vertice-docs_icone-192.png
+  fonte/docs/marca/vertice-docs_icone-512.png
+  fonte/docs/marca/vertice-docs_logo-horizontal.png
+  fonte/docs/marca/vertice-docs_icone-maskable-512.png
+  fonte/docs/marca/vertice-docs_icone.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/celular-Abrir_Excel__relat_rio_.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/celular-In_cio.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-Planilha___Layout_da_P_gina.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/celular-Lista_de_planilhas.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-Planilha___F_rmulas.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-Lista_de_planilhas.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-Planilha___P_gina_Inicial.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-Planilha___Inserir.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-Planilha___Exibir.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-Abrir_Excel__relat_rio_.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/celular-Planilha___P_gina_Inicial.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-In_cio.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-Planilha___Dados.png
+  fonte/docs/auditorias/base-v0.6.21-parte1/pc-Planilha___Revis_o.png

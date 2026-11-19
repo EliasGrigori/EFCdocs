@@ -4,7 +4,7 @@
    4 Segurança (varredura de dado sensível; as palavras do dono vêm de EFC_PALAVRAS, arquivo FORA do projeto),
    5 Código (arquivos acima de 800 linhas).
    Saída em .auditoria/<versão>/ (fora do repositório) com RESUMO.md e os JSON. Sai com 1 se alguma lente PIOROU.
-   Variáveis: EFC_BASE (pasta da linha de base; padrão docs/auditorias/base-v0.6.21-parte1), EFC_AMOSTRAS_FORA, EFC_PALAVRAS,
+   Variáveis: EFC_BASE (pasta da linha de base; padrão docs/auditorias/base-v0.6.26), EFC_AMOSTRAS_FORA, EFC_PALAVRAS,
    EFC_PULAR (ex.: "visual,rapidez"), CHROME (navegador para o Playwright). */
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { VERSAO } from '../../src/nucleo/modelo.js';
 
 const RAIZ = new URL('../../', import.meta.url).pathname;
-const BASE = process.env.EFC_BASE || join(RAIZ, 'docs/auditorias/base-v0.6.21-parte1');
+const BASE = process.env.EFC_BASE || join(RAIZ, 'docs/auditorias/base-v0.6.26'); /* D16 (18/11/2026): base nova, com folga */
 const OUT = join(RAIZ, '.auditoria', VERSAO); mkdirSync(OUT, { recursive: true });
 const PULAR = new Set((process.env.EFC_PULAR || '').split(',').filter(Boolean));
 const PORTA = 8741;
@@ -52,7 +52,7 @@ try {
     const b = JSON.parse(readFileSync(join(BASE, 'auditoria-rapidez.json'), 'utf8')).medidas;
     const tb = JSON.parse(readFileSync(join(BASE, 'codigo.json'), 'utf8')).tamanhoApp;
     const cresceu = tb && tamanho.compactado > tb.compactado * 1.02;
-    lente('2 Rapidez', 'ação comum < 100 ms (300 ms com 4× mais lento); app não cresce sem motivo', txt(b) + (tb ? `; app ${kb(tb.bytes)} (${kb(tb.compactado)} compactado)` : ''), txt(j.medidas) + `; app ${kb(tamanho.bytes)} (${kb(tamanho.compactado)} compactado)`, ultima(r.stdout, /Contra a linha de base/) + (cresceu ? ' App cresceu mais de 2%.' : ''), r.status !== 0 || cresceu);
+    lente('2 Rapidez', 'ação comum < 100 ms (300 ms com 4× mais lento); app não cresce sem motivo', txt(b) + (tb ? `; app ${kb(tb.bytes)} (${kb(tb.compactado)} compactado)` : ''), txt(j.medidas) + `; app ${kb(tamanho.bytes)} (${kb(tamanho.compactado)} compactado)`, ultima(r.stdout, /Contra a linha de base/) + (cresceu ? ' App cresceu mais de 2% (R42: só para olhar, não barra).' : '') + (j.medidas.some((m) => m.fora) ? ' ACIMA DA META: ' + j.medidas.filter((m) => m.fora).map((m) => m.acao + (m.freio > 1 ? ' (4×)' : '') + ' ' + m.ms + ' ms').join(', ') : ''), r.status !== 0 || j.medidas.some((m) => m.fora)); /* D16: com a base folgada, a meta absoluta (não travar) também barra */
   }
   if (!PULAR.has('fidelidade')) {
     const args = ['scripts/fidelidade/conferir.mjs', 'testes/amostras'];

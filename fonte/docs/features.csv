@@ -429,3 +429,5 @@ F427;Quadro;postits;"Post-it novo pelo botão procura vaga em volta do centro, n
 F428;Quadro;postits;"Esc guarda o texto do post-it, do cartão do Kanban e da seta; Ctrl+Z desfaz";funciona;"v0.6.26";manter;v0.6.26 (D15 do Elias, PL02)
 F429;Quadro;postits;"Texto em edição não se perde ao recarregar, fechar ou esconder o app (vai para o diário de segurança e volta ao abrir)";funciona;"v0.6.26";manter;v0.6.26 (PL03 do Grok)
 F430;Quadro;kanban;"Lixeira no canto de cima do cartão escolhido do Kanban (44 px no celular), com Desfazer no aviso";funciona;"v0.6.26";manter;v0.6.26 (pedido do Elias, 18/11 18:22)
+F431;Planilha;rolagem;"Rolagem pixel a pixel também com linhas e colunas congeladas; ao parar, desliza até a linha e a coluna inteiras";funciona;"v0.6.27";manter;v0.6.27 (pedido do Elias, 18/11 19:13)
+F432;Geral;rolagem;"Roda do mouse suave na planilha e no Quadro (clique da roda em quadros; touchpad direto; reduzir movimento respeitado)";funciona;"v0.6.27";manter;v0.6.27 (pedido do Elias, 18/11 19:13)

@@ -23,17 +23,20 @@ export const CAB_W = 30, CAB_H = 24; // cabeçalhos (a 100%); v0.6.9.1: a coluna
 const PAD = 4;
 
 /** Geometria da tela: posições das linhas/colunas considerando zoom, rolagem e painéis congelados. */
+/** v0.6.27: rolagem (px na tela) que deixa a linha ou coluna inteira logo depois da parte congelada n0 (a mais perto). */
+export function divisaMaisPerto(eixo, n0, rolado, z) { const v = rolado / z, base = eixo.pos(n0), k = eixo.em(base + v + 0.5), ini = eixo.pos(k) - base, fim = eixo.pos(k + 1) - base; return (v - ini < fim - v ? ini : fim) * z; }
+
 export function geometria({ linhas, colunas, z, sx, sy, cong, W, H }) {
   const cl = cong ? cong.l : 0, cc = cong ? cong.c : 0;
   /* a coluna dos números das linhas alarga quando a linha passa de 9999 */
   const ultimaVisivel = Math.min(MAX_LIN, linhas.em(linhas.pos(cl) + sy + H / z) + 2);
   const hw = Math.round(Math.max(CAB_W, 10 + 7 * String(ultimaVisivel).length) * Math.max(0.8, z)), hh = Math.round(CAB_H * Math.max(0.8, z));
   const fy = linhas.pos(cl) * z, fx = colunas.pos(cc) * z;
-  /* v0.6.8 (Elias): com linhas congeladas, a rolagem anda de linha em linha, como no Excel (antes a linha aparecia
-     cortada pela metade embaixo do cabeçalho e parecia passar por cima das congeladas); o mesmo com colunas congeladas */
-  let baseY = linhas.pos(cl) + sy, baseX = colunas.pos(cc) + sx;
-  if (cl > 0 && sy > 0) { const l = linhas.em(baseY); const p0 = linhas.pos(l); if (p0 < baseY - 0.01) baseY = baseY - p0 > linhas.tam(l) / 2 ? linhas.pos(l + 1) : p0; }
-  if (cc > 0 && sx > 0) { const c = colunas.em(baseX); const p0 = colunas.pos(c); if (p0 < baseX - 0.01) baseX = baseX - p0 > colunas.tam(c) / 2 ? colunas.pos(c + 1) : p0; }
+  /* v0.6.27 (Elias, 18/11: "parece que pula de fileira em fileira e coluna em coluna"): a rolagem anda pixel a pixel também com
+     linhas e colunas congeladas. Desde a v0.6.8 ela andava de linha em linha para a linha não aparecer cortada por cima das
+     congeladas; desde a v0.6.9 a parte congelada tem desenho próprio por cima (e cada parte é recortada), então a linha que
+     rola passa por baixo dela. Quando a rolagem para, Planilha.jsx desliza até a linha inteira (v0.6.4). */
+  const baseY = linhas.pos(cl) + sy, baseX = colunas.pos(cc) + sx;
   const yDe = (l) => (l < cl ? hh + linhas.pos(l) * z : hh + fy + (linhas.pos(l) - baseY) * z);
   const xDe = (c) => (c < cc ? hw + colunas.pos(c) * z : hw + fx + (colunas.pos(c) - baseX) * z);
   /* v0.6.8: a borda de baixo (ou da direita) de uma linha/coluna. yDe(l + 1) não serve na última linha congelada:
