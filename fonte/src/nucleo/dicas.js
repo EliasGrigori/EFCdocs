@@ -75,6 +75,7 @@ export const DESCRICAO = {
   'dados.textoColunas': 'Separa o texto de uma coluna em várias, por ponto e vírgula, vírgula, espaço ou largura fixa.',
   'dados.agrupar': 'Junta as linhas (ou colunas) escolhidas num grupo, com um botão na margem para esconder e mostrar. Shift+Alt+→.',
   'dados.desagrupar': 'Tira as linhas (ou colunas) escolhidas do grupo. Shift+Alt+←.',
+  'inserir.segmentacao': 'Botões grandes que filtram uma tabela: um botão por valor da coluna escolhida. Clique numa célula da tabela antes.',
   'dados.subtotal': 'Soma (ou conta, média...) cada grupo da tabela numa linha própria, com o total geral no fim e os grupos prontos na margem.',
   'dados.mostrarDetalhe': 'Abre o grupo da célula escolhida.',
   'dados.ocultarDetalhe': 'Esconde o grupo da célula escolhida.',

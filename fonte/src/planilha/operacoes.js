@@ -9,7 +9,7 @@ import { reescreverContas, moverTabelas } from './painel.js';
 import { continuarSerie } from './entrada.js';
 import { moverRegras, moverFaixa, faixasDe, textoFaixas, ancoraDe, tirarDeFaixas, novoIdRegra } from './regras.js';
 import { ehFormatoData } from './formato.js';
-import { moverFiltro, moverColunasDoFiltro } from './dados.js';
+import { moverFiltro, moverColunasDoFiltro } from './dados.js'; import { normalSeg } from './segmentacao.js';
 
 export const LOTE_INTEIRO = 4000;
 /** Junta mudanças de células de uma aba; com muitas, troca o objeto inteiro (mais rápido e leve). */
@@ -491,6 +491,7 @@ export function estrutura(c, abaId, eixo, i, n) {
     const med = eixo === 'l' ? { ...eixoTam(aba.alt, aba.ocL, altPadrao(aba), MAX_LIN), padrao: altPadrao(aba) } : { ...eixoTam(aba.larg, aba.ocC, largPadrao(aba), MAX_COL), padrao: largPadrao(aba) };
     mud[`conteudo.abas.${abaId}.objs`] = ajustarObjetosEstrutura(aba.objs, eixo, i, n, med);
   }
+  if (aba.seg && aba.seg.length) mud[`conteudo.abas.${abaId}.seg`] = ajustarObjetosEstrutura(aba.seg.map((x) => ({ ...normalSeg(aba, x), ...(x.novo ? {} : { mexida: 1 }) })), eixo, i, n); /* v0.6.42 (S2): a segmentação anda com as células (o tamanho fica) */
   /* 3b1) v0.6.6: o texto ligado das formas (=C40) e o link "ir para a célula" acompanham as linhas/colunas desta aba
      (antes a caixa ligada mostrava a célula antiga, vazia, depois de inserir linhas acima dela) */
   for (const id of c.ordem) {

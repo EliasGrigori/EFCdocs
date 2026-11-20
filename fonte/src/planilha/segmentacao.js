@@ -67,3 +67,70 @@ export function tamanhoDaSeg(aba, a) {
   for (let l = a.l1; l < a.l2; l++) h += aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba);
   return { w: Math.max(60, w), h: Math.max(60, h) };
 }
+
+/* ---------- v0.6.42 (S2): criar, mover, mudar o tamanho, apagar e configurar ---------- */
+export const SEG = { W: 184, H: 240, W_MIN: 80, H_MIN: 80 }; // tamanho do Excel ao inserir (4,87 cm × 6,35 cm)
+export const caminhoSeg = (abaId) => `conteudo.abas.${abaId}.seg`;
+
+/** Lugar da segmentação como os outros objetos da grade: célula (l, c), folga (dx, dy) e tamanho (w, h) em px a 100%.
+    A da v0.6.41 guardava as duas células do Excel (a); vira este formato na hora. */
+export function posDaSeg(aba, s) {
+  if (s.a && s.l == null) { const t = tamanhoDaSeg(aba, s.a); return { l: s.a.l1, c: s.a.c1, dx: s.a.dx1, dy: s.a.dy1, w: t.w, h: t.h }; }
+  return { l: s.l || 0, c: s.c || 0, dx: s.dx || 0, dy: s.dy || 0, w: s.w || SEG.W, h: s.h || SEG.H };
+}
+/** A segmentação no formato novo (sem o "a" da v0.6.41). */
+export function normalSeg(aba, s) { const { a: _a, ...resto } = s; return { ...resto, ...posDaSeg(aba, s) }; }
+
+/** Para o arquivo: as duas células (de e até) com as folgas em px, andando pelas larguras e alturas da aba
+    (linha escondida conta a altura que ela teria, como no tamanho da tela). */
+export function duasCelulas(aba, p) {
+  const larg = (cc) => (aba.larg && aba.larg[cc] != null ? aba.larg[cc] : largPadrao(aba)), alt = (l) => (aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba));
+  const andar = (i0, d0, tam, med) => { let i = i0, resto = d0 + tam; while (resto >= med(i) && med(i) > 0 && i < i0 + 2000) { resto -= med(i); i++; } return [i, Math.round(resto)]; };
+  const [c2, dx2] = andar(p.c, p.dx, p.w, larg), [l2, dy2] = andar(p.l, p.dy, p.h, alt);
+  return { c1: p.c, dx1: Math.round(p.dx), l1: p.l, dy1: Math.round(p.dy), c2, dx2, l2, dy2 };
+}
+
+/** Os nomes de segmentação usados no livro (o nome é único no arquivo, como no Excel). */
+export function nomesDeSeg(c) {
+  const n = new Set();
+  for (const id of c.ordem || []) { const a = c.abas[id]; for (const s of (a && a.seg) || []) n.add(String(s.nome).toLowerCase()); for (const x of (a && a.segFora) || []) n.add(String(x).toLowerCase()); }
+  return n;
+}
+const nomeLivre = (base, usados) => { let n = base, k = 0; while (usados.has(n.toLowerCase())) n = `${base} ${++k}`; usados.add(n.toLowerCase()); return n; };
+
+/** Os títulos das colunas da tabela k: [{ col, titulo }]. */
+export function colunasDaTabela(c, motor, k) {
+  const t = c.tabelas[k], out = [];
+  for (let cc = t.c1; cc <= t.c2; cc++) out.push({ col: cc, titulo: String(Array.isArray(t.cols) && t.cols[cc - t.c1] != null ? t.cols[cc - t.c1] : textoCelula(motor, c, t.aba, t.l1, cc).t) });
+  return out;
+}
+
+/** Inserir › Segmentação de dados: uma segmentação para cada título escolhido, à direita da tabela, em cascata
+    (como o Excel faz). novo = 1: feita no app (o arquivo do Excel ainda não leva; S3). */
+export function novasSegs(c, abaId, k, titulos) {
+  const t = c.tabelas[k], aba = c.abas[abaId], usados = nomesDeSeg(c);
+  const naMesma = t.aba === abaId;
+  const base = naMesma ? { l: t.l1, c: t.c2 + 2 } : { l: 1, c: 1 };
+  const novas = titulos.map((tit, i) => ({ nome: nomeLivre(tit, usados), titulo: tit, tab: k, cn: tit, cols: 1, alt: 25, l: base.l, c: base.c, dx: 24 * i, dy: 24 * i, w: SEG.W, h: SEG.H, novo: 1 }));
+  return { [caminhoSeg(abaId)]: [...((aba.seg || []).map((s) => normalSeg(aba, s))), ...novas] };
+}
+
+/** Muda uma segmentação (lugar, tamanho, título, colunas). mexida = 1 nas que vieram do Excel: o arquivo leva a mudança. */
+export function comSeg(c, abaId, nome, campos) {
+  const aba = c.abas[abaId];
+  return { [caminhoSeg(abaId)]: (aba.seg || []).map((s) => (s.nome === nome ? { ...normalSeg(aba, s), ...campos, ...(s.novo ? {} : { mexida: 1 }) } : normalSeg(aba, s))) };
+}
+
+/** Apagar: sai da aba; a que veio do Excel fica anotada em segFora (o arquivo deixa de levá-la). Como no Excel, o filtro
+    que ela fazia sai junto, se nenhuma outra segmentação mexe na mesma coluna. ler = lerAba da aba da tabela (para refazer as linhas). */
+export function apagarSeg(c, motor, abaId, nome) {
+  const aba = c.abas[abaId], s = (aba.seg || []).find((x) => x.nome === nome);
+  if (!s) return {};
+  const resto = (aba.seg || []).filter((x) => x.nome !== nome).map((x) => normalSeg(aba, x));
+  const mud = { [caminhoSeg(abaId)]: resto.length ? resto : undefined };
+  if (!s.novo) mud[`conteudo.abas.${abaId}.segFora`] = [...(aba.segFora || []), s.nome];
+  const outra = (c.ordem || []).some((id) => ((id === abaId ? resto : c.abas[id].seg) || []).some((x) => x.tab === s.tab && x.cn === s.cn));
+  const e = !outra && estadoDaSeg(c, motor, s);
+  if (e && e.filtrada) Object.assign(mud, FT.mudancasDosFiltros(c, e.t.aba, e.alvo.k, filtroLimpo(e), e.ler.textoDe, e.ler.x));
+  return mud;
+}

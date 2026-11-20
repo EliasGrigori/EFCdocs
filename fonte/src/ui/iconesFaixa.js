@@ -141,6 +141,7 @@ export const NOVOS = {
   /* v0.6.37: Estrutura de tópicos (linhas com a chave do grupo e o botão de mais e menos) */
   agrupar: '<path d="M10 5h10M10 9.5h10M10 14h10M10 18.5h10"/><path class="t" d="M5.5 7v9.5h2"/><rect class="t" x="3.5" y="3.5" width="4" height="4" rx=".8"/><path class="t" d="M4.5 5.5h2"/>',
   desagrupar: '<path d="M10 5h10M10 9.5h10M10 14h10M10 18.5h10"/><path class="t" d="M5.5 10v6.5h2M4 4l3 3M7 4l-3 3"/>',
+  segmentacao: '<rect x="4" y="3.5" width="16" height="17" rx="2"/><path class="t" d="M4 8h16"/><rect class="t" x="7" y="10.5" width="10" height="3" rx="1"/><rect x="7" y="15.5" width="10" height="2.5" rx="1"/>', /* v0.6.42 (S2) */
   subtotal: '<path d="M4 5h9M4 9h9"/><path class="t" d="M4 13h9"/><path d="M4 17h9"/><path class="t" d="M4 21h9"/><path class="t" d="M20 6h-4l2.5 3.5L16 13h4"/>',
   mostrarDetalhe: '<path d="M10 6h10M10 12h10M10 18h10"/><rect class="t" x="3.5" y="10" width="4" height="4" rx=".8"/><path class="t" d="M4.5 12h2M5.5 11v2"/>',
   ocultarDetalhe: '<path d="M10 6h10M10 12h10M10 18h10"/><rect class="t" x="3.5" y="10" width="4" height="4" rx=".8"/><path class="t" d="M4.5 12h2"/>',
@@ -286,7 +287,7 @@ export const MAPA = {
   'impressao.ajustar': 'ajustar', 'impressao.configurar': 'imprimir',
   'formula.inserir': 'funcao', 'formula.nome': 'nome', 'formula.nomes': 'nomes', 'planilha.cabecalho': 'linhaTitulos',
   'formula.explicar': 'explicar', 'formula.origem': 'origem', 'formula.fluxo': 'fluxo', 'formula.problemas': 'verificar', 'formula.montar': 'montar',
-  'dados.classificar': 'classificar', 'dados.reaplicar': 'filtroRef', 'dados.validacao': 'validacao', 'dados.duplicados': 'duplicados', 'dados.textoColunas': 'textoColunas', 'dados.agrupar': 'agrupar', 'dados.desagrupar': 'desagrupar', 'dados.subtotal': 'subtotal', 'dados.mostrarDetalhe': 'mostrarDetalhe', 'dados.ocultarDetalhe': 'ocultarDetalhe', 'dados.limparEstrutura': 'limparEstrutura', 'dados.dinamica': 'dinamica', 'dados.circular': 'circular', 'dados.limparCirculos': 'limparCirculos', 'dados.estatistica': 'estatistica', 'dados.amostra': 'amostra',
+  'dados.classificar': 'classificar', 'dados.reaplicar': 'filtroRef', 'dados.validacao': 'validacao', 'dados.duplicados': 'duplicados', 'dados.textoColunas': 'textoColunas', 'dados.agrupar': 'agrupar', 'dados.desagrupar': 'desagrupar', 'dados.subtotal': 'subtotal', 'inserir.segmentacao': 'segmentacao', 'dados.mostrarDetalhe': 'mostrarDetalhe', 'dados.ocultarDetalhe': 'ocultarDetalhe', 'dados.limparEstrutura': 'limparEstrutura', 'dados.dinamica': 'dinamica', 'dados.circular': 'circular', 'dados.limparCirculos': 'limparCirculos', 'dados.estatistica': 'estatistica', 'dados.amostra': 'amostra',
   'revisao.ortografia': 'ortografia', 'revisao.comentarios': 'comentarios', 'revisao.travar': 'cadeado',
   'exibir.congelar': 'congelar', 'exibir.grade': 'grade', 'exibir.folhaClara': 'folhaClara', 'exibir.abaGrafico': 'abaGrafico', 'exibir.barraFormula': 'barraFx', 'exibir.zoom': 'zoom',
   'dados.az': 'az', 'dados.za': 'za', 'dados.limparFiltro': 'limparFiltro', 'impressao.papel': 'papel', 'impressao.grade': 'imprimirGrade', 'impressao.titulosLC': 'imprimirTitulos', 'exibir.zoom100': 'zoom100',

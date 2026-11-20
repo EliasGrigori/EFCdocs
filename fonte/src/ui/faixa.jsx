@@ -55,6 +55,7 @@ const FAIXAS = {
        Nova aba, Inserir linha e Inserir coluna moram em Página Inicial › Células › Inserir, como no Excel. */
     { id: 'inserir', nome: 'Inserir', grupos: [
       { nome: 'Tabelas', itens: [['g', 'dados.dinamica'], ['g', 'inserir.tabela']] },
+      { nome: 'Filtros', itens: [['g', 'inserir.segmentacao', 'Segmentação de dados']] }, /* v0.6.42 (S2), como no Excel */
       { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.formas']] },
       { nome: 'Gráficos', itens: [['g', 'inserir.grafico'], ['pilha', [
         [['v', 'inserir.grafico|colunas'], ['v', 'inserir.grafico|linha'], ['v', 'inserir.grafico|pizza'], ['v', 'inserir.grafico|rosca']],
@@ -155,7 +156,7 @@ export const ABA_PAINEL = { id: 'painel', nome: 'Painel', contextual: true, grup
 /** v0.6.19: aba que aparece com a célula dentro de uma tabela (como a "Design da Tabela" do Excel; não abre sozinha) */
 export const ABA_TABELA = { id: 'tabela', nome: 'Design da Tabela', contextual: true, grupos: [
   { nome: 'Propriedades', itens: [['g', 'tabela.nome'], ['g', 'tabela.redimensionar']] },
-  { nome: 'Ferramentas', itens: [['g', 'tabela.converter']] },
+  { nome: 'Ferramentas', itens: [['g', 'inserir.segmentacao', 'Inserir Segmentação de Dados'], ['g', 'tabela.converter']] },
   { nome: 'Opções de estilo', itens: [['col', ['tabela.totais', 'tabela.listras', 'tabela.listrasCol']], ['col', ['tabela.primeira', 'tabela.ultima', 'tabela.filtro']]] },
   { nome: 'Totais', itens: [['g', 'tabela.totalColuna']] },
   { nome: 'Estilos', itens: [['g', 'tabela.estilos']] }] };
@@ -194,7 +195,7 @@ export const ROTULO_CURTO = {
   'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Verificação de erros', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
   'inserir.formas': 'Formas', 'inserir.status': 'Coluna de status', 'inserir.foto': 'Foto na célula', 'inserir.assinatura': 'Linha de assinatura', 'inserir.imagem': 'Imagens',
   'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
-  'dados.validacao': 'Validação', 'dados.textoColunas': 'Texto para colunas', 'dados.agrupar': 'Agrupar', 'dados.desagrupar': 'Desagrupar', 'dados.subtotal': 'Subtotal', 'dados.mostrarDetalhe': 'Mostrar detalhe', 'dados.ocultarDetalhe': 'Ocultar detalhe', 'dados.limparEstrutura': 'Limpar estrutura', 'dados.circular': 'Circular inválidos', 'dados.limparCirculos': 'Limpar círculos', 'dados.estatistica': 'Estatística', 'dados.amostra': 'Amostragem', 'formatar.condicional': 'Formatação condicional', 'editar.localizar': 'Localizar',
+  'dados.validacao': 'Validação', 'dados.textoColunas': 'Texto para colunas', 'dados.agrupar': 'Agrupar', 'dados.desagrupar': 'Desagrupar', 'dados.subtotal': 'Subtotal', 'inserir.segmentacao': 'Segmentação de dados', 'dados.mostrarDetalhe': 'Mostrar detalhe', 'dados.ocultarDetalhe': 'Ocultar detalhe', 'dados.limparEstrutura': 'Limpar estrutura', 'dados.circular': 'Circular inválidos', 'dados.limparCirculos': 'Limpar círculos', 'dados.estatistica': 'Estatística', 'dados.amostra': 'Amostragem', 'formatar.condicional': 'Formatação condicional', 'editar.localizar': 'Localizar',
   'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.interno': 'Documento interno', 'arquivo.camposCwork': 'Campos do Cwork', 'arquivo.compartilharCwork': 'Compartilhar com o Cwork', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
   'arquivo.abrir': 'Abrir Excel', 'arquivo.exportarExcel': 'Salvar como Excel', 'arquivo.relatorioExcel': 'O que veio do Excel', 'arquivo.baixarOriginal': 'Baixar original',
   'editar.comentar': 'Comentário', 'revisao.comentarios': 'Comentários', 'organizar.temporizador': 'Temporizador', 'revisao.comparar': 'Comparar',

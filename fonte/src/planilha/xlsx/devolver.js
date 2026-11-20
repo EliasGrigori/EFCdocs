@@ -11,6 +11,7 @@
    Recebe a lista de partes já montada por gravar.js e mexe nela. Ver docs/ARMADILHAS-EXCEL.md. */
 import { lerZip } from './zip.js';
 import { XML_CAB } from './xml.js';
+import { apagadasNoApp, ajustarParteSeg, ajustarAncoraSeg } from './segmentacaoXlsx.js'; /* v0.6.42 (S2) */
 
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
 const REL_PKG = 'http://schemas.openxmlformats.org/package/2006/relationships';
@@ -186,7 +187,7 @@ export async function devolver(arquivos, abas, bytesOriginal) {
 
   /* segmentações e linhas do tempo que aparecem em alguma aba viva (memória sem nenhuma vista não volta) */
   const comVista = new Set();
-  for (const it of porAba) for (const r of it.sr.filter((x) => fimTipo(x, 'slicer') || fimTipo(x, 'timeline'))) for (const m of String((await texto(r.alvo)) || '').matchAll(/<(?:\w+:)?(?:slicer|timeline)\b[^>]*?\bcache="([^"]*)"/g)) comVista.add(desXml(m[1]));
+  for (const it of porAba) for (const r of it.sr.filter((x) => fimTipo(x, 'slicer') || fimTipo(x, 'timeline'))) for (const m of String((await texto(r.alvo)) || '').matchAll(/<(?:\w+:)?(?:slicer|timeline)\b([^>]*?)\bcache="([^"]*)"([^>]*)>/g)) { if (!apagadasNoApp(it.aba).has(desXml(atr(m[1] + m[3], 'name') || ''))) comVista.add(desXml(m[2])); } /* v0.6.42: a apagada no app não conta */
   /* nome das abas: o do original → o de agora (a fonte da tabela dinâmica aponta pelo nome) */
   const nomeAgora = new Map(); for (const [p, v] of vivas) nomeAgora.set(folhasO.get(p).nome, v.aba.nome);
   const nomesOrig = new Set([...folhasO.values()].map((f) => f.nome));
@@ -246,9 +247,9 @@ export async function devolver(arquivos, abas, bytesOriginal) {
     for (const r of sr.filter((x) => fimTipo(x, 'slicer') || fimTipo(x, 'timeline'))) {
       const px = await texto(r.alvo); if (!px) continue;
       const ehTempo = fimTipo(r, 'timeline');
-      const [fx, n] = filtrar(px, ehTempo ? '(?:\\w+:)?timeline' : '(?:\\w+:)?slicer', (at) => { const ok = cachesVivos.has(desXml(atr(at, 'cache') || '')); if (ok) nomesVivos.add(desXml(atr(at, 'name') || '')); return ok; });
+      const [fx, n] = filtrar(px, ehTempo ? '(?:\\w+:)?timeline' : '(?:\\w+:)?slicer', (at) => { const ok = cachesVivos.has(desXml(atr(at, 'cache') || '')) && !apagadasNoApp(it.aba).has(desXml(atr(at, 'name') || '')); /* v0.6.42 */ if (ok) nomesVivos.add(desXml(atr(at, 'name') || '')); return ok; });
       if (!n) continue;
-      por1(r.alvo, fx); ridNovo.set(r.id, novaRel(r));
+      por1(r.alvo, ehTempo ? fx : ajustarParteSeg(fx, it.aba)); ridNovo.set(r.id, novaRel(r)); /* v0.6.42: título e colunas mexidos no app */
       if (ehTempo) res.linhasTempo += n; else res.segmentacoes += n;
     }
     /* listas da aba (extLst): os blocos de segmentação e de linha do tempo, com as relações novas */
@@ -315,7 +316,7 @@ export async function devolver(arquivos, abas, bytesOriginal) {
         if (/^\s*<xdr:grpSp\b/.test(corpo)) {
           /* estava num grupo com formas: o grupo é do app; a segmentação volta solta, no mesmo lugar */
           for (const s of soltarDoGrupo(corpo)) { if (!nomesVivos.has(nomeDe(s.bloco))) continue; blocosD.push(`<xdr:absoluteAnchor><xdr:pos x="${s.x}" y="${s.y}"/><xdr:ext cx="${s.cx}" cy="${s.cy}"/>${s.bloco.replace(/(<xdr:cNvPr\b[^>]*?\bid=")\d+"/g, (q, p) => `${p}${60000 + ++k}"`)}<xdr:clientData/></xdr:absoluteAnchor>`); res.soltas++; }
-        } else if (nomesVivos.has(nomeDe(a))) blocosD.push(a.replace(/(<xdr:cNvPr\b[^>]*?\bid=")\d+"/g, (q, p) => `${p}${60000 + ++k}"`));
+        } else if (nomesVivos.has(nomeDe(a))) blocosD.push(ajustarAncoraSeg(a, it.aba, nomeDe(a)).replace(/(<xdr:cNvPr\b[^>]*?\bid=")\d+"/g, (q, p) => `${p}${60000 + ++k}"`));
       }
     }
     if (blocosD.length) {

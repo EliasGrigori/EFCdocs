@@ -1,11 +1,13 @@
 /* Vértice Docs v0.6.41 — Planilha: segmentação de dados de tabela vinda do Excel (S1 da segmentação).
    Lê as segmentações ligadas a uma tabela (x15:tableSlicerCache) e guarda na aba onde ela está desenhada:
    aba.seg = [{ nome, titulo, tab (chave da tabela em c.tabelas), cn (nome da coluna), cols (colunas de botões),
-                alt (altura do botão em px), a: { c1, l1, dx1, dy1, c2, l2, dx2, dy2 } (âncora; folgas em px a 100%) }].
+                alt (altura do botão em px), l, c, dx, dy, w, h (lugar como os objetos da grade, em px a 100%; v0.6.42) }].
+   v0.6.41 guardava as duas células do Excel em "a"; segmentacao.js (posDaSeg) ainda entende.
    Só para mostrar e filtrar: as partes do arquivo (segmentação, cache e desenho) continuam voltando como vieram
    (guardar e devolver, v0.6.13), e o filtro que ela mexe sai no filtro da tabela (v0.6.40). As de tabela dinâmica
    e as linhas do tempo continuam sem aparecer. */
-import { tags, tag, atributos, desescapar } from './xml.js';
+import { tags, tag, atributos, desescapar, escapar } from './xml.js';
+import { largPadrao, altPadrao } from '../modelo.js';
 
 const EMU = 9525;
 const px = (v) => Math.round((+v || 0) / EMU);
@@ -63,12 +65,50 @@ export async function lerSegmentacoes(zip, folhas, relsWb, conteudo, lerRels, re
     for (const d of defs) {
       const ca = caches.get(d.cache), tb = ca && tabs.get(ca.tabela), t = tb && conteudo.tabelas && conteudo.tabelas[tb.k], a = ancoras.get(d.name);
       if (!t || !t.cab || !a || !tb.cols.has(ca.coluna)) continue;
+      /* tamanho que não muda com as células ("mover, mas não dimensionar"): linha escondida conta a altura que teria */
+      const aba = conteudo.abas[abaId], lg = (cc) => (aba.larg && aba.larg[cc] != null ? aba.larg[cc] : largPadrao(aba)), at = (l) => (aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba));
+      let w = a.dx2 - a.dx1, h = a.dy2 - a.dy1;
+      for (let cc = a.c1; cc < a.c2; cc++) w += lg(cc);
+      for (let l = a.l1; l < a.l2; l++) h += at(l);
       lista.push({ nome: d.name, titulo: d.caption != null ? d.caption : d.name, tab: tb.k, cn: tb.cols.get(ca.coluna),
-        cols: Math.max(1, Math.min(20, +d.columnCount || 1)), alt: Math.max(16, Math.min(80, px(d.rowHeight) || 25)), ...(d.showCaption === '0' ? { semTitulo: 1 } : {}), a });
+        cols: Math.max(1, Math.min(20, +d.columnCount || 1)), alt: Math.max(16, Math.min(80, px(d.rowHeight) || 25)), ...(d.showCaption === '0' ? { semTitulo: 1 } : {}),
+        l: a.l1, c: a.c1, dx: a.dx1, dy: a.dy1, w: Math.max(60, w), h: Math.max(60, h) });
     }
     if (lista.length) { conteudo.abas[abaId].seg = lista; n += lista.length; }
   }
   const x = fora && fora.get('Segmentações de dados e linhas do tempo');
   if (n && x) x.detalhe = `${n === 1 ? 'a segmentação de tabela aparece' : `as ${n} segmentações de tabela aparecem`} e filtra${n === 1 ? '' : 'm'} a tabela; as de tabela dinâmica e as linhas do tempo não aparecem aqui; todas voltam iguais ao salvar como Excel`;
   return n;
+}
+
+/* ---------- v0.6.42 (S2): ao salvar, o que mudou no app nas segmentações que vieram do Excel ----------
+   As partes voltam pelo guardar e devolver (devolver.js); aqui só se ajusta: a apagada no app sai (aba.segFora) e a
+   mexida (lugar, tamanho, título, colunas de botões, mostrar o título) leva o que está no app. A feita no app (novo) ainda não vai (S3). */
+const doApp = (aba, nome) => ((aba && aba.seg) || []).find((s) => s.nome === nome);
+/** Nomes das segmentações apagadas no app. */
+export const apagadasNoApp = (aba) => new Set((aba && aba.segFora) || []);
+/** A parte da segmentação (xl/slicers/…) com o título, as colunas e o "mostrar o título" das mexidas no app. */
+export function ajustarParteSeg(xml, aba) {
+  if (!aba || !aba.seg || !xml) return xml;
+  return String(xml).replace(/<((?:\w+:)?slicer)\b([^>]*?)(\/?)>/g, (m, tg, at, fim) => {
+    const s = doApp(aba, desescapar((/\bname="([^"]*)"/.exec(at) || [])[1] || ''));
+    if (!s || !s.mexida) return m;
+    let a = at;
+    const por = (k, v) => { a = new RegExp(`\\s${k}="[^"]*"`).test(a) ? a.replace(new RegExp(`(\\s${k}=")[^"]*"`), `$1${v}"`) : `${a} ${k}="${v}"`; };
+    const tirar = (k) => { a = a.replace(new RegExp(`\\s${k}="[^"]*"`), ''); };
+    por('caption', escapar(String(s.titulo || '')));
+    if (s.cols > 1) por('columnCount', s.cols); else tirar('columnCount');
+    if (s.semTitulo) por('showCaption', '0'); else tirar('showCaption');
+    return `<${tg}${a}${fim}>`;
+  });
+}
+/** O bloco do desenho (twoCellAnchor) com o lugar e o tamanho do app, se a segmentação foi mexida. */
+export function ajustarAncoraSeg(bloco, aba, nome) {
+  const s = doApp(aba, nome);
+  if (!s || !s.mexida || s.l == null || !/<xdr:from>/.test(bloco)) return bloco;
+  const lg = (cc) => (aba.larg && aba.larg[cc] != null ? aba.larg[cc] : largPadrao(aba)), at = (l) => (aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba));
+  const andar = (i0, d0, tam, med) => { let i = i0, resto = d0 + tam; while (resto >= med(i) && med(i) > 0 && i < i0 + 2000) { resto -= med(i); i++; } return [i, Math.round(resto)]; };
+  const [c2, dx2] = andar(s.c, s.dx || 0, s.w, lg), [l2, dy2] = andar(s.l, s.dy || 0, s.h, at);
+  const ponta = (tg, c, dx, l, dy) => `<xdr:${tg}><xdr:col>${c}</xdr:col><xdr:colOff>${Math.round(dx) * EMU}</xdr:colOff><xdr:row>${l}</xdr:row><xdr:rowOff>${Math.round(dy) * EMU}</xdr:rowOff></xdr:${tg}>`;
+  return bloco.replace(/<xdr:from>[\s\S]*?<\/xdr:from>/, ponta('from', s.c, s.dx || 0, s.l, s.dy || 0)).replace(/<xdr:to>[\s\S]*?<\/xdr:to>/, ponta('to', c2, dx2, l2, dy2));
 }

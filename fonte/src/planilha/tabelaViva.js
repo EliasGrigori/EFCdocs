@@ -272,7 +272,10 @@ export function renomear(c, k, novo) {
   if (usado) return { erro: 'Já existe uma tabela ou nome com esse nome. Escolha outro.' };
   const tabs = {};
   for (const [kk, x] of Object.entries(c.tabelas)) tabs[kk === k ? nome.toLowerCase() : kk] = kk === k ? { ...x, nome } : x;
-  return { mud: { 'conteudo.tabelas': tabs }, chave: nome.toLowerCase() };
+  const mud = { 'conteudo.tabelas': tabs };
+  /* v0.6.42 (S2): a segmentação da tabela segue o nome novo */
+  for (const id of c.ordem || []) { const sg = c.abas[id] && c.abas[id].seg; if (sg && sg.some((x) => x.tab === k)) mud[`conteudo.abas.${id}.seg`] = sg.map((x) => (x.tab === k ? { ...x, tab: nome.toLowerCase() } : x)); }
+  return { mud, chave: nome.toLowerCase() };
 }
 
 /** Estilo da galeria (nome do Excel) ou null = "Nenhum". As opções (listras, colunas em destaque) ficam. */

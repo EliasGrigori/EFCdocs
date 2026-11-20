@@ -17,3 +17,14 @@
 .seg-it.sem { color: var(--text-dim); border-style: dashed; }
 .seg-it.sem.on { background: color-mix(in srgb, var(--primary) 5%, var(--surface)); font-weight: 400; }
 .seg-it:disabled { cursor: default; }
+/* v0.6.42 (S2): escolhida, mover pelo título, janelas */
+.pl-seg.escolhida { border-color: var(--primary); box-shadow: var(--sh-2), 0 0 0 1px var(--primary); }
+.pl-seg .seg-cab { cursor: move; touch-action: none; }
+.pl-seg.sem-titulo { cursor: move; }
+.pl-seg-barra { z-index: 7; }
+.pl-jseg { width: min(420px, 96vw); }
+.pl-jseg .janela-r .sp { flex: 1; }
+.pl-jseg-lista { display: flex; flex-direction: column; gap: 2px; max-height: 300px; overflow: auto; }
+.pl-jseg-erro { margin: 4px 0 0; color: var(--crit); font-size: 12px; }
+.pl-seg .pl-obj-alca { right: 2px; bottom: 2px; border-radius: 3px; z-index: 1; } /* dentro do cartão (o cartão corta o que passa da borda) */
+@media (pointer: coarse) { .pl-seg .pl-obj-alca { right: 2px; bottom: 2px; } }

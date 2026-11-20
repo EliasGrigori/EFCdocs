@@ -25,7 +25,9 @@ const tocar = (S, c, s, texto, somar = false) => {
 test('ao abrir: as segmentações de tabela ficam na aba em que estão desenhadas, ligadas à tabela e à coluna', async () => {
   const { r, c, co, pa } = await abrir();
   assert.deepEqual(c.abas[co].seg.map((s) => [s.nome, s.tab, s.cn, s.cols]), [['Fruta', 'tabcoletas', 'Fruta', 1], ['Talhão', 'tabcoletas', 'Talhão', 2]]);
-  assert.deepEqual(c.abas[co].seg[0].a, { c1: 4, dx1: 4, l1: 1, dy1: 3, c2: 7, dx2: 0, l2: 11, dy2: 0 });
+  /* v0.6.42 (S2): o lugar fica como o dos objetos da grade (célula, folga e tamanho); o tamanho vem das duas células do Excel */
+  const sg = c.abas[co].seg[0], t = (await S()).tamanhoDaSeg(c.abas[co], { c1: 4, dx1: 4, l1: 1, dy1: 3, c2: 7, dx2: 0, l2: 11, dy2: 0 });
+  assert.deepEqual([sg.l, sg.c, sg.dx, sg.dy, sg.w, sg.h], [1, 4, 4, 3, t.w, t.h]);
   assert.equal(c.abas[pa].seg[0].titulo, 'Fruta da colheita');
   assert.match(r.relatorio.fora.find((x) => /Segmentações/.test(x.item)).detalhe, /as 3 segmentações de tabela aparecem e filtram a tabela/);
 });
@@ -84,7 +86,7 @@ test('a coluna é achada pelo título (inserir coluna na tabela não troca a col
   const { c, co } = await abrir(); const s = await S();
   const n = aplicarMud(c, estrutura(c, co, 'c', 1, 1)); n.abas[co].cel.B1 = { v: 'Lote' };
   assert.equal(s.colunaDaSeg(n, new Motor(n), n.abas[co].seg[0]).col, 2);
-  const a = c.abas[co].seg[0].a;
+  const a = { c1: 4, dx1: 4, l1: 1, dy1: 3, c2: 7, dx2: 0, l2: 11, dy2: 0 }; // as duas células da amostra
   assert.deepEqual(s.tamanhoDaSeg(c.abas[co], a), s.tamanhoDaSeg({ ...c.abas[co], ocL: {} }, a));
   assert.equal(s.tamanhoDaSeg(c.abas[co], a).h, 10 * 20 - 3, '10 linhas de 20 px menos a folga de cima');
 });
