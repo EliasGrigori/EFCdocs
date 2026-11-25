@@ -21,7 +21,8 @@ async function pagina(opc = {}, fixo = true) {
   return { ctx, p };
 }
 /* opacidade com que a camada nasce: congela as animações no começo e lê */
-const opacidadeAoNascer = (p, sel) => p.evaluate((s) => { const e = document.querySelector(s); if (!e) return null; for (const a of e.getAnimations()) { a.pause(); a.currentTime = 0; } return +getComputedStyle(e).opacity; }, sel);
+/* opacidade de verdade: a da camada vezes a de todos os pais (a janela fica dentro do fundo, que também anima) */
+const opacidadeAoNascer = (p, sel) => p.evaluate((s) => { const e = document.querySelector(s); if (!e) return null; for (const a of document.getAnimations()) { a.pause(); a.currentTime = 0; } let o = 1; for (let n = e; n && n.nodeType === 1; n = n.parentElement) o *= +getComputedStyle(n).opacity; return Math.round(o * 100) / 100; }, sel);
 const nomeContemTexto = (p, sel) => p.evaluate((s) => [...document.querySelectorAll(s)].map((e) => {
   const n = (t) => String(t || '').replace(/\s+/g, '').toLowerCase(); /* como o axe, sem contar os espaços entre as partes */
   const nome = n(e.getAttribute('aria-label') || e.textContent), vis = n(e.innerText);
@@ -130,6 +131,7 @@ for (const [w, quer] of [[1040, true], [1039, false]]) {
     const r = await p.evaluate(() => { const box = (s) => { const e = document.querySelector(s); if (!e) return null; const k = e.getBoundingClientRect(); return { l: Math.round(k.left), r: Math.round(k.right) }; }; return { vw: innerWidth, seg: box('[data-seg]'), barra: box('[data-seg-barra]'), alca: box('.pl-seg.escolhida .pl-obj-alca') }; });
     certo(r.seg && r.barra && r.alca, 'faltou peça: ' + JSON.stringify(r));
     certo(r.seg.r <= r.vw && r.barra.r <= r.vw && r.alca.r <= r.vw && r.barra.l >= 0, JSON.stringify(r));
+    certo(await p.locator('.janela').count() === 0, 'o toque abriu as Configurações sozinho (o clique caiu na engrenagem depois de rolar)');
     if (PRINTS) await p.screenshot({ path: `${PRINTS}/seg-celular.png` });
     return `segmentação até ${r.seg.r}, barra até ${r.barra.r}, tela ${r.vw}`;
   });

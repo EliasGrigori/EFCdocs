@@ -53,7 +53,7 @@ function andarTudo(d) { return readdirSync(d).flatMap((n) => { const c = join(d,
 const nav = await chromium.launch({ executablePath: CHROME });
 const a = await abrirSemeado(nav, BASE, {}); const p = a.page;
 /* as animações de um pedaço da tela: nome (ou id) e duração */
-const anims = (sel) => p.evaluate((sel) => { const el = typeof sel === 'string' ? document.querySelector(sel) : null; return el ? el.getAnimations().map((x) => ({ n: x.id || x.animationName || x.transitionProperty || '?', d: Math.round(x.effect.getTiming().duration) })) : null; }, sel);
+const anims = (sel) => p.evaluate((sel) => { const el = typeof sel === 'string' ? document.querySelector(sel) : null; return el ? el.getAnimations({ subtree: sel === '.fundo' }).map(/* v0.6.63: o escurecido do fundo é o ::before */(x) => ({ n: x.id || x.animationName || x.transitionProperty || '?', d: Math.round(x.effect.getTiming().duration) })) : null; }, sel);
 const tem = (l, nome, dur) => !!l && l.some((x) => x.n === nome && (dur === undefined || x.d === dur));
 /* tudo o que está se mexendo na página agora: nenhuma duração fora da escala */
 const foraDaEscala = () => p.evaluate((E) => document.getAnimations().map((x) => ({ n: x.id || x.animationName || x.transitionProperty || '?', d: Math.round(x.effect.getTiming().duration), it: x.effect.getTiming().iterations, alvo: x.effect.target && x.effect.target.className })).filter((x) => !(E.includes(x.d) || x.n === 't-shake' || /^t-subtle/.test(x.n) || x.n === 'eflPulsa' || x.n === 'eflGota' || /^efl/.test(x.n)) || (x.it === Infinity && x.n !== 'eflPulsa')), ESCALA);

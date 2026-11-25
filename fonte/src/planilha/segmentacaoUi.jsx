@@ -91,7 +91,12 @@ export function Segmentacoes({ c, abaId, G, tam, motor, mudar, avisar, perguntar
     const r = retDoObjeto(posDaSeg(aba, s), G), folga = 8;
     const dx = r.x + r.w > tam.W - folga ? Math.min(r.x + r.w - (tam.W - folga), Math.max(0, r.x - G.hw - folga)) : 0;
     const dy = r.y + r.h > tam.H - folga ? Math.min(r.y + r.h - (tam.H - folga), Math.max(0, r.y - G.hh - folga)) : 0;
-    if (dx > 0 || dy > 0) rolarPor(dx, dy);
+    if (dx <= 0 && dy <= 0) return;
+    /* o "clique" do toque chega depois da rolagem, no mesmo ponto da tela: lá agora pode estar a engrenagem da barra */
+    const engole = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+    document.addEventListener('click', engole, { capture: true, once: true });
+    setTimeout(() => document.removeEventListener('click', engole, { capture: true }), 500);
+    rolarPor(dx, dy);
   };
   let barra = null;
   const caixas = lista.map((s) => {

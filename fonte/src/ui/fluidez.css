@@ -36,7 +36,10 @@ body[data-theme] .tabs.fz-abas .tab.active { border-bottom-color: transparent; b
 .filtro-p { animation: t-dropdown-in var(--dropdown-open-dur) var(--dropdown-ease); transform-origin: top right; }
 
 /* d) confirmação: o fundo escurece */
-.fundo { animation: fzFundo var(--modal-open-dur) var(--ease-out); }
+/* v0.6.63 (J1, D-86): quem aparece aos poucos é só o escurecido (camada de trás, ::before); o fundo em si não fica transparente,
+   senão a janela de dentro nascia transparente junto com ele (0 × 0,85) e via-se a faixa e a grade através dela */
+.fundo { background-color: transparent !important; }
+.fundo::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgba(12, 26, 36, .30); pointer-events: none; animation: fzFundo var(--modal-open-dur) var(--ease-out); }
 @keyframes fzFundo { from { opacity: 0; } }
 
 /* e) aviso: o que sai fica por baixo do novo enquanto some; visto de sucesso */
@@ -66,7 +69,7 @@ body[data-theme] .tabs.fz-abas .tab.active { border-bottom-color: transparent; b
 
 @media (prefers-reduced-motion: reduce) {
   .fz-tt > span { animation: none; opacity: 1; filter: none; transform: none; }
-  .side, .app.cel .side, .filtro-p, .fundo, .fz-li, .fz-tema svg, .fz-spk i { animation: none !important; }
+  .side, .app.cel .side, .filtro-p, .fundo, .fundo::before, .fz-li, .fz-tema svg, .fz-spk i { animation: none !important; }
   .gv-corpo::after, .app.cel .rail::after { transition: none !important; }
 }
 

@@ -20,9 +20,11 @@ await tenta('j1', async () => {
   await p.goto(BASE + '#/'); await p.click('[data-novo=planilha]'); await p.waitForSelector('.pl-cv'); await p.waitForTimeout(500);
   for (const t of ['Item', 'Caixa', 'Bomba']) { await p.keyboard.type(t); await p.keyboard.press('Enter'); }
   await p.keyboard.press('ArrowUp'); await p.keyboard.press('ArrowUp'); await p.keyboard.press('ArrowUp');
-  await p.click('.tabs .tab:has-text("Inserir")'); await p.waitForTimeout(500); await p.locator('.ribbon [data-cmd="inserir.tabela"]:visible').first().click();
-  await p.waitForSelector('.pl-jtab'); await p.evaluate(() => { for (const a of document.getAnimations()) { a.pause(); a.currentTime = 0; } });
-  await p.screenshot({ path: `${SAI}/01-j1-janela.png`, clip: { x: 300, y: 60, width: 760, height: 520 } });
+  await p.click('.tabs .tab:has-text("Inserir")'); await p.waitForTimeout(500);
+  /* câmera 50 vezes mais lenta: o print sai 2 ms (de animação) depois do clique, como o print logo depois do clique dos relatórios */
+  const cdp = await ctx.newCDPSession(p); await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.02 });
+  await p.locator('.ribbon [data-cmd="inserir.tabela"]:visible').first().click(); await p.waitForSelector('.pl-jtab'); await p.waitForTimeout(100);
+  await p.screenshot({ path: `${SAI}/01-j1-janela.png` });
   await ctx.close();
 });
 /* 2) V56-04 e 3) post-it mínimo (celular com toque; o contorno vermelho mostra a área do toque da caixinha) */
@@ -30,7 +32,6 @@ await tenta('caixinha e minimo', async () => {
   const { ctx, p } = await pg({ viewport: { width: 1366, height: 768 }, hasTouch: true, deviceScaleFactor: 2 });
   await p.goto(BASE + '#/postits'); await p.click('[data-novo=postits]'); await p.waitForSelector('.qd-vazio'); await p.waitForTimeout(300);
   await novoPostit(p, 'Encolher');
-  await p.click('.tab:has-text("Exibir")'); const cx = p.locator('[data-cmd="exibir.caixas"]').first(); if (await cx.count()) await cx.click(); await p.waitForTimeout(200);
   const it = p.locator('.qi-postit:has-text("Encolher")'); await it.click(); await p.waitForTimeout(150);
   const al = await p.locator('.qd-alca').boundingBox();
   await p.mouse.move(al.x + al.width / 2, al.y + al.height / 2); await p.mouse.down(); await p.mouse.move(al.x - 400, al.y - 400, { steps: 8 }); await p.mouse.up(); await p.waitForTimeout(200);
@@ -83,7 +84,6 @@ await tenta('documento', async () => {
   await p.goto(BASE + '#/'); await p.click('[data-novo=docx]'); await p.waitForTimeout(1200);
   await p.screenshot({ path: `${SAI}/12-documento-1366.png` });
   const r = await p.locator('.ribbon [data-cmd="editar.recortar"]').first().boundingBox();
-  const ctx2 = await nav.newContext({ viewport: { width: 1366, height: 768 }, reducedMotion: 'reduce', deviceScaleFactor: 3 }); void ctx2; await ctx2.close();
   await p.screenshot({ path: `${SAI}/13-recortar.png`, clip: { x: r.x - 70, y: r.y - 12, width: 260, height: 100 } });
   await ctx.close();
 });
