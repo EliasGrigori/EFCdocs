@@ -466,3 +466,6 @@ F464;Planilha;excel;"Segmentação feita no app vai para o arquivo do Excel e vo
 F465;Planilha;grade;"Linhas e colunas escondidas até o fim (Ctrl+9/Ctrl+0, menu do cabeçalho, ou vindas do Excel com zeroHeight/faixa até a XFD): a grade não pesa, salva como o Excel e volta igual";funciona;"v0.6.45; esconder/reexibir/filtrar com 1 milhão de linhas escondidas: 0,3 a 0,8 s (L-23)";manter;v0.6.45
 F466;Planilha;objetos;"Objeto preso na parte congelada (imagem, gráfico, forma, botão, assinatura) aparece inteiro; ao rolar, a parte de cima fica e a de baixo rola, como no Excel";funciona;"v0.6.46; segmentação de dados não mexida";manter;v0.6.46
 F467;Planilha;validação;"Lista suspensa fecha quando a planilha rola, como no Excel";funciona;v0.6.46;manter;v0.6.46
+F471;Quadro;fundo;"Fundo de bolinhas numa camada só, que anda com o arrasto e o zoom";funciona;"v0.6.48 (D-76)";manter;v0.6.48
+F472;Quadro;formas;"Código e ícones da forma Início/Fim ficam fora da curva, na tela, no PDF e na imagem";funciona;"v0.6.48 (D-77)";manter;v0.6.48
+F473;Quadro;seleção;"Moldura de seleção colada no item, com a alça no canto (como no PowerPoint)";funciona;"v0.6.48 (D-78)";manter;v0.6.48

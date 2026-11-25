@@ -289,7 +289,7 @@ function desenharItem(ctx, it, opcoes) {
     ctx.font = `600 10px ${FONTE}`;
     ctx.fillStyle = 'rgba(31,35,40,.55)';
     ctx.textAlign = 'left';
-    const cx = it.tipo === 'decisao' ? it.x + it.w / 2 - 16 : it.tipo === 'inicio' ? it.x + it.h / 2 : it.x + 6;
+    const cx = it.tipo === 'decisao' ? it.x + it.w / 2 - 16 : it.tipo === 'inicio' ? it.x + Math.min(it.h, it.w) / 2 : it.x + 6;
     ctx.fillText(it.cod, cx, it.y + (it.tipo === 'decisao' ? 22 : 13));
   }
   ctx.restore();

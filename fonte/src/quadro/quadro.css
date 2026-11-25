@@ -44,6 +44,8 @@ body.relevo .navcel { box-shadow: inset 0 1px #ffffff0f, 0 -3px 10px -6px #00000
   background-image: radial-gradient(var(--border-light) 1px, transparent 1.3px); cursor: default; outline: none;
 }
 .qd-area.modo-seta, .qd-area.modo-pincel { cursor: crosshair; }
+/* v0.6.48 (D-76): no Quadro, as bolinhas são só as da área (andam com o arrasto e o zoom); as da superfície por baixo ficavam paradas e apareciam como uma segunda camada desalinhada */
+.sup-postits[data-vista=quadro] { background-image: none; }
 .qd-mundo { position: absolute; left: 0; top: 0; width: 1px; height: 1px; transform-origin: 0 0; }
 
 .qi { position: absolute; box-sizing: border-box; color: #1f2328; font-size: 14px; line-height: 1.3; }
@@ -78,12 +80,12 @@ body.relevo .navcel { box-shadow: inset 0 1px #ffffff0f, 0 -3px 10px -6px #00000
   color: rgba(31,35,40,.72); pointer-events: none; font-variant-numeric: tabular-nums; /* v0.6.32 (PL08): contraste de 5,2 a 6,2 em todas as cores */
 }
 .qi-decisao .qi-cod { left: 50%; transform: translateX(-50%); top: 12%; }
-.qi-inicio .qi-cod { left: 18px; }
+.qi-inicio .qi-cod { top: 5px; } /* v0.6.48 (D-77): a distância da esquerda vem do raio da curva (partes.jsx), como no PDF */
 .qi-dados .qi-cod { left: 20px; }
 .qi-marcas { position: absolute; right: 4px; top: 3px; display: flex; gap: 2px; color: rgba(31,35,40,.6); }
 .qi-marcas svg { width: 13px; height: 13px; }
 .qi-marcas a { color: inherit; pointer-events: auto; }
-.qi.sel { outline: 2px solid var(--primary); outline-offset: 3px; }
+.qi.sel { outline: 2px solid var(--primary); outline-offset: 0; } /* v0.6.48 (D-78): moldura colada no item (a 3 px parecia uma segunda caixa deslocada e a alça ficava fora do canto), como no PowerPoint */
 .qi-raia.sel { outline-offset: -2px; }
 
 .qd-setas { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; z-index: 5000; pointer-events: none; }
