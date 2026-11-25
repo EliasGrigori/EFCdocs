@@ -472,3 +472,4 @@ F470;Planilha;grade;"Cursor do cabeçalho como o do Excel: seta para baixo na le
 F471;Quadro;fundo;"Fundo de bolinhas numa camada só, que anda com o arrasto e o zoom";funciona;"v0.6.48 (D-76)";manter;v0.6.48
 F472;Quadro;formas;"Código e ícones da forma Início/Fim ficam fora da curva, na tela, no PDF e na imagem";funciona;"v0.6.48 (D-77)";manter;v0.6.48
 F473;Quadro;seleção;"Moldura de seleção colada no item, com a alça no canto (como no PowerPoint)";funciona;"v0.6.48 (D-78)";manter;v0.6.48
+F474;Planilha;abas;"Aba muito oculta (veryHidden) do Excel fica fora do menu Reexibir e volta muito oculta ao salvar";funciona;"v0.6.49 (D-79)";manter;v0.6.49

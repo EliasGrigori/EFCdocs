@@ -1724,8 +1724,8 @@ export function Planilha({ arquivo, cx }) {
       aoConfirmar: (t) => { if (t !== a.nome) mudar(O.renomearAba(c, id, t), `Renomear aba ${a.nome} para ${t}`); },
     });
     if (direto === 'renomear') { renomear(); return; }
-    const ocultas = c.ordem.filter((x) => c.abas[x].oculta);
-    const visiveis = c.ordem.length - ocultas.length;
+    const ocultas = c.ordem.filter((x) => c.abas[x].oculta && c.abas[x].oculta !== 'muito'); /* v0.6.49 (D-79): a muito oculta do Excel não aparece em Reexibir */
+    const visiveis = c.ordem.filter((x) => !c.abas[x].oculta).length;
     setMenu({
       x: pos ? pos.x : 100, y: pos ? pos.y - 280 : 100,
       itens: somenteLeitura ? [{ nome: 'Seu perfil só permite ver', ic: 'ver', fazer: () => {}, desligado: 'Só leitura' }] : [

@@ -399,7 +399,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   const nomes = Object.values(c.nomes || {}).filter((n) => n && n.n && n.ref);
   const wb = `${XML_CAB}<workbook xmlns="${NS}" xmlns:r="${NS_R}"><workbookPr/>` +
     `<bookViews><workbookView activeTab="${primeiraVisivel}"/></bookViews><sheets>` +
-    abas.map((a, i) => `<sheet name="${escapar(a.nome, true)}" sheetId="${i + 1}"${a.oculta ? ' state="hidden"' : ''} r:id="rId${i + 1}"/>`).join('') +
+    abas.map((a, i) => `<sheet name="${escapar(a.nome, true)}" sheetId="${i + 1}"${a.oculta === 'muito' ? ' state="veryHidden"' : a.oculta ? ' state="hidden"' : ''} r:id="rId${i + 1}"/>`).join('') +
     '</sheets>' +
     (nomes.length || nomesImp.length ? `<definedNames>${nomesImp.map((n) => `<definedName name="${n.nome}" localSheetId="${n.ia}"${n.oculto ? ' hidden="1"' : ''}>${escapar(n.ref)}</definedName>`).join('')}${nomes.map((n) => { const li = n.loc ? c.ordem.indexOf(n.loc) : -1; return `<definedName name="${escapar(n.n, true)}"${li >= 0 ? ` localSheetId="${li}"` : ''}>${escapar(porPrefixos(n.ref))}</definedName>`; }).join('')}</definedNames>` : '') +
     '<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>';
