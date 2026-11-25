@@ -86,6 +86,8 @@ function sai(no, pai, antes, s) {
   no.getAnimations().forEach((a) => a.cancel());
   no.style.animation = 'none';
   pai.insertBefore(no, antes && antes.parentNode === pai ? antes : null);
+  /* v0.6.65 (V4): a gaveta que sai flutua por cima, no mesmo lugar; o conteúdo toma o espaço na hora (antes ficava uma faixa vazia até ela sumir) */
+  if (s.tipo === 'gaveta' && !no.closest('.app.cel')) { const r = no.getBoundingClientRect(); Object.assign(no.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', margin: '0', zIndex: '40' }); }
   const dur = ms(s.dura, s.pad), tira = () => { if (no.parentNode) no.remove(); };
   const a = no.animate([{}, s.para(no)], { duration: dur, easing: SUAVE, fill: 'forwards' }); a.id = 'fz-sai';
   if (s.dentro) { const d = no.querySelector(s.dentro); if (d) { d.style.animation = 'none'; d.animate([{}, s.paraDentro], { duration: dur, easing: SUAVE, fill: 'forwards' }); } }

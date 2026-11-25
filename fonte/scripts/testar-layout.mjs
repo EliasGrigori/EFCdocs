@@ -208,12 +208,14 @@ await caso('Kanban novo · o cartão é o post-it (papel da cor escolhida), sem 
   await montarKanban(p, BASE);
   const t = await TARJAS(p); certo(t.length === 0, 'tarja no Kanban: ' + t.slice(0, 3).join(' | '));
   const m = await p.evaluate(() => { const cs = [...document.querySelectorAll('.kb-card')].map((k) => { const c = getComputedStyle(k); return { fundo: c.backgroundColor, esq: c.borderLeftWidth, cima: c.borderTopWidth }; });
-    return { cs, and: document.querySelector('[data-kb-andamento]').innerText.replace(/\s+/g, ' '), venc: document.querySelectorAll('[data-kb-vencidos]').length, caixa: [...document.querySelectorAll('.kb-card .efl-pilula.cr')].map((x) => getComputedStyle(x).backgroundColor), pontos: document.querySelectorAll('.kb-card .efl-pilula:not(.cr)').length, ini: [...document.querySelectorAll('.kb-resp:not(.sem) i')].map((x) => x.textContent) }; });
+    return { cs, and: document.querySelector('[data-kb-andamento]').innerText.replace(/\s+/g, ' '), venc: document.querySelectorAll('[data-kb-vencidos]').length, caixa: [...document.querySelectorAll('.kb-card .efl-pilula.cr')].map((x) => getComputedStyle(x).backgroundColor), pontos: document.querySelectorAll('.kb-card .efl-pilula:not(.cr)').length, resp: [...document.querySelectorAll('.kb-card .kb-resp')].map((x) => ({ t: x.textContent.trim(), ic: !!x.querySelector('svg'), bola: !!x.querySelector('i') })), sem: /Sem responsável|Sem prazo/.test(document.querySelector('.kb').innerText) }; });
   certo(m.cs.length === 6 && new Set(m.cs.map((x) => x.fundo)).size === 6, 'cada cartão devia ter o papel da sua cor: ' + JSON.stringify(m.cs.map((x) => x.fundo)));
   certo(m.cs.every((x) => x.esq === x.cima), 'borda esquerda diferente das outras'); certo(!m.cs.some((x) => x.fundo === 'rgb(255, 255, 255)'), 'cartão branco');
   certo(m.and.includes('6 post-its') && m.and.includes('1 de 6') && m.and.includes('17%'), 'andamento: ' + m.and); certo(m.venc === 1, 'selo de vencidos');
   certo(m.caixa.length === 1 && m.caixa[0] !== 'rgba(0, 0, 0, 0)', 'o vencido devia estar em caixa: ' + m.caixa); certo(m.pontos >= 2, 'prazos com ponto: ' + m.pontos);
-  certo(m.ini.includes('AL') && m.ini.includes('BS'), 'iniciais: ' + m.ini);
+  /* v0.6.65 (V2): responsável com o ícone de pessoa e o nome, sem a bolinha de iniciais; sem "Sem responsável" e "Sem prazo" */
+  certo(m.resp.some((x) => x.t === 'Ana Lima') && m.resp.some((x) => x.t === 'Bruno Sá') && m.resp.every((x) => x.ic && !x.bola), 'responsável: ' + JSON.stringify(m.resp));
+  certo(!m.sem, 'o cartão ainda mostra "Sem responsável" ou "Sem prazo"');
 });
 await caso('Kanban novo · ao mover um cartão de coluna, os vizinhos deslizam (250 ms), o post-it voa até a vaga e o andamento muda', async () => {
   const ctxM = await abrirSemeado(nav, BASE, {}); const q = ctxM.page;

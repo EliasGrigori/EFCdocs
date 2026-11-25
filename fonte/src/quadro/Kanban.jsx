@@ -12,31 +12,65 @@ import { resumoTarefa } from './tarefa.js';
 import { AVISO_TRAVADO } from './arrumar.js'; /* v0.6.61 */
 import { COR, porColuna, mudancasMoverKanban, adicionarColuna, renomearColuna, removerColuna, moverColuna, novoItem, vagaKanban, mudancasCampo, mudancasExcluir } from './modelo.js';
 import { tituloDe } from './postit.js'; /* v0.6.51: título do post-it no cartão */
+import { texturaDo, estiloTextura, pecasTextura } from './texturas.js'; /* v0.6.65 (V3): a textura do Quadro no cartão */
+import { familiaDo, escalaDo, garantirFonte } from './fontesQ.js'; /* v0.6.65 (V3): a letra do Quadro no cartão */
+import { respostasDe } from './comentario.js';
+import { validarNome } from '../nucleo/modelo.js';
 
-/** As iniciais de quem responde, para a bolinha do cartão ("Ana Lima" → "AL"). */
-const iniciais = (nome) => String(nome).trim().split(/\s+/).filter(Boolean).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
 const NIVEL = { alta: 3, media: 2, baixa: 1 };
 
-/** O rodapé da tarefa no cartão do Kanban: quem responde, o prazo (ponto e texto; caixa só no vencido) e a prioridade. */
-function TarefaCartao({ t }) {
+/** v0.6.65 (V2): o rodapé do cartão só com o que existe: quem responde (ícone de pessoa e nome), o prazo, o GUT e os comentários.
+    Saíram o "Sem responsável", o "Sem prazo" e a bolinha de iniciais (regra da auditoria visual). */
+function PeCartao({ t, coments }) {
+  const resp = t && t.resp, prazo = t && t.prazo, gut = t && t.gut > 0;
+  if (!resp && !prazo && !gut && !coments) return null;
   return (
-    <div className="qi-tarefa kb-tarefa">
-      <span className={'kb-resp' + (t.resp ? '' : ' sem')} title={t.resp ? 'Responsável: ' + t.resp : 'Sem responsável'}>
-        <i aria-hidden="true">{t.resp ? iniciais(t.resp) : '?'}</i><span>{t.resp || 'Sem responsável'}</span>
-      </span>
-      {t.prazo
-        ? <span className={'efl-pilula ' + (t.vencida ? 'cr' : t.concluida ? 'ok' : '')}>{t.vencida ? 'Vencido ' + t.prazo : t.prazo}</span>
-        : <span className="kb-semprazo">Sem prazo</span>}
-      {t.gut > 0 && (
+    <div className="kb-pe">
+      {resp && <span className="kb-resp" title={'Responsável: ' + t.resp}><Icone n="usuario" /><span>{t.resp}</span></span>}
+      {prazo && <span className={'efl-pilula ' + (t.vencida ? 'cr' : t.concluida ? 'ok' : '')}>{t.vencida ? 'Vencido ' + t.prazo : t.prazo}</span>}
+      {gut && (
         <span className={'kb-gut n' + (NIVEL[t.nivel] || 0)} title={'Nota GUT ' + t.gut + ' · prioridade ' + t.nivel}>
           <svg viewBox="0 0 14 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1" /><rect x="5.5" y="4" width="3" height="8" rx="1" /><rect x="11" y="0" width="3" height="12" rx="1" /></svg>GUT {t.gut}
         </span>
       )}
+      {coments > 0 && <span className="kb-coments" title={coments === 1 ? '1 comentário' : coments + ' comentários'}><Icone n="comentario" />{coments}</span>}
     </div>
   );
 }
 
-export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codigos, hoje }) {
+/** v0.6.65 (V1): o nome do quadro em cima das colunas; um clique muda, como o nome na barra de cima. */
+function NomeQuadro({ ficha, cx }) {
+  const [editando, setEditando] = useState(false);
+  const [nome, setNome] = useState(ficha ? ficha.nome : '');
+  const [erro, setErro] = useState('');
+  useEffect(() => { if (ficha) setNome(ficha.nome); }, [ficha && ficha.nome]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!ficha) return null;
+  const bloq = cx.bloqueado('arquivo.renomear');
+  if (!editando) return <button type="button" className="kb-titulo" data-kb-titulo title={bloq || 'Clique para renomear o quadro'} disabled={!!bloq} onClick={() => setEditando(true)}>{ficha.nome}</button>;
+  const terminar = (salvar) => {
+    if (salvar) { const e = validarNome(nome); if (e) { setErro(e); return; } if (nome.trim() !== ficha.nome) cx.renomear(nome.trim()); }
+    setEditando(false); setErro(''); setNome(ficha.nome);
+  };
+  return (
+    <span className="kb-titulo-ed">
+      <input className="kb-titulo" aria-label="Nome do quadro" autoFocus value={nome} maxLength={120}
+        onChange={(ev) => { setNome(ev.target.value); setErro(''); }}
+        onKeyDown={(ev) => { if (ev.key === 'Enter') terminar(true); if (ev.key === 'Escape') { ev.stopPropagation(); terminar(false); } }}
+        onBlur={() => terminar(true)} />
+      {erro && <span className="erro-t" role="alert">{erro}</span>}
+    </span>
+  );
+}
+
+/** v0.6.65 (V3): a textura e a letra escolhidas no Quadro também no cartão (o tamanho do cartão é o do Kanban). */
+function papelDoCartao(it) {
+  const cor = COR[it.cor] || COR.amarelo, tex = texturaDo(it) || 'liso', medida = { ...it, w: 260, h: 96 };
+  const style = { '--kb-cor': cor, backgroundColor: cor, ...estiloTextura(medida, cor, escalaDo(it)) };
+  if (familiaDo(it)) garantirFonte(familiaDo(it));
+  return { tex, style, pecas: pecasTextura(medida, cor), letra: familiaDo(it) ? { fontFamily: `"${familiaDo(it)}", var(--f, sans-serif)`, fontSize: +(15 * escalaDo(it)).toFixed(2) } : null };
+}
+
+export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codigos, hoje, ficha }) {
   const grupos = porColuna(c);
   const [editando, setEditando] = useState(null);
   /* v0.6.64: o arrasto mexe só no DOM (kanbanArrasto.js); o React fica sabendo no fim, com a coluna e o lugar */
@@ -128,6 +162,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
   return (
     <div className="kb" ref={palco}>
       <header className="kb-and" data-kb-andamento aria-label="Andamento do quadro">
+        <NomeQuadro ficha={ficha} cx={cx} />
         <b>{todos.length} {todos.length === 1 ? 'post-it' : 'post-its'}</b>
         {c.colunas.length > 1 && todos.length > 0 && <span className="kb-and-barra" role="img" aria-label={`${pct}% feito`}><i style={{ transform: `scaleX(${pct / 100})` }} /></span>}
         {c.colunas.length > 1 && todos.length > 0 && <span className="kb-and-pct">{feitos} de {todos.length} em “{c.colunas[c.colunas.length - 1].nome}” · {pct}%</span>}
@@ -150,31 +185,31 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
               )}
             </header>
             <div className="kb-lista">
-              {lista.map((it) => (
+              {lista.map((it) => { const papel = papelDoCartao(it); return (
                 <div key={it.id} className="kb-item">
-                  <article className={'kb-card' + (sel.itens.includes(it.id) ? ' sel' : '')}
-                    data-item={it.id} style={{ '--kb-cor': COR[it.cor] || COR.amarelo }}
+                  <article className={'kb-card qi-tex-' + papel.tex + (sel.itens.includes(it.id) ? ' sel' : '')}
+                    data-item={it.id} style={papel.style}
                     onPointerDown={(ev) => baixo(ev, it)}
                     onDoubleClick={() => { if (!somenteLeitura) setEditando({ id: it.id, valor: it.texto }); }}>
+                    {papel.pecas.map((pc, i) => <span key={'p' + i} className={pc.cls} aria-hidden="true" style={pc.style} />)}
                     {!somenteLeitura && (it.trava ? <span className="kb-trava" title="Travado" aria-label="Travado" data-trava={it.id}><Icone n="cadeado" /></span> : <span className="kb-alca" title="Arraste para outra coluna" aria-hidden="true"><Icone n="mao" /></span>)}
                     {!somenteLeitura && !it.trava && sel.itens.includes(it.id) && !(editando && editando.id === it.id) && (
                       <button type="button" className="kb-lixo" title="Excluir o post-it" aria-label={'Excluir o post-it ' + (it.cod || '')} data-kb-excluir={it.id}
                         onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); excluirCartao(it); }}><Icone n="lixeira" /></button>
                     )}
                     {codigos && <span className="kb-cod">{it.cod}</span>}
-                    {tituloDe(it) && <b className="kb-tit">{tituloDe(it)}</b>}
+                    {tituloDe(it) && <b className="kb-tit" style={papel.letra ? { fontFamily: papel.letra.fontFamily } : undefined}>{tituloDe(it)}</b>}
                     {editando && editando.id === it.id ? (
                       <textarea className="kb-edita" autoFocus value={editando.valor} aria-label="Texto do post-it"
                         onChange={(ev) => setEditando({ ...editando, valor: ev.target.value })}
                         onPointerDown={(ev) => ev.stopPropagation()}
                         onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); terminarEdicao(true); } /* v0.6.26 (D15) */ if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) terminarEdicao(true); }}
                         onBlur={() => terminarEdicao(true)} />
-                    ) : <p style={{ fontWeight: it.fonte && it.fonte.n ? 700 : undefined, fontStyle: it.fonte && it.fonte.i ? 'italic' : undefined, color: it.fonte && it.fonte.cor }}>{it.texto || <span className="kb-vazio">Sem texto. Toque duas vezes para escrever.</span>}</p>}
-                    {(() => { const r = resumoTarefa(c, it, hoje); return r && <TarefaCartao t={r} />; })()}
-                    {it.nota && <span className="kb-nota" title={'Comentário: ' + it.nota}><Icone n="comentario" /></span>}
+                    ) : <p style={{ ...(papel.letra || {}), fontWeight: it.fonte && it.fonte.n ? 700 : undefined, fontStyle: it.fonte && it.fonte.i ? 'italic' : undefined, color: it.fonte && it.fonte.cor }}>{it.texto || <span className="kb-vazio">Sem texto. Toque duas vezes para escrever.</span>}</p>}
+                    <PeCartao t={resumoTarefa(c, it, hoje)} coments={(it.nota ? 1 : 0) + respostasDe(it).length} />
                   </article>
                 </div>
-              ))}
+              ); })}
               {!lista.length && <p className="kb-sem">{somenteLeitura ? 'Nada aqui.' : 'Arraste um post-it para cá.'}</p>}
             </div>
             {!somenteLeitura && <button type="button" className="kb-novo" onClick={() => novoNaColuna(k.id)}><Icone n="plus" />Post-it</button>}

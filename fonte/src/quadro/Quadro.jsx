@@ -980,7 +980,7 @@ export function Quadro({ arquivo, cx }) {
       {somenteLeitura && <div className="qd-modo leitura"><Icone n="ver" />{cx.travado && cx.travado.motivo === 'conflito' ? 'Em espera: escolha no aviso do topo o que fazer.' : cx.travado ? 'Só para ver' : 'Só leitura: seu perfil de teste não edita o quadro.'}</div>}
 
       {vista === 'kanban' ? (
-        <KanbanVista c={c} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} sel={selValida} setSel={setSel} cx={cx} codigos={qp.codigos} hoje={hoje} />
+        <KanbanVista c={c} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} sel={selValida} setSel={setSel} cx={cx} codigos={qp.codigos} hoje={hoje} ficha={ficha} />
       ) : (
         <div className={'qd-area' + (modo ? ' modo-' + modo.tipo : '') + (fundoValido(c.fundo).cor !== 'padrao' ? ' com-cor' : '')} ref={areaRef} data-fundo={fundoValido(c.fundo).tipo}
           style={estiloDoFundo(c.fundo, view)}

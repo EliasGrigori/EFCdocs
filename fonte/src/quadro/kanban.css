@@ -80,3 +80,36 @@
 .kb-lista:has(> .kb-vaga-viva) > .kb-sem { display: none; }
 .kb-arrastando { cursor: grabbing; }
 .kb-arrastando .kb-card:hover { transform: none; }
+/* v0.6.65 (V1): cada coluna é uma raia de fundo claro e cantos redondos; o nome do quadro fica em cima, ao lado do andamento */
+.kb-col { background: rgba(255, 255, 255, .55); border: 1px solid rgba(0, 0, 0, .05); border-radius: var(--r-card, 10px); padding: 10px 10px 8px; box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset; }
+[data-theme="dark"] .kb-col { background: rgba(255, 255, 255, .04); border-color: rgba(255, 255, 255, .07); box-shadow: none; }
+.kb-col.alvo { box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset; }
+.kb-col.alvo .kb-lista { background: transparent; }
+.kb-arrastando .kb-col.alvo { background: rgba(255, 255, 255, .82); }
+[data-theme="dark"] .kb-arrastando .kb-col.alvo { background: rgba(255, 255, 255, .08); }
+.kb-h { padding: 2px 4px 8px; }
+.kb-parte { display: none; }
+.kb-lista { padding: 2px 0 6px; }
+.kb-titulo { font-family: var(--fh); font-size: 22px; font-weight: 600; color: var(--text); background: transparent; border: 1px solid transparent; border-radius: var(--r-ctl, 8px); padding: 1px 8px; margin-left: -9px; max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
+.kb-titulo:hover:not(:disabled) { border-color: var(--border); background: rgba(255, 255, 255, .6); }
+input.kb-titulo { min-width: 240px; outline: none; background: var(--surface); border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.kb-titulo-ed { display: inline-grid; }
+/* v0.6.65 (V2): rodapé só com o que existe */
+.kb-pe { position: relative; z-index: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin: 9px -2px -2px; padding: 7px 2px 0; border-top: 1px solid rgba(0, 0, 0, .10); font-size: 12.5px; color: #3d434a; }
+.kb-pe .kb-resp { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-weight: 600; }
+.kb-pe .kb-resp svg, .kb-coments svg { width: 14px; height: 14px; flex: none; }
+.kb-pe .efl-pilula { font-size: 12.5px; color: #344054; }
+.kb-pe .efl-pilula.cr { color: var(--on-primary, #fff); background: var(--crit); }
+.kb-pe .kb-gut { margin-left: 0; }
+.kb-coments { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+/* v0.6.65 (V3): a textura e a letra do Quadro no cartão (as mesmas peças do post-it; o texto fica por cima do papel) */
+.kb-card > p, .kb-card > .kb-tit, .kb-card > .kb-edita { position: relative; z-index: 1; }
+.kb-card.qi-tex-liso { box-shadow: 0 1px 2px rgba(40, 30, 10, .08), 0 6px 12px -4px rgba(40, 30, 10, .18); }
+.kb-card.qi-tex-dobrado { box-shadow: none; border: 0; border-radius: 4px 4px 0 4px; filter: drop-shadow(0 4px 6px rgba(40, 30, 10, .16)); }
+.kb-card.qi-tex-amassado, .kb-card.qi-tex-rasgado { box-shadow: none; border: 0; filter: drop-shadow(0 1px 2px rgba(16, 24, 40, .12)) drop-shadow(0 4px 8px rgba(16, 24, 40, .14)); }
+.kb-card.qi-tex-rasgado .qi-tex-papel { border-radius: 4px 4px 0 0; }
+.kb-card.qi-tex-destaque > p { background: linear-gradient(104deg, rgba(253, 224, 71, 0) .9%, rgba(250, 204, 21, .55) 2.4%, rgba(250, 204, 21, .45) 95%, rgba(253, 224, 71, 0) 99%); padding: 1px 6px; border-radius: 4px; -webkit-box-decoration-break: clone; box-decoration-break: clone; display: inline; }
+.kb-card.qi-tex-clipe .kb-alca { right: 34px; }
+.kb-card.qi-tex-pautado { padding-left: 34px; } /* o texto começa depois da margem vermelha, como no Quadro */
+.kb-card.qi-tex-pautado > p { font-size: 14px; line-height: 18.2px; margin-top: -4.8px; } /* uma linha de texto por linha do papel */
+.kb-card.qi-tex-pautado .kb-cod { left: 34px; }
