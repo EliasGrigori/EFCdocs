@@ -486,7 +486,7 @@ F484;Quadro;comentário;"Comentário estilo Word: balãozinho no canto do item, 
 F485;Quadro;edicao;"Códigos Q-001 sem buracos: ao excluir, os que ficam são numerados de novo na mesma ordem (Ctrl+Z volta)";funciona;"v0.6.56 (D-84)";manter;pedido do Elias 25/11
 F486;Quadro;formas;"Atividade e Entrada/Saída com código: o código não encosta no texto de 3 linhas (tela e PDF)";funciona;"v0.6.56 (D-83)";manter;v0.6.56
 F487;Quadro;formatar;"Caixa Letra no Quadro: 5 letras de licença livre (à mão, bilhete, arredondada, com serifa, máquina), baixadas só quando usadas; tela e PDF iguais";funciona;"v0.6.57 (proposta 7)";manter;pedido do Elias 24/11
-F488;Quadro;formatar;"Textura do post-it: ponta dobrada, amassado e mancha de café (anel, como as de verdade); tela e PDF";funciona;"v0.6.57 (proposta 5)";manter;pedido do Elias 24/11
+F488;Quadro;formatar;"Textura do post-it: 12 opções (liso, ponta dobrada, amassado, café, fita, pautado, quadriculado, alfinete, rasgado, kraft, clipe, marca-texto); tela e PDF";funciona;"v0.6.57 (proposta 5); v0.6.62 (catálogo do Elias)";manter;pedido do Elias 24/11
 F489;Planilha;excel;"Forma com foto de fundo (blipFill): aparece com a foto e volta igual ao salvar";funciona;"v0.6.58 (D-30)";manter;D-30
 F490;Planilha;tabelas;"Estilo de tabela próprio do arquivo (tableStyles + dxf): desenhado e gravado de volta";funciona;"v0.6.58 (D-17)";manter;D-17
 F491;Quadro;organizar;"Alinhar itens escolhidos (esquerda, centro, direita, em cima, ao meio, embaixo)";funciona;"v0.6.59";manter;ideia de 24/11 (Doory)

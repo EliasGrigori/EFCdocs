@@ -11,7 +11,7 @@ import { linhasLegenda } from './legenda.js';
 import { tituloDe, linhasQueCabem } from './postit.js';
 import { MarcadorComentario } from './comentarioQuadro.jsx';
 import { familiaDo, escalaDo, garantirFonte } from './fontesQ.js'; /* v0.6.57 */
-import { texturaDo, estiloTextura, tamanhoDobra } from './texturas.js';
+import { texturaDo, estiloTextura, pecasTextura } from './texturas.js';
 export { linhasQueCabem };
 
 const estiloTexto = (it) => {
@@ -88,14 +88,14 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, fe
   const forma = FORMAS.includes(it.tipo);
   const style = { left: it.x, top: it.y, width: it.w, height: it.h, zIndex: zi };
   if (it.tipo === 'postit') style.backgroundColor = COR[it.cor] || COR.amarelo; /* v0.6.60 (D-85): só a cor; com o atalho "background", trocar a cor apagava a imagem da textura */
-  const tex = texturaDo(it); if (tex) Object.assign(style, estiloTextura(it, style.backgroundColor)); /* v0.6.57 */
+  const corP = style.backgroundColor, tex = it.tipo === 'postit' ? texturaDo(it) || 'liso' : null; if (tex) Object.assign(style, estiloTextura(it, corP, escalaDo(it))); /* v0.6.57; v0.6.62: o liso também tem papel (texturas.js) */
   if (familiaDo(it)) garantirFonte(familiaDo(it)); /* baixa a letra na primeira vez (fica guardada) */
   const tit = tituloDe(it);
   const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '') + (tit ? ' qi-titulado' : '') + (caixa ? ' qi-com-caixa' : '') + (feito ? ' qi-feito' : '') + (codigos && it.cod && ['inicio', 'processo', 'dados'].includes(it.tipo) ? ' qi-com-cod' : '') + (tex ? ' qi-tex-' + tex : '');
   return (
     <div className={classe} data-item={it.id} data-cod={it.cod || undefined} style={style}>
       {forma && <FormaSvg it={it} />}
-      {tex === 'dobrado' && <span className="qi-aba" aria-hidden="true" style={{ width: tamanhoDobra(it), height: tamanhoDobra(it) }} />}
+      {tex && pecasTextura(it, corP).map((pc, i) => <span key={i} className={pc.cls} aria-hidden="true" style={pc.style} />)}
       {it.trava && <span className="qi-trava" title="Travado" aria-label="Travado" data-trava={it.id}><Icone n="cadeado" /></span>}
       {it.tipo === 'imagem' && (it.src ? <img src={it.src} alt={it.texto || 'Imagem'} draggable="false" /> : <span className="qi-semimg"><Icone n="imagem" /></span>)}
       {it.tipo === 'assinatura' && <AssinaturaView nome={it.texto} rub={it.rub} w={it.w} h={it.h} />}

@@ -494,9 +494,25 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .qd-quebra-area span { left: auto; top: auto; right: 6px; bottom: 4px; color: #475467; }
 body[data-theme=dark] .qd-quebra-folha span, body[data-theme=dark] .qd-quebra-area span { background: rgba(20,24,40,.85); }
 /* v0.6.57: texturas de papel do post-it (texturas.js). Ponta dobrada: o canto sai pelo degradê do fundo, a sombra acompanha o recorte e a aba vem por cima */
-.qi-postit.qi-tex-dobrado { box-shadow: none; border: 0; border-radius: 4px 4px 0 4px; filter: drop-shadow(0 3px 4px rgba(16,24,40,.18)); }
-.qi-aba { position: absolute; right: 0; bottom: 0; pointer-events: none; /* sem sombra própria: o degradê já faz a dobra (sombra dentro da sombra deixava degraus na borda) */
-  background: linear-gradient(to top left, transparent 50%, rgba(16,24,40,.22) 50%, rgba(0,0,0,.14) 56%, rgba(0,0,0,.04) 100%), linear-gradient(to top left, transparent 50%, rgba(255,255,255,.55) 50%); }
+/* v0.6.62: as 12 texturas aprovadas em 25/11 (texturas.js). O papel do liso tem sombra macia; a dobra, o amassado e o rasgado
+   recortam o papel e a sombra acompanha o recorte (filter); fita, alfinete e clipe saem um pouco por cima da borda */
+.qi-postit.qi-tex-liso { box-shadow: 0 1px 2px rgba(40,30,10,.08), 0 6px 12px -4px rgba(40,30,10,.18); }
+.qi-postit.qi-tex-dobrado { box-shadow: none; border: 0; border-radius: 4px 4px 0 4px; filter: drop-shadow(0 4px 6px rgba(40,30,10,.16)); }
+.qi-aba { position: absolute; right: 0; bottom: 0; pointer-events: none; z-index: 3; border-top-left-radius: 4px; clip-path: polygon(0 0, 100% 0, 0 100%); filter: drop-shadow(-2px -2px 3px rgba(40,30,10,.18));
+  background: linear-gradient(135deg, rgba(255,255,255,.92) 0%, color-mix(in srgb, var(--c) 76%, #8f8058) 48%, rgba(0,0,0,.16) 50%, transparent 51%); }
+.qi-postit.qi-tex-amassado, .qi-postit.qi-tex-rasgado { box-shadow: none; border: 0; filter: drop-shadow(0 1px 2px rgba(16,24,40,.12)) drop-shadow(0 4px 8px rgba(16,24,40,.14)); }
+.qi-tex-papel { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.qi-postit.qi-tex-rasgado .qi-tex-papel { border-radius: 4px 4px 0 0; }
+.qi-postit.qi-tex-pautado .qi-t { align-items: flex-start; }
+.qi-postit.qi-tex-destaque .qi-clamp { background: linear-gradient(104deg, rgba(253,224,71,0) .9%, rgba(250,204,21,.55) 2.4%, rgba(250,204,21,.45) 95%, rgba(253,224,71,0) 99%); padding: 1px 6px; border-radius: 4px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.qi-fita { position: absolute; top: -9px; left: 50%; width: 70px; height: 20px; z-index: 6; pointer-events: none; transform: translateX(-50%) rotate(-2.5deg);
+  background: rgba(255,255,255,.58); border-left: 1px dashed rgba(120,110,90,.28); border-right: 1px dashed rgba(120,110,90,.28); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.qi-alfinete { position: absolute; top: -7px; left: 50%; width: 16px; height: 16px; z-index: 6; pointer-events: none; transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #ff8b8b 0%, #dc2626 52%, #7f1d1d 100%); box-shadow: 0 3px 5px rgba(0,0,0,.32), inset 0 1px 2px rgba(255,255,255,.6); }
+.qi-alfinete-sombra { position: absolute; top: 7px; left: calc(50% + 3px); width: 11px; height: 5px; z-index: 2; pointer-events: none; background: rgba(30,20,10,.2); border-radius: 50%; filter: blur(2px); transform: rotate(24deg); }
+.qi-clipe { position: absolute; top: -11px; right: 20px; width: 12px; height: 32px; box-sizing: border-box; z-index: 6; pointer-events: none; border: 2.4px solid #64748b; border-radius: 9px; box-shadow: 1px 2px 3px rgba(0,0,0,.16); }
+.qi-clipe-dentro { position: absolute; top: -4px; right: 23px; width: 6px; height: 18px; box-sizing: border-box; z-index: 6; pointer-events: none; border: 2px solid #94a3b8; border-top: none; border-radius: 0 0 5px 5px; }
+.qi-tex-clipe .qi-com { right: auto; left: -11px; } /* o balãozinho do comentário vai para o outro lado do clipe */
 /* v0.6.59: item travado (arrumar.js): um cadeado pequeno no canto de baixo, por fora, e o cursor de "não pode mover" */
 .qi-trava { position: absolute; right: -8px; bottom: -8px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; pointer-events: none;
   background: var(--surface, #fff); color: #475467; box-shadow: 0 1px 3px rgba(16,24,40,.25); z-index: 3; }

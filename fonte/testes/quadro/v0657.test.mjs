@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as Q from '../../src/quadro/modelo.js';
 import { FONTES_Q, fonteValida, mudancasFonteQ, valorFonteQ, familiaCss, escalaDo, familiasUsadas } from '../../src/quadro/fontesQ.js';
-import { TEXTURAS, mudancasTextura, valorTextura, estiloTextura, tamanhoDobra, lugarMancha, urlTextura } from '../../src/quadro/texturas.js';
+import { TEXTURAS, mudancasTextura, valorTextura, estiloTextura, tamanhoDobra, urlTextura } from '../../src/quadro/texturas.js';
 import { trataEstiloQuadro, valorEstiloQuadro } from '../../src/quadro/estiloQuadro.js';
 import { linhasQueCabem } from '../../src/quadro/postit.js';
 import { aplicarDiff, criarDiff } from '../../src/nucleo/diff.js';
@@ -64,7 +64,7 @@ test('arquivo: letra ou textura desconhecida é descartada ao abrir', () => {
 
 test('texturas: só em post-it, valor da lista e medidas', () => {
   let { c, ids } = quadro(['postit', 'postit', 'processo']);
-  assert.deepEqual(TEXTURAS.map((t) => t.id), ['', 'dobrado', 'amassado', 'cafe']);
+  assert.deepEqual(TEXTURAS.map((t) => t.id).slice(0, 4), ['', 'dobrado', 'amassado', 'cafe']); /* v0.6.62: e mais 8 */
   c = aplicar(c, mudancasTextura(c, ids, 'cafe'));
   assert.equal(c.itens[ids[0]].tex, 'cafe');
   assert.equal(c.itens[ids[2]].tex, undefined);
@@ -74,10 +74,9 @@ test('texturas: só em post-it, valor da lista e medidas', () => {
   assert.equal(valorTextura(c, [ids[0], ids[1]]), null);
   const it = c.itens[ids[0]];
   assert.ok(tamanhoDobra(it) >= 12 && tamanhoDobra(it) <= 28);
-  const m = lugarMancha(it); assert.ok(m.x + m.s > it.w && m.y < 0, 'passa da borda de cima à direita');
   assert.match(estiloTextura(it, '#fff').backgroundImage, /assets\/texturas\/cafe\.png/);
   for (const t of ['amassado', 'cafe']) assert.ok(existsSync('src/quadro/texturas/' + t + '.png') && urlTextura(t));
-  assert.equal(urlTextura('dobrado'), '');
+  assert.equal(urlTextura('dobrado'), ''); /* v0.6.62: a dobra continua só desenho */
 });
 
 test('comandos: Letra e Textura passam pelo estiloQuadro e avisam sem nada escolhido', () => {

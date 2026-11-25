@@ -16,7 +16,7 @@ const ta = () => p.locator('textarea.qd-edita');
 const TEX = [['Amassado', 'amassado'], ['Café', 'cafe'], ['Dobrado', 'dobrado']];
 for (const [t] of TEX) { await p.keyboard.press('Escape'); await p.locator('[data-cmd="inserir.postit"]').first().click(); await ta().waitFor(); await ta().fill(t); await ta().press('Control+Enter'); await p.waitForTimeout(150); await p.keyboard.press('Escape'); }
 await p.click('.tab:has-text("Página Inicial")');
-const estado = (t) => p.locator('.qi', { hasText: t }).first().evaluate((e) => { const cs = getComputedStyle(e); return { img: cs.backgroundImage, cor: cs.backgroundColor, cls: e.className }; });
+const estado = (t) => p.locator('.qi', { hasText: t }).first().evaluate((e) => { const papel = e.querySelector('.qi-tex-papel'); const cs = getComputedStyle(e); /* v0.6.62: amassado e rasgado pintam numa camada recortada */ return { img: [cs.backgroundImage, papel ? getComputedStyle(papel).backgroundImage : ''].join(' '), cor: papel ? getComputedStyle(papel).backgroundColor : cs.backgroundColor, cls: e.className }; });
 for (const [t, id] of TEX) {
   await p.keyboard.press('Escape'); await p.locator('.qi', { hasText: t }).first().click(); await p.waitForTimeout(100);
   await p.click('[data-menu-faixa=texturaQ]'); await p.locator(`.rb-lista [data-cmd="formatar.textura|${id}"]`).click(); await p.waitForTimeout(200);

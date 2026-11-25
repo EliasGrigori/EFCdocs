@@ -8,7 +8,7 @@ import { resumoTarefa, hojeISO } from './tarefa.js';
 import { derivar, MEDIDAS } from './legenda.js';
 import { desenharTitulo, desenharCaixa, mostraCaixas, estaFeito, tituloDe, linhasQueCabem } from './postit.js';
 import { familiaCss, escalaDo, garantirFontesDo, familiasUsadas } from './fontesQ.js'; /* v0.6.57 */
-import { texturaDo, urlTextura, caminhoDobrado, desenharAba, desenharImagemTextura } from './texturas.js';
+import { urlTextura, imagensDoPostit, desenharPostitTextura, desenharPecasTextura, marcaDaLinha } from './texturas.js';
 
 /* cores do nível GUT: [fundo, texto] */
 export const COR_GUT = { alta: ['#fee4e2', '#b42318'], media: ['#fef0c7', '#b54708'], baixa: ['#d1fadf', '#067647'] };
@@ -94,6 +94,7 @@ function escreverTexto(ctx, it, caixa) {
   ctx.textAlign = alinh === 'e' ? 'left' : alinh === 'd' ? 'right' : 'center';
   const x = alinh === 'e' ? caixa.x : alinh === 'd' ? caixa.x + caixa.w : caixa.x + caixa.w / 2;
   for (const l of mostrar) {
+    if (caixa.marca && l.trim()) { const w = ctx.measureText(l).width; marcaDaLinha(ctx, alinh === 'e' ? x : alinh === 'd' ? x - w : x - w / 2, y, w, tam); } /* v0.6.62: marca-texto */
     ctx.fillText(l, x, y);
     if (it.fonte && it.fonte.s) {
       const w = ctx.measureText(l).width;
@@ -290,19 +291,9 @@ function desenharItem(ctx, it, opcoes) {
     ctx.restore();
     return;
   }
+  let papel = null;
   if (it.tipo === 'postit') {
-    ctx.shadowColor = 'rgba(16,24,40,.18)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 3;
-    ctx.fillStyle = cor;
-    const tex = texturaDo(it); /* v0.6.57: textura de papel (texturas.js), como na tela */
-    if (tex === 'dobrado') { ctx.shadowBlur = 4; caminhoDobrado(ctx, it); ctx.fill(); ctx.shadowColor = 'transparent'; desenharAba(ctx, it); } else {
-      ctx.fillRect(it.x, it.y, it.w, it.h);
-      ctx.shadowColor = 'transparent';
-      desenharImagemTextura(ctx, it, opcoes.imagens && opcoes.imagens.get('tex:' + tex));
-      ctx.strokeStyle = 'rgba(0,0,0,.10)';
-      ctx.strokeRect(it.x + 0.5, it.y + 0.5, it.w - 1, it.h - 1);
-    }
+    papel = desenharPostitTextura(ctx, it, cor, opcoes.imagens, escalaDo(it)); /* v0.6.62: papel e textura (texturas.js), como na tela */
   } else if (it.tipo !== 'texto') {
     caminhoForma(ctx, it);
     ctx.fillStyle = cor;
@@ -323,7 +314,8 @@ function desenharItem(ctx, it, opcoes) {
   const caixa = it.tipo === 'postit' && opcoes.c && mostraCaixas(opcoes.c), feito = caixa && estaFeito(opcoes.c, it);
   const baixo = it.tipo === 'postit' ? (tarefa ? 38 : caixa ? 28 : 10) : opcoes.codigos && it.cod && ['processo', 'dados'].includes(it.tipo) ? 3 : folga.y;
   const comCod = !!(opcoes.codigos && it.cod), topoCod = !comCod ? 0 : it.tipo === 'inicio' ? 14 : ['processo', 'dados'].includes(it.tipo) ? 8 : 0; /* v0.6.53 (D-82) e v0.6.56 (D-83): abaixo do código, como .qi-com-cod */
-  escreverTexto(ctx, feito ? { ...it, feito: true } : it, { x: it.x + folga.x, y: it.y + folga.y + desce + topoCod, w: it.w - folga.x * 2, h: it.h - folga.y - baixo - desce - topoCod, max: linhasQueCabem(it, !!tarefa, !!caixa, comCod), topo: desce > 0 });
+  escreverTexto(ctx, feito ? { ...it, feito: true } : it, { x: it.x + folga.x, y: it.y + folga.y + desce + topoCod, w: it.w - folga.x * 2, h: it.h - folga.y - baixo - desce - topoCod, max: linhasQueCabem(it, !!tarefa, !!caixa, comCod), topo: desce > 0 || !!(papel && papel.topo), marca: !!(papel && papel.marca) });
+  if (papel) desenharPecasTextura(ctx, it, cor); /* v0.6.62: aba, fita, alfinete e clipe por cima */
   if (tarefa) desenharTarefa(ctx, caixa ? { ...it, x: it.x + 23, w: it.w - 23 } : it, tarefa, it);
   if (caixa) desenharCaixa(ctx, it, feito, !!tarefa);
   if (opcoes.codigos && it.cod) {
@@ -429,7 +421,7 @@ export async function carregarImagens(c) {
   const mapa = new Map();
   const lista = Object.values(c.itens).filter((it) => (it.tipo === 'imagem' && it.src) || (it.tipo === 'assinatura' && it.rub));
   /* v0.6.57: texturas de papel (texturas.js), uma imagem de cada, guardada como 'tex:cafe' */
-  const texs = [...new Set(Object.values(c.itens).map(texturaDo).filter((t) => urlTextura(t)))];
+  const texs = [...new Set(Object.values(c.itens).filter((it) => it.tipo === 'postit').flatMap(imagensDoPostit))]; /* v0.6.62: o liso usa o grão */
   await Promise.all(texs.map((t) => new Promise((ok) => { const img = new Image(); img.onload = () => { mapa.set('tex:' + t, img); ok(); }; img.onerror = () => ok(); img.src = urlTextura(t); })));
   await Promise.all(lista.map((it) => new Promise((ok) => {
     const img = new Image();

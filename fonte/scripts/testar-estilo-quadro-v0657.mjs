@@ -61,14 +61,14 @@ if (temMenu) {
     await p.click('[data-menu-faixa=texturaQ]'); await p.waitForTimeout(150);
     if (id === 'cafe') await foto('3-lista-texturas', '.rb-lista');
     await p.locator(`.rb-lista [data-cmd="formatar.textura|${id}"]`).click(); await p.waitForTimeout(300);
-    const m = await p.locator('.qi', { hasText: t }).first().evaluate((e) => ({ cls: e.className, bg: getComputedStyle(e).backgroundImage, aba: !!e.querySelector('.qi-aba') }));
+    const m = await p.locator('.qi', { hasText: t }).first().evaluate((e) => ({ cls: e.className, bg: [e, ...e.querySelectorAll('.qi-tex-papel')].map((x) => getComputedStyle(x).backgroundImage).join(' '), aba: !!e.querySelector('.qi-aba') }));
     caso(`${t}: aparece no post-it`, m.cls.includes('qi-tex-' + id) && (id === 'dobrado' ? m.aba && /gradient/.test(m.bg) : m.bg.includes('texturas/' + id + '.png')), m.bg.slice(0, 80));
   }
   const ok = await p.evaluate(async () => (await Promise.all(['cafe', 'amassado'].map((t) => fetch('assets/texturas/' + t + '.png').then((r) => r.ok)))).every(Boolean));
   caso('as imagens das texturas existem no app', ok);
   await escolher('Amassado');
   await p.click('[data-menu-faixa=texturaQ]'); await p.locator('.rb-lista [data-cmd="formatar.textura|"]').click(); await p.waitForTimeout(250);
-  caso('Liso tira a textura', !(await p.locator('.qi', { hasText: 'Amassado' }).first().evaluate((e) => e.className)).includes('qi-tex-'));
+  caso('Liso tira a textura', (await p.locator('.qi', { hasText: 'Amassado' }).first().evaluate((e) => e.className)).includes('qi-tex-liso')); /* v0.6.62: o liso também tem papel (qi-tex-liso) */
   await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
   caso('Ctrl+Z traz o amassado de volta', (await p.locator('.qi', { hasText: 'Amassado' }).first().evaluate((e) => e.className)).includes('qi-tex-amassado'));
 }
