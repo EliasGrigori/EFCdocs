@@ -10,6 +10,7 @@ import { TEMA_XML } from './temaPadrao.js';
 import { gravarImpressaoAba } from './impressaoXlsx.js';
 import { criarZip } from './zip.js';
 import { devolver } from './devolver.js';
+import { gravarSegsNovas } from './segNovasXlsx.js'; /* v0.6.44 (S3) */
 import { escapar, XML_CAB } from './xml.js';
 import { gravarEstilos } from './estilos.js';
 import { colunasXml } from './colunasXlsx.js';
@@ -509,7 +510,11 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
   }
   if (formulasFora.length) avisos.push(`${formulasFora.length === 1 ? 'Uma fórmula que o Excel não aceitaria foi' : `${formulasFora.length} fórmulas que o Excel não aceitaria foram`} salva${formulasFora.length === 1 ? '' : 's'} só com o valor (para o Excel não pedir para reparar): ${formulasFora.slice(0, 4).join(', ')}${formulasFora.length > 4 ? ` e mais ${formulasFora.length - 4}` : ''}.`);
   if (tabelasFora.length) avisos.push(`${tabelasFora.length === 1 ? `A tabela "${tabelasFora[0]}" vai` : `${tabelasFora.length} tabelas vão`} como faixa normal (com as cores): os títulos precisam ser textos, sem repetir e sem célula vazia.`);
-  { const nv = []; for (const aba of abas) for (const sg of (aba && aba.seg) || []) if (sg.novo) nv.push(sg.nome); if (nv.length) avisos.push(`${nv.length === 1 ? `A segmentação "${nv[0]}", feita no app, ainda não vai` : `${nv.length} segmentações feitas no app ainda não vão`} para o arquivo do Excel (fica para uma próxima versão); o filtro que ${nv.length === 1 ? 'ela faz' : 'elas fazem'} na tabela vai.`); } /* v0.6.42 (S2) */
+  { let sn = { gravadas: 0, fora: [], semSetas: [], repetidas: [] }; const foto = arquivos.map((x) => [x, x.dados]), n0 = arquivos.length; /* v0.6.44 (S3): a feita no app vai para o arquivo; se der errado no meio, as partes voltam como estavam */
+    try { sn = gravarSegsNovas(arquivos, abas, c.tabelas, { vivas: (dv && dv.abasVivas) || null }); } catch (e) { arquivos.length = n0; for (const [x, d] of foto) x.dados = d; avisos.push(`As segmentações feitas no app não foram para o arquivo do Excel (${e.message || e}); o filtro na tabela vai.`); }
+    if (sn.fora.length) avisos.push(`${sn.fora.length === 1 ? `A segmentação "${sn.fora[0]}" não foi` : `${sn.fora.length} segmentações não foram`} para o arquivo do Excel porque a tabela ${sn.fora.length === 1 ? 'dela' : 'delas'} vai como faixa normal ou a coluna mudou de nome; o filtro na tabela vai.`);
+    if (sn.repetidas.length) avisos.push(`${sn.repetidas.length === 1 ? `A segmentação "${sn.repetidas[0]}" não foi` : `${sn.repetidas.length} segmentações não foram`} para o arquivo do Excel porque já existe outra com o mesmo nome: apague uma delas e crie de novo pela Inserir › Segmentação de dados.`);
+    if (sn.semSetas.length) avisos.push(`${sn.semSetas.length === 1 ? `A segmentação "${sn.semSetas[0]}" não foi` : `${sn.semSetas.length} segmentações não foram`} para o arquivo do Excel porque a tabela está sem os botões de filtro: ligue Dados › Filtro na tabela e salve de novo.`); }
   if (conversas) avisos.push(`${conversas === 1 ? 'A conversa de comentários vai' : `As ${conversas} conversas de comentários vão`} como anotação comum no Excel (o texto e as respostas ficam juntos na mesma anotação).`);
   if (linksFora) avisos.push(`${linksFora === 1 ? 'Um link' : `${linksFora} links`} que levava a uma aba apagada não ${linksFora === 1 ? 'foi' : 'foram'} gravado${linksFora === 1 ? '' : 's'}.`);
   /* v0.6.5: o botão vai como forma com link (no Excel, um clique leva à aba, sem macro) */

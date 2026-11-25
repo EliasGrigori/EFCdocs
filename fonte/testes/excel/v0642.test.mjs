@@ -54,7 +54,7 @@ test('apagar: sai da aba, fica anotada para o arquivo e leva o filtro dela se ne
   assert.deepEqual(n2.tabelas.tabcoletas.fil.cr[1], { v: ['Mamão'] }, 'a Fruta da colheita (aba Painel) continua mexendo na coluna: o filtro fica');
 });
 
-test('salvar como Excel: a mexida leva lugar, tamanho, título e colunas; a apagada sai (com o cache dela); a feita no app avisa', async () => {
+test('salvar como Excel: a mexida leva lugar, tamanho, título e colunas; a apagada sai (com o cache dela); a feita no app vai (v0.6.44)', async () => {
   const { b, c, co } = await abrir();
   let n = aplicarMud(c, S.comSeg(c, co, 'Fruta', { l: 14, c: 1, dx: 0, dy: 0, w: 192, h: 160, titulo: 'Frutas', cols: 3 }));
   n = aplicarMud(n, S.apagarSeg(n, new Motor(n), co, 'Talhão'));
@@ -68,12 +68,12 @@ test('salvar como Excel: a mexida leva lugar, tamanho, título e colunas; a apag
   assert.ok(comFruta, 'desenho da Fruta');
   assert.match(comFruta, /<xdr:from><xdr:col>1<\/xdr:col><xdr:colOff>0<\/xdr:colOff><xdr:row>14<\/xdr:row><xdr:rowOff>0<\/xdr:rowOff><\/xdr:from><xdr:to><xdr:col>4<\/xdr:col>/);
   assert.ok(!desenhos.some((x) => /name="Talhão"/.test(x)), 'o desenho da apagada saiu');
-  const caches = await Promise.all(z.nomes.filter((x) => /^xl\/slicerCaches\//.test(x)).map(txt));
-  assert.equal(caches.length, 1); assert.match(caches[0], /name="SegmentaçãodeDados_Fruta"/);
-  assert.ok(g.avisos.some((x) => /A segmentação "Kg", feita no app, ainda não vai para o arquivo do Excel/.test(x)), g.avisos.join(' | '));
+  const caches = await Promise.all(z.nomes.filter((x) => /^xl\/slicerCaches\/[^/]+\.xml$/.test(x)).map(txt));
+  assert.deepEqual(caches.map((x) => /name="([^"]+)"/.exec(x)[1]).sort(), ['SegmentaçãodeDados_Fruta', 'SegmentaçãodeDados_Kg'], 'v0.6.44 (S3): a do Talhão saiu; a Kg, feita no app, agora vai');
+  assert.ok(!g.avisos.some((x) => /feita no app/.test(x)), g.avisos.join(' | '));
   /* e o arquivo abre de novo com o que ficou */
   const c2 = (await lerXlsx(g.bytes)).conteudo, co2 = c2.ordem[0];
-  assert.deepEqual(c2.abas[co2].seg.map((s) => [s.nome, s.titulo, s.cols, s.l, s.c]), [['Fruta', 'Frutas', 3, 14, 1]]);
+  assert.deepEqual(c2.abas[co2].seg.map((s) => [s.nome, s.titulo, s.cols, s.l, s.c]), [['Fruta', 'Frutas', 3, 14, 1], ['Kg', 'Kg', 1, 0, 4]]);
 });
 
 test('inserir linhas acima leva a segmentação junto (o tamanho fica); renomear a tabela mantém a segmentação ligada', async () => {

@@ -44,7 +44,8 @@ test('v0.6.13: cada aba lida sabe de que parte do original veio; a cópia de uma
 test('v0.6.13: sem o original nada volta (como antes); com o original voltam tabela dinâmica, segmentações e controles, ligados certo', async () => {
   const c = await ler(ORIG);
   const sem = await partes((await gravarXlsx(c)).bytes);
-  assert.ok(!Object.keys(sem).some((n) => /pivot|slicer|ctrlProp/.test(n)));
+  assert.ok(!Object.keys(sem).some((n) => /pivot|ctrlProp/.test(n)));
+  assert.ok(Object.keys(sem).filter((n) => /slicer/.test(n)).every((n) => /slicer(?:Cache)?App\d+\.xml/.test(n)), 'v0.6.44 (S3): sem o original, só as segmentações de tabela, refeitas pelo app');
   const g = await gravarXlsx(c, null, { original: ORIG }); const p = await partes(g.bytes);
   assert.ok(g.avisos.some((a) => /Voltaram do arquivo original, como vieram: 1 tabela dinâmica, 2 segmentações de dados e 2 botões e caixas de controle\. A tabela dinâmica se atualiza ao abrir no Excel\./.test(a)), g.avisos.join(' | '));
   assert.ok(!g.avisos.some((a) => /macros/i.test(a)), 'botão de formulário sem macro não vira aviso de macro');

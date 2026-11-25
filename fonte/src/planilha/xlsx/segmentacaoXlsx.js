@@ -83,7 +83,7 @@ export async function lerSegmentacoes(zip, folhas, relsWb, conteudo, lerRels, re
 
 /* ---------- v0.6.42 (S2): ao salvar, o que mudou no app nas segmentações que vieram do Excel ----------
    As partes voltam pelo guardar e devolver (devolver.js); aqui só se ajusta: a apagada no app sai (aba.segFora) e a
-   mexida (lugar, tamanho, título, colunas de botões, mostrar o título) leva o que está no app. A feita no app (novo) ainda não vai (S3). */
+   mexida (lugar, tamanho, título, colunas de botões, mostrar o título) leva o que está no app. A feita no app (novo) vai pela segNovasXlsx.js (v0.6.44, S3). */
 const doApp = (aba, nome) => ((aba && aba.seg) || []).find((s) => s.nome === nome);
 /** Nomes das segmentações apagadas no app. */
 export const apagadasNoApp = (aba) => new Set((aba && aba.segFora) || []);
@@ -102,13 +102,18 @@ export function ajustarParteSeg(xml, aba) {
     return `<${tg}${a}${fim}>`;
   });
 }
-/** O bloco do desenho (twoCellAnchor) com o lugar e o tamanho do app, se a segmentação foi mexida. */
-export function ajustarAncoraSeg(bloco, aba, nome) {
-  const s = doApp(aba, nome);
-  if (!s || !s.mexida || s.l == null || !/<xdr:from>/.test(bloco)) return bloco;
+/** As duas pontas do quadro (xdr:from e xdr:to) para o lugar e o tamanho da segmentação no app ("mover, mas não dimensionar"). */
+export function pontasDaSeg(aba, s) {
   const lg = (cc) => (aba.larg && aba.larg[cc] != null ? aba.larg[cc] : largPadrao(aba)), at = (l) => (aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba));
   const andar = (i0, d0, tam, med) => { let i = i0, resto = d0 + tam; while (resto >= med(i) && med(i) > 0 && i < i0 + 2000) { resto -= med(i); i++; } return [i, Math.round(resto)]; };
   const [c2, dx2] = andar(s.c, s.dx || 0, s.w, lg), [l2, dy2] = andar(s.l, s.dy || 0, s.h, at);
   const ponta = (tg, c, dx, l, dy) => `<xdr:${tg}><xdr:col>${c}</xdr:col><xdr:colOff>${Math.round(dx) * EMU}</xdr:colOff><xdr:row>${l}</xdr:row><xdr:rowOff>${Math.round(dy) * EMU}</xdr:rowOff></xdr:${tg}>`;
-  return bloco.replace(/<xdr:from>[\s\S]*?<\/xdr:from>/, ponta('from', s.c, s.dx || 0, s.l, s.dy || 0)).replace(/<xdr:to>[\s\S]*?<\/xdr:to>/, ponta('to', c2, dx2, l2, dy2));
+  return { from: ponta('from', s.c, s.dx || 0, s.l, s.dy || 0), to: ponta('to', c2, dx2, l2, dy2) };
+}
+/** O bloco do desenho (twoCellAnchor) com o lugar e o tamanho do app, se a segmentação foi mexida. */
+export function ajustarAncoraSeg(bloco, aba, nome) {
+  const s = doApp(aba, nome);
+  if (!s || !s.mexida || s.l == null || !/<xdr:from>/.test(bloco)) return bloco;
+  const { from, to } = pontasDaSeg(aba, s);
+  return bloco.replace(/<xdr:from>[\s\S]*?<\/xdr:from>/, from).replace(/<xdr:to>[\s\S]*?<\/xdr:to>/, to);
 }

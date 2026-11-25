@@ -158,6 +158,7 @@ export async function devolver(arquivos, abas, bytesOriginal) {
   const vivas = new Map();
   abas.forEach(({ aba }, ia) => { if (aba && aba.org && folhasO.has(aba.org) && tem.has(aba.org) && !vivas.has(aba.org)) vivas.set(aba.org, { ia, aba }); });
   if (!vivas.size) return res;
+  res.abasVivas = new Set([...vivas.values()].map((v) => v.ia)); /* v0.6.44: as segmentações destas abas voltam por aqui; as das outras vão pela segNovasXlsx.js */
   const tabId = new Map(); for (const [p, v] of vivas) tabId.set(folhasO.get(p).sheetId, String(v.ia + 1));
   const wbG = por.get('xl/workbook.xml'); const relsWbNovas = [];
 
@@ -343,7 +344,7 @@ export async function devolver(arquivos, abas, bytesOriginal) {
       d.dados = /<\/xdr:wsDr>\s*$/.test(t) ? t.replace(/<\/xdr:wsDr>\s*$/, junto + '</xdr:wsDr>') : t.replace(/\/>\s*$/, '>' + junto + '</xdr:wsDr>');
     }
     if (controles) gx = noFim(gx, controles);
-    if (exts.length) gx = /<extLst>/.test(gx) ? gx.replace('</extLst>', exts.join('') + '</extLst>') : gx.replace(/<\/worksheet>\s*$/, `<extLst>${exts.join('')}</extLst></worksheet>`);
+    if (exts.length) gx = noExtLst(gx, 'worksheet', exts.join('')); /* v0.6.44: só no extLst da raiz */
     g.dados = gx; it.relsNovas = relsNovas;
     maisRels(nomeG, relsNovas);
   }
@@ -415,9 +416,25 @@ export async function devolver(arquivos, abas, bytesOriginal) {
 
 /** Põe um elemento no fim da aba, no lugar que o Excel exige: depois do desenho e antes das tabelas e das listas (extLst).
     antesDoAntigo = true põe antes do desenho antigo (legacyDrawing): é o caso do <drawing>. */
-function noFim(gx, el, antesDoAntigo = false) {
-  const marcas = antesDoAntigo ? ['<legacyDrawing', '<mc:AlternateContent', '<controls', '<tableParts', '<extLst', '</worksheet>'] : ['<tableParts', '<extLst', '</worksheet>'];
+export function noFim(gx, el, antesDoAntigo = false) {
+  const marcas = antesDoAntigo ? ['<legacyDrawing', '<mc:AlternateContent', '<controls', '<tableParts', '</worksheet>'] : ['<tableParts', '</worksheet>'];
   const fim = gx.lastIndexOf('</sheetData>') >= 0 ? gx.lastIndexOf('</sheetData>') : gx.lastIndexOf('<sheetData/>');
-  let pos = -1; for (const m of marcas) { const i = gx.indexOf(m, Math.max(0, fim)); if (i >= 0 && (pos < 0 || i < pos)) pos = i; }
+  /* v0.6.44 (revisor da S3): a lista da aba (extLst) é só a que fecha a raiz; a barra de dados tem um extLst dentro da regra */
+  const ext = extLstDaRaiz(gx, 'worksheet');
+  let pos = ext ? ext[0] : -1; for (const m of marcas) { const i = gx.indexOf(m, Math.max(0, fim)); if (i >= 0 && (pos < 0 || i < pos)) pos = i; }
   return pos < 0 ? gx : gx.slice(0, pos) + el + gx.slice(pos);
+}
+/** Começo e fim do extLst filho da raiz (o último, logo antes de </raiz>), ou null. */
+export function extLstDaRaiz(x, raiz) {
+  const m = new RegExp(`</extLst>\\s*</${raiz}>\\s*$`).exec(x); if (!m) return null;
+  let i = m.index, prof = 1;
+  while (prof > 0) { const a = x.lastIndexOf('<extLst>', i - 1), f = x.lastIndexOf('</extLst>', i - 1); if (a < 0) return null; if (f > a) { prof++; i = f; } else { prof--; i = a; } }
+  return [i, m.index + '</extLst>'.length];
+}
+/** Põe blocos <ext> no extLst da raiz (cria se não tem). */
+export function noExtLst(x, raiz, blocos) {
+  if (!blocos) return x;
+  const e = extLstDaRaiz(x, raiz);
+  if (e) return x.slice(0, e[1] - '</extLst>'.length) + blocos + x.slice(e[1] - '</extLst>'.length);
+  return x.replace(new RegExp(`</${raiz}>\\s*$`), `<extLst>${blocos}</extLst></${raiz}>`);
 }
