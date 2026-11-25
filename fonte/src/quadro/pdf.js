@@ -61,27 +61,35 @@ export function montarPdfFolhas({ titulo = '', rodape = '', folhas }) {
 
   folhas.forEach((f, i) => {
     const { jpeg, noTopo = false, direita = '' } = f;
+    /* v0.6.54: folha com papel próprio (f.pagina = { w, h } em pontos) e imagem já do tamanho da área útil
+       (f.area = { x, y, w, h } medido de cima, em pontos); f.semTexto = sem cabeçalho e rodapé */
+    const PG = f.pagina || A4, Mx = f.margem != null ? f.margem : M;
     const esc = Math.min(areaW / jpeg.w, areaH / jpeg.h);
-    const iw = jpeg.w * esc, ih = jpeg.h * esc;
-    const ix = M + (areaW - iw) / 2, iy = noTopo ? baixo + areaH - ih : baixo + (areaH - ih) / 2;
+    const iw = f.area ? f.area.w : jpeg.w * esc, ih = f.area ? f.area.h : jpeg.h * esc;
+    const ix = f.area ? f.area.x : M + (areaW - iw) / 2, iy = f.area ? PG.h - f.area.y - ih : noTopo ? baixo + areaH - ih : baixo + (areaH - ih) / 2;
+    const largTexto = PG.w - Mx * 2;
 
     let tit = String(titulo);
-    const maxTit = areaW - larguraTexto(direita, 9) - 24;
+    const maxTit = largTexto - larguraTexto(direita, 9) - 24;
     while (tit.length > 4 && larguraTexto(tit, 13) > maxTit) tit = tit.slice(0, -2);
     if (tit !== String(titulo)) tit = tit.slice(0, -1) + '…';
     const pe = n > 1 ? `${rodape} · folha ${i + 1} de ${n}` : rodape;
 
+    const yTopo = f.area ? Math.max(14, f.area.y - 14) : 30; /* com área: o cabeçalho fica na margem de cima, logo acima da área */
+    const yPe = f.area ? Math.max(10, (PG.h - f.area.y - f.area.h) - 16) : 14;
     const conteudo = [
-      'q 0.12 0.15 0.18 rg',
-      `BT /F2 13 Tf ${M} ${A4.h - 30} Td ${textoPdf(tit)} Tj ET`,
-      `BT /F1 9 Tf ${(A4.w - M - larguraTexto(direita, 9)).toFixed(1)} ${A4.h - 29} Td ${textoPdf(direita)} Tj ET`,
-      'Q',
-      `q 0.82 0.84 0.87 RG 0.6 w ${M} ${A4.h - 38} m ${A4.w - M} ${A4.h - 38} l S Q`,
+      ...(f.semTexto ? [] : [
+        'q 0.12 0.15 0.18 rg',
+        `BT /F2 13 Tf ${Mx} ${PG.h - yTopo} Td ${textoPdf(tit)} Tj ET`,
+        `BT /F1 9 Tf ${(PG.w - Mx - larguraTexto(direita, 9)).toFixed(1)} ${PG.h - yTopo + 1} Td ${textoPdf(direita)} Tj ET`,
+        'Q',
+        `q 0.82 0.84 0.87 RG 0.6 w ${Mx} ${PG.h - yTopo - 8} m ${PG.w - Mx} ${PG.h - yTopo - 8} l S Q`,
+      ]),
       `q ${iw.toFixed(2)} 0 0 ${ih.toFixed(2)} ${ix.toFixed(2)} ${iy.toFixed(2)} cm /Im1 Do Q`,
-      `q 0.45 0.48 0.52 rg BT /F1 8 Tf ${M} 14 Td ${textoPdf(pe)} Tj ET Q`,
+      ...(f.semTexto ? [] : [`q 0.45 0.48 0.52 rg BT /F1 8 Tf ${Mx} ${yPe} Td ${textoPdf(pe)} Tj ET Q`]),
     ].join('\n');
     const base = 5 + i * 3;
-    add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4.w} ${A4.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << /Im1 ${base + 2} 0 R >> >> /Contents ${base + 1} 0 R >>`);
+    add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${+PG.w.toFixed(2)} ${+PG.h.toFixed(2)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << /Im1 ${base + 2} 0 R >> >> /Contents ${base + 1} 0 R >>`);
     const cb = bytesLatin1(conteudo);
     add({ dict: `<< /Length ${cb.length} >>`, stream: cb });
     add({ dict: `<< /Type /XObject /Subtype /Image /Width ${jpeg.w} /Height ${jpeg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.bytes.length} >>`, stream: jpeg.bytes });

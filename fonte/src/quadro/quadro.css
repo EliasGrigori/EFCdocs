@@ -451,3 +451,9 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .qd-jtitulo { width: min(420px, 94vw); }
 .qd-jtitulo-campo { width: 100%; box-sizing: border-box; min-height: 34px; padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--r-ctl, 8px); background: var(--surface); color: var(--text); font: inherit; }
 .qd-jtitulo-campo:focus { outline: none; border-color: var(--primary); box-shadow: var(--anel, 0 0 0 3px var(--primary-soft)); }
+/* v0.6.54: prévia da janela Imprimir e PDF do Quadro (folha branca, área útil tracejada, cabeçalho e rodapé) */
+.qd-imp-pagina { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.15), 0 8px 24px rgba(0,0,0,.18); overflow: hidden; container-type: inline-size; }
+.qd-imp-area { position: absolute; border: 1px dashed rgba(71,84,103,.45); pointer-events: none; box-sizing: border-box; }
+.qd-imp-cab { position: absolute; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: #1f2328; font-size: max(7px, 1.6cqw); border-bottom: 1px solid #d0d5dd; padding-bottom: .3em; white-space: nowrap; overflow: hidden; }
+.qd-imp-cab span { font-size: .72em; color: #475467; }
+.qd-imp-rod { position: absolute; color: #737a85; font-size: max(6px, 1.1cqw); white-space: nowrap; }

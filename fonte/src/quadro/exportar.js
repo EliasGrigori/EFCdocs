@@ -1,7 +1,8 @@
 /* EFCdocs — exportar o quadro: PNG, PDF paisagem e imprimir.
    Na visão Kanban, exporta as colunas; na visão de quadro, o quadro inteiro. */
 
-import { canvasDoQuadro, quebrarTexto, marcaDemo, FONTE, COR_TEXTO, COR_GUT, fontesProntas } from './desenho.js';
+import { canvasDoQuadro, quebrarTexto, marcaDemo, FONTE, COR_TEXTO, COR_GUT, fontesProntas, carregarImagens } from './desenho.js';
+import { normalizarImpQ, paginasDaImpressao, canvasDaFolha, tamanhoPapel } from './impressaoQuadro.js';
 import { montarPdfFolhas } from './pdf.js';
 import { COR, porColuna, listaItens, folhas, recorte } from './modelo.js';
 import { derivar } from './legenda.js';
@@ -127,14 +128,36 @@ export async function exportarPng(c, nome, { vista, codigos, demo }) {
   baixar(await paraBlob(cv, 'image/png'), `${nome}.png`);
 }
 
+export { folhaInteira, rotuloFolha };
 export async function exportarPdf(c, nome, opcoes) {
   const { bytes } = await pdfDoQuadro(c, nome, opcoes);
   baixar(new Blob([bytes], { type: 'application/pdf' }), `${nome}.pdf`);
   return bytes.length;
 }
 
-/** v0.6.16 (Ponte 1): o PDF do quadro em bytes (paisagem), para baixar ou mandar ao Cwork. */
-export async function pdfDoQuadro(c, nome, { vista, codigos, demo }) {
+/* v0.6.54: folhas do quadro pela configuração de página (Imprimir e PDF). O Kanban continua como antes. */
+async function folhasConfiguradas(c, { imp, escolhidos, codigos, demo }) {
+  const cfg = normalizarImpQ(imp !== undefined ? imp : c.impressao);
+  const { paginas } = paginasDaImpressao(c, cfg, escolhidos);
+  const imagens = await carregarImagens(c);
+  const lista = [];
+  for (const pg of paginas) lista.push({ pg, cv: await canvasDaFolha(c, pg, { k: 2, codigos, demo, imagens }) });
+  return { cfg, lista };
+}
+const rotuloFolha = (pg) => (pg.titulo ? pg.titulo + ' · ' : 'Quadro · ') + (pg.parte ? `parte ${pg.parte.co * pg.parte.lins + pg.parte.li + 1} de ${pg.parte.cols * pg.parte.lins} · ` : '') + carimboData();
+
+/** v0.6.16 (Ponte 1): o PDF do quadro em bytes, para baixar ou mandar ao Cwork. v0.6.54: o quadro segue a configuração de página. */
+export async function pdfDoQuadro(c, nome, { vista, codigos, demo, imp, escolhidos }) {
+  if (vista !== 'kanban') {
+    const { cfg, lista } = await folhasConfiguradas(c, { imp, escolhidos, codigos, demo });
+    const folhasPdf = [];
+    for (const { pg, cv } of lista) {
+      const jpg = new Uint8Array(await (await paraBlob(cv, 'image/jpeg', 0.92)).arrayBuffer());
+      folhasPdf.push({ jpeg: { bytes: jpg, w: cv.width, h: cv.height }, pagina: { w: pg.W, h: pg.H }, area: pg.area, margem: pg.area.x, semTexto: !cfg.cabRod, direita: rotuloFolha(pg) });
+    }
+    const bytes = montarPdfFolhas({ titulo: nome, rodape: `Vértice Docs · Post-its${demo ? ' · DEMO · EFC' : ''} · gerado em ${carimboData()}`, folhas: folhasPdf });
+    return { bytes, paginas: folhasPdf.length, papel: cfg.papel === 'A4' ? 'A4' : cfg.papel, orient: cfg.orient };
+  }
   const saida = await canvasesDaSaida(c, vista, { escala: 2, codigos, demo });
   const base = vista === 'kanban' ? 'Kanban' : 'Quadro';
   const folhasPdf = [];
@@ -154,8 +177,45 @@ export async function pdfDoQuadro(c, nome, { vista, codigos, demo }) {
   return { bytes, paginas: folhasPdf.length };
 }
 
-/** Imprime em paisagem por uma moldura escondida (não abre janela nova). Uma página do papel por folha. */
-export async function imprimir(c, nome, { vista, codigos, demo }) {
+/* v0.6.54: a folha inteira (papel branco, cabeçalho, quadro na área e rodapé) num canvas, para imprimir no tamanho do papel */
+function folhaInteira(pg, cv, nome, cfg, i, n) {
+  const k = 2, f = document.createElement('canvas');
+  f.width = Math.round(pg.W * k); f.height = Math.round(pg.H * k);
+  const ctx = f.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, f.width, f.height);
+  ctx.drawImage(cv, pg.area.x * k, pg.area.y * k, pg.area.w * k, pg.area.h * k);
+  if (cfg.cabRod) {
+    ctx.scale(k, k); ctx.textBaseline = 'alphabetic';
+    const yT = Math.max(14, pg.area.y - 14), dir = rotuloFolha(pg);
+    ctx.fillStyle = '#1f2328'; ctx.font = `700 13px ${FONTE}`; ctx.textAlign = 'left'; ctx.fillText(nome, pg.area.x, yT);
+    ctx.font = `400 9px ${FONTE}`; ctx.textAlign = 'right'; ctx.fillText(dir, pg.W - pg.area.x, yT);
+    ctx.fillStyle = '#d0d5dd'; ctx.fillRect(pg.area.x, yT + 8, pg.W - pg.area.x * 2, 0.6);
+    ctx.fillStyle = '#737a85'; ctx.font = `400 8px ${FONTE}`; ctx.textAlign = 'left';
+    ctx.fillText(`Vértice Docs · Post-its · gerado em ${carimboData()}${n > 1 ? ` · folha ${i + 1} de ${n}` : ''}`, pg.area.x, pg.H - Math.max(10, pg.H - pg.area.y - pg.area.h - 16));
+  }
+  return f;
+}
+const TAM_CSS = { A4: 'A4', carta: 'letter', oficio: 'legal' };
+
+/** Imprime por uma moldura escondida (não abre janela nova). v0.6.54: o quadro sai no papel e na orientação escolhidos. */
+export async function imprimir(c, nome, { vista, codigos, demo, imp, escolhidos }) {
+  if (vista !== 'kanban') {
+    const { cfg, lista } = await folhasConfiguradas(c, { imp, escolhidos, codigos, demo });
+    const P = tamanhoPapel(cfg);
+    const fr = document.createElement('iframe');
+    fr.setAttribute('aria-hidden', 'true');
+    fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+    document.body.appendChild(fr);
+    const doc = fr.contentDocument;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${nome.replace(/[<>&]/g, '')}</title><style>@page{size:${TAM_CSS[cfg.papel] || 'A4'} ${cfg.orient === 'paisagem' ? 'landscape' : 'portrait'};margin:0}html,body{margin:0}img{display:block;width:${(P.w / 72).toFixed(3)}in;height:${(P.h / 72).toFixed(3)}in;break-after:page}img:last-child{break-after:auto}</style></head><body></body></html>`);
+    doc.close();
+    await Promise.all(lista.map(({ pg, cv }, i) => new Promise((ok) => { const img = doc.createElement('img'); img.alt = ''; img.onload = ok; img.onerror = ok; img.src = folhaInteira(pg, cv, nome, cfg, i, lista.length).toDataURL('image/png'); doc.body.appendChild(img); })));
+    fr.contentWindow.focus();
+    fr.contentWindow.print();
+    setTimeout(() => fr.remove(), 60000);
+    return;
+  }
   const saida = await canvasesDaSaida(c, vista, { escala: 2, codigos, demo });
   const fr = document.createElement('iframe');
   fr.setAttribute('aria-hidden', 'true');

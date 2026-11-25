@@ -97,6 +97,7 @@ export function normalizarQuadro(c) {
   /* v0.6.50: fundo do quadro ({ tipo, cor }); o que não for conhecido volta ao padrão (fundo.js) */
   if (c.fundo && typeof c.fundo === 'object' && !ehFundoPadrao(c.fundo)) r.fundo = fundoValido(c.fundo);
   if (c.caixas === false) r.caixas = false; /* v0.6.51: caixinhas de feito escondidas neste quadro (postit.js) */
+  if (c.impressao && typeof c.impressao === 'object') r.impressao = c.impressao; /* v0.6.54: configuração de página (conferida em impressaoQuadro.js ao usar) */
   return r;
 }
 

@@ -66,6 +66,8 @@ const NA_LISTA = { 'impressao.area': 'areaImp', 'impressao.limparArea': 'areaImp
 Object.assign(NA_LISTA, { 'exibir.topoCompleto': 'vtBarra', 'exibir.topoCompacto': 'vtBarra', 'exibir.faixaTudo': 'vtBarra', 'exibir.faixaAbas': 'vtBarra', 'exibir.faixaOculta': 'vtBarra', 'exibir.menuCompleto': 'vtMenu', 'exibir.menuIcones': 'vtMenu', 'exibir.menuOculto': 'vtMenu', 'exibir.painel': 'vtLayout', 'exibir.layoutA': 'vtLayout', 'exibir.layoutB': 'vtLayout', 'exibir.tema': 'vtAparencia', 'exibir.relevo': 'vtAparencia', 'exibir.mesa': 'vtAparencia', 'dados.filtrar': 'classificarFiltrar' });
 const abreLista = async (p, id) => { const m = NA_LISTA[id]; if (m && !(await p.locator(`[data-cmd="${id}"]`).count()) && await p.locator(`[data-menu-faixa=${m}]`).count()) { await p.click(`[data-menu-faixa=${m}]`); await p.waitForSelector(`.rb-lista [data-cmd="${id}"]`); return true; } return false; };
 const cmd = async (p, id) => { await abreLista(p, id); await p.locator(`[data-cmd="${id}"]`).first().click(); };
+/* v0.6.54: no Quadro, Exportar PDF abre a janela Imprimir e PDF (como na Planilha); o download sai do botão Baixar PDF */
+const pdfDoQuadroNaJanela = async (p) => { await cmd(p, 'arquivo.exportarPDF'); await p.waitForSelector('[data-impq-pdf]'); await p.locator('[data-impq-pdf]').click(); await p.waitForFunction(() => { const b = document.querySelector('[data-impq-pdf]'); return b && !b.textContent.includes('Gerando'); }); await p.keyboard.press('Escape'); await p.waitForSelector('[data-imprimir-quadro]', { state: 'detached' }); };
 const caixa = async (p, sel) => p.locator(sel).first().boundingBox();
 async function escreverNoItem(p, texto) {
   const ta = p.locator('textarea.qd-edita');
@@ -95,10 +97,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.53', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.54', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.53'), 'menu sem v0.6.53');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.54'), 'menu sem v0.6.54');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -290,9 +292,9 @@ await caso('exportar PDF paisagem do Kanban', async () => {
 });
 await caso('exportar PDF e PNG do quadro', async () => {
   await p.locator('.qd-vistas button:has-text("Quadro")').click();
-  const [d] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarPDF')]);
+  const [d] = await Promise.all([p.waitForEvent('download'), pdfDoQuadroNaJanela(p)]);
   const bytes = Buffer.concat(await (await d.createReadStream()).toArray());
-  certo(bytes.toString('latin1').includes('/MediaBox [0 0 842 595]'));
+  certo(bytes.toString('latin1').includes('/MediaBox [0 0 841.89 595.28]'), 'A4 deitado (padrão da v0.6.54)');
   if (PRINTS) writeFileSync(`${PRINTS}/exemplo-quadro.pdf`, bytes);
   const [d2] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarImagem')]);
   const png = Buffer.concat(await (await d2.createReadStream()).toArray());
@@ -612,7 +614,7 @@ await caso('v0.3.2: texto grande termina em reticências e palavra gigante não 
   const it = await p.locator('.qi-postit').first().boundingBox();
   const t = await p.locator('.qi-postit .qi-clamp').first().boundingBox();
   certo(t.x >= it.x - 1 && t.x + t.width <= it.x + it.width + 1 && t.y + t.height <= it.y + it.height + 1, 'texto passou da caixa');
-  const [d] = await Promise.all([p.waitForEvent('download'), (async () => { await p.click('.tab:has-text("Arquivo")'); await cmd(p, 'arquivo.exportarPDF'); })()]);
+  const [d] = await Promise.all([p.waitForEvent('download'), (async () => { await p.click('.tab:has-text("Arquivo")'); await pdfDoQuadroNaJanela(p); })()]);
   certo((await d.suggestedFilename()).endsWith('.pdf'));
 });
 await caso('v0.3.2: Seta reta e em cotovelo desenham diferente quando os itens estão desalinhados', async () => {
@@ -669,7 +671,7 @@ await caso('v0.3.1: páginas e legenda; PDF sai com uma folha por página', asyn
   certo((await status(p)).includes('1 página'), await status(p));
   await print(p, '20-pagina-legenda');
   await p.click('.tab:has-text("Arquivo")');
-  const [d] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarPDF')]);
+  const [d] = await Promise.all([p.waitForEvent('download'), pdfDoQuadroNaJanela(p)]);
   const bytes = Buffer.concat(await (await d.createReadStream()).toArray());
   const paginas = (bytes.toString('latin1').match(/\/Type \/Page[^s]/g) || []).length;
   certo(paginas >= 2, 'PDF com ' + paginas + ' folha(s); esperado página + fora das páginas');
@@ -1903,7 +1905,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.53'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.54'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -2345,7 +2347,7 @@ await caso('v0.4.5 quadro: a rubrica sai no PNG do quadro; copiar não deixa a r
   const a = await contarPixels(p, 'data:image/png;base64,' + arq.toString('base64'), [29, 58, 138]);
   certo(a.alvo > 150, 'não achei a rubrica azul no PNG: ' + JSON.stringify(a));
   /* o PDF paisagem também sai com a assinatura (o desenho é o mesmo do PNG) */
-  const [dlPdf] = await Promise.all([p.waitForEvent('download'), cmd(p, 'arquivo.exportarPDF')]);
+  const [dlPdf] = await Promise.all([p.waitForEvent('download'), pdfDoQuadroNaJanela(p)]);
   const pdf = readFileSync(await dlPdf.path());
   igual(pdf.subarray(0, 5).toString(), '%PDF-', 'o PDF não é um PDF');
   certo(pdf.length > 8000, 'PDF pequeno demais: ' + pdf.length);
@@ -4409,7 +4411,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.53'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.54'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

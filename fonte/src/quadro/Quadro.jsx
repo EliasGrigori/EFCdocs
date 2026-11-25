@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -347,7 +347,7 @@ export function Quadro({ arquivo, cx }) {
       if (como === 'pdf') { cx.avisar('Gerando o PDF paisagem…', { ic: 'pdf' }); await exportarPdf(c, ficha.nome, opcoes); cx.avisar(`PDF pronto: ${ficha.nome}.pdf`, { ic: 'pdf' }); }
       if (como === 'png') { await exportarPng(c, ficha.nome, opcoes); cx.avisar(`Imagem pronta: ${ficha.nome}.png`, { ic: 'imagem' }); }
       if (como === 'imprimir') await imprimir(c, ficha.nome, opcoes);
-      if (como === 'cwork') cx.compartilharCwork(async () => { const q = await pdfDoQuadro(c, ficha.nome, opcoes); return { pdf: q.bytes, paginas: q.paginas, papel: 'A4', orient: 'paisagem' }; }); /* v0.6.16 (Ponte 1) */
+      if (como === 'cwork') cx.compartilharCwork(async () => { const q = await pdfDoQuadro(c, ficha.nome, opcoes); return { pdf: q.bytes, paginas: q.paginas, papel: q.papel || 'A4', orient: q.orient || 'paisagem' }; }); /* v0.6.16 (Ponte 1) */
     } catch {
       cx.avisar('Não deu para gerar o arquivo. Tente de novo.', { ic: 'aviso' });
     }
@@ -473,7 +473,7 @@ export function Quadro({ arquivo, cx }) {
         cx.avisar(qp.ortografia ? 'Correção ortográfica desligada.' : 'Correção ortográfica ligada: o corretor do aparelho sublinha as palavras ao escrever.', { ic: 'ortografia' });
         return true;
       case 'arquivo.exportarPDF': case 'arquivo.compartilharCwork': case 'arquivo.exportarImagem': case 'arquivo.imprimir': /* v0.6.16: compartilhar = Ponte 1 */
-        exportar({ 'arquivo.exportarPDF': 'pdf', 'arquivo.compartilharCwork': 'cwork', 'arquivo.exportarImagem': 'png', 'arquivo.imprimir': 'imprimir' }[id]); return true;
+        if ((id === 'arquivo.exportarPDF' || id === 'arquivo.imprimir') && vista !== 'kanban') { if (quadroVazio(c, vista)) cx.avisar('O quadro está vazio.', { ic: 'info' }); else setJanela('imprimir'); return true; } exportar({ 'arquivo.exportarPDF': 'pdf', 'arquivo.compartilharCwork': 'cwork', 'arquivo.exportarImagem': 'png', 'arquivo.imprimir': 'imprimir' }[id]); return true; /* v0.6.54: no quadro, PDF e Imprimir abrem a janela Imprimir e PDF */
       default: return false;
     }
   };
@@ -1110,7 +1110,7 @@ export function Quadro({ arquivo, cx }) {
             return `${r.total} ${r.total === 1 ? 'troca feita' : 'trocas feitas'}. Dá para desfazer com Ctrl+Z.`;
           }} />
       )}
-      {janela === 'titulo' && umItem && umItem.tipo === 'postit' && <JanelaTitulo it={umItem} aoFechar={() => setJanela(null)} aoAplicar={(t) => aplicarQ(mudancasTitulo(c, [umItem.id], t), t ? 'Título' : 'Tirar título')} />}{janela === 'fundo' && <JanelaFundo fundo={c.fundo} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoAplicar={(f) => aplicarQ({ fundo: f }, 'Fundo do quadro')} />}{janela === 'zoom' && (
+      {janela === 'imprimir' && <JanelaImprimirQuadro c={c} nome={ficha.nome} escolhidos={selValida.itens} codigos={qp.codigos} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoSalvar={(imp) => aplicarQ({ impressao: ehImpQPadrao(imp) ? null : imp }, 'Configurar página')} aoPdf={async (imp) => { cx.avisar('Gerando o PDF…', { ic: 'pdf' }); await exportarPdf(c, ficha.nome, { vista, codigos: qp.codigos, demo: cx.demo, imp, escolhidos: selValida.itens }); cx.avisar(`PDF pronto: ${ficha.nome}.pdf`, { ic: 'pdf' }); }} aoImprimir={(imp) => imprimir(c, ficha.nome, { vista, codigos: qp.codigos, demo: cx.demo, imp, escolhidos: selValida.itens })} />}{janela === 'titulo' && umItem && umItem.tipo === 'postit' && <JanelaTitulo it={umItem} aoFechar={() => setJanela(null)} aoAplicar={(t) => aplicarQ(mudancasTitulo(c, [umItem.id], t), t ? 'Título' : 'Tirar título')} />}{janela === 'fundo' && <JanelaFundo fundo={c.fundo} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoAplicar={(f) => aplicarQ({ fundo: f }, 'Fundo do quadro')} />}{janela === 'zoom' && (
         <Janela titulo="Zoom" icone="maiszoom" aoFechar={() => setJanela(null)}>
           <div className="janela-c">
             <div className="chips">

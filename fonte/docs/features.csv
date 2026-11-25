@@ -480,4 +480,5 @@ F478;Quadro;post-it;"Caixinha de feito: marcar risca o texto e leva para a colun
 F479;Quadro;exportar;"PDF e imagem com a mesma letra, folgas, linhas e corte da tela; rodapé de tarefa com os pesos da tela";funciona;"v0.6.52 (D-81)";manter;v0.6.52
 F480;Quadro;setas;"Seta curva suave; texto da seta na etiqueta ou acompanhando a linha (tela, PDF e imagem)";funciona;"v0.6.52 (proposta 6)";manter;v0.6.52
 F481;Quadro;formas;"Início/Fim com código: o texto começa abaixo do código (tela e PDF)";funciona;"v0.6.53 (D-82)";manter;v0.6.53
-F482;Quadro;impressão;"Configurar página como no Excel (aba Layout da Página, janela Imprimir e PDF com prévia, área e quebras)";ainda não feito;"proposta 25/11";v0.6.54 e v0.6.55;pedido do Elias 25/11
+F482;Quadro;impressão;"Janela Imprimir e PDF com prévia: o que imprimir, orientação, papel, margens, ajustar ao papel, cabeçalho e rodapé; guardada no quadro";funciona;"v0.6.54 (propostas 3, 5 e 6)";manter;pedido do Elias 25/11
+F483;Quadro;impressão;"Aba Layout da Página, área de impressão e quebras tracejadas no quadro";ainda não feito;"proposta 25/11 (itens 2 e 4)";v0.6.55;pedido do Elias 25/11
