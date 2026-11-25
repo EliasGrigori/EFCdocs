@@ -17,6 +17,7 @@ import { familiaDo, escalaDo, garantirFonte } from './fontesQ.js'; /* v0.6.65 (V
 import { validarNome } from '../nucleo/modelo.js';
 import { GavetaComentarios, totalComentarios } from './comentariosKanban.jsx'; /* v0.6.67 (N2) */
 import { etiquetasDe, etiquetaDo, contagemEtiquetas, passaNoFiltro, resumoFiltro, indiceNaColuna, SEM } from './etiquetas.js'; /* v0.6.66 (N1) */
+import { fluxoLigado, atividadesDoFluxo, mudancasLigarFluxo, linhasAndamento } from './fluxoKanban.js'; /* v0.6.68 (R44) */
 
 const NIVEL = { alta: 3, media: 2, baixa: 1 };
 
@@ -178,9 +179,10 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
   /* v0.6.26 (Elias, 18/11 18:22: "não consigo excluir com facilidade um post-it" no Kanban do celular): lixeira no canto de cima do cartão escolhido */
   const excluirCartao = (it) => {
     if (it.trava) { cx.avisar(AVISO_TRAVADO, { ic: 'cadeado' }); return; } /* v0.6.61: antes dizia "Post-it excluído." sem excluir */
-    aplicarQ(mudancasExcluir(c, [it.id]), 'Excluir post-it', 'excluiu');
+    const ativ = it.tipo === 'processo'; /* v0.6.68 */
+    aplicarQ(mudancasExcluir(c, [it.id]), ativ ? 'Excluir atividade' : 'Excluir post-it', 'excluiu');
     setSel({ itens: [], seta: null });
-    cx.avisar('Post-it excluído.', { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
+    cx.avisar(ativ ? 'Atividade excluída (saiu também do fluxo).' : 'Post-it excluído.', { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
   };
 
   const menuColuna = (k, i) => {
@@ -201,11 +203,18 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
     <div className="kb" ref={palco}>
       <header className="kb-and" data-kb-andamento aria-label="Andamento do quadro">
         <NomeQuadro ficha={ficha} cx={cx} />
-        <b>{todos.length} {todos.length === 1 ? 'post-it' : 'post-its'}</b>
+        <b>{todos.length} {todos.some((x) => x.tipo !== 'postit') ? (todos.length === 1 ? 'cartão' : 'cartões') : todos.length === 1 ? 'post-it' : 'post-its'}</b>
         {c.colunas.length > 1 && todos.length > 0 && <span className="kb-and-barra" role="img" aria-label={`${pct}% feito`}><i style={{ transform: `scaleX(${pct / 100})` }} /></span>}
         {c.colunas.length > 1 && todos.length > 0 && <span className="kb-and-pct">{feitos} de {todos.length} em “{c.colunas[c.colunas.length - 1].nome}” · {pct}%</span>}
         {vencidos > 0 && <span className="efl-pilula cr" data-kb-vencidos>{vencidos} {vencidos === 1 ? 'vencido' : 'vencidos'}</span>}
         {etiquetasDe(c).length > 0 && <FiltroEtiquetas c={c} todos={todos} escondidas={escondidas} setEscondidas={setEscondidas} />}
+        {(fluxoLigado(c) || atividadesDoFluxo(c).length > 0) && ( /* v0.6.68 (R44): só aparece se o quadro tem fluxo */
+          <button type="button" className={'btn kb-fluxo' + (fluxoLigado(c) ? ' on' : '')} data-kb-fluxo aria-pressed={fluxoLigado(c)} disabled={somenteLeitura}
+            title={fluxoLigado(c) ? 'As atividades do fluxo estão no Kanban. Clique para tirar.' : 'Pôr as atividades do fluxo no Kanban, em “' + (c.colunas[0] || {}).nome + '”'}
+            onClick={() => aplicarQ(mudancasLigarFluxo(c, !fluxoLigado(c)), fluxoLigado(c) ? 'Desligar o fluxo do Kanban' : 'Ligar o fluxo ao Kanban', 'ligou fluxo')}>
+            <Icone n="n:fluxo" /><span>{fluxoLigado(c) ? 'Fluxo ligado' : 'Ligar o fluxo'}</span>
+          </button>
+        )}
       </header>
       {c.colunas.map((k, i) => {
         const lista = (grupos[k.id] || []).filter((it) => passaNoFiltro(it, escondidas)); /* v0.6.66 (N1) */
@@ -226,14 +235,14 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
             <div className="kb-lista">
               {lista.map((it) => { const papel = papelDoCartao(it), eti = etiquetaDo(c, it); return (
                 <div key={it.id} className="kb-item">
-                  <article className={'kb-card qi-tex-' + papel.tex + (eti ? ' kb-com-eti' : '') + (sel.itens.includes(it.id) ? ' sel' : '')}
-                    data-item={it.id} style={papel.style}
+                  <article className={'kb-card qi-tex-' + papel.tex + (eti ? ' kb-com-eti' : '') + (it.tipo === 'processo' ? ' kb-ativ' : '') + (sel.itens.includes(it.id) ? ' sel' : '')}
+                    data-item={it.id} data-tipo={it.tipo} style={papel.style}
                     onPointerDown={(ev) => baixo(ev, it)}
                     onDoubleClick={() => { if (!somenteLeitura) setEditando({ id: it.id, valor: it.texto }); }}>
                     {papel.pecas.map((pc, i) => <span key={'p' + i} className={pc.cls} aria-hidden="true" style={pc.style} />)}
                     {!somenteLeitura && (it.trava ? <span className="kb-trava" title="Travado" aria-label="Travado" data-trava={it.id}><Icone n="cadeado" /></span> : <span className="kb-alca" title="Arraste para outra coluna" aria-hidden="true"><Icone n="mao" /></span>)}
                     {!somenteLeitura && !it.trava && sel.itens.includes(it.id) && !(editando && editando.id === it.id) && (
-                      <button type="button" className="kb-lixo" title="Excluir o post-it" aria-label={'Excluir o post-it ' + (it.cod || '')} data-kb-excluir={it.id}
+                      <button type="button" className="kb-lixo" title={it.tipo === 'processo' ? 'Excluir a atividade (sai também do fluxo)' : 'Excluir o post-it'} aria-label={(it.tipo === 'processo' ? 'Excluir a atividade ' : 'Excluir o post-it ') + (it.cod || '')} data-kb-excluir={it.id}
                         onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); excluirCartao(it); }}><Icone n="lixeira" /></button>
                     )}
                     {eti && <span className="kb-eti" data-eti={eti.id}><i className="kb-eti-ponto" style={{ background: eti.cor }} aria-hidden="true" />{eti.nome}</span>}
@@ -247,6 +256,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
                         onBlur={() => terminarEdicao(true)} />
                     ) : <p style={{ ...(papel.letra || {}), fontWeight: it.fonte && it.fonte.n ? 700 : undefined, fontStyle: it.fonte && it.fonte.i ? 'italic' : undefined, color: it.fonte && it.fonte.cor }}>{it.texto || <span className="kb-vazio">Sem texto. Toque duas vezes para escrever.</span>}</p>}
                     <PeCartao t={resumoTarefa(c, it, hoje)} coments={totalComentarios(it)} aoComentar={() => setGaveta(it.id)} />
+                    {linhasAndamento(it).length > 0 && <div className="kb-quem" data-kb-quem>{linhasAndamento(it).map((l) => <span key={l.tipo} className={'kb-quem-' + l.tipo} data-kb-quem-tipo={l.tipo}><Icone n={l.tipo === 'fim' ? 'check' : 'usuario'} />{l.texto}</span>)}</div>} {/* v0.6.68 (R44) */}
                     {!somenteLeitura && !totalComentarios(it) && <button type="button" className="kb-com-novo" data-kb-comentar={it.id} title="Comentar" aria-label={'Comentar ' + (it.cod || 'o post-it')}
                       onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); setGaveta(it.id); }}><Icone n="comentario" /></button>}
                   </article>

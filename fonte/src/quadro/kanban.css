@@ -159,3 +159,13 @@ input.kb-titulo { min-width: 240px; outline: none; background: var(--surface); b
 .kb-gv-linha textarea { flex: 1; resize: none; border: 1px solid var(--border); border-radius: var(--r-ctl, 8px); padding: 8px 10px; font: inherit; font-size: 14px; background: var(--surface); color: var(--text); }
 .kb-gv-autor:focus, .kb-gv-linha textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 @media (prefers-reduced-motion: reduce) { .kb-gaveta { animation: none; } .kb-com-novo { transition: none; } }
+/* v0.6.68 (R44): ligar o fluxo ao Kanban; quem iniciou e quem concluiu; a atividade do fluxo como cartão */
+.kb-fluxo { height: 32px; font-size: 13px; gap: 7px; }
+.kb-fluxo svg { width: 16px; height: 16px; }
+.kb-fluxo.on { border-color: var(--primary); color: var(--primary); }
+.kb-quem { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 3px; margin: 7px -2px -2px; padding: 6px 2px 0; border-top: 1px solid rgba(0, 0, 0, .10); font-size: 12px; line-height: 16px; color: #3d434a; }
+.kb-pe + .kb-quem { border-top: 0; padding-top: 0; margin-top: 5px; }
+.kb-quem span { display: flex; align-items: center; gap: 6px; min-width: 0; padding-right: 26px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-quem svg { width: 13px; height: 13px; flex: none; }
+.kb-quem-fim { color: #14653a; font-weight: 600; }
+.kb-card.kb-ativ:not(.sel) { box-shadow: 0 0 0 1px rgba(31, 35, 40, .20), 0 1px 1px rgba(16, 24, 40, .10), 0 6px 10px -6px rgba(16, 24, 40, .28); }

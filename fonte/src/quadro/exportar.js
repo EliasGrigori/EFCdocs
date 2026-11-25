@@ -4,7 +4,7 @@
 import { canvasDoQuadro, quebrarTexto, marcaDemo, FONTE, COR_TEXTO, COR_GUT, fontesProntas, carregarImagens } from './desenho.js';
 import { normalizarImpQ, paginasDaImpressao, canvasDaFolha, tamanhoPapel } from './impressaoQuadro.js';
 import { montarPdfFolhas } from './pdf.js';
-import { COR, porColuna, listaItens, folhas, recorte } from './modelo.js';
+import { COR, porColuna, listaItens, folhas, recorte, noKanban } from './modelo.js';
 import { derivar } from './legenda.js';
 import { resumoTarefa, hojeISO } from './tarefa.js';
 
@@ -121,7 +121,7 @@ async function canvasesDaSaida(c, vista, opcoes) {
   return [{ titulo: '', cv: await canvasDaVista(c, vista, opcoes) }];
 }
 
-export const quadroVazio = (c, vista) => (vista === 'kanban' ? !listaItens(c).some((i) => i.tipo === 'postit') : listaItens(c).length === 0);
+export const quadroVazio = (c, vista) => (vista === 'kanban' ? !listaItens(c).some((i) => noKanban(c, i)) : /* v0.6.68: atividade ligada também conta */ listaItens(c).length === 0);
 
 export async function exportarPng(c, nome, { vista, codigos, demo }) {
   const cv = await canvasDaVista(c, vista, { escala: 2, codigos, demo });

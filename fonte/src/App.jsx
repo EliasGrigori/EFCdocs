@@ -12,7 +12,7 @@ import { criarDiff, novoHistorico, fazer, desfazer, refazer, podeDesfazer, podeR
 import { tamanhoLegivel } from './nucleo/compacta.js';
 import { criarBanco } from './nucleo/banco.js';
 import { PorId, chegaNa, textoChega } from './nucleo/comandos.js';
-import { pode, SEM_PERMISSAO } from './nucleo/perfis.js';
+import { pode, SEM_PERMISSAO, PERFIS } from './nucleo/perfis.js';
 import { normalizarPrefs } from './nucleo/prefs.js';
 import { normalizarQuadro } from './quadro/modelo.js';
 import { Icone, Avisos, Pergunta, useMedia, useRota, irPara, dataHora, hora } from './ui/comum.jsx';
@@ -648,6 +648,7 @@ export function App() {
     compartilharCwork: (gerar) => { const a = abertoRef.current; if (a) ponte.compartilhar(a.arquivo.ficha, gerar); },
     /* v0.6.20 (R9): o envio ao Cwork guardado no aparelho, para o histórico da gaveta e do painel */
     envioDe: (id) => (ponte.estado || {})[id] || null,
+    perfilNome: (PERFIS[prefs.perfil] || {}).nome || '', /* v0.6.68 (R44): o "quem" do Kanban antes do login */
   };
 
   const contagem = useMemo(() => {

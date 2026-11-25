@@ -508,8 +508,8 @@ F506;Quadro;kanban;"Fechar o painel de detalhes não deixa faixa vazia";funciona
 F507;Quadro;organizar;"Etiqueta de frente no post-it (cor e nome) e filtro único recolhível com contagem";funciona;"";"feito na v0.6.66 (N1)";estudo do Kanban 25/11
 F508;Quadro;kanban;"Comentários pelo número no cartão, numa gaveta ao lado (usa nota/notaR da v0.6.55)";funciona;"";"feito na v0.6.67 (N2)";estudo do Kanban 25/11
 F509;Geral;janelas;"Janelas e menus nascem 85% visíveis (print logo após o clique não pega a janela vazada)";funciona;"";"feito na v0.6.63 (J1)";estudo do Kanban 25/11
-F510;Quadro;modelos;"Modelo de quadro com Kanban ligado (mesmo arquivo; atividades nascem das etapas do fluxo)";falta;"";"depois da v0.6.67 (R44)";estudo do Kanban 25/11
-F511;Quadro;modelos;"Quem iniciou, quem concluiu e histórico de atualizações, só nos Documentos internos; acesso por login na fase do Firebase";falta;"antes do login: nome do perfil do aparelho";"depois da v0.6.67 (R44)";estudo do Kanban 25/11
+F510;Quadro;modelos;"Modelo de quadro com Kanban ligado (mesmo arquivo; atividades nascem das etapas do fluxo): botão Ligar o fluxo no Kanban";funciona;"";"feito na v0.6.68";estudo do Kanban 25/11
+F511;Quadro;modelos;"Quem iniciou, quem concluiu e histórico de atualizações, só nos Documentos internos; acesso por login na fase do Firebase";parcial;"falta o histórico (R44 parte 2) e o acesso por login";"quem iniciou e quem concluiu feito na v0.6.68";estudo do Kanban 25/11
 F512;Quadro;arquivo;"Exportar e importar o quadro editável (arquivo próprio, ida e volta sem perda)";falta;"só PDF, PNG, imprimir e Cwork";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
 F513;Quadro;organizar;"Igualar tamanho (largura, altura ou os dois) no Arrumar";falta;"";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
 F514;Quadro;organizar;"Agrupar (Ctrl+G) e mover em bloco";falta;"só a Página leva junto o que está dentro";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
@@ -530,3 +530,4 @@ F528;Documento;tela;"Documento em tela média esconde o menu lateral, como Plani
 F529;Geral;faixa;"Ponto dourado do chega depois dentro do botão, sem encostar no rótulo";funciona;"";"feito na v0.6.63";relatório 25/11 13:08
 F530;Quadro;texturas;"Mancha de café por baixo das letras (resposta do Elias 25/11 16:05; já era assim desde a v0.6.62)";funciona;"";"feito na v0.6.63 (teste)";pergunta ao Elias 25/11
 F531;Quadro;texturas;"Clipe no cartão do Kanban no meio do topo: a lixeira não cobre a alça (D-87)";funciona;"";"feito na v0.6.66";relato do Elias 25/11 17:55
+F532;Quadro;fluxo;"Selo com a coluna do Kanban na atividade do fluxo (A fazer, Fazendo, Feito) (R44)";funciona;"";"feito na v0.6.68";pedido do Elias 25/11 14:36

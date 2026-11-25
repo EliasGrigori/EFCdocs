@@ -527,3 +527,9 @@ body[data-theme=dark] .qd-quebra-folha span, body[data-theme=dark] .qd-quebra-ar
 .qi-eti i { flex: none; width: 7px; height: 7px; border-radius: 50%; }
 .qi-tex-clipe .qi-eti { right: 40px; }
 .rb-cor-ponto { flex: none; width: 9px; height: 9px; border-radius: 50%; margin: 0 2px 0 -2px; }
+/* v0.6.68 (R44): selo da atividade ligada ao Kanban, na borda de cima, à direita (as setas chegam no meio) */
+.qi-fase { position: absolute; right: 8px; top: -10px; z-index: 3; display: inline-flex; align-items: center; gap: 3px; max-width: calc(100% - 16px); height: 19px; padding: 0 7px; border-radius: 10px; font-size: 11px; line-height: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; background: #f1f3f5; color: #3d434a; border: 1px solid rgba(31, 35, 40, .18); }
+.qi-fase.andamento { background: #e8f0fe; color: #1d4ed8; border-color: rgba(29, 78, 216, .30); }
+.qi-fase.feito { background: #e6f4ea; color: #14653a; border-color: rgba(20, 101, 58, .30); }
+.qi-fase svg { width: 11px; height: 11px; flex: none; }
+.qi-fase.com-nota { right: 22px; }

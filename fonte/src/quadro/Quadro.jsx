@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { lembrarEtiquetas, raiasPorEtiqueta } from './etiquetas.js'; /* v0.6.66 (N1) */ import { trataArrumar, valorArrumar, AVISO_TRAVADO } from './arrumar.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { lembrarEtiquetas, raiasPorEtiqueta } from './etiquetas.js'; /* v0.6.66 (N1) */ import { lembrarFluxo, registrarAndamento, quemAgora } from './fluxoKanban.js'; /* v0.6.68 (R44) */ import { trataArrumar, valorArrumar, AVISO_TRAVADO } from './arrumar.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -55,7 +55,7 @@ function lerImagem(arquivo, max = 1200) {
 
 export function Quadro({ arquivo, cx }) {
   const ficha = arquivo.ficha;
-  const c = arquivo.conteudo; lembrarEtiquetas(c); /* v0.6.66 (N1): a faixa e o post-it leem a lista daqui */
+  const c = arquivo.conteudo; lembrarEtiquetas(c); lembrarFluxo(c); /* v0.6.66 (N1): a faixa e o post-it leem a lista daqui; v0.6.68 (R44): e o selo da atividade */
   const somenteLeitura = !!cx.bloqueado('inserir.postit');
 
   const [vista, setVistaEstado] = useState(() => (ler('vista:' + ficha.id, 'quadro') === 'kanban' ? 'kanban' : 'quadro'));
@@ -100,10 +100,10 @@ export function Quadro({ arquivo, cx }) {
   const criouRef = useRef(null);
   const aplicarQ = useCallback((mud, rotulo, acao, opcoes = {}) => {
     if (!mud || !Object.keys(mud).length) return false;
-    const ok = cx.aplicar(Q.noArquivo(mud), rotulo, acao, opcoes);
+    const ok = cx.aplicar(Q.noArquivo(registrarAndamento(c, mud, { rastrear: !!ficha.pastaNome, quem: quemAgora(cx.perfilNome) })), rotulo, acao, opcoes); /* v0.6.68 (R44): quem iniciou e quem concluiu */
     criouRef.current = opcoes.criou || null;
     return ok;
-  }, [cx]);
+  }, [cx, c, ficha]);
 
   /* ---------- tamanho da área e primeiro enquadramento ---------- */
   useEffect(() => {
@@ -893,7 +893,7 @@ export function Quadro({ arquivo, cx }) {
           {umItem.tipo === 'postit' && <PainelTarefa key={umItem.id} it={umItem} c={c} hoje={hoje} bloqueado={somenteLeitura} aoMudar={(campos) => aplicarQ(mudarTarefa(umItem.id, campos), 'Tarefa do post-it', 'editou tarefa')} />}
           {umItem.tipo === 'legenda' && <PainelLegenda key={umItem.id} it={umItem} c={c} bloqueado={somenteLeitura} aoMudar={(tipo, campo, valor) => aplicarQ(mudarLegenda(umItem.id, tipo, campo, valor), 'Texto da legenda', 'editou legenda')} />}
           {umItem.tipo === 'pagina' && <p className="qd-dica">Itens dentro desta página: {Q.itensDaPagina(c, umItem).length}. Arraste pelo título para levar tudo junto. No PDF, cada página vira uma folha.</p>}
-          {umItem.tipo === 'postit' && (
+          {(umItem.tipo === 'postit' || Q.noKanban(c, umItem)) && ( /* v0.6.68: a atividade ligada também muda de coluna pelo painel (teclado) */
             <label className="campo-t">Coluna do Kanban
               <select value={umItem.col} disabled={somenteLeitura || !!umItem.trava} onChange={(ev) => aplicarQ(Q.mudancasMoverKanban(c, umItem.id, ev.target.value), 'Mudar de coluna', 'moveu')}>
                 {c.colunas.map((k) => <option key={k.id} value={k.id}>{k.nome}</option>)}

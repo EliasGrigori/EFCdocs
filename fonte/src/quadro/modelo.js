@@ -65,6 +65,12 @@ export function idCurto(prefixo = 'i', agora = Date.now(), aleatorio = Math.rand
   return prefixo + agora.toString(36) + cont.toString(36).padStart(2, '0') + Math.floor(aleatorio() * 46656).toString(36).padStart(3, '0');
 }
 
+/** v0.6.68 (R44): { q: quem, em: data ISO } de quem iniciou ou concluiu; o que não for isso some. */
+export function marcaValida(m) {
+  if (!m || typeof m !== 'object' || typeof m.em !== 'string' || Number.isNaN(Date.parse(m.em))) return null;
+  return { q: String(m.q ?? '').trim().slice(0, 60), em: new Date(m.em).toISOString() };
+}
+
 export const codigo = (n) => 'Q-' + String(n).padStart(3, '0');
 
 const num = (v, padrao) => (typeof v === 'number' && Number.isFinite(v) ? v : padrao);
@@ -107,6 +113,9 @@ export function normalizarQuadro(c) {
   /* v0.6.66 (N1): etiquetas de frente; o post-it com etiqueta que não existe mais fica sem etiqueta */
   const eti = etiquetasValidas(c.etiquetas); if (eti.length) r.etiquetas = eti;
   for (const it of Object.values(itens)) if ('fr' in it && (it.tipo !== 'postit' || !eti.some((e) => e.id === it.fr))) delete it.fr;
+  /* v0.6.68 (R44): fluxo ligado ao Kanban; quem iniciou e quem concluiu (nome curto e data válida, senão sai) */
+  if (c.fluxoKanban === true) r.fluxoKanban = true;
+  for (const it of Object.values(itens)) for (const k of ['ini', 'fim']) if (k in it) { const m = marcaValida(it[k]); if (m) it[k] = m; else delete it[k]; }
   return r;
 }
 
@@ -144,7 +153,7 @@ export function novoItem(c, tipo, campos = {}, opcoes = {}) {
     item.cod = codigo(seq);
     mud.seq = seq;
   }
-  if (t.kanban) {
+  if (t.kanban || noKanban(c, item)) { /* v0.6.68 (R44): com o fluxo ligado, a atividade nova também entra no Kanban */
     if (!item.col) item.col = c.colunas[0] ? c.colunas[0].id : 'c1';
     if (item.ko === undefined) item.ko = proximaOrdemKanban(c, item.col);
   }
@@ -232,9 +241,9 @@ export function colar(c, clip, deslocamento = { x: 24, y: 24 }) {
     mapa[orig.id] = id;
     const it = { ...structuredClone(orig), id, x: Math.round(orig.x + deslocamento.x), y: Math.round(orig.y + deslocamento.y), z: ehFundo(orig) ? orig.z : ++z };
     if (it.tipo === 'assinatura' && !rubricaValida(it.rub)) delete it.rub; /* o que vem da área de transferência não é confiável */
-    delete it.cod;
+    delete it.cod; delete it.ini; delete it.fim; /* v0.6.68 (R44): a cópia não começou nem terminou */
     if (t.codigo) it.cod = codigo(++seq);
-    if (t.kanban) {
+    if (t.kanban || noKanban(c, it)) {
       if (!c.colunas.some((k) => k.id === it.col)) it.col = c.colunas[0] ? c.colunas[0].id : 'c1';
       it.ko = proximaOrdemKanban(c, it.col) + Object.keys(mapa).length;
     }
@@ -331,8 +340,11 @@ export function vagaKanban(c, colId) {
 
 /* ---------- Kanban ---------- */
 
+/** v0.6.68 (R44): o que aparece no Kanban: post-its sempre; as atividades do fluxo quando o quadro liga o fluxo ao Kanban. */
+export const noKanban = (c, it) => !!it && !!((TIPOS_ITEM[it.tipo] && TIPOS_ITEM[it.tipo].kanban) || (c && c.fluxoKanban === true && it.tipo === 'processo'));
+
 export function proximaOrdemKanban(c, colId) {
-  return listaItens(c).filter((i) => i.col === colId && TIPOS_ITEM[i.tipo] && TIPOS_ITEM[i.tipo].kanban)
+  return listaItens(c).filter((i) => i.col === colId && noKanban(c, i))
     .reduce((m, i) => Math.max(m, num(i.ko, 0)), 0) + 1;
 }
 
@@ -341,7 +353,7 @@ export function porColuna(c) {
   const grupos = Object.fromEntries(c.colunas.map((k) => [k.id, []]));
   const primeira = c.colunas[0] && c.colunas[0].id;
   for (const it of listaItens(c)) {
-    if (!TIPOS_ITEM[it.tipo] || !TIPOS_ITEM[it.tipo].kanban) continue;
+    if (!noKanban(c, it)) continue;
     const col = grupos[it.col] ? it.col : primeira;
     if (col) grupos[col].push(it);
   }
@@ -387,7 +399,7 @@ export function renomearColuna(c, colId, nome) {
 /** Só sai coluna vazia, e sempre fica pelo menos uma. */
 export function removerColuna(c, colId) {
   if (c.colunas.length <= 1) return { erro: 'O Kanban precisa de pelo menos uma coluna.' };
-  if ((porColuna(c)[colId] || []).length) return { erro: 'Só dá para tirar coluna vazia. Mova os post-its antes.' };
+  if ((porColuna(c)[colId] || []).length) return { erro: 'Só dá para tirar coluna vazia. Mova os cartões antes.' };
   return { mudancas: { colunas: c.colunas.filter((k) => k.id !== colId) } };
 }
 

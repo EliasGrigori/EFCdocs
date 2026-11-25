@@ -56,6 +56,10 @@ def conferir_quadro(c, e):
         et = e["etiqueta"]
         nomes = {x.get("id"): x.get("nome") for x in c.get("etiquetas", [])}
         diz(c["itens"].get(et["id"], {}).get("fr") == et["fr"] and nomes.get(et["fr"]) == et["nome"], "quadro: etiqueta de frente do post-it e a lista de etiquetas")
+    if "andamento" in e:  # v0.6.68 (R44)
+        an = e["andamento"]
+        it2 = c["itens"].get(an["id"], {})
+        diz(c.get("fluxoKanban") is True and it2.get("col") == an["col"] and it2.get("ini") == an["ini"] and it2.get("fim") == an["fim"], "quadro: fluxo ligado ao Kanban, com quem iniciou e quem concluiu a atividade")
     cods = [i["cod"] for i in itens if "cod" in i]
     diz(len(cods) == len(set(cods)) and all(x.startswith("Q-") for x in cods), f"quadro: {len(cods)} códigos Q sem repetir")
     pontas = all(s["de"]["id"] in c["itens"] and s["para"]["id"] in c["itens"] for s in c["setas"].values())
