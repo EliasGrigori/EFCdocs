@@ -1,7 +1,7 @@
 /* EFCdocs — exportar o quadro: PNG, PDF paisagem e imprimir.
    Na visão Kanban, exporta as colunas; na visão de quadro, o quadro inteiro. */
 
-import { canvasDoQuadro, quebrarTexto, marcaDemo, FONTE, COR_TEXTO, COR_GUT } from './desenho.js';
+import { canvasDoQuadro, quebrarTexto, marcaDemo, FONTE, COR_TEXTO, COR_GUT, fontesProntas } from './desenho.js';
 import { montarPdfFolhas } from './pdf.js';
 import { COR, porColuna, listaItens, folhas, recorte } from './modelo.js';
 import { derivar } from './legenda.js';
@@ -100,12 +100,14 @@ export function canvasDoKanban(c, { escala = 2, demo = false } = {}) {
 }
 
 async function canvasDaVista(c, vista, opcoes) {
+  await fontesProntas(); /* v0.6.52 (D-81) */
   if (vista === 'kanban') return canvasDoKanban(c, opcoes);
   return canvasDoQuadro(c, opcoes);
 }
 
 /** Folhas do PDF e da impressão: no quadro com páginas, uma folha por página (mais uma para o que ficou fora delas). */
 async function canvasesDaSaida(c, vista, opcoes) {
+  await fontesProntas(); /* v0.6.52 (D-81) */
   if (vista !== 'kanban') {
     const cd = derivar(c);
     const lista = folhas(cd);

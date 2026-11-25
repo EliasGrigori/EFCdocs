@@ -108,6 +108,7 @@ body[data-theme=dark] .qd-area.com-cor, body[data-theme=dark] .qd-fundo-am.com-c
 .qd-rotulo rect { fill: #fff; stroke: #d0d5dd; }
 .qd-rotulo text { font-size: 12px; font-weight: 600; fill: #1f2328; font-family: inherit; }
 .qd-rotulo { pointer-events: all; cursor: pointer; }
+.qd-rotulo-linha text { paint-order: stroke; stroke: var(--qd-cor, var(--surface-2)); stroke-width: 4px; stroke-linejoin: round; } /* v0.6.52: contorno da cor do fundo, para ler por cima das bolinhas */
 .qd-ligando { fill: none; stroke: var(--primary); stroke-width: 2; stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; }
 /* temas escuros: linha das setas mais clara para aparecer no fundo */
 body[data-theme=dark] .qd-seta-linha{ stroke: #b8c2cf; }

@@ -477,3 +477,5 @@ F475;Quadro;visual;"Cores dos post-its mais claras e limpas (mesmos nomes; quadr
 F476;Quadro;fundo;"Exibir › Fundo: desenho (bolinhas, quadriculado, linhas, liso) e cor (padrão e 6 suaves), guardado no arquivo, com Ctrl+Z";funciona;"v0.6.50 (proposta 2)";manter;v0.6.50
 F477;Quadro;post-it;"Título no post-it (negrito com fio, até 80 letras), na tela, no Kanban, no PDF e na imagem";funciona;"v0.6.51 (proposta 3A)";manter;v0.6.51
 F478;Quadro;post-it;"Caixinha de feito: marcar risca o texto e leva para a coluna Feito; desmarcar volta; Exibir › Caixinhas esconde no quadro todo";funciona;"v0.6.51 (proposta 4A)";manter;v0.6.51
+F479;Quadro;exportar;"PDF e imagem com a mesma letra, folgas, linhas e corte da tela; rodapé de tarefa com os pesos da tela";funciona;"v0.6.52 (D-81)";manter;v0.6.52
+F480;Quadro;setas;"Seta curva suave; texto da seta na etiqueta ou acompanhando a linha (tela, PDF e imagem)";funciona;"v0.6.52 (proposta 6)";manter;v0.6.52

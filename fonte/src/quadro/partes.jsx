@@ -4,11 +4,12 @@ import { createPortal } from 'react-dom';
 import { Icone, Janela } from '../ui/comum.jsx';
 import { CORES, COR, CORES_FONTE, TIPOS_ITEM, FORMAS } from './modelo.js';
 import { AssinaturaView } from '../ui/assinatura.jsx';
-import { pontosSeta, caminhoSVG, meioDoCaminho, contornoForma } from './geometria.js';
+import { pontosSeta, caminhoSVG, meioDoCaminho, contornoForma, sentidoDeLeitura } from './geometria.js';
 import { MODELOS } from './modelos.js';
 import { NOTA_GUT, NIVEIS_GUT, valorGut, nivelGut, prazoValido, resumoTarefa } from './tarefa.js';
 import { linhasLegenda } from './legenda.js';
-import { tituloDe } from './postit.js';
+import { tituloDe, linhasQueCabem } from './postit.js';
+export { linhasQueCabem };
 
 const estiloTexto = (it) => {
   const f = it.fonte || {};
@@ -22,12 +23,6 @@ const estiloTexto = (it) => {
 };
 
 /** Quantas linhas de texto cabem no item; o resto vira reticências (…). */
-export function linhasQueCabem(it, comTarefa, comCaixa) {
-  const fs = it.tipo === 'texto' && !it.borda ? 18 : 14;
-  /* v0.6.51: o título ocupa 30 px em cima; a caixinha de feito, 18 px embaixo (quando não há o rodapé de tarefa) */
-  const pad = it.tipo === 'postit' ? 28 + (comTarefa ? 38 : comCaixa ? 18 : 0) + (tituloDe(it) ? 30 : 0) : it.tipo === 'decisao' ? it.h * 0.44 : it.tipo === 'texto' ? 4 : 12;
-  return Math.max(1, Math.floor((it.h - pad) / (fs * 1.3)));
-}
 
 function FormaSvg({ it }) {
   const pts = contornoForma({ ...it, x: 0, y: 0 });
@@ -142,7 +137,14 @@ export function CamadaSetas({ c, selSeta, ligando, editandoSeta }) {
           <g key={s.id} className={'qd-seta' + (sel ? ' sel' : '')} data-seta={s.id}>
             <path className="qd-seta-toque" d={d} />
             <path className="qd-seta-linha" d={d} markerEnd={fim} markerStart={inicio} />
-            {s.rotulo && editandoSeta !== s.id && (
+            {s.rotulo && editandoSeta !== s.id && s.rotuloModo === 'linha' && (
+              /* v0.6.52: texto acompanhando a linha (sempre no sentido de leitura) */
+              <g className="qd-rotulo qd-rotulo-linha">
+                <path id={'qd-sl-' + s.id} d={caminhoSVG(sentidoDeLeitura(pontos))} fill="none" stroke="none" />
+                <text dy="-7"><textPath href={'#qd-sl-' + s.id} startOffset="50%" textAnchor="middle">{s.rotulo}</textPath></text>
+              </g>
+            )}
+            {s.rotulo && editandoSeta !== s.id && s.rotuloModo !== 'linha' && (
               <g className="qd-rotulo" transform={`translate(${m.x} ${m.y})`}>
                 <rect x={-larg / 2} y="-10" width={larg} height="20" />
                 <text textAnchor="middle" y="4">{s.rotulo}</text>

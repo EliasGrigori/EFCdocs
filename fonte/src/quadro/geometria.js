@@ -41,13 +41,46 @@ const empurra = (p, lado, d = SAIDA) => ({
   y: p.y + (lado === 'b' ? d : lado === 't' ? -d : 0),
 });
 
-/** Pontos da seta (reta: 2 pontos; cotovelo: linhas retas em ângulo de 90°). */
+/* v0.6.52: seta curva suave = curva de Bézier que sai de cada ponta na direção do lado, desenhada como uma linha de
+   muitos pedacinhos (33 pontos). Assim a tela, o PDF, o meio do caminho (etiqueta), a ponta e o toque usam as mesmas contas. */
+const PASSOS_CURVA = 32;
+export function pontosCurva(p1, ladoA, p2, ladoB) {
+  const k = Math.max(30, Math.min(160, Math.hypot(p2.x - p1.x, p2.y - p1.y) * 0.45));
+  const c1 = empurra(p1, ladoA, k), c2 = empurra(p2, ladoB, k);
+  const pts = [];
+  for (let i = 0; i <= PASSOS_CURVA; i++) {
+    const t = i / PASSOS_CURVA, u = 1 - t;
+    const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+    pts.push({ x: Math.round((a * p1.x + b * c1.x + c * c2.x + d * p2.x) * 100) / 100, y: Math.round((a * p1.y + b * c1.y + c * c2.y + d * p2.y) * 100) / 100 });
+  }
+  return pts;
+}
+
+/** Texto acompanhando a linha (v0.6.52): pontos no sentido de leitura (da esquerda para a direita), para o texto não ficar de cabeça para baixo. */
+export const sentidoDeLeitura = (pts) => (pts.length > 1 && pts[pts.length - 1].x < pts[0].x ? [...pts].reverse() : pts);
+
+/** Ponto e ângulo a uma distância d (em px) ao longo da linha. */
+export function pontoNaLinha(pts, d) {
+  for (let i = 1; i < pts.length; i++) {
+    const seg = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    if (d <= seg || i === pts.length - 1) {
+      const t = seg ? Math.max(0, Math.min(1, d / seg)) : 0;
+      return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * t, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * t, ang: Math.atan2(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x) };
+    }
+    d -= seg;
+  }
+  return { x: pts[0].x, y: pts[0].y, ang: 0 };
+}
+export const comprimento = (pts) => pts.reduce((s, p, i) => (i ? s + Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y) : 0), 0);
+
+/** Pontos da seta (reta: 2 pontos; cotovelo: linhas retas em ângulo de 90°; curva: curva suave). */
 export function pontosSeta(de, para, seta = {}) {
   const auto = escolherLados(de, para);
   const ladoA = (seta.de && seta.de.lado) || auto[0];
   const ladoB = (seta.para && seta.para.lado) || auto[1];
   const p1 = ancora(de, ladoA), p2 = ancora(para, ladoB);
   if (seta.estilo === 'reta') return { pontos: [p1, p2], ladoA, ladoB };
+  if (seta.estilo === 'curva') return { pontos: pontosCurva(p1, ladoA, p2, ladoB), ladoA, ladoB };
   const s1 = empurra(p1, ladoA), s2 = empurra(p2, ladoB);
   const meio = [];
   if (horizontal(ladoA) && horizontal(ladoB)) {

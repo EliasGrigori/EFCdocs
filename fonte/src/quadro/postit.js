@@ -48,6 +48,14 @@ export function mudancasFeito(c, id, marcar) {
   return mud;
 }
 
+/** Quantas linhas de texto cabem no item (a tela corta com "…" nesse número; v0.6.52: o PDF usa a mesma conta). */
+export function linhasQueCabem(it, comTarefa, comCaixa) {
+  const fs = it.tipo === 'texto' && !it.borda ? 16 : 14; /* v0.6.52: o CSS do item de Texto é 16 px (era 18 nesta conta) */
+  /* v0.6.51: o título ocupa 30 px em cima; a caixinha de feito, 18 px embaixo (quando não há o rodapé de tarefa) */
+  const pad = it.tipo === 'postit' ? 28 + (comTarefa ? 38 : comCaixa ? 18 : 0) + (tituloDe(it) ? 30 : 0) : it.tipo === 'decisao' ? it.h * 0.44 : it.tipo === 'texto' ? 4 : 12;
+  return Math.max(1, Math.floor((it.h - pad) / (fs * 1.3)));
+}
+
 /* ---------- PDF e imagem (desenho.js chama) ---------- */
 const ALTURA_TITULO = 30;
 

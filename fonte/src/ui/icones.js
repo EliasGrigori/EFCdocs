@@ -153,6 +153,8 @@ export const ICONES = {
   "mao": "<path d=\"M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V5a1.5 1.5 0 0 1 3 0v6M14 11V6.5a1.5 1.5 0 0 1 3 0V14c0 3.6-2.4 6.5-6 6.5-2.4 0-3.8-1-5.2-3L4 14.6a1.5 1.5 0 0 1 2.3-1.9L8 14.5\"/>",
   "setaReta": "<path d=\"M4 20L20 4M13 4h7v7\"/>",
   "setaCotovelo": "<path d=\"M4 18h8V6h6M15 3l3 3-3 3\"/>",
+  "setaCurva": "<path d=\"M4 19c9 0 6-13 15-13M15.5 3.2 19 6l-3.2 3.1\"/>",
+  "textoLinha": "<path d=\"M3.5 19c6-1 11-6 17-12\"/><path d=\"M7.5 9.5h6M10.5 9.5v6\"/>",
   "inverter": "<path d=\"M4 8h14l-3-3M20 16H6l3 3\"/>",
   "play": "<path d=\"M8 5.5v13l10.5-6.5z\"/>",
   "pausa": "<path d=\"M8.5 5.5v13M15.5 5.5v13\" stroke-width=\"2.6\"/>",

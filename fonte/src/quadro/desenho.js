@@ -3,15 +3,21 @@
 
 import { COR, TIPOS_ITEM, porZ, listaSetas } from './modelo.js';
 import { medidas, encaixarRubrica } from '../nucleo/assinatura.js';
-import { pontosSeta, contornoForma, limites, meioDoCaminho } from './geometria.js';
+import { pontosSeta, contornoForma, limites, meioDoCaminho, sentidoDeLeitura, pontoNaLinha, comprimento } from './geometria.js';
 import { resumoTarefa, hojeISO } from './tarefa.js';
 import { derivar, MEDIDAS } from './legenda.js';
-import { desenharTitulo, desenharCaixa, mostraCaixas, estaFeito, tituloDe } from './postit.js';
+import { desenharTitulo, desenharCaixa, mostraCaixas, estaFeito, tituloDe, linhasQueCabem } from './postit.js';
 
 /* cores do nível GUT: [fundo, texto] */
 export const COR_GUT = { alta: ['#fee4e2', '#b42318'], media: ['#fef0c7', '#b54708'], baixa: ['#d1fadf', '#067647'] };
 
-export const FONTE = '"DejaVu Sans", Verdana, system-ui, sans-serif';
+/* v0.6.52 (D-81): a mesma letra da tela (Source Sans 3, que vem com o app). Antes era DejaVu Sans/Verdana, bem mais
+   larga: o texto quebrava mais linhas e saía cortado com "…". fontesProntas() espera a letra carregar antes de desenhar. */
+export const FONTE = '"Source Sans 3", "Segoe UI", system-ui, sans-serif';
+export async function fontesProntas() {
+  if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) return;
+  try { await Promise.all(['400', '600', '700'].map((p) => document.fonts.load(`${p} 14px "Source Sans 3"`))); } catch { /* sem a letra, o navegador usa a seguinte da lista */ }
+}
 export const COR_TEXTO = '#1f2328';
 export const COR_LINHA = '#3b4552';
 export const COR_SETA = '#475467';
@@ -59,7 +65,7 @@ function fonteDo(it, tamanho) {
   return `${f.i ? 'italic ' : ''}${f.n || (it.tipo === 'texto' && !it.borda) ? '700 ' : ''}${tamanho}px ${FONTE}`;
 }
 
-export const tamanhoFonte = (it) => (it.tipo === 'texto' ? (it.borda ? 14 : 18) : it.tipo === 'raia' || it.tipo === 'pagina' ? 15 : 14);
+export const tamanhoFonte = (it) => (it.tipo === 'texto' ? (it.borda ? 14 : 16) : it.tipo === 'raia' || it.tipo === 'pagina' ? 15 : 14);
 
 function escreverTexto(ctx, it, caixa) {
   const tam = tamanhoFonte(it);
@@ -69,10 +75,16 @@ function escreverTexto(ctx, it, caixa) {
   if (it.feito) ctx.fillStyle = 'rgba(31,35,40,.55)'; /* v0.6.51: post-it feito, texto riscado e mais claro */
   const linhas = quebrarTexto(ctx, it.texto, caixa.w);
   const alt = tam * 1.3;
-  const cabem = Math.max(1, Math.floor(caixa.h / alt));
+  const cabem = caixa.max || Math.max(1, Math.floor(caixa.h / alt)); /* v0.6.52: com max, o mesmo número de linhas da tela */
   const mostrar = linhas.slice(0, cabem);
-  if (linhas.length > cabem && mostrar.length) mostrar[mostrar.length - 1] = mostrar[mostrar.length - 1].replace(/.{0,2}$/, '…');
-  let y = caixa.y + (caixa.h - mostrar.length * alt) / 2 + tam * 0.98;
+  if (linhas.length > cabem && mostrar.length) {
+    /* v0.6.52 (D-81): como o corte da tela (line-clamp): a última linha mostrada fica inteira e ganha " …";
+       só perde letras do fim se o "…" não couber */
+    let ult = mostrar[mostrar.length - 1], fim = ult + ' …';
+    while (ult.length > 1 && ctx.measureText(fim).width > caixa.w) { ult = ult.slice(0, -1); fim = ult.replace(/\s+$/, '') + '…'; }
+    mostrar[mostrar.length - 1] = fim;
+  }
+  let y = caixa.topo ? caixa.y + tam * 0.98 : caixa.y + (caixa.h - mostrar.length * alt) / 2 + tam * 0.98; /* topo: post-it com título (como .qi-titulado) */
   ctx.textAlign = alinh === 'e' ? 'left' : alinh === 'd' ? 'right' : 'center';
   const x = alinh === 'e' ? caixa.x : alinh === 'd' ? caixa.x + caixa.w : caixa.x + caixa.w / 2;
   for (const l of mostrar) {
@@ -186,19 +198,24 @@ function desenharPagina(ctx, it) {
 }
 
 /** Rodapé do post-it de tarefa: responsável, prazo, situação e nota GUT. */
-function desenharTarefa(ctx, it, r) {
+function desenharTarefa(ctx, it, r, faixa = it) {
   const x = it.x + 8, base = it.y + it.h;
   ctx.save();
+  /* v0.6.52 (D-81): a faixa clara do rodapé, como na tela */
+  ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(faixa.x, base - 34, faixa.w, 34);
+  ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fillRect(faixa.x, base - 34, faixa.w, 1);
   ctx.textAlign = 'left';
   ctx.font = `600 11px ${FONTE}`;
   ctx.fillStyle = 'rgba(31,35,40,.80)';
   const gut = r.gut ? `GUT ${r.gut}` : '';
   ctx.font = `700 10px ${FONTE}`;
   const wg = gut ? ctx.measureText(gut).width + 12 : 0;
-  ctx.font = `600 11px ${FONTE}`;
-  ctx.fillText(cortar(ctx, (r.resp ? 'Resp.: ' + r.resp : 'Sem responsável'), it.w - 16 - wg - 4), x, base - 22);
-  ctx.fillStyle = r.vencida ? '#b42318' : 'rgba(31,35,40,.80)';
-  if (r.vencida) ctx.font = `700 11px ${FONTE}`;
+  /* v0.6.52 (D-81): os mesmos pesos e cores da tela (quadro.css .qi-tarefa): linha 1 em negrito; linha 2 normal, em vermelho e negrito se vencida */
+  ctx.fillStyle = '#344054';
+  ctx.font = `${r.resp ? 700 : 'italic 400'} 11px ${FONTE}`;
+  ctx.fillText(cortar(ctx, (r.resp ? 'Resp.: ' + r.resp : 'Sem responsável'), it.w - 16 - wg - 4), x, base - 20);
+  ctx.fillStyle = r.vencida ? '#b42318' : '#344054';
+  ctx.font = `${r.vencida ? 700 : 400} 11px ${FONTE}`;
   ctx.fillText(cortar(ctx, (r.prazo ? (r.vencida ? 'Vencido: ' + r.prazo : 'Prazo: ' + r.prazo + ' · ' + r.status) : 'Sem prazo · ' + r.status), it.w - 16), x, base - 8);
   if (gut) {
     const [fundo, texto] = COR_GUT[r.nivel];
@@ -289,12 +306,14 @@ function desenharItem(ctx, it, opcoes) {
     ctx.strokeRect(it.x + 0.5, it.y + 0.5, it.w - 1, it.h - 1);
   }
   const tarefa = it.tipo === 'postit' && opcoes.c ? resumoTarefa(opcoes.c, it, opcoes.hoje || hojeISO()) : null;
-  const folga = it.tipo === 'decisao' ? { x: it.w * 0.2, y: it.h * 0.22 } : it.tipo === 'dados' ? { x: 22, y: 8 } : it.tipo === 'texto' ? { x: 4, y: 2 } : { x: 12, y: it.tipo === 'postit' ? 18 : 8 };
+  /* v0.6.52 (D-81): as mesmas folgas do CSS da tela (quadro.css: .qi-postit 18/12/10, processo e início 6/14, dados 6/22) */
+  const folga = it.tipo === 'decisao' ? { x: it.w * 0.2, y: it.h * 0.22 } : it.tipo === 'dados' ? { x: 22, y: 6 } : it.tipo === 'texto' ? { x: 4, y: 2 } : it.tipo === 'postit' ? { x: 12, y: 18, b: 10 } : { x: 14, y: 6 };
   /* v0.6.51: título com fio e caixinha de feito (postit.js) */
   const desce = it.tipo === 'postit' ? desenharTitulo(ctx, it, FONTE) : 0;
   const caixa = it.tipo === 'postit' && opcoes.c && mostraCaixas(opcoes.c), feito = caixa && estaFeito(opcoes.c, it);
-  escreverTexto(ctx, feito ? { ...it, feito: true } : it, { x: it.x + folga.x, y: it.y + folga.y + desce, w: it.w - folga.x * 2, h: it.h - folga.y * 2 - desce - (tarefa ? 34 : caixa ? 18 : 0) });
-  if (tarefa) desenharTarefa(ctx, caixa ? { ...it, x: it.x + 22, w: it.w - 22 } : it, tarefa);
+  const baixo = it.tipo === 'postit' ? (tarefa ? 38 : caixa ? 28 : 10) : folga.y;
+  escreverTexto(ctx, feito ? { ...it, feito: true } : it, { x: it.x + folga.x, y: it.y + folga.y + desce, w: it.w - folga.x * 2, h: it.h - folga.y - baixo - desce, max: linhasQueCabem(it, !!tarefa, !!caixa), topo: desce > 0 });
+  if (tarefa) desenharTarefa(ctx, caixa ? { ...it, x: it.x + 23, w: it.w - 23 } : it, tarefa, it);
   if (caixa) desenharCaixa(ctx, it, feito, !!tarefa);
   if (opcoes.codigos && it.cod) {
     ctx.font = `600 10px ${FONTE}`;
@@ -330,7 +349,20 @@ function desenharSeta(ctx, s, c) {
   const n = pontos.length;
   if (s.pontas !== 'nenhuma') ponta(pontos[n - 2], pontos[n - 1]);
   if (s.pontas === 'ambas') ponta(pontos[1], pontos[0]);
-  if (s.rotulo) {
+  if (s.rotulo && s.rotuloModo === 'linha') {
+    /* v0.6.52: texto acompanhando a linha, letra por letra, 7 px acima dela (fundo branco do papel por trás) */
+    const pts = sentidoDeLeitura(pontos);
+    ctx.font = `600 12px ${FONTE}`; ctx.textAlign = 'center';
+    const letras = [...s.rotulo], larg = letras.map((l) => ctx.measureText(l).width), total = larg.reduce((a, b) => a + b, 0);
+    let d = comprimento(pts) / 2 - total / 2;
+    letras.forEach((l, i) => {
+      const p = pontoNaLinha(pts, d + larg[i] / 2);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang); ctx.translate(0, -7);
+      ctx.lineWidth = 4; ctx.strokeStyle = '#ffffff'; ctx.lineJoin = 'round'; ctx.strokeText(l, 0, 0);
+      ctx.fillStyle = COR_TEXTO; ctx.fillText(l, 0, 0); ctx.restore();
+      d += larg[i];
+    });
+  } else if (s.rotulo) {
     const m = meioDoCaminho(pontos);
     ctx.font = `600 12px ${FONTE}`;
     const w = ctx.measureText(s.rotulo).width + 10;
@@ -397,6 +429,7 @@ export async function carregarImagens(c) {
 
 /** Monta o canvas do quadro inteiro (margem em volta). Limite de 24 milhões de pixels. */
 export async function canvasDoQuadro(c, { escala = 2, margem = 40, codigos = true, demo = false } = {}) {
+  await fontesProntas();
   c = derivar(c);
   const lim = limitesDoQuadro(c) || { x: 0, y: 0, w: 400, h: 240 };
   let e = escala;

@@ -840,7 +840,7 @@ export function Quadro({ arquivo, cx }) {
       rotuloExcluir = 'Excluir a seta';
       botoes = [
         { id: 'rotulo', ic: 'texto', titulo: 'Escrever na seta (ex.: Sim, Não)', fazer: () => setEditando({ seta: s.id, valor: s.rotulo || '' }) },
-        { id: 'estilo', ic: s.estilo === 'reta' ? 'setaCotovelo' : 'setaReta', titulo: s.estilo === 'reta' ? 'Seta em cotovelo' : 'Seta reta', fazer: () => mudarSeta({ estilo: s.estilo === 'reta' ? 'cotovelo' : 'reta' }, 'Estilo da seta') },
+        { id: 'estilo', ic: { cotovelo: 'setaReta', reta: 'setaCurva', curva: 'setaCotovelo' }[s.estilo || 'cotovelo'], titulo: { cotovelo: 'Seta reta', reta: 'Seta curva', curva: 'Seta em cotovelo' }[s.estilo || 'cotovelo'], fazer: () => mudarSeta({ estilo: { cotovelo: 'reta', reta: 'curva', curva: 'cotovelo' }[s.estilo || 'cotovelo'] }, 'Estilo da seta') }, ...(s.rotulo ? [{ id: 'rotuloModo', ic: 'textoLinha', on: s.rotuloModo === 'linha', titulo: s.rotuloModo === 'linha' ? 'Texto numa etiqueta no meio' : 'Texto acompanhando a linha', fazer: () => mudarSeta({ rotuloModo: s.rotuloModo === 'linha' ? 'etiqueta' : 'linha' }, 'Texto da seta') }] : []), /* v0.6.52 */
         { id: 'inverter', ic: 'inverter', titulo: 'Inverter o sentido', fazer: () => mudarSeta({ de: s.para, para: s.de }, 'Inverter seta') },
         { id: 'pontas', ic: 'pontas', titulo: { fim: 'Ponta nos dois lados', ambas: 'Sem ponta (só linha)', nenhuma: 'Ponta só no fim' }[s.pontas || 'fim'], fazer: () => mudarSeta({ pontas: { fim: 'ambas', ambas: 'nenhuma', nenhuma: 'fim' }[s.pontas || 'fim'] }, 'Pontas da seta') },
       ];
@@ -918,11 +918,11 @@ export function Quadro({ arquivo, cx }) {
               <dt>Texto</dt><dd>{s.rotulo || '—'}</dd>
             </dl>
             <div className="chips">
-              {[['cotovelo', 'Cotovelo'], ['reta', 'Reta']].map(([v, n]) => <button key={v} type="button" disabled={somenteLeitura} className={'chipb' + ((s.estilo || 'cotovelo') === v ? ' on' : '')} onClick={() => mudarSeta({ estilo: v }, 'Estilo da seta')}>{n}</button>)}
+              {[['cotovelo', 'Cotovelo'], ['reta', 'Reta'], ['curva', 'Curva']].map(([v, n]) => <button key={v} type="button" disabled={somenteLeitura} className={'chipb' + ((s.estilo || 'cotovelo') === v ? ' on' : '')} onClick={() => mudarSeta({ estilo: v }, 'Estilo da seta')}>{n}</button>)}
             </div>
             <div className="chips">
               {[['fim', 'Ponta no fim'], ['ambas', 'Duas pontas'], ['nenhuma', 'Sem ponta']].map(([v, n]) => <button key={v} type="button" disabled={somenteLeitura} className={'chipb' + ((s.pontas || 'fim') === v ? ' on' : '')} onClick={() => mudarSeta({ pontas: v }, 'Pontas da seta')}>{n}</button>)}
-            </div>
+            </div>{s.rotulo && <div className="chips" aria-label="Texto da seta">{[['etiqueta', 'Texto em etiqueta'], ['linha', 'Texto na linha']].map(([v, n]) => <button key={v} type="button" disabled={somenteLeitura} data-rotulo-modo={v} className={'chipb' + ((s.rotuloModo === 'linha' ? 'linha' : 'etiqueta') === v ? ' on' : '')} onClick={() => mudarSeta({ rotuloModo: v }, 'Texto da seta')}>{n}</button>)}</div>}
           </>
         );
       })() : selValida.itens.length > 1 ? (
