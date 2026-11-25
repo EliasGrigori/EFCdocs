@@ -2022,7 +2022,7 @@ await caso('v0.4.4.1 / v0.6.0: fundo da janela escurece com desfoque leve (estil
   await p.goto(BASE + '#/');
   await p.locator('.topbar [aria-label="Opções"]').click();
   await p.waitForSelector('.fundo');
-  const e = await p.locator('.fundo').first().evaluate((el) => { const c = getComputedStyle(el); return { bg: c.backgroundColor, bf: c.backdropFilter || c.webkitBackdropFilter }; });
+  const e = await p.locator('.fundo').first().evaluate((el) => { const c = getComputedStyle(el); return { bg: getComputedStyle(el, '::before').backgroundColor /* v0.6.63 (J1): o escurecido é a camada de trás */, bf: c.backdropFilter || c.webkitBackdropFilter }; });
   igual(e.bg, 'rgba(12, 26, 36, 0.3)');
   certo(e.bf.includes('blur(2px)'), e.bf);
   await p.keyboard.press('Escape');
