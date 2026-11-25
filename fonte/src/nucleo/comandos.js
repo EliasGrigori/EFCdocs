@@ -249,6 +249,7 @@ export const COMANDOS = [
   C('exibir.zoom', 'Zoom', 'zoommais', { sin: ['aumentar', 'diminuir', 'ampliar', '100%'], chega: porModulo(V4, V7, null) }),
   C('exibir.ajustar', 'Ajustar à tela', 'ajustar', { sin: ['ver tudo', 'caber na tela', 'enquadrar'], mods: ['postits'] }),
   C('exibir.codigos', 'Mostrar códigos (Q-001)', 'codigo', { sin: ['número do post-it', 'q-001', 'código'], mods: ['postits'] }),
+  C('exibir.fundo', 'Fundo do quadro', 'grade', { sin: ['bolinhas', 'quadriculado', 'linhas', 'cor do fundo', 'papel de fundo'], mods: ['postits'] }),
   C('exibir.zoom100', 'Zoom 100%', 'zoommais', { sin: ['tamanho real', 'voltar o zoom', '100%'], mods: ['planilha'] }),
   C('exibir.congelar', 'Congelar painéis', 'congelar', { sin: ['fixar linha', 'travar cabeçalho', 'congelar cabeçalho'], chega: V4, mods: ['planilha'] }),
   C('exibir.abaGrafico', 'Aba Gráfico', 'grafico', { sin: ['aba do gráfico', 'faixa do gráfico', 'aba automática', 'esconder aba gráfico'], mods: ['planilha'], chega: V4 }),

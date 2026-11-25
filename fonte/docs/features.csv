@@ -473,3 +473,5 @@ F471;Quadro;fundo;"Fundo de bolinhas numa camada só, que anda com o arrasto e o
 F472;Quadro;formas;"Código e ícones da forma Início/Fim ficam fora da curva, na tela, no PDF e na imagem";funciona;"v0.6.48 (D-77)";manter;v0.6.48
 F473;Quadro;seleção;"Moldura de seleção colada no item, com a alça no canto (como no PowerPoint)";funciona;"v0.6.48 (D-78)";manter;v0.6.48
 F474;Planilha;abas;"Aba muito oculta (veryHidden) do Excel fica fora do menu Reexibir e volta muito oculta ao salvar";funciona;"v0.6.49 (D-79)";manter;v0.6.49
+F475;Quadro;visual;"Cores dos post-its mais claras e limpas (mesmos nomes; quadros antigos também mudam)";funciona;"v0.6.50 (proposta 1A)";manter;v0.6.50
+F476;Quadro;fundo;"Exibir › Fundo: desenho (bolinhas, quadriculado, linhas, liso) e cor (padrão e 6 suaves), guardado no arquivo, com Ctrl+Z";funciona;"v0.6.50 (proposta 2)";manter;v0.6.50

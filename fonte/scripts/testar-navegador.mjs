@@ -95,10 +95,10 @@ console.log('EFCdocs — testes no navegador em ' + BASE);
 
 /* ---------- 1. abertura, menu e quadro ---------- */
 let { ctx, p } = await novaPagina();
-await caso('abre sem erro, o menu mostra Vértice Docs v0.6.49', async () => {
+await caso('abre sem erro, o menu mostra Vértice Docs v0.6.50', async () => {
   await p.goto(BASE);
   await p.waitForSelector('[data-versao]');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.49'), 'menu sem v0.6.49');
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.50'), 'menu sem v0.6.50');
   /* v0.6.20 (R2 da família): as telas de lista não têm mais o rodapé do app */
   igual(await p.locator('.foot').count(), 0, 'o rodapé do app devia sair das telas de lista');
   await p.waitForTimeout(700);
@@ -249,7 +249,7 @@ await caso('painel lateral mostra o item escolhido (código, cor, coluna)', asyn
   await p.locator('.qd-cores-mini button[aria-label="Cor Verde"]').click();
   await p.waitForTimeout(150);
   const fundo = await p.locator('.qi[data-cod="Q-002"]').evaluate((e) => getComputedStyle(e).backgroundColor);
-  igual(fundo, 'rgb(187, 247, 208)', 'cor');
+  igual(fundo, 'rgb(220, 245, 227)', 'cor' /* v0.6.50: verde da paleta nova */);
   await print(p, '07-painel-item');
   await p.locator('.side [aria-label="Fechar o painel"]').click();
 });
@@ -693,7 +693,7 @@ await caso('v0.3.1 celular: faixa de cores à mão, sem barra vertical, Assisten
   await p.locator('.qd-cores-cel [data-cor="verde"]').tap();
   await p.waitForTimeout(150);
   const fundo = await p.locator('.qi-inicio').first().evaluate((e) => { const f = e.querySelector('svg rect, svg polygon'); return f ? getComputedStyle(f).fill : getComputedStyle(e).backgroundColor; });
-  igual(fundo, 'rgb(187, 247, 208)', 'cor pelo toque');
+  igual(fundo, 'rgb(220, 245, 227)', 'cor pelo toque' /* v0.6.50 */);
   await p.locator('.qd-lamp').tap();
   await p.waitForSelector('.qd-assist');
   const larg = await p.evaluate(() => document.documentElement.scrollWidth);
@@ -1903,7 +1903,7 @@ await caso('v0.4.4: Opções em seções que abrem e fecham; cabeçalho mostra o
   const alt = (await p.locator('.opcoes').boundingBox()).height;
   certo(alt < 320, 'Opções alta demais fechada: ' + alt);
   certo((await p.locator('.op-sec[data-sec=tema] .res').innerText()).length > 2, 'sem o tema no cabeçalho');
-  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.49'));
+  certo((await p.locator('.op-sec[data-sec=sobre] .res').innerText()).includes('Vértice Docs v0.6.50'));
   await p.locator('.op-sec[data-sec=tema] .op-cab').click();
   igual(await p.locator('.tema-b').count(), 2, 'v0.6.15: Claro e Escuro');
   await p.locator('.tema-b[data-tema=dark]').click();
@@ -4409,7 +4409,7 @@ await caso('v0.6.8: Arquivo › Versões abre a linha do tempo; a versão aparec
   await digitarEm(p, 'B2', ['5']);
   await cmd(p, 'arquivo.versoes').catch(async () => { await p.click('.tabs .tab:has-text("Arquivo")'); await cmd(p, 'arquivo.versoes'); });
   await p.waitForSelector('.linha-tempo'); await p.keyboard.press('Escape');
-  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.49'));
+  certo((await p.locator('[data-versao]').innerText()).includes('Vértice Docs v0.6.50'));
 });
 await caso('v0.6.8: celular: no painel com peças dá para pôr mais (botões no fim) e a lista rola', async () => {
   const ctx2 = await navegador.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

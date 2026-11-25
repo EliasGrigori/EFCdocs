@@ -13,11 +13,13 @@
    } */
 
 import { limparNome, rubricaValida, ASN } from '../nucleo/assinatura.js';
+import { fundoValido, ehFundoPadrao } from './fundo.js';
 
 export const CORES = [
-  ['amarelo', '#fde68a', 'Amarelo'], ['verde', '#bbf7d0', 'Verde'], ['azul', '#bfdbfe', 'Azul'],
-  ['rosa', '#fbcfe8', 'Rosa'], ['laranja', '#fed7aa', 'Laranja'], ['lilas', '#ddd6fe', 'Lilás'],
-  ['cinza', '#e5e7eb', 'Cinza'], ['branco', '#ffffff', 'Branco'],
+  /* v0.6.50: cores mais claras e limpas (aprovadas nas propostas de 25/11); a cor é guardada pelo nome, então os quadros já feitos também mudam */
+  ['amarelo', '#fff4b8', 'Amarelo'], ['verde', '#dcf5e3', 'Verde'], ['azul', '#dcebfb', 'Azul'],
+  ['rosa', '#fbe1ec', 'Rosa'], ['laranja', '#ffe6cf', 'Laranja'], ['lilas', '#ebe5fb', 'Lilás'],
+  ['cinza', '#eef0f2', 'Cinza'], ['branco', '#ffffff', 'Branco'],
 ];
 export const COR = Object.fromEntries(CORES.map(([id, hex]) => [id, hex]));
 
@@ -91,7 +93,10 @@ export function normalizarQuadro(c) {
     ? c.colunas.filter((k) => k && k.id).map((k) => ({ id: String(k.id), nome: String(k.nome || 'Coluna') }))
     : base.colunas;
   const maiorCod = Object.values(itens).reduce((m, it) => Math.max(m, it.cod ? parseInt(it.cod.slice(2), 10) || 0 : 0), 0);
-  return { v: 1, itens, setas, colunas, seq: Math.max(num(c.seq, 0), maiorCod) };
+  const r = { v: 1, itens, setas, colunas, seq: Math.max(num(c.seq, 0), maiorCod) };
+  /* v0.6.50: fundo do quadro ({ tipo, cor }); o que não for conhecido volta ao padrão (fundo.js) */
+  if (c.fundo && typeof c.fundo === 'object' && !ehFundoPadrao(c.fundo)) r.fundo = fundoValido(c.fundo);
+  return r;
 }
 
 export const listaItens = (c) => Object.values(c.itens);

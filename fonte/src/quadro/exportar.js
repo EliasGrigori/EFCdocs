@@ -62,7 +62,7 @@ export function canvasDoKanban(c, { escala = 2, demo = false } = {}) {
       ctx.strokeStyle = '#d0d5dd';
       ctx.fillRect(x + 10, y, LC - 20, h);
       ctx.strokeRect(x + 10.5, y + 0.5, LC - 21, h - 1);
-      ctx.fillStyle = COR[it.cor] || '#fde68a';
+      ctx.fillStyle = COR[it.cor] || COR.amarelo;
       ctx.fillRect(x + 10, y, 5, h);
       ctx.fillStyle = 'rgba(31,35,40,.55)';
       ctx.font = `600 10px ${FONTE}`;

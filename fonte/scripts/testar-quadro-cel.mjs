@@ -53,7 +53,7 @@ const novoPostit = async (p, texto, toque) => {
     const r = await p.evaluate(() => {
       const L = (c) => { const v = c.match(/[\d.]+/g).map(Number); const f = (x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return [0.2126 * f(v[0]) + 0.7152 * f(v[1]) + 0.0722 * f(v[2]), v[3] === undefined ? 1 : v[3]]; };
       const el = document.querySelector('.qi-postit .qi-cod'); const fg = getComputedStyle(el).color;
-      const hexes = ['#fde68a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#fed7aa', '#ddd6fe', '#e5e7eb', '#ffffff'];
+      const hexes = ['#fff4b8', '#dcf5e3', '#dcebfb', '#fbe1ec', '#ffe6cf', '#ebe5fb', '#eef0f2', '#ffffff']; /* v0.6.50: paleta nova */
       const m = fg.match(/[\d.]+/g).map(Number); const a = m[3] ?? 1;
       return hexes.map((h) => { const b = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const mix = `rgb(${b.map((x, i) => Math.round(m[i] * a + x * (1 - a))).join(',')})`; const l1 = L(`rgb(${b.join(',')})`)[0], l2 = L(mix)[0]; return Math.round(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)) * 100) / 100; });
     });

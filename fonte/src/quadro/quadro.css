@@ -46,6 +46,18 @@ body.relevo .navcel { box-shadow: inset 0 1px #ffffff0f, 0 -3px 10px -6px #00000
 .qd-area.modo-seta, .qd-area.modo-pincel { cursor: crosshair; }
 /* v0.6.48 (D-76): no Quadro, as bolinhas são só as da área (andam com o arrasto e o zoom); as da superfície por baixo ficavam paradas e apareciam como uma segunda camada desalinhada */
 .sup-postits[data-vista=quadro] { background-image: none; }
+/* v0.6.50: fundo do quadro (desenho e cor em fundo.jsx; o traço segue o tema). No tema escuro, a cor escolhida é só um toque */
+.qd-area, .qd-fundo-am { --qd-traco: var(--border-light); }
+.qd-area[data-fundo=quadriculado], .qd-area[data-fundo=linhas] { --qd-traco: color-mix(in srgb, var(--border-light) 50%, transparent); }
+.qd-area.com-cor { background-color: var(--qd-cor); }
+body[data-theme=dark] .qd-area.com-cor, body[data-theme=dark] .qd-fundo-am.com-cor { background-color: color-mix(in srgb, var(--qd-cor) 10%, var(--surface-2)); }
+.qd-jfundo { width: min(460px, 94vw); }
+.qd-fundos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.qd-fundo-op { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-height: 34px; padding: 6px; border: 1px solid var(--border-light); border-radius: var(--r-ctl, 8px); background: var(--surface); color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+.qd-fundo-op:hover { border-color: var(--primary); }
+.qd-fundo-op.on { border-color: var(--primary); box-shadow: var(--anel, 0 0 0 3px var(--primary-soft)); }
+.qd-fundo-am { display: block; height: 40px; border-radius: 6px; border: 1px solid var(--border-light); background-color: var(--surface-2); }
+.qd-fundo-am.com-cor { background-color: var(--qd-cor); }
 .qd-mundo { position: absolute; left: 0; top: 0; width: 1px; height: 1px; transform-origin: 0 0; }
 
 .qi { position: absolute; box-sizing: border-box; color: #1f2328; font-size: 14px; line-height: 1.3; }

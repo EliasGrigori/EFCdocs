@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx';
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -464,7 +464,7 @@ export function Quadro({ arquivo, cx }) {
       case 'organizar.frente': if (selValida.itens.length) aplicarQ(Q.mudancasFrente(c, selValida.itens), 'Trazer para a frente', 'ordem'); else avisoSelecione(); return true;
       case 'organizar.tras': if (selValida.itens.length) aplicarQ(Q.mudancasTras(c, selValida.itens), 'Mandar para trás', 'ordem'); else avisoSelecione(); return true;
       case 'organizar.temporizador': setTimer(!timer); return true;
-      case 'exibir.zoom': setJanela('zoom'); return true;
+      case 'exibir.zoom': setJanela('zoom'); return true; case 'exibir.fundo': setVista('quadro'); setJanela('fundo'); return true;
       case 'exibir.ajustar': setVista('quadro'); setTimeout(ajustar, 0); return true;
       case 'exibir.minimapa': trocarQp('minimapa'); return true;
       case 'exibir.codigos': trocarQp('codigos'); return true;
@@ -982,8 +982,8 @@ export function Quadro({ arquivo, cx }) {
       {vista === 'kanban' ? (
         <KanbanVista c={c} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} sel={selValida} setSel={setSel} cx={cx} codigos={qp.codigos} hoje={hoje} />
       ) : (
-        <div className={'qd-area' + (modo ? ' modo-' + modo.tipo : '')} ref={areaRef}
-          style={{ backgroundPosition: `${view.x}px ${view.y}px`, backgroundSize: `${22 * view.z}px ${22 * view.z}px` }}
+        <div className={'qd-area' + (modo ? ' modo-' + modo.tipo : '') + (fundoValido(c.fundo).cor !== 'padrao' ? ' com-cor' : '')} ref={areaRef} data-fundo={fundoValido(c.fundo).tipo}
+          style={estiloDoFundo(c.fundo, view)}
           onPointerDown={aoBaixar} onPointerMove={aoMover} onPointerUp={aoSoltar} onPointerCancel={aoSoltar} onDoubleClick={aoDuploClique}
           role="application" aria-label={'Quadro ' + ficha.nome}>
           <div className="qd-mundo" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}>
@@ -1110,7 +1110,7 @@ export function Quadro({ arquivo, cx }) {
             return `${r.total} ${r.total === 1 ? 'troca feita' : 'trocas feitas'}. Dá para desfazer com Ctrl+Z.`;
           }} />
       )}
-      {janela === 'zoom' && (
+      {janela === 'fundo' && <JanelaFundo fundo={c.fundo} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoAplicar={(f) => aplicarQ({ fundo: f }, 'Fundo do quadro')} />}{janela === 'zoom' && (
         <Janela titulo="Zoom" icone="maiszoom" aoFechar={() => setJanela(null)}>
           <div className="janela-c">
             <div className="chips">

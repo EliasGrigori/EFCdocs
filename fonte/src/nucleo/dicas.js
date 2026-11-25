@@ -161,6 +161,7 @@ export const DESCRICAO = {
   'exibir.ajustar': 'Enquadra tudo o que está no quadro na tela.',
   'exibir.minimapa': 'Mapa pequeno do quadro, para se achar.',
   'exibir.codigos': 'Mostra o código (Q-001) de cada item.',
+  'exibir.fundo': 'Escolhe o desenho (bolinhas, quadriculado, linhas ou liso) e a cor do fundo deste quadro.',
   'exibir.ferramentas': 'Mostra ou esconde a barra de ferramentas do quadro.',
   'exibir.assistente': 'Avisa o que falta no fluxograma (decisão sem saída, passo solto...).',
   'exibir.painel': 'Abre ou fecha o painel lateral com detalhes e ajuda.',

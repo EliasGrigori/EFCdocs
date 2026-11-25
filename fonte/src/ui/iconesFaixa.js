@@ -222,6 +222,7 @@ export const NOVOS = {
   temporizador: '<circle class="t" cx="12" cy="13.5" r="7"/><path d="M12 13.5V10M9.5 3.5h5M12 3.5v3"/>',
   ajustar: '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><rect class="t" x="8.5" y="8.5" width="7" height="7" rx="1.3"/>',
   minimapa: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><rect class="t" x="12" y="11.5" width="6.5" height="6" rx="1.2"/>',
+  fundoQ: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M8 9h.01M12 9h.01M16 9h.01M8 12h.01M12 12h.01M16 12h.01M8 15h.01M12 15h.01M16 15h.01"/>',
   codigos: '<rect class="t" x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><path d="M14 14h3v3h-3zM19.5 14.5V20M14 19.5h3"/>',
   ferramentas: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path class="t" d="M5.5 4.5H9v15H5.5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z"/><path d="M9 4.5v15"/><path d="M6.2 8.5h.01M6.2 12h.01M6.2 15.5h.01" stroke-width="1.8"/>',
   /* v0.6.19: Design da Tabela */
@@ -306,7 +307,7 @@ export const MAPA = {
   'inserir.forma': 'forma', 'inserir.processo': 'processo', 'inserir.decisao': 'decisao', 'inserir.inicio': 'inicioFim', 'inserir.dados': 'entradaSaida', 'inserir.modelo': 'modeloQ',
   'organizar.quadro': 'quadro', 'organizar.kanban': 'kanban', 'organizar.raias': 'raias', 'organizar.frente': 'frente', 'organizar.tras': 'tras',
   'organizar.ordenarGut': 'classificar', 'organizar.temporizador': 'temporizador',
-  'exibir.ajustar': 'ajustar', 'exibir.minimapa': 'minimapa', 'exibir.codigos': 'codigos', 'exibir.ferramentas': 'ferramentas', 'exibir.assistente': 'assistente',
+  'exibir.ajustar': 'ajustar', 'exibir.minimapa': 'minimapa', 'exibir.codigos': 'codigos', 'exibir.fundo': 'fundoQ', 'exibir.ferramentas': 'ferramentas', 'exibir.assistente': 'assistente',
 };
 
 /** v0.6.21 parte 2: desenhos usados pelos botões com lista e pelos tipos de gráfico da faixa (não são comandos do catálogo) */
