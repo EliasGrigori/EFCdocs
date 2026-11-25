@@ -1,6 +1,6 @@
 /* EFCdocs — Planilha: as ações que mudam o arquivo (sempre como "mudanças" { caminho: valor },
    que viram uma linha no desfazer e gravam só o que mudou). */
-import { chave, lerChave, MAX_COL, MAX_LIN, letraCol, textoFaixa, normalFaixa } from './ref.js';
+import { chave, lerChave, MAX_COL, MAX_LIN, letraCol, textoFaixa, normalFaixa } from './ref.js'; import { titularColunasNovas } from './tituloColuna.js'; /* v0.6.61 */
 import { reescrever, deslocar, ajustarEstrutura, renomearAbaNaArvore, excluirAbaNaArvore, renomearNomeNaArvore, paraMostrar, lerGuardada, escrever, mapearRefs } from './formula.js';
 import { indiceEstilo, estiloDe, abaVazia, mescladas, valorGuardado, paraGuardarValor, eixo as eixoTam, largPadrao, altPadrao } from './modelo.js';
 import { ajustarObjetosEstrutura } from './objetos.js';
@@ -483,18 +483,7 @@ export function estrutura(c, abaId, eixo, i, n) {
       if (nb < na + (eixo === 'l' && t.cab ? 1 : 0)) continue; // a tabela inteira saiu
       const nova = eixo === 'l' ? { ...t, l1: na, l2: nb } : { ...(t.fil ? (({ fcx: _x, ...r }) => r)(t) : t), c1: na, c2: nb, ...(t.fil ? { fil: moverColunasDoFiltro(t.fil, move) } : {}) }; /* v0.6.40 (T2): os critérios do filtro da tabela mudam de coluna junto (o fcx cru, pela posição, sai) */
       if (eixo === 'c' && Array.isArray(t.cols)) nova.cols = undefined; // os títulos são relidos das células ao salvar
-      /* v0.6.61 (V56-03): coluna inserida no meio de uma tabela com títulos ganha um título único (Coluna1, Coluna2...), como no
-         Excel; sem ele a tabela saía como faixa normal ao salvar */
-      if (eixo === 'c' && !exclui && t.cab && a < i && b >= i) {
-        const usados = new Set();
-        for (let j = na; j <= nb; j++) { const x = cel[chave(t.l1, j)]; if (x && x.v != null && x.v !== '') usados.add(String(x.v).toLowerCase()); }
-        let n0 = 1;
-        for (let j = i; j < i + k; j++) {
-          while (usados.has(('Coluna' + n0).toLowerCase())) n0++;
-          const nome = 'Coluna' + n0; usados.add(nome.toLowerCase());
-          cel[chave(t.l1, j)] = { ...(cel[chave(t.l1, j)] || {}), v: nome };
-        }
-      }
+      if (eixo === 'c' && !exclui && t.cab && a < i && b >= i) titularColunasNovas(cel, t.l1, na, nb, i, k); /* v0.6.61 (V56-03): Coluna1, Coluna2... (tituloColuna.js) */
       nt[kt] = nova;
     }
     if (mexeu) mud['conteudo.tabelas'] = nt;
