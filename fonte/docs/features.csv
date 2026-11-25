@@ -510,3 +510,9 @@ F508;Quadro;kanban;"Comentários pelo número no cartão, numa gaveta ao lado (u
 F509;Geral;janelas;"Janelas e menus nascem 85% visíveis (print logo após o clique não pega a janela vazada)";com defeito;"D-86: nascem com opacidade 0";"v0.6.63 (J1)";estudo do Kanban 25/11
 F510;Quadro;modelos;"Modelo de quadro com Kanban ligado (mesmo arquivo; atividades nascem das etapas do fluxo)";falta;"";"depois da v0.6.67 (R44)";estudo do Kanban 25/11
 F511;Quadro;modelos;"Quem iniciou, quem concluiu e histórico de atualizações, só nos Documentos internos; acesso por login na fase do Firebase";falta;"antes do login: nome do perfil do aparelho";"depois da v0.6.67 (R44)";estudo do Kanban 25/11
+F512;Quadro;arquivo;"Exportar e importar o quadro editável (arquivo próprio, ida e volta sem perda)";falta;"só PDF, PNG, imprimir e Cwork";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
+F513;Quadro;organizar;"Igualar tamanho (largura, altura ou os dois) no Arrumar";falta;"";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
+F514;Quadro;organizar;"Agrupar (Ctrl+G) e mover em bloco";falta;"só a Página leva junto o que está dentro";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
+F515;Quadro;organizar;"Organizar em árvore ou grade com um clique";falta;"";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
+F516;Quadro;editar;"Mapa mental: Enter cria o irmão ligado ao mesmo pai (Tab já cria o próximo ligado)";parcial;"Tab e Shift+Tab existem, mas não aparecem em lugar nenhum";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
+F517;Quadro;organizar;"Recolher e abrir ramos do mapa";falta;"";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
