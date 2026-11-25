@@ -493,7 +493,7 @@ await caso('v0.3.1: Kanban mostra a tarefa e Ordenar GUT põe a maior nota no to
   await p.waitForTimeout(150);
   await p.locator('.qd-vistas button:has-text("Kanban")').click();
   await p.waitForSelector('.kb-col');
-  certo((await p.locator('.kb-card .qi-tarefa').first().innerText()).includes('Ana'), 'tarefa no cartão');
+  certo((await p.locator('.kb-card .kb-pe').first() /* v0.6.65 (V2): rodapé limpo do cartão */.innerText()).includes('Ana'), 'tarefa no cartão');
   await p.locator('.qd-gut').click();
   await p.waitForTimeout(150);
   const primeiro = await p.locator('.kb-col').first().locator('.kb-card').first().innerText();

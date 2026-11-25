@@ -501,10 +501,10 @@ F499;Quadro;kanban;"Sem piscar entre colunas e sem ida e volta da vaga (posiçã
 F500;Quadro;kanban;"Rolar sozinho na beira durante o arrasto";funciona;"";"feito na v0.6.64 (F5)";estudo do Kanban 25/11
 F501;Quadro;kanban;"Pegar e carregar com calma (fantasma igual ao cartão, inclinação pela velocidade, sem pulo no hover)";funciona;"";"feito na v0.6.64 (F6)";estudo do Kanban 25/11
 F502;Quadro;kanban;"Esc no meio do arrasto devolve o post-it";funciona;"";"feito na v0.6.64 (F7)";estudo do Kanban 25/11
-F503;Quadro;kanban;"Colunas em raia suave e nome do quadro acima das colunas";falta;"";"v0.6.65 (V1)";estudo do Kanban 25/11
-F504;Quadro;kanban;"Cartão limpo: etiqueta, código, título, texto, rodapé só com o que existe; sem bolinha de iniciais";parcial;"mostra Sem responsável e Sem prazo; bolinha de iniciais";"v0.6.65 (V2)";estudo do Kanban 25/11
-F505;Quadro;kanban;"Kanban usa a textura e a letra escolhidas no Quadro";falta;"";"v0.6.65 (V3)";estudo do Kanban 25/11
-F506;Quadro;kanban;"Fechar o painel de detalhes não deixa faixa vazia";com defeito;"faixa vazia até rolar";"v0.6.65 (V4)";estudo do Kanban 25/11
+F503;Quadro;kanban;"Colunas em raia suave e nome do quadro acima das colunas";funciona;"";"feito na v0.6.65 (V1)";estudo do Kanban 25/11
+F504;Quadro;kanban;"Cartão limpo: etiqueta, código, título, texto, rodapé só com o que existe; sem bolinha de iniciais";funciona;"";"feito na v0.6.65 (V2)";estudo do Kanban 25/11
+F505;Quadro;kanban;"Kanban usa a textura e a letra escolhidas no Quadro";funciona;"";"feito na v0.6.65 (V3)";estudo do Kanban 25/11
+F506;Quadro;kanban;"Fechar o painel de detalhes não deixa faixa vazia";funciona;"";"feito na v0.6.65 (V4)";estudo do Kanban 25/11
 F507;Quadro;organizar;"Etiqueta de frente no post-it (cor e nome) e filtro único recolhível com contagem";falta;"";"v0.6.66 (N1)";estudo do Kanban 25/11
 F508;Quadro;kanban;"Comentários pelo número no cartão, numa gaveta ao lado (usa nota/notaR da v0.6.55)";parcial;"só um ícone no cartão";"v0.6.67 (N2)";estudo do Kanban 25/11
 F509;Geral;janelas;"Janelas e menus nascem 85% visíveis (print logo após o clique não pega a janela vazada)";funciona;"";"feito na v0.6.63 (J1)";estudo do Kanban 25/11
