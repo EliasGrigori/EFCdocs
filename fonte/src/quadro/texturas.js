@@ -28,7 +28,7 @@ export function lugarMancha(it) {
 export function estiloTextura(it, cor) {
   const t = texturaDo(it);
   if (!t) return null;
-  if (t === 'dobrado') { const a = tamanhoDobra(it); return { background: `linear-gradient(315deg, transparent ${(a * Math.SQRT1_2).toFixed(2)}px, ${cor} 0)` }; }
+  if (t === 'dobrado') { const a = tamanhoDobra(it); return { backgroundColor: 'transparent', backgroundImage: `linear-gradient(315deg, transparent ${(a * Math.SQRT1_2).toFixed(2)}px, ${cor} 0)` }; } /* v0.6.60 (D-85): sem o atalho "background" */
   if (t === 'amassado') return { backgroundImage: `url(${urlTextura(t)})`, backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat' };
   const m = lugarMancha(it);
   return { backgroundImage: `url(${urlTextura(t)})`, backgroundSize: `${m.s}px ${m.s}px`, backgroundPosition: `${m.x.toFixed(1)}px ${m.y.toFixed(1)}px`, backgroundRepeat: 'no-repeat' };

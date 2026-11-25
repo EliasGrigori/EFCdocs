@@ -87,8 +87,8 @@ export { RodapeTarefa };
 export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, feito, aoMarcar, aoComentario, aoSairComentario }) {
   const forma = FORMAS.includes(it.tipo);
   const style = { left: it.x, top: it.y, width: it.w, height: it.h, zIndex: zi };
-  if (it.tipo === 'postit') style.background = COR[it.cor] || COR.amarelo;
-  const tex = texturaDo(it); if (tex) Object.assign(style, estiloTextura(it, style.background)); /* v0.6.57 */
+  if (it.tipo === 'postit') style.backgroundColor = COR[it.cor] || COR.amarelo; /* v0.6.60 (D-85): só a cor; com o atalho "background", trocar a cor apagava a imagem da textura */
+  const tex = texturaDo(it); if (tex) Object.assign(style, estiloTextura(it, style.backgroundColor)); /* v0.6.57 */
   if (familiaDo(it)) garantirFonte(familiaDo(it)); /* baixa a letra na primeira vez (fica guardada) */
   const tit = tituloDe(it);
   const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '') + (tit ? ' qi-titulado' : '') + (caixa ? ' qi-com-caixa' : '') + (feito ? ' qi-feito' : '') + (codigos && it.cod && ['inicio', 'processo', 'dados'].includes(it.tipo) ? ' qi-com-cod' : '') + (tex ? ' qi-tex-' + tex : '');
