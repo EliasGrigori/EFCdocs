@@ -71,7 +71,7 @@ try {
     lente('3 Fidelidade', '0 diferenças fora das conhecidas', existsSync(join(BASE, 'fidelidade.txt')) ? `${(readFileSync(join(BASE, 'fidelidade.txt'), 'utf8').match(/^\S+\.xlsx:/gm) || []).length} amostras: nenhuma diferença nova${existsSync(join(BASE, 'ida-e-volta.txt')) ? '; ' + ultima(readFileSync(join(BASE, 'ida-e-volta.txt'), 'utf8'), /^ida e volta:/) : ''}` : 'sem medida', `${arqs} amostras: ${novas ? novas + ' diferença(s) NOVA(S)' : 'nenhuma diferença nova'}${fora}; ${ivFim}`, `${ultima(r.stdout, /^conferentes:/)}`, r.status !== 0);
   }
   if (!PULAR.has('seguranca')) {
-    const args = ['scripts/sabia/varredura-sensivel.py', '..', '--ignorar', 'node_modules,dist,.git,.auditoria,assets'];
+    const args = ['scripts/sabia/varredura-sensivel.py', '..', '--ignorar', 'node_modules,dist,.git,.auditoria,assets,extra'];  /* v0.6.57 (D1 aprovado): extra = letras do Quadro e os avisos OFL, que trazem o contato público do autor e não podem ser mudados */
     if (process.env.EFC_PALAVRAS && existsSync(process.env.EFC_PALAVRAS)) args.push('--palavras', process.env.EFC_PALAVRAS);
     const r = rodar('python3', args); writeFileSync(join(OUT, 'seguranca.txt'), r.stdout + r.stderr);
     const ach = /ACHADOS \((\d+)\)/.exec(r.stdout); const olhar = /PARA OLHAR À MÃO \((\d+)/.exec(r.stdout);
