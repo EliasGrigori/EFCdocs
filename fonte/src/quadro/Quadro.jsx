@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -464,7 +464,7 @@ export function Quadro({ arquivo, cx }) {
       case 'organizar.frente': if (selValida.itens.length) aplicarQ(Q.mudancasFrente(c, selValida.itens), 'Trazer para a frente', 'ordem'); else avisoSelecione(); return true;
       case 'organizar.tras': if (selValida.itens.length) aplicarQ(Q.mudancasTras(c, selValida.itens), 'Mandar para trás', 'ordem'); else avisoSelecione(); return true;
       case 'organizar.temporizador': setTimer(!timer); return true;
-      case 'exibir.zoom': setJanela('zoom'); return true; case 'exibir.fundo': setVista('quadro'); setJanela('fundo'); return true;
+      case 'exibir.zoom': setJanela('zoom'); return true; case 'exibir.fundo': setVista('quadro'); setJanela('fundo'); return true; case 'formatar.tituloPostit': if (umItem && umItem.tipo === 'postit') setJanela('titulo'); else avisoSelecione(); return true; case 'exibir.caixas': aplicarQ({ caixas: c.caixas === false }, c.caixas === false ? 'Mostrar caixinhas de feito' : 'Esconder caixinhas de feito'); return true;
       case 'exibir.ajustar': setVista('quadro'); setTimeout(ajustar, 0); return true;
       case 'exibir.minimapa': trocarQp('minimapa'); return true;
       case 'exibir.codigos': trocarQp('codigos'); return true;
@@ -487,7 +487,7 @@ export function Quadro({ arquivo, cx }) {
       case 'exibir.minimapa': return qp.minimapa;
       case 'exibir.ferramentas': return qp.ferramentas;
       case 'exibir.assistente': return assistAberto;
-      case 'exibir.codigos': return qp.codigos;
+      case 'exibir.codigos': return qp.codigos; case 'exibir.caixas': return c.caixas !== false;
       case 'revisao.ortografia': return qp.ortografia;
       case 'organizar.temporizador': return timer;
       case 'inserir.modelo': return janela === 'modelos';
@@ -852,7 +852,7 @@ export function Quadro({ arquivo, cx }) {
       if (temCor) botoes.push({ id: 'cor', cor: Q.COR[(its.find((it) => it.cor) || {}).cor] || '#fff', titulo: 'Cor', fazer: () => setJanela('cores') });
       if (its.length === 1) {
         const it = its[0];
-        if (COM_TEXTO(it)) botoes.push({ id: 'editar', ic: 'renomear', titulo: 'Escrever (Enter)', fazer: () => comecarEdicao(it) });
+        if (COM_TEXTO(it)) botoes.push({ id: 'editar', ic: 'renomear', titulo: 'Escrever (Enter)', fazer: () => comecarEdicao(it) }); if (it.tipo === 'postit' && !somenteLeitura) botoes.push({ id: 'titulo', ic: 'titulo', titulo: tituloDe(it) ? 'Mudar o título' : 'Título', on: !!tituloDe(it), fazer: () => setJanela('titulo') });
         if (it.tipo === 'assinatura') botoes.push({ id: 'editar', ic: 'assinatura', titulo: 'Nome e rubrica (Enter)', fazer: () => comecarEdicao(it) });
         if (LIGAVEL(it)) {
           botoes.push({ id: 'proximo', ic: 'conector', titulo: 'Próximo passo já ligado (Tab)', fazer: () => proximo(it.id) });
@@ -988,7 +988,7 @@ export function Quadro({ arquivo, cx }) {
           role="application" aria-label={'Quadro ' + ficha.nome}>
           <div className="qd-mundo" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}>
             {ordenados.map((it, i) => (
-              <ItemView key={it.id} it={it} zi={zi(it, i)} sel={selValida.itens.includes(it.id) || (arrasto && arrasto.tipo === 'ligar' && arrasto.alvo === it.id)} codigos={qp.codigos} escondeTexto={editItem && editItem.id === it.id} tarefa={it.tipo === 'postit' ? resumoTarefa(cv, it, hoje) : null} />
+              <ItemView key={it.id} it={it} zi={zi(it, i)} sel={selValida.itens.includes(it.id) || (arrasto && arrasto.tipo === 'ligar' && arrasto.alvo === it.id)} codigos={qp.codigos} escondeTexto={editItem && editItem.id === it.id} tarefa={it.tipo === 'postit' ? resumoTarefa(cv, it, hoje) : null} caixa={it.tipo === 'postit' && mostraCaixas(c)} feito={it.tipo === 'postit' && estaFeito(c, it)} aoMarcar={somenteLeitura ? null : (id, v) => aplicarQ(mudancasFeito(c, id, v), v ? 'Marcar como feito' : 'Desmarcar feito')} />
             ))}
             <CamadaSetas c={cv} selSeta={selValida.seta} ligando={ligando} editandoSeta={editSeta && editSeta.id} />
             {!somenteLeitura && umItem && !arrasto && !editando && !modo && cv.itens[umItem.id] && (
@@ -1110,7 +1110,7 @@ export function Quadro({ arquivo, cx }) {
             return `${r.total} ${r.total === 1 ? 'troca feita' : 'trocas feitas'}. Dá para desfazer com Ctrl+Z.`;
           }} />
       )}
-      {janela === 'fundo' && <JanelaFundo fundo={c.fundo} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoAplicar={(f) => aplicarQ({ fundo: f }, 'Fundo do quadro')} />}{janela === 'zoom' && (
+      {janela === 'titulo' && umItem && umItem.tipo === 'postit' && <JanelaTitulo it={umItem} aoFechar={() => setJanela(null)} aoAplicar={(t) => aplicarQ(mudancasTitulo(c, [umItem.id], t), t ? 'Título' : 'Tirar título')} />}{janela === 'fundo' && <JanelaFundo fundo={c.fundo} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoAplicar={(f) => aplicarQ({ fundo: f }, 'Fundo do quadro')} />}{janela === 'zoom' && (
         <Janela titulo="Zoom" icone="maiszoom" aoFechar={() => setJanela(null)}>
           <div className="janela-c">
             <div className="chips">

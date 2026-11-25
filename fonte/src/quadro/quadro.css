@@ -430,3 +430,22 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
   /* com pouca altura fica só a barra do item (ela já tem Cor e Editar); a faixa grande de cores some */
   .app.cel:has(.sup-postits) .qd-cores-cel { display: none; }
 }
+/* v0.6.51: título do post-it (negrito com fio, uma linha) e caixinha de feito (canto de baixo; marcada = texto riscado) */
+.qi-tit { position: absolute; left: 12px; right: 12px; top: 18px; padding-bottom: 5px; border-bottom: 1px solid rgba(31,35,40,.16); font-weight: 700; font-size: 14px; line-height: 1.3; color: #1f2328; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.qi-titulado .qi-t { padding-top: 48px; align-items: flex-start; }
+.qi-com-caixa:not(.qi-com-tarefa) .qi-t { padding-bottom: 28px; }
+.qi-caixa { position: absolute; left: 4px; bottom: 4px; width: 25px; height: 25px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; z-index: 2; }
+.qi-com-tarefa .qi-caixa { bottom: 5px; }
+.qi-com-tarefa.qi-com-caixa .qi-tarefa { padding-left: 31px; }
+.qi-caixa i { position: relative; width: 15px; height: 15px; box-sizing: border-box; border-radius: 4px; border: 1.5px solid rgba(31,35,40,.45); background: rgba(255,255,255,.6); transition: background-color var(--dur-curta, .12s), border-color var(--dur-curta, .12s); }
+.qi-caixa:hover i { border-color: #2e7d4f; }
+.qi-caixa:focus-visible { outline: none; }
+.qi-caixa:focus-visible i { box-shadow: 0 0 0 3px rgba(46,125,79,.28); }
+.qi-caixa[disabled] { cursor: default; }
+.qi-feito .qi-caixa i { background: #2e7d4f; border-color: #2e7d4f; }
+.qi-feito .qi-caixa i::after { content: ''; position: absolute; left: 3.6px; top: .6px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.qi-feito .qi-clamp { text-decoration: line-through; color: rgba(31,35,40,.55); }
+.qi-feito .qi-tit { color: rgba(31,35,40,.55); }
+.qd-jtitulo { width: min(420px, 94vw); }
+.qd-jtitulo-campo { width: 100%; box-sizing: border-box; min-height: 34px; padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--r-ctl, 8px); background: var(--surface); color: var(--text); font: inherit; }
+.qd-jtitulo-campo:focus { outline: none; border-color: var(--primary); box-shadow: var(--anel, 0 0 0 3px var(--primary-soft)); }

@@ -8,6 +8,7 @@ import { vencida, concluida } from './tarefa.js';
 import { Icone } from '../ui/comum.jsx';
 import { resumoTarefa } from './tarefa.js';
 import { COR, porColuna, mudancasMoverKanban, adicionarColuna, renomearColuna, removerColuna, moverColuna, novoItem, vagaKanban, mudancasCampo, mudancasExcluir } from './modelo.js';
+import { tituloDe } from './postit.js'; /* v0.6.51: título do post-it no cartão */
 
 /** As iniciais de quem responde, para a bolinha do cartão ("Ana Lima" → "AL"). */
 const iniciais = (nome) => String(nome).trim().split(/\s+/).filter(Boolean).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
@@ -188,6 +189,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
                         onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); excluirCartao(it); }}><Icone n="lixeira" /></button>
                     )}
                     {codigos && <span className="kb-cod">{it.cod}</span>}
+                    {tituloDe(it) && <b className="kb-tit">{tituloDe(it)}</b>}
                     {editando && editando.id === it.id ? (
                       <textarea className="kb-edita" autoFocus value={editando.valor} aria-label="Texto do post-it"
                         onChange={(ev) => setEditando({ ...editando, valor: ev.target.value })}

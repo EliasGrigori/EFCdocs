@@ -96,6 +96,7 @@ export function normalizarQuadro(c) {
   const r = { v: 1, itens, setas, colunas, seq: Math.max(num(c.seq, 0), maiorCod) };
   /* v0.6.50: fundo do quadro ({ tipo, cor }); o que não for conhecido volta ao padrão (fundo.js) */
   if (c.fundo && typeof c.fundo === 'object' && !ehFundoPadrao(c.fundo)) r.fundo = fundoValido(c.fundo);
+  if (c.caixas === false) r.caixas = false; /* v0.6.51: caixinhas de feito escondidas neste quadro (postit.js) */
   return r;
 }
 

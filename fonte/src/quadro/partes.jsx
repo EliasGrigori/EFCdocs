@@ -8,11 +8,12 @@ import { pontosSeta, caminhoSVG, meioDoCaminho, contornoForma } from './geometri
 import { MODELOS } from './modelos.js';
 import { NOTA_GUT, NIVEIS_GUT, valorGut, nivelGut, prazoValido, resumoTarefa } from './tarefa.js';
 import { linhasLegenda } from './legenda.js';
+import { tituloDe } from './postit.js';
 
 const estiloTexto = (it) => {
   const f = it.fonte || {};
   return {
-    textAlign: { e: 'left', d: 'right', c: 'center' }[it.alinh || (it.tipo === 'texto' ? 'e' : 'c')],
+    textAlign: { e: 'left', d: 'right', c: 'center' }[it.alinh || (it.tipo === 'texto' || (it.tipo === 'postit' && tituloDe(it)) ? 'e' : 'c')],
     color: f.cor || undefined,
     fontWeight: f.n ? 700 : undefined,
     fontStyle: f.i ? 'italic' : undefined,
@@ -21,9 +22,10 @@ const estiloTexto = (it) => {
 };
 
 /** Quantas linhas de texto cabem no item; o resto vira reticências (…). */
-export function linhasQueCabem(it, comTarefa) {
+export function linhasQueCabem(it, comTarefa, comCaixa) {
   const fs = it.tipo === 'texto' && !it.borda ? 18 : 14;
-  const pad = it.tipo === 'postit' ? 28 + (comTarefa ? 38 : 0) : it.tipo === 'decisao' ? it.h * 0.44 : it.tipo === 'texto' ? 4 : 12;
+  /* v0.6.51: o título ocupa 30 px em cima; a caixinha de feito, 18 px embaixo (quando não há o rodapé de tarefa) */
+  const pad = it.tipo === 'postit' ? 28 + (comTarefa ? 38 : comCaixa ? 18 : 0) + (tituloDe(it) ? 30 : 0) : it.tipo === 'decisao' ? it.h * 0.44 : it.tipo === 'texto' ? 4 : 12;
   return Math.max(1, Math.floor((it.h - pad) / (fs * 1.3)));
 }
 
@@ -81,11 +83,12 @@ function RodapeTarefa({ t }) {
 }
 export { RodapeTarefa };
 
-export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa }) {
+export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, feito, aoMarcar }) {
   const forma = FORMAS.includes(it.tipo);
   const style = { left: it.x, top: it.y, width: it.w, height: it.h, zIndex: zi };
   if (it.tipo === 'postit') style.background = COR[it.cor] || COR.amarelo;
-  const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '');
+  const tit = tituloDe(it);
+  const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '') + (tit ? ' qi-titulado' : '') + (caixa ? ' qi-com-caixa' : '') + (feito ? ' qi-feito' : '');
   return (
     <div className={classe} data-item={it.id} data-cod={it.cod || undefined} style={style}>
       {forma && <FormaSvg it={it} />}
@@ -94,8 +97,15 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa }) {
       {it.tipo === 'raia' && <div className="qi-raia-h"><span>{escondeTexto ? '' : it.texto}</span></div>}
       {it.tipo === 'pagina' && <div className="qi-pg-h"><span>{escondeTexto ? '' : it.texto}</span></div>}
       {it.tipo === 'legenda' && <LegendaView it={it} />}
-      {!['imagem', 'raia', 'pagina', 'legenda', 'assinatura'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : <span className="qi-clamp" style={{ WebkitLineClamp: linhasQueCabem(it, !!tarefa) }}>{it.texto}</span>}</div>}
+      {tit && <span className="qi-tit" title={tit}>{tit}</span>}
+      {!['imagem', 'raia', 'pagina', 'legenda', 'assinatura'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : <span className="qi-clamp" style={{ WebkitLineClamp: linhasQueCabem(it, !!tarefa, !!caixa) }}>{it.texto}</span>}</div>}
       {tarefa && <RodapeTarefa t={tarefa} />}
+      {caixa && (
+        <button type="button" className="qi-caixa" role="checkbox" aria-checked={!!feito} disabled={!aoMarcar}
+          aria-label={(feito ? 'Feito: ' : 'Marcar como feito: ') + (it.cod || 'post-it')} title={feito ? 'Feito (clique para desmarcar)' : 'Marcar como feito'} data-caixa={it.id}
+          onPointerDown={(ev) => ev.stopPropagation()} onDoubleClick={(ev) => ev.stopPropagation()}
+          onClick={(ev) => { ev.stopPropagation(); if (aoMarcar) aoMarcar(it.id, !feito); }}><i /></button>
+      )}
       {codigos && it.cod && <span className="qi-cod" style={it.tipo === 'inicio' ? { left: Math.round(Math.min(it.h, it.w) / 2) } : undefined}>{it.cod}</span>}
       {(it.nota || it.link) && (
         <span className="qi-marcas" style={it.tipo === 'inicio' ? { right: Math.round(Math.min(it.h, it.w) / 2), top: 5 } : undefined}>

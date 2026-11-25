@@ -161,6 +161,8 @@ export const DESCRICAO = {
   'exibir.ajustar': 'Enquadra tudo o que está no quadro na tela.',
   'exibir.minimapa': 'Mapa pequeno do quadro, para se achar.',
   'exibir.codigos': 'Mostra o código (Q-001) de cada item.',
+  'formatar.tituloPostit': 'Põe um título em negrito, com um fio embaixo, no post-it escolhido.',
+  'exibir.caixas': 'Mostra ou esconde a caixinha de feito dos post-its deste quadro. Marcar leva o post-it para a coluna Feito do Kanban.',
   'exibir.fundo': 'Escolhe o desenho (bolinhas, quadriculado, linhas ou liso) e a cor do fundo deste quadro.',
   'exibir.ferramentas': 'Mostra ou esconde a barra de ferramentas do quadro.',
   'exibir.assistente': 'Avisa o que falta no fluxograma (decisão sem saída, passo solto...).',

@@ -6,6 +6,7 @@ import { medidas, encaixarRubrica } from '../nucleo/assinatura.js';
 import { pontosSeta, contornoForma, limites, meioDoCaminho } from './geometria.js';
 import { resumoTarefa, hojeISO } from './tarefa.js';
 import { derivar, MEDIDAS } from './legenda.js';
+import { desenharTitulo, desenharCaixa, mostraCaixas, estaFeito, tituloDe } from './postit.js';
 
 /* cores do nível GUT: [fundo, texto] */
 export const COR_GUT = { alta: ['#fee4e2', '#b42318'], media: ['#fef0c7', '#b54708'], baixa: ['#d1fadf', '#067647'] };
@@ -64,7 +65,8 @@ function escreverTexto(ctx, it, caixa) {
   const tam = tamanhoFonte(it);
   ctx.font = fonteDo(it, tam);
   ctx.fillStyle = (it.fonte && it.fonte.cor) || COR_TEXTO;
-  const alinh = it.alinh || (it.tipo === 'texto' ? 'e' : 'c');
+  const alinh = it.alinh || (it.tipo === 'texto' || (it.tipo === 'postit' && tituloDe(it)) ? 'e' : 'c');
+  if (it.feito) ctx.fillStyle = 'rgba(31,35,40,.55)'; /* v0.6.51: post-it feito, texto riscado e mais claro */
   const linhas = quebrarTexto(ctx, it.texto, caixa.w);
   const alt = tam * 1.3;
   const cabem = Math.max(1, Math.floor(caixa.h / alt));
@@ -79,6 +81,11 @@ function escreverTexto(ctx, it, caixa) {
       const w = ctx.measureText(l).width;
       const x0 = alinh === 'e' ? x : alinh === 'd' ? x - w : x - w / 2;
       ctx.fillRect(x0, y + 2, w, 1.2);
+    }
+    if (it.feito) {
+      const w = ctx.measureText(l).width;
+      const x0 = alinh === 'e' ? x : alinh === 'd' ? x - w : x - w / 2;
+      ctx.fillRect(x0, y - tam * 0.32, w, 1.2);
     }
     y += alt;
   }
@@ -283,8 +290,12 @@ function desenharItem(ctx, it, opcoes) {
   }
   const tarefa = it.tipo === 'postit' && opcoes.c ? resumoTarefa(opcoes.c, it, opcoes.hoje || hojeISO()) : null;
   const folga = it.tipo === 'decisao' ? { x: it.w * 0.2, y: it.h * 0.22 } : it.tipo === 'dados' ? { x: 22, y: 8 } : it.tipo === 'texto' ? { x: 4, y: 2 } : { x: 12, y: it.tipo === 'postit' ? 18 : 8 };
-  escreverTexto(ctx, it, { x: it.x + folga.x, y: it.y + folga.y, w: it.w - folga.x * 2, h: it.h - folga.y * 2 - (tarefa ? 34 : 0) });
-  if (tarefa) desenharTarefa(ctx, it, tarefa);
+  /* v0.6.51: título com fio e caixinha de feito (postit.js) */
+  const desce = it.tipo === 'postit' ? desenharTitulo(ctx, it, FONTE) : 0;
+  const caixa = it.tipo === 'postit' && opcoes.c && mostraCaixas(opcoes.c), feito = caixa && estaFeito(opcoes.c, it);
+  escreverTexto(ctx, feito ? { ...it, feito: true } : it, { x: it.x + folga.x, y: it.y + folga.y + desce, w: it.w - folga.x * 2, h: it.h - folga.y * 2 - desce - (tarefa ? 34 : caixa ? 18 : 0) });
+  if (tarefa) desenharTarefa(ctx, caixa ? { ...it, x: it.x + 22, w: it.w - 22 } : it, tarefa);
+  if (caixa) desenharCaixa(ctx, it, feito, !!tarefa);
   if (opcoes.codigos && it.cod) {
     ctx.font = `600 10px ${FONTE}`;
     ctx.fillStyle = 'rgba(31,35,40,.55)';
