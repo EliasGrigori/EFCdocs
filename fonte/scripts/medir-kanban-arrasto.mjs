@@ -62,7 +62,8 @@ for (let xx = ca.x + ca.width / 2; xx <= alvoX; xx += 4) {
 }
 const fant = await p.locator('.kb-fantasma').boundingBox();
 const idA = await p.locator('.kb-fantasma').evaluate(() => document.querySelector('.kb-card.saindo')?.dataset.item);
-await p.evaluate((id) => { globalThis.__solta = []; const f = () => { const k = document.querySelector(`.kb-card[data-item="${id}"]`); if (k) globalThis.__solta.push(k.getBoundingClientRect().toJSON()); if (globalThis.__solta.length < 30) requestAnimationFrame(f); }; requestAnimationFrame(f); }, idA);
+/* o que se vê do post-it solto: o fantasma que voa até a vaga (v0.6.64, data-fantasma) ou, sem ele, o cartão (que não está escondido) */
+await p.evaluate((id) => { globalThis.__solta = []; const f = () => { const k = document.querySelector(`[data-fantasma="${id}"]`) || [...document.querySelectorAll(`.kb-card[data-item="${id}"]`)].find((e) => e.getBoundingClientRect().width > 0); if (k) globalThis.__solta.push(k.getBoundingClientRect().toJSON()); if (globalThis.__solta.length < 30) requestAnimationFrame(f); }; requestAnimationFrame(f); }, idA);
 await p.mouse.up(); await p.waitForTimeout(600);
 const solta = await p.evaluate(() => globalThis.__solta);
 const primeiro = solta[0] || fant;

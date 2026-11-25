@@ -72,3 +72,11 @@
 /* v0.6.61: post-it travado no Kanban mostra o cadeado no lugar da alça de arrastar */
 .kb-trava { position: absolute; right: 6px; top: 5px; width: 18px; height: 18px; display: grid; place-items: center; color: rgba(31, 35, 40, .6); pointer-events: none; }
 .kb-trava svg { width: 13px; height: 13px; }
+/* v0.6.64 (F1 a F7): arrastar com fluidez. O fantasma é a cópia do cartão, levada pelo kanbanArrasto.js (só transform);
+   a vaga tem a altura do cartão (inline) e entra pela opacidade e pela escala (WAAPI, 250 ms) */
+.kb-fantasma { left: 0; top: 0; margin: 0; opacity: 1; transition: none !important; will-change: transform; cursor: grabbing;
+  box-shadow: 0 22px 38px -12px rgba(0, 0, 0, .40), 0 4px 10px rgba(0, 0, 0, .10); }
+.kb-vaga.kb-vaga-viva { box-sizing: border-box; animation: none; background: var(--primary-soft); border: 2px dashed color-mix(in srgb, var(--primary) 60%, transparent); transform-origin: top center; }
+.kb-lista:has(> .kb-vaga-viva) > .kb-sem { display: none; }
+.kb-arrastando { cursor: grabbing; }
+.kb-arrastando .kb-card:hover { transform: none; }

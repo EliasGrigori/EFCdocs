@@ -3,6 +3,8 @@
    v0.6.20 (parte 4): desenho novo. O cartão é o próprio post-it (papel da cor que a pessoa escolheu, sem faixa de lado);
    em cima, o andamento do quadro; cada coluna mostra quanto do quadro está nela; ao mover, os cartões deslizam até o lugar. */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { criarArrastoKanban } from './kanbanArrasto.js'; /* v0.6.64: arrastar com fluidez (F1 a F7) */
 import { Mov } from '../ui/fluidez.js';
 import { vencida, concluida } from './tarefa.js';
 import { Icone } from '../ui/comum.jsx';
@@ -36,16 +38,16 @@ function TarefaCartao({ t }) {
 
 export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codigos, hoje }) {
   const grupos = porColuna(c);
-  const [arrasto, setArrasto] = useState(null); /* { id, x, y, dx, dy, w, alvo: { col, indice } } */
   const [editando, setEditando] = useState(null);
-  const inicio = useRef(null);
+  /* v0.6.64: o arrasto mexe só no DOM (kanbanArrasto.js); o React fica sabendo no fim, com a coluna e o lugar */
+  const arrastando = useRef(false), aoSoltarRef = useRef(null), arr = useRef(null);
   /* ao mover, criar ou tirar, cada cartão desliza do lugar antigo até o novo (só transform; 250 ms da escala) */
   const palco = useRef(null), lugares = useRef(new Map());
   useLayoutEffect(() => {
     const el = palco.current; if (!el) return;
     const agora = new Map();
     for (const k of el.querySelectorAll('.kb-card[data-item]:not(.kb-fantasma)')) { const r = k.getBoundingClientRect(); agora.set(k.dataset.item, { x: r.left + el.scrollLeft, y: r.top + el.scrollTop, k }); }
-    if (!arrasto && !Mov.reduzido()) {
+    if (!arrastando.current && !Mov.reduzido()) {
       for (const [id, n] of agora) {
         const a = lugares.current.get(id);
         if (!a) { if (lugares.current.size) n.k.animate([{ opacity: 0, transform: 'translateY(10px) scale(.98)' }, { opacity: 1, transform: 'none' }], { duration: Mov.ms('--duration-fast', 250), easing: 'cubic-bezier(.22,1,.36,1)' }).id = 'kb-entra'; continue; }
@@ -55,26 +57,20 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
     }
     lugares.current = agora;
   });
+  if (!arr.current) arr.current = criarArrastoKanban({ raiz: () => palco.current, aoMudar: (v) => { arrastando.current = v; }, aoSoltar: (f) => aoSoltarRef.current(f) });
+  useEffect(() => () => arr.current && arr.current.parar(), []);
+  /* fim do arrasto: o deslize parte de onde cada cartão estava na tela (com a vaga), então o cartão solto não pula */
+  aoSoltarRef.current = ({ id, col, indice, cancelado, lugares: ondeEstavam }) => {
+    lugares.current = new Map([...ondeEstavam].map(([k, v]) => [k, { ...v, k: null }]));
+    if (cancelado || !col || !c.itens[id] || c.itens[id].trava) return;
+    const mud = mudancasMoverKanban(c, id, col, indice);
+    const nome = (c.colunas.find((k) => k.id === col) || {}).nome;
+    if (Object.keys(mud).length) flushSync(() => aplicarQ(mud, 'Mover para ' + nome, 'moveu'));
+  };
   /* o andamento do quadro: quantos post-its, quantos na última coluna (feitos) e quantos com prazo vencido */
   const todos = c.colunas.flatMap((k) => grupos[k.id] || []);
   const feitos = todos.filter((it) => concluida(c, it)).length, vencidos = todos.filter((it) => vencida(c, it, hoje)).length;
   const pct = todos.length ? Math.round((feitos / todos.length) * 100) : 0;
-
-  const alvoNoPonto = (x, y, id) => {
-    const cols = [...document.querySelectorAll('.kb-col')];
-    for (const el of cols) {
-      const r = el.getBoundingClientRect();
-      if (x < r.left || x > r.right) continue;
-      const cards = [...el.querySelectorAll('.kb-card')].filter((k) => k.dataset.item !== id);
-      let indice = cards.length;
-      for (let i = 0; i < cards.length; i++) {
-        const rc = cards[i].getBoundingClientRect();
-        if (y < rc.top + rc.height / 2) { indice = i; break; }
-      }
-      return { col: el.dataset.col, indice };
-    }
-    return null;
-  };
 
   const baixo = (ev, it) => {
     if (ev.button > 0 || editando) return;
@@ -82,30 +78,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
     if (somenteLeitura || it.trava) return; /* v0.6.61: travado não sai da coluna arrastando */
     /* no toque, só a alça arrasta (assim o dedo ainda rola a coluna) */
     if (ev.pointerType === 'touch' && !ev.target.closest('.kb-alca')) return;
-    const r = ev.currentTarget.getBoundingClientRect();
-    inicio.current = { id: it.id, px: ev.clientX, py: ev.clientY, dx: ev.clientX - r.left, dy: ev.clientY - r.top, w: r.width, ok: false, pid: ev.pointerId, el: ev.currentTarget };
-  };
-  const mover = (ev) => {
-    const i = inicio.current;
-    if (!i) return;
-    if (!i.ok) {
-      if (Math.hypot(ev.clientX - i.px, ev.clientY - i.py) < 6) return;
-      i.ok = true;
-      try { i.el.setPointerCapture(i.pid); } catch { /* sem captura */ }
-    }
-    ev.preventDefault();
-    setArrasto({ id: i.id, x: ev.clientX - i.dx, y: ev.clientY - i.dy, w: i.w, alvo: alvoNoPonto(ev.clientX, ev.clientY, i.id) });
-  };
-  const soltar = () => {
-    const i = inicio.current;
-    inicio.current = null;
-    if (!i || !i.ok || !arrasto) { setArrasto(null); return; }
-    if (arrasto.alvo) {
-      const mud = c.itens[i.id] && c.itens[i.id].trava ? {} : mudancasMoverKanban(c, i.id, arrasto.alvo.col, arrasto.alvo.indice);
-      const nome = (c.colunas.find((k) => k.id === arrasto.alvo.col) || {}).nome;
-      if (Object.keys(mud).length) aplicarQ(mud, 'Mover para ' + nome, 'moveu');
-    }
-    setArrasto(null);
+    arr.current.baixo(ev, it.id, ev.currentTarget);
   };
 
   const novoNaColuna = (colId) => {
@@ -153,7 +126,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
   };
 
   return (
-    <div className="kb" ref={palco} onPointerMove={mover} onPointerUp={soltar} onPointerCancel={soltar}>
+    <div className="kb" ref={palco}>
       <header className="kb-and" data-kb-andamento aria-label="Andamento do quadro">
         <b>{todos.length} {todos.length === 1 ? 'post-it' : 'post-its'}</b>
         {c.colunas.length > 1 && todos.length > 0 && <span className="kb-and-barra" role="img" aria-label={`${pct}% feito`}><i style={{ transform: `scaleX(${pct / 100})` }} /></span>}
@@ -162,9 +135,8 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
       </header>
       {c.colunas.map((k, i) => {
         const lista = grupos[k.id] || [];
-        const alvoAqui = arrasto && arrasto.alvo && arrasto.alvo.col === k.id;
         return (
-          <section key={k.id} className={'kb-col' + (alvoAqui ? ' alvo' : '')} data-col={k.id} aria-label={'Coluna ' + k.nome}>
+          <section key={k.id} className="kb-col" data-col={k.id} aria-label={'Coluna ' + k.nome}>
             <header className="kb-h">
               <button type="button" className="kb-nome" disabled={somenteLeitura} title="Renomear a coluna" onClick={() => menuColuna(k, i)}>{k.nome}</button>
               <span className="kb-qt">{lista.length}</span>
@@ -178,10 +150,9 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
               )}
             </header>
             <div className="kb-lista">
-              {lista.map((it, j) => (
-                <div key={it.id}>
-                  {alvoAqui && arrasto.alvo.indice === j && <div className="kb-vaga" />}
-                  <article className={'kb-card' + (sel.itens.includes(it.id) ? ' sel' : '') + (arrasto && arrasto.id === it.id ? ' saindo' : '')}
+              {lista.map((it) => (
+                <div key={it.id} className="kb-item">
+                  <article className={'kb-card' + (sel.itens.includes(it.id) ? ' sel' : '')}
                     data-item={it.id} style={{ '--kb-cor': COR[it.cor] || COR.amarelo }}
                     onPointerDown={(ev) => baixo(ev, it)}
                     onDoubleClick={() => { if (!somenteLeitura) setEditando({ id: it.id, valor: it.texto }); }}>
@@ -204,8 +175,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
                   </article>
                 </div>
               ))}
-              {alvoAqui && arrasto.alvo.indice >= lista.filter((x) => x.id !== arrasto.id).length && <div className="kb-vaga" />}
-              {!lista.length && !alvoAqui && <p className="kb-sem">{somenteLeitura ? 'Nada aqui.' : 'Arraste um post-it para cá.'}</p>}
+              {!lista.length && <p className="kb-sem">{somenteLeitura ? 'Nada aqui.' : 'Arraste um post-it para cá.'}</p>}
             </div>
             {!somenteLeitura && <button type="button" className="kb-novo" onClick={() => novoNaColuna(k.id)}><Icone n="plus" />Post-it</button>}
           </section>
@@ -216,11 +186,6 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
           titulo: 'Nova coluna', campo: 'Nome da coluna', valor: '', confirmar: 'Criar coluna', max: 40, validar: (v) => (v.trim() ? '' : 'Digite um nome.'),
           aoConfirmar: (nome) => aplicarQ(adicionarColuna(c, nome).mudancas, 'Nova coluna', 'criou coluna'),
         })}><Icone n="plus" />Coluna</button>
-      )}
-      {arrasto && (
-        <div className="kb-card kb-fantasma" style={{ left: arrasto.x, top: arrasto.y, width: arrasto.w, '--kb-cor': COR[(c.itens[arrasto.id] || {}).cor] || COR.amarelo }}>
-          <p>{(c.itens[arrasto.id] || {}).texto}</p>
-        </div>
       )}
     </div>
   );
