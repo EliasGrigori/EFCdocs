@@ -14,15 +14,15 @@ import { COR, porColuna, mudancasMoverKanban, adicionarColuna, renomearColuna, r
 import { tituloDe } from './postit.js'; /* v0.6.51: título do post-it no cartão */
 import { texturaDo, estiloTextura, pecasTextura } from './texturas.js'; /* v0.6.65 (V3): a textura do Quadro no cartão */
 import { familiaDo, escalaDo, garantirFonte } from './fontesQ.js'; /* v0.6.65 (V3): a letra do Quadro no cartão */
-import { respostasDe } from './comentario.js';
 import { validarNome } from '../nucleo/modelo.js';
+import { GavetaComentarios, totalComentarios } from './comentariosKanban.jsx'; /* v0.6.67 (N2) */
 import { etiquetasDe, etiquetaDo, contagemEtiquetas, passaNoFiltro, resumoFiltro, indiceNaColuna, SEM } from './etiquetas.js'; /* v0.6.66 (N1) */
 
 const NIVEL = { alta: 3, media: 2, baixa: 1 };
 
 /** v0.6.65 (V2): o rodapé do cartão só com o que existe: quem responde (ícone de pessoa e nome), o prazo, o GUT e os comentários.
     Saíram o "Sem responsável", o "Sem prazo" e a bolinha de iniciais (regra da auditoria visual). */
-function PeCartao({ t, coments }) {
+function PeCartao({ t, coments, aoComentar }) {
   const resp = t && t.resp, prazo = t && t.prazo, gut = t && t.gut > 0;
   if (!resp && !prazo && !gut && !coments) return null;
   return (
@@ -34,7 +34,8 @@ function PeCartao({ t, coments }) {
           <svg viewBox="0 0 14 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1" /><rect x="5.5" y="4" width="3" height="8" rx="1" /><rect x="11" y="0" width="3" height="12" rx="1" /></svg>GUT {t.gut}
         </span>
       )}
-      {coments > 0 && <span className="kb-coments" title={coments === 1 ? '1 comentário' : coments + ' comentários'}><Icone n="comentario" />{coments}</span>}
+      {coments > 0 && <button type="button" className="kb-coments" data-kb-coments title={coments === 1 ? 'Ver o comentário' : `Ver os ${coments} comentários`} aria-label={coments === 1 ? '1 comentário' : coments + ' comentários'}
+        onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); aoComentar(); }}><Icone n="comentario" />{coments}</button>} {/* v0.6.67 (N2): um toque abre a gaveta */}
     </div>
   );
 }
@@ -108,6 +109,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
   const grupos = porColuna(c);
   const [editando, setEditando] = useState(null);
   const [escondidas, setEscondidas] = useState(() => new Set()); /* v0.6.66 (N1): etiquetas escondidas pelo filtro */
+  const [gaveta, setGaveta] = useState(null); /* v0.6.67 (N2): post-it com a gaveta de comentários aberta */
   /* v0.6.64: o arrasto mexe só no DOM (kanbanArrasto.js); o React fica sabendo no fim, com a coluna e o lugar */
   const arrastando = useRef(false), aoSoltarRef = useRef(null), arr = useRef(null);
   /* ao mover, criar ou tirar, cada cartão desliza do lugar antigo até o novo (só transform; 250 ms da escala) */
@@ -244,7 +246,9 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
                         onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); terminarEdicao(true); } /* v0.6.26 (D15) */ if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) terminarEdicao(true); }}
                         onBlur={() => terminarEdicao(true)} />
                     ) : <p style={{ ...(papel.letra || {}), fontWeight: it.fonte && it.fonte.n ? 700 : undefined, fontStyle: it.fonte && it.fonte.i ? 'italic' : undefined, color: it.fonte && it.fonte.cor }}>{it.texto || <span className="kb-vazio">Sem texto. Toque duas vezes para escrever.</span>}</p>}
-                    <PeCartao t={resumoTarefa(c, it, hoje)} coments={(it.nota ? 1 : 0) + respostasDe(it).length} />
+                    <PeCartao t={resumoTarefa(c, it, hoje)} coments={totalComentarios(it)} aoComentar={() => setGaveta(it.id)} />
+                    {!somenteLeitura && !totalComentarios(it) && <button type="button" className="kb-com-novo" data-kb-comentar={it.id} title="Comentar" aria-label={'Comentar ' + (it.cod || 'o post-it')}
+                      onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); setGaveta(it.id); }}><Icone n="comentario" /></button>}
                   </article>
                 </div>
               ); })}
@@ -254,6 +258,10 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
           </section>
         );
       })}
+      {gaveta && c.itens[gaveta] && (
+        <GavetaComentarios c={c} id={gaveta} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} fechar={() => setGaveta(null)} abrir={setGaveta}
+          ids={c.colunas.flatMap((k) => (grupos[k.id] || []).filter((x) => passaNoFiltro(x, escondidas)).map((x) => x.id))} />
+      )}
       {!somenteLeitura && (
         <button type="button" className="kb-coluna-nova" onClick={() => cx.perguntar({
           titulo: 'Nova coluna', campo: 'Nome da coluna', valor: '', confirmar: 'Criar coluna', max: 40, validar: (v) => (v.trim() ? '' : 'Digite um nome.'),

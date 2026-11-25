@@ -77,7 +77,7 @@ function olhaTela() {
 const SAIDAS = [
   { tipo: 'menu', sel: '.novo-drive-m, .pl-menu, .pl-fmenu, .ge-pop, .faixa-menu, .filtro-p, .col-menu, .pl-balao, .rb-lista', dura: '--dropdown-close-dur', pad: 150, para: () => ({ opacity: 0, transform: 'scale(.99)' }) },
   { tipo: 'janela', sel: '.fundo', dura: '--modal-close-dur', pad: 150, para: () => ({ opacity: 0 }), dentro: '.janela', paraDentro: { opacity: 0, transform: 'scale(.96)' } },
-  { tipo: 'gaveta', sel: '.side', dura: '--panel-close-dur', pad: 350, para: (el) => (el.closest('.app.cel') ? { opacity: 0.6, transform: 'translateY(100%)' } : { opacity: 0.6, transform: 'translateX(100%)', filter: 'blur(2px)' }) },
+  { tipo: 'gaveta', sel: '.side, .kb-gaveta', dura: '--panel-close-dur', pad: 350, para: (el) => (el.closest('.app.cel') ? { opacity: 0.6, transform: 'translateY(100%)' } : { opacity: 0.6, transform: 'translateX(100%)', filter: 'blur(2px)' }) },
   { tipo: 'aviso', sel: '.toast', dura: '--toast-close', pad: 250, para: () => ({ opacity: 0, transform: 'translateY(16px) scale(.97)', filter: 'blur(2px)' }) },
 ];
 function sai(no, pai, antes, s) {
