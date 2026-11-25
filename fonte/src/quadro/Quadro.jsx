@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -436,7 +436,7 @@ export function Quadro({ arquivo, cx }) {
       case 'editar.colar': colar(); return true;
       case 'editar.duplicar': duplicar(); return true;
       case 'editar.excluir': excluir(); return true;
-      case 'editar.selecionarTudo': setSel({ itens: Q.listaItens(c).filter((i) => !Q.ehFundo(i)).map((i) => i.id), seta: null }); return true;
+      case 'editar.selecionarTudo': setSel({ itens: proximaSelecaoTudo(c, selValida.itens), seta: null }); return true; /* v0.6.56: em dois passos (selecao.js) */
       case 'editar.comentar': pedirComentario(); return true;
       case 'editar.localizar': setJanela('localizar'); return true;
       case 'editar.pincel':

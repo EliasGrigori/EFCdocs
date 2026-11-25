@@ -166,6 +166,18 @@ export function mudancasExcluir(c, idsItens = [], idsSetas = []) {
   for (const s of listaSetas(c)) {
     if (idsSetas.includes(s.id) || fora.has(s.de.id) || fora.has(s.para.id)) mud['setas.' + s.id] = undefined;
   }
+  if ([...fora].some((id) => c.itens[id].cod)) Object.assign(mud, renumerar(c, fora));
+  return mud;
+}
+
+/* v0.6.56 (D-84): ao excluir itens com código, os que ficam são numerados de novo, na mesma ordem, sem buracos
+   (Q-001, Q-003 vira Q-001, Q-002) e o próximo item novo continua a sequência. Ctrl+Z volta tudo como era. */
+function renumerar(c, fora) {
+  const n = (it) => parseInt(String(it.cod).slice(2), 10) || 0;
+  const ficam = Object.values(c.itens).filter((it) => it.cod && !fora.has(it.id)).sort((a, b) => n(a) - n(b) || a.z - b.z);
+  const mud = {};
+  ficam.forEach((it, i) => { const cod = codigo(i + 1); if (it.cod !== cod) mud['itens.' + it.id] = { ...it, cod }; });
+  if (c.seq !== ficam.length) mud.seq = ficam.length;
   return mud;
 }
 

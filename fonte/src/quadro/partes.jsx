@@ -84,7 +84,7 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, fe
   const style = { left: it.x, top: it.y, width: it.w, height: it.h, zIndex: zi };
   if (it.tipo === 'postit') style.background = COR[it.cor] || COR.amarelo;
   const tit = tituloDe(it);
-  const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '') + (tit ? ' qi-titulado' : '') + (caixa ? ' qi-com-caixa' : '') + (feito ? ' qi-feito' : '') + (codigos && it.cod && it.tipo === 'inicio' ? ' qi-com-cod' : '');
+  const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '') + (tit ? ' qi-titulado' : '') + (caixa ? ' qi-com-caixa' : '') + (feito ? ' qi-feito' : '') + (codigos && it.cod && ['inicio', 'processo', 'dados'].includes(it.tipo) ? ' qi-com-cod' : '');
   return (
     <div className={classe} data-item={it.id} data-cod={it.cod || undefined} style={style}>
       {forma && <FormaSvg it={it} />}

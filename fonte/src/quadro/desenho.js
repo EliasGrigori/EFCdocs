@@ -311,8 +311,8 @@ function desenharItem(ctx, it, opcoes) {
   /* v0.6.51: título com fio e caixinha de feito (postit.js) */
   const desce = it.tipo === 'postit' ? desenharTitulo(ctx, it, FONTE) : 0;
   const caixa = it.tipo === 'postit' && opcoes.c && mostraCaixas(opcoes.c), feito = caixa && estaFeito(opcoes.c, it);
-  const baixo = it.tipo === 'postit' ? (tarefa ? 38 : caixa ? 28 : 10) : folga.y;
-  const comCod = !!(opcoes.codigos && it.cod), topoCod = it.tipo === 'inicio' && comCod ? 14 : 0; /* v0.6.53 (D-82): abaixo do código, como .qi-com-cod */
+  const baixo = it.tipo === 'postit' ? (tarefa ? 38 : caixa ? 28 : 10) : opcoes.codigos && it.cod && ['processo', 'dados'].includes(it.tipo) ? 3 : folga.y;
+  const comCod = !!(opcoes.codigos && it.cod), topoCod = !comCod ? 0 : it.tipo === 'inicio' ? 14 : ['processo', 'dados'].includes(it.tipo) ? 8 : 0; /* v0.6.53 (D-82) e v0.6.56 (D-83): abaixo do código, como .qi-com-cod */
   escreverTexto(ctx, feito ? { ...it, feito: true } : it, { x: it.x + folga.x, y: it.y + folga.y + desce + topoCod, w: it.w - folga.x * 2, h: it.h - folga.y - baixo - desce - topoCod, max: linhasQueCabem(it, !!tarefa, !!caixa, comCod), topo: desce > 0 });
   if (tarefa) desenharTarefa(ctx, caixa ? { ...it, x: it.x + 23, w: it.w - 23 } : it, tarefa, it);
   if (caixa) desenharCaixa(ctx, it, feito, !!tarefa);
@@ -321,7 +321,7 @@ function desenharItem(ctx, it, opcoes) {
     ctx.fillStyle = 'rgba(31,35,40,.55)';
     ctx.textAlign = 'left';
     const cx = it.tipo === 'decisao' ? it.x + it.w / 2 - 16 : it.tipo === 'inicio' ? it.x + Math.min(it.h, it.w) / 2 : it.x + 6;
-    ctx.fillText(it.cod, cx, it.y + (it.tipo === 'decisao' ? 22 : 13));
+    ctx.fillText(it.cod, cx, it.y + (it.tipo === 'decisao' ? 22 : ['processo', 'dados'].includes(it.tipo) ? 11 : 13));
   }
   ctx.restore();
 }

@@ -28,7 +28,7 @@ test('código Q-001 automático, sem repetir', () => {
   assert.equal(c.itens[ids[3]].cod, 'Q-003');
   const c2 = aplicar(c, Q.mudancasExcluir(c, [ids[3]]));
   const r = Q.novoItem(c2, 'postit');
-  assert.equal(r.item.cod, 'Q-004', 'número apagado não volta');
+  assert.equal(r.item.cod, 'Q-003', 'v0.6.56 (D-84, pedido do Elias): a numeração não pula; o número do último apagado volta a ser usado');
 });
 
 test('post-it novo entra na primeira coluna do Kanban', () => {

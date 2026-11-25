@@ -53,7 +53,7 @@ export function linhasQueCabem(it, comTarefa, comCaixa, comCod) {
   const fs = it.tipo === 'texto' && !it.borda ? 16 : 14; /* v0.6.52: o CSS do item de Texto é 16 px (era 18 nesta conta) */
   /* v0.6.51: o título ocupa 30 px em cima; a caixinha de feito, 18 px embaixo (quando não há o rodapé de tarefa) */
   /* v0.6.53 (D-82): na forma Início/Fim com código, o texto começa abaixo do código (20 px em cima) */
-  const pad = it.tipo === 'postit' ? 28 + (comTarefa ? 38 : comCaixa ? 18 : 0) + (tituloDe(it) ? 30 : 0) : it.tipo === 'decisao' ? it.h * 0.44 : it.tipo === 'texto' ? 4 : it.tipo === 'inicio' && comCod ? 24 : 12;
+  const pad = it.tipo === 'postit' ? 28 + (comTarefa ? 38 : comCaixa ? 18 : 0) + (tituloDe(it) ? 30 : 0) : it.tipo === 'decisao' ? it.h * 0.44 : it.tipo === 'texto' ? 4 : !comCod ? 12 : it.tipo === 'inicio' ? 24 : ['processo', 'dados'].includes(it.tipo) ? 17 : 12; /* v0.6.56 (D-83): processo e dados com código, 14 em cima e 3 embaixo */
   return Math.max(1, Math.floor((it.h - pad) / (fs * 1.3)));
 }
 

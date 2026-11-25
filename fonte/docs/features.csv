@@ -76,7 +76,7 @@ F074;Planilha;revisao;Comentários da aba;funciona;;manter;catálogo de comandos
 F075;Quadro;editar;Duplicar (Ctrl+D);funciona;;manter;catálogo de comandos
 F076;Quadro;editar;Excluir a seleção (Delete);funciona;;manter;catálogo de comandos
 F077;Planilha;editar;Selecionar tudo (Ctrl+A);funciona;;manter;catálogo de comandos
-F078;Quadro;editar;Selecionar tudo (Ctrl+A);funciona;;manter;catálogo de comandos
+F078;Quadro;editar;"Selecionar tudo (Ctrl+A) em dois passos: com item escolhido, primeiro os ligados a ele por setas; de novo, tudo";funciona;"v0.6.56";manter;catálogo de comandos; pedido do Elias 24/11
 F079;Planilha;editar;Linha do tempo do desfazer;funciona;;manter;catálogo de comandos
 F080;Documento;editar;Linha do tempo do desfazer;funciona;;manter;catálogo de comandos
 F081;Quadro;editar;Linha do tempo do desfazer;funciona;;manter;catálogo de comandos
@@ -483,3 +483,5 @@ F481;Quadro;formas;"Início/Fim com código: o texto começa abaixo do código (
 F482;Quadro;impressão;"Janela Imprimir e PDF com prévia: o que imprimir, orientação, papel, margens, ajustar ao papel, cabeçalho e rodapé; guardada no quadro";funciona;"v0.6.54 (propostas 3, 5 e 6)";manter;pedido do Elias 25/11
 F483;Quadro;impressão;"Aba Layout da Página, área de impressão e quebras tracejadas no quadro";funciona;"v0.6.55 (propostas 2 e 4)";manter;pedido do Elias 25/11
 F484;Quadro;comentário;"Comentário estilo Word: balãozinho no canto do item, cartão ao passar o mouse com respostas de terceiros (nome e hora), editar e excluir";funciona;"v0.6.55";manter;pedido do Elias 25/11
+F485;Quadro;edicao;"Códigos Q-001 sem buracos: ao excluir, os que ficam são numerados de novo na mesma ordem (Ctrl+Z volta)";funciona;"v0.6.56 (D-84)";manter;pedido do Elias 25/11
+F486;Quadro;formas;"Atividade e Entrada/Saída com código: o código não encosta no texto de 3 linhas (tela e PDF)";funciona;"v0.6.56 (D-83)";manter;v0.6.56
