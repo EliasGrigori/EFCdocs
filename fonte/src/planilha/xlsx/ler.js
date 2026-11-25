@@ -137,9 +137,9 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     const r = relsWb.get(s.a['r:id'] || s.a.id);
     if (!r || !r.alvo) continue;
     /* v0.6.18 (D-43): aba de gráfico (chartsheet) vem como aba com o gráfico e sem linhas de grade; volta como aba de gráfico */
-    if (/chartsheet$/.test(r.tipo)) { folhas.push({ nome: s.a.name, parte: r.alvo, oculta: s.a.state === 'hidden' || s.a.state === 'veryHidden', idx: idxFolha, grafico: true }); continue; }
+    if (/chartsheet$/.test(r.tipo)) { folhas.push({ nome: s.a.name, parte: r.alvo, oculta: s.a.state === 'veryHidden' ? 'muito' : s.a.state === 'hidden', idx: idxFolha, grafico: true }); continue; }
     if (!/worksheet$/.test(r.tipo)) { juntarFora('Abas de outro tipo (macro antiga ou diálogo)', 1, s.a.name); continue; }
-    folhas.push({ nome: s.a.name, parte: r.alvo, oculta: s.a.state === 'hidden' || s.a.state === 'veryHidden', idx: idxFolha });
+    folhas.push({ nome: s.a.name, parte: r.alvo, oculta: s.a.state === 'veryHidden' ? 'muito' : s.a.state === 'hidden', idx: idxFolha });
   }
   if (!folhas.length) throw new Error('O arquivo não tem nenhuma aba de planilha.');
 
@@ -287,7 +287,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     aoProgresso({ fase: 'aba', aba: F.nome, i: fi + 1, n: folhas.length, linha: 0 });
     const aba = { id, nome: F.nome, cel: {} };
     aba.org = F.parte; /* v0.6.13 (D-29): de que parte do original veio (para devolver ao salvar o que o app não edita) */
-    if (F.oculta) aba.oculta = true; if (F.grafico) { aba.grafico = 1; aba.semGrade = 1; rel.extras.abasGrafico = (rel.extras.abasGrafico || 0) + 1; }
+    if (F.oculta) aba.oculta = F.oculta; /* v0.6.49 (D-79): 'muito' = veryHidden do Excel (não aparece em Reexibir) */ if (F.grafico) { aba.grafico = 1; aba.semGrade = 1; rel.extras.abasGrafico = (rel.extras.abasGrafico || 0) + 1; }
     const ra = { nome: F.nome, celulas: 0, formulas: 0, linhas: 0, cortes: [] };
     let cab = '', resto = '', estado = 0, buf = '';
     let ultimaReal = -1;
