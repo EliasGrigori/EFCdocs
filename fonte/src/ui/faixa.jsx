@@ -32,7 +32,7 @@ const GRUPO_TRANSFERENCIA = { nome: 'Área de transferência', itens: [['g', 'ed
 const PRINCIPAL = {
   planilha: { arquivo: 'arquivo.exportarExcel', inicio: 'editar.colar', inserir: 'inserir.grafico', layout: 'impressao.configurar', formulas: 'formula.inserir', dados: 'dados.validacao', revisao: 'editar.comentar', exibir: 'exibir.congelar', grafico: 'grafico.editar' },
   docx: { arquivo: 'arquivo.exportarWord', inicio: 'editar.colar', inserir: 'inserir.tabela', layout: 'pagina.margens', revisao: 'editar.comentar', exibir: 'exibir.leitura' },
-  postits: { arquivo: 'arquivo.exportarImagem', inicio: 'editar.colar', inserir: 'inserir.postit', organizar: 'organizar.kanban', revisao: 'editar.comentar', exibir: 'exibir.ajustar' },
+  postits: { arquivo: 'arquivo.exportarImagem', inicio: 'editar.colar', inserir: 'inserir.postit', layout: 'impressao.configurar', organizar: 'organizar.kanban', revisao: 'editar.comentar', exibir: 'exibir.ajustar' },
 };
 
 const FAIXAS = {
@@ -124,6 +124,11 @@ const FAIXAS = {
       { nome: 'Quadro', itens: [['g', 'inserir.postit'], ['g', 'inserir.seta'], ['g', 'inserir.proximo'], ['g', 'inserir.texto'], ['g', 'inserir.pagina'], ['g', 'inserir.legenda']] },
       { nome: 'Fluxograma', itens: [['g', 'inserir.forma'], ['col', ['inserir.processo', 'inserir.decisao', 'inserir.inicio']], ['col', ['inserir.dados']], ['g', 'inserir.modelo']] },
       { nome: 'Objetos', itens: [['g', 'inserir.imagem'], ['g', 'inserir.assinatura'], ['g', 'inserir.link'], ['g', 'inserir.grafico']] }] },
+    /* v0.6.55: Layout da Página no Quadro, igual à da Planilha (proposta 2 aprovada em 25/11) */
+    { id: 'layout', nome: 'Layout da Página', grupos: [
+      { nome: 'Configurar página', itens: [['gm', 'margens'], ['gm', 'orientacao'], ['gm', 'papel'], ['gm', 'areaImpQ'], ['g', 'exibir.quebras']] },
+      { nome: 'Dimensionar para ajustar', itens: [['gm', 'ajustarPagQ']] },
+      { nome: 'Do Vértice', itens: [['col', [['r', 'impressao.configurar', 'Configurar página…'], 'impressao.cabecalho', 'arquivo.exportarPDF']]] }] },
     { id: 'organizar', nome: 'Organizar', grupos: [
       { nome: 'Visões', itens: [['g', 'organizar.quadro'], ['g', 'organizar.kanban'], ['g', 'organizar.raias']] },
       { nome: 'Ordem', itens: [['col', ['organizar.frente', 'organizar.tras']]] },
@@ -131,7 +136,7 @@ const FAIXAS = {
       { nome: 'Reunião', itens: [['g', 'organizar.temporizador']] }] },
     { id: 'revisao', nome: 'Revisão', grupos: [
       { nome: 'Revisão', itens: [['g', 'revisao.ortografia'], ['g', 'editar.comentar']] }] },
-    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Quadro', itens: [['g', 'exibir.ajustar'], ['g', 'exibir.zoom'], ['g', 'exibir.minimapa'], ['g', 'exibir.codigos'], ['g', 'exibir.caixas'], ['g', 'exibir.fundo'], ['g', 'exibir.ferramentas'], ['g', 'exibir.assistente']] }, ...GRUPOS_EXIBIR] },
+    { id: 'exibir', nome: 'Exibir', grupos: [{ nome: 'Quadro', itens: [['g', 'exibir.ajustar'], ['g', 'exibir.zoom'], ['g', 'exibir.minimapa'], ['g', 'exibir.codigos'], ['g', 'exibir.caixas'], ['g', 'exibir.fundo'], ['g', 'exibir.quebras'], ['g', 'exibir.ferramentas'], ['g', 'exibir.assistente']] }, ...GRUPOS_EXIBIR] },
   ],
 };
 
@@ -205,7 +210,7 @@ export const ROTULO_CURTO = {
   'exibir.relevo': 'Relevo', 'exibir.mesa': 'Mesa', 'exibir.telaCheia': 'Tela cheia', 'formatar.titulo': 'Título', 'inserir.campo': 'Campo',
   'editar.colar': 'Colar', 'inserir.processo': 'Atividade', 'inserir.decisao': 'Decisão', 'inserir.inicio': 'Início/Fim',
   'inserir.dados': 'Entrada/Saída', 'inserir.pagina': 'Página', 'inserir.legenda': 'Legenda', 'inserir.modelo': 'Modelos', 'organizar.ordenarGut': 'Ordenar GUT', 'exibir.ferramentas': 'Barra de ferramentas', 'exibir.assistente': 'Assistente', 'organizar.quadro': 'Quadro livre', 'organizar.frente': 'Para a frente',
-  'organizar.tras': 'Para trás', 'exibir.ajustar': 'Ajustar à tela', 'exibir.codigos': 'Códigos Q', 'exibir.fundo': 'Fundo', 'exibir.caixas': 'Caixinhas', 'formatar.tituloPostit': 'Título',
+  'organizar.tras': 'Para trás', 'exibir.ajustar': 'Ajustar à tela', 'exibir.codigos': 'Códigos Q', 'exibir.fundo': 'Fundo', 'exibir.caixas': 'Caixinhas', 'exibir.quebras': 'Quebras de página', 'formatar.tituloPostit': 'Título',
   'editar.excluir': 'Excluir', 'editar.selecionarTudo': 'Selecionar tudo', 'formatar.preenchimento': 'Cor',
   'editar.duplicar': 'Duplicar', 'inserir.texto': 'Texto solto',
   'editar.historico': 'Linha do tempo', 'planilha.inserirLinha': 'Inserir linha', 'planilha.inserirColuna': 'Inserir coluna',

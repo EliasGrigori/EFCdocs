@@ -457,3 +457,36 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .qd-imp-cab { position: absolute; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; color: #1f2328; font-size: max(7px, 1.6cqw); border-bottom: 1px solid #d0d5dd; padding-bottom: .3em; white-space: nowrap; overflow: hidden; }
 .qd-imp-cab span { font-size: .72em; color: #475467; }
 .qd-imp-rod { position: absolute; color: #737a85; font-size: max(6px, 1.1cqw); white-space: nowrap; }
+/* v0.6.55: comentário no estilo do Word — marcador no canto de cima por fora e cartão com as respostas */
+.qi-com { position: absolute; right: -11px; top: -11px; z-index: 3; width: 24px; height: 24px; padding: 0; border: 1px solid rgba(0,0,0,.12); border-radius: 8px 8px 8px 2px; background: #ffe58f; color: #5c4400; display: grid; place-items: center; cursor: pointer; box-shadow: 0 1px 2px rgba(16,24,40,.12), 0 3px 8px rgba(16,24,40,.12); transition: transform var(--dur-curta, .12s); }
+.qi-com svg { width: 14px; height: 14px; }
+.qi-com:hover, .qi-com:focus-visible { transform: scale(1.1); outline: none; }
+.qi-com:focus-visible { box-shadow: 0 0 0 3px var(--primary-soft); }
+.qi-com-n { position: absolute; right: -6px; bottom: -6px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px; background: var(--primary); color: var(--on-primary, #fff); font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; box-sizing: border-box; }
+.qd-com-cartao { position: fixed; z-index: 60; width: min(310px, calc(100vw - 16px)); max-height: min(420px, calc(100vh - 16px)); overflow: auto; padding: 10px 12px 12px; border-radius: var(--r-card, 10px); border: 1px solid var(--border-light); background: var(--surface); color: var(--text); box-shadow: var(--sh-2, 0 2px 6px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.14)); font-size: 13px; animation: t-lista-in var(--dur-media, .16s) var(--ease-sai, ease-out); }
+.qd-com-cartao.fixo { border-color: color-mix(in srgb, var(--primary) 45%, var(--border-light)); }
+.qd-com-cab { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.qd-com-cab b { font-size: 13px; }
+.qd-com-cab small { color: var(--text-muted); font-size: 11px; }
+.qd-com-cab .iconbtn { width: 28px; height: 28px; }
+.qd-com-ic { width: 22px; height: 22px; border-radius: 7px 7px 7px 2px; background: #ffe58f; color: #5c4400; display: grid; place-items: center; }
+.qd-com-ic svg { width: 13px; height: 13px; }
+.qd-com-texto { margin: 0 0 8px; white-space: pre-wrap; line-height: 1.4; }
+.qd-com-resps { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.qd-com-resps li { display: grid; gap: 2px; padding: 6px 0 0 10px; border-top: 1px solid var(--border-light); border-left: 2px solid color-mix(in srgb, var(--primary) 35%, transparent); white-space: pre-wrap; line-height: 1.35; }
+.qd-com-quem { display: flex; gap: 6px; align-items: baseline; }
+.qd-com-quem b { font-size: 12px; }
+.qd-com-quem small { color: var(--text-muted); font-size: 11px; }
+.qd-com-resp { display: grid; gap: 6px; }
+.qd-com-linha { display: flex; gap: 6px; }
+.qd-com-campo { flex: 1; min-width: 0; min-height: 32px; padding: 4px 9px; border: 1px solid var(--border-light); border-radius: var(--r-ctl, 8px); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; }
+.qd-com-campo:focus { outline: none; border-color: var(--primary); box-shadow: var(--anel, 0 0 0 3px var(--primary-soft)); }
+@media (prefers-reduced-motion: reduce) { .qd-com-cartao { animation: none; } .qi-com { transition: none; } }
+/* v0.6.55: tracejado da impressão no quadro (área de impressão em cinza, folhas em azul), como a quebra de página do Excel */
+.qd-quebras { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 99990; } /* por cima dos itens, como a quebra do Excel por cima das células */
+.qd-quebra-folha, .qd-quebra-area { position: absolute; box-sizing: border-box; pointer-events: none; }
+.qd-quebra-folha { border: 1.5px dashed rgba(37,99,235,.7); }
+.qd-quebra-area { border: 2px dashed rgba(71,84,103,.75); }
+.qd-quebra-folha span, .qd-quebra-area span { position: absolute; left: 6px; top: 4px; padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,.85); color: #2563eb; font: 600 12px var(--f, system-ui); white-space: nowrap; }
+.qd-quebra-area span { left: auto; top: auto; right: 6px; bottom: 4px; color: #475467; }
+body[data-theme=dark] .qd-quebra-folha span, body[data-theme=dark] .qd-quebra-area span { background: rgba(20,24,40,.85); }

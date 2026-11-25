@@ -31,9 +31,20 @@ export function normalizarImpQ(x) {
     pct: num(o.pct, 10, 400, 100),
     largura: num(o.largura, 1, 20, 1),
     cabRod: o.cabRod !== false,
+    ...(areaValida(o.area) ? { area: { x: Math.round(o.area.x), y: Math.round(o.area.y), w: Math.round(o.area.w), h: Math.round(o.area.h) } } : {}),
   };
 }
+/* v0.6.55: área de impressão = retângulo do quadro (px), definida pelos itens escolhidos (Layout da Página › Área de impressão) */
+const areaValida = (a) => !!a && ['x', 'y', 'w', 'h'].every((k) => Number.isFinite(a[k])) && a.w >= 10 && a.h >= 10;
+const cruza = (it, a) => it.x < a.x + a.w && it.x + it.w > a.x && it.y < a.y + a.h && it.y + it.h > a.y;
 export const ehImpQPadrao = (x) => JSON.stringify(normalizarImpQ(x)) === JSON.stringify(IMPQ_PADRAO);
+
+/** Área de impressão a partir dos itens escolhidos (com uma folga em volta). */
+export function areaDosItens(c, ids) {
+  const sub = recorte(c, new Set(ids));
+  const lim = limitesDoQuadro(sub);
+  return lim ? { x: Math.round(lim.x - FOLGA), y: Math.round(lim.y - FOLGA), w: Math.round(lim.w + FOLGA * 2), h: Math.round(lim.h + FOLGA * 2) } : null;
+}
 
 /** Tamanho do papel em pontos, já deitado ou em pé. */
 export function tamanhoPapel(imp) {
@@ -56,6 +67,10 @@ function grupos(c, imp, escolhidos) {
   if (alvo === 'escolhidos') {
     const ids = new Set((escolhidos || []).filter((id) => cd.itens[id]));
     return ids.size ? [{ titulo: '', ids }] : [];
+  }
+  if (imp.area) { /* com área de impressão: só o que está dentro dela, e o pedaço é a própria área */
+    const ids = new Set(listaItens(cd).filter((o) => cruza(o, imp.area)).map((o) => o.id));
+    return ids.size ? [{ titulo: '', ids, ret: imp.area }] : [];
   }
   const ids = new Set(listaItens(cd).map((o) => o.id));
   return ids.size ? [{ titulo: '', ids }] : [];
@@ -82,9 +97,9 @@ export function paginasDaImpressao(c, imp0, escolhidos) {
   const paginas = [];
   let menor = Infinity;
   for (const g of lista) {
-    const lim = limitesDoQuadro(recorte(c, g.ids));
-    if (!lim) continue;
-    const R = { x: lim.x - FOLGA, y: lim.y - FOLGA, w: lim.w + FOLGA * 2, h: lim.h + FOLGA * 2 };
+    const lim = g.ret ? null : limitesDoQuadro(recorte(c, g.ids));
+    if (!lim && !g.ret) continue;
+    const R = g.ret ? { ...g.ret } : { x: lim.x - FOLGA, y: lim.y - FOLGA, w: lim.w + FOLGA * 2, h: lim.h + FOLGA * 2 };
     const s = escalaDoGrupo(imp, R.w, R.h, A);
     menor = Math.min(menor, s);
     const cols = Math.max(1, Math.ceil(R.w * s / A.w - 1e-6)), lins = Math.max(1, Math.ceil(R.h * s / A.h - 1e-6));

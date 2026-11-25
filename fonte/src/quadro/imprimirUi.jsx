@@ -54,6 +54,9 @@ export function JanelaImprimirQuadro({ c, nome, escolhidos, codigos, somenteLeit
                 </button>
               ))}
             </div>
+            {imp.area && alvoAtual !== 'escolhidos' && alvoAtual !== 'paginas' && (
+              <p className="rg-linha rg-dica" data-impq-area>Área de impressão definida: só sai a parte marcada no quadro. <button type="button" className="btn sm" data-impq-limpar-area onClick={() => muda({ area: null })}>Limpar</button></p>
+            )}
             {r.aviso && <p className="rg-erro" role="alert">{r.aviso}</p>}
           </section>
           <section className="rg-cartao">

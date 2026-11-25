@@ -30,6 +30,10 @@ export const MENUS_FAIXA = {
   quebras: { nome: 'Quebras', ic: 'n:quebraPag', dica: 'Quebras|Começa uma página nova antes da célula escolhida, ou tira as quebras.', itens: ['impressao.quebra', 'impressao.semQuebras'] },
   ajustarPag: { nome: 'Ajustar à página', ic: 'n:ajustar', valor: 'valor.ajustar', dica: 'Ajustar à página|Encolhe a impressão para caber na folha.',
     itens: Object.entries(AJUSTES).map(([k, nome]) => ({ id: 'impressao.ajustar|' + k, v: k, nome })), fim: { id: 'impressao.ajustar', nome: 'Mais opções de ajuste…' } },
+  /* v0.6.55: Quadro › Layout da Página: Área de impressão (itens escolhidos) e Ajustar à página com as opções do quadro */
+  areaImpQ: { nome: 'Área de impressão', ic: 'n:area', dica: 'Área de impressão|Imprime só a parte do quadro com os itens escolhidos, ou volta a imprimir tudo.', itens: ['impressao.area', 'impressao.limparArea'] },
+  ajustarPagQ: { nome: 'Ajustar à página', ic: 'n:ajustar', valor: 'valor.ajusteQ', dica: 'Ajustar à página|O quadro enche uma folha ou sai no tamanho real.',
+    itens: [{ id: 'impressao.ajustar|pagina', v: 'pagina', nome: 'Ajustar a 1 página' }, { id: 'impressao.ajustar|real', v: 'real', nome: 'Tamanho real (100%)' }], fim: { id: 'impressao.ajustar', nome: 'Mais opções de ajuste…' } },
   congelar: { nome: 'Congelar painéis', ic: 'n:congelar', valor: 'valor.congelar', dica: 'Congelar painéis|Deixa linhas e colunas paradas enquanto o resto rola.',
     itens: [
       { id: 'exibir.congelar|ativa', v: 'ativa', nome: CONGELAR.ativa, dica: 'Congelar painéis|Linhas acima e colunas à esquerda da célula escolhida ficam paradas.' },

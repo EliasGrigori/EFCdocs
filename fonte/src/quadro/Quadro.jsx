@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -67,12 +67,12 @@ export function Quadro({ arquivo, cx }) {
   const [sel, setSelEstado] = useState({ itens: [], seta: null });
   const [arrasto, setArrasto] = useState(null);
   const [editando, setEditando] = useState(null);
-  const [modo, setModo] = useState(null);
+  const [modo, setModo] = useState(null); const [comVer, setComVer] = useState(null); const comTimer = useRef(0); const abrirCom = (id, ret, fixo) => { clearTimeout(comTimer.current); setComVer((v) => (v && v.fixo && !fixo && v.id === id ? v : { id, ret, fixo })); }; const sairCom = () => { clearTimeout(comTimer.current); comTimer.current = setTimeout(() => setComVer((v) => (v && !v.fixo ? null : v)), 300); }; /* v0.6.55: cartão do comentário (comentarioQuadro.jsx) */
   const [qp, setQp] = useState(() => {
     const salvo = ler('quadro-prefs', {});
     /* v0.4.4.1: a barra da esquerda começa escondida (a faixa Inserir tem tudo); quem já tinha escolha antiga volta ao novo padrão uma vez */
     if (salvo.v !== 2) { salvo.ferramentas = false; salvo.v = 2; }
-    return { minimapa: false, codigos: true, ortografia: true, ferramentas: false, ...salvo };
+    return { minimapa: false, codigos: true, ortografia: true, ferramentas: false, quebras: true, ...salvo };
   });
   const [assistAberto, setAssistAberto] = useState(false);
   const [timer, setTimer] = useState(false);
@@ -330,8 +330,8 @@ export function Quadro({ arquivo, cx }) {
 
   const pedirComentario = () => {
     if (!umItem) { avisoSelecione(); return; }
-    cx.perguntar({ titulo: 'Comentário · ' + (umItem.cod || NOME_TIPO(umItem)), campo: 'Comentário (aparece no painel e no ícone do item)', varias: true, valor: umItem.nota || '', confirmar: 'Salvar comentário', max: 1000,
-      aoConfirmar: (v) => mudarCampo({ nota: v.trim() || undefined }, v.trim() ? 'Comentário' : 'Tirar comentário', [umItem.id]) });
+    const alvo = umItem; /* v0.6.55: guarda quem escreveu (comentarioQuadro.jsx); tirar o texto tira também as respostas */
+    pedirComentarioDo(cx, alvo, NOME_TIPO(alvo), (campos, rot) => mudarCampo(campos, rot, [alvo.id]));
   };
   const pedirLink = () => {
     if (!umItem) { avisoSelecione(); return; }
@@ -402,7 +402,7 @@ export function Quadro({ arquivo, cx }) {
   };
 
   /* ---------- comandos do catálogo ---------- */
-  const trata = (id) => {
+  const trata = (id) => { const lq = trataLayoutQuadro(id, { c, selecionados: selValida.itens, aplicarQ, abrirJanela: () => { setVista('quadro'); setJanela('imprimir'); }, trocarQp, avisar: cx.avisar }); if (lq !== undefined) return lq; /* v0.6.55: Layout da Página (layoutQuadro.jsx) */
     switch (id) {
       case 'inserir.postit': inserir('postit'); return true;
       case 'inserir.processo': inserir('processo'); return true;
@@ -478,7 +478,7 @@ export function Quadro({ arquivo, cx }) {
     }
   };
 
-  const ligado = (id) => {
+  const ligado = (id) => { const vq = valorLayoutQuadro(id, c, qp); if (vq !== undefined) return vq; /* v0.6.55 */
     const alvo = selValida.itens.map((i) => c.itens[i]).filter(COM_TEXTO);
     const todos = (f) => alvo.length > 0 && alvo.every(f);
     switch (id) {
@@ -988,9 +988,9 @@ export function Quadro({ arquivo, cx }) {
           role="application" aria-label={'Quadro ' + ficha.nome}>
           <div className="qd-mundo" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}>
             {ordenados.map((it, i) => (
-              <ItemView key={it.id} it={it} zi={zi(it, i)} sel={selValida.itens.includes(it.id) || (arrasto && arrasto.tipo === 'ligar' && arrasto.alvo === it.id)} codigos={qp.codigos} escondeTexto={editItem && editItem.id === it.id} tarefa={it.tipo === 'postit' ? resumoTarefa(cv, it, hoje) : null} caixa={it.tipo === 'postit' && mostraCaixas(c)} feito={it.tipo === 'postit' && estaFeito(c, it)} aoMarcar={somenteLeitura ? null : (id, v) => aplicarQ(mudancasFeito(c, id, v), v ? 'Marcar como feito' : 'Desmarcar feito')} />
+              <ItemView key={it.id} it={it} zi={zi(it, i)} sel={selValida.itens.includes(it.id) || (arrasto && arrasto.tipo === 'ligar' && arrasto.alvo === it.id)} codigos={qp.codigos} escondeTexto={editItem && editItem.id === it.id} tarefa={it.tipo === 'postit' ? resumoTarefa(cv, it, hoje) : null} caixa={it.tipo === 'postit' && mostraCaixas(c)} feito={it.tipo === 'postit' && estaFeito(c, it)} aoMarcar={somenteLeitura ? null : (id, v) => aplicarQ(mudancasFeito(c, id, v), v ? 'Marcar como feito' : 'Desmarcar feito')} aoComentario={abrirCom} aoSairComentario={sairCom} />
             ))}
-            <CamadaSetas c={cv} selSeta={selValida.seta} ligando={ligando} editandoSeta={editSeta && editSeta.id} />
+            <CamadaSetas c={cv} selSeta={selValida.seta} ligando={ligando} editandoSeta={editSeta && editSeta.id} /><CamadaQuebras c={c} mostrar={vista === 'quadro' && qp.quebras !== false} />
             {!somenteLeitura && umItem && !arrasto && !editando && !modo && cv.itens[umItem.id] && (
               <>
                 {LIGAVEL(umItem) && <PontosLigacao it={cv.itens[umItem.id]} />}
@@ -1110,7 +1110,7 @@ export function Quadro({ arquivo, cx }) {
             return `${r.total} ${r.total === 1 ? 'troca feita' : 'trocas feitas'}. Dá para desfazer com Ctrl+Z.`;
           }} />
       )}
-      {janela === 'imprimir' && <JanelaImprimirQuadro c={c} nome={ficha.nome} escolhidos={selValida.itens} codigos={qp.codigos} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoSalvar={(imp) => aplicarQ({ impressao: ehImpQPadrao(imp) ? null : imp }, 'Configurar página')} aoPdf={async (imp) => { cx.avisar('Gerando o PDF…', { ic: 'pdf' }); await exportarPdf(c, ficha.nome, { vista, codigos: qp.codigos, demo: cx.demo, imp, escolhidos: selValida.itens }); cx.avisar(`PDF pronto: ${ficha.nome}.pdf`, { ic: 'pdf' }); }} aoImprimir={(imp) => imprimir(c, ficha.nome, { vista, codigos: qp.codigos, demo: cx.demo, imp, escolhidos: selValida.itens })} />}{janela === 'titulo' && umItem && umItem.tipo === 'postit' && <JanelaTitulo it={umItem} aoFechar={() => setJanela(null)} aoAplicar={(t) => aplicarQ(mudancasTitulo(c, [umItem.id], t), t ? 'Título' : 'Tirar título')} />}{janela === 'fundo' && <JanelaFundo fundo={c.fundo} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoAplicar={(f) => aplicarQ({ fundo: f }, 'Fundo do quadro')} />}{janela === 'zoom' && (
+      {comVer && c.itens[comVer.id] && c.itens[comVer.id].nota && <CartaoComentario key={comVer.id} it={c.itens[comVer.id]} ret={comVer.ret} fixo={comVer.fixo} somenteLeitura={somenteLeitura} aoEntrar={() => clearTimeout(comTimer.current)} aoSair={sairCom} aoFechar={() => setComVer(null)} aoResponder={(t, a) => { const m = respostaNova(c.itens[comVer.id], t, a); if (m) aplicarQ(Q.mudancasCampo(c, [comVer.id], m), 'Responder comentário', 'formatou'); }} aoEditar={() => { const it = c.itens[comVer.id]; setComVer(null); pedirComentarioDo(cx, it, NOME_TIPO(it), (campos, rot) => aplicarQ(Q.mudancasCampo(c, [it.id], campos), rot, 'formatou')); }} aoExcluir={() => { aplicarQ(Q.mudancasCampo(c, [comVer.id], { nota: undefined, notaA: undefined, notaR: undefined }), 'Excluir comentário', 'formatou'); setComVer(null); }} />}{janela === 'imprimir' && <JanelaImprimirQuadro c={c} nome={ficha.nome} escolhidos={selValida.itens} codigos={qp.codigos} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoSalvar={(imp) => aplicarQ({ impressao: ehImpQPadrao(imp) ? null : imp }, 'Configurar página')} aoPdf={async (imp) => { cx.avisar('Gerando o PDF…', { ic: 'pdf' }); await exportarPdf(c, ficha.nome, { vista, codigos: qp.codigos, demo: cx.demo, imp, escolhidos: selValida.itens }); cx.avisar(`PDF pronto: ${ficha.nome}.pdf`, { ic: 'pdf' }); }} aoImprimir={(imp) => imprimir(c, ficha.nome, { vista, codigos: qp.codigos, demo: cx.demo, imp, escolhidos: selValida.itens })} />}{janela === 'titulo' && umItem && umItem.tipo === 'postit' && <JanelaTitulo it={umItem} aoFechar={() => setJanela(null)} aoAplicar={(t) => aplicarQ(mudancasTitulo(c, [umItem.id], t), t ? 'Título' : 'Tirar título')} />}{janela === 'fundo' && <JanelaFundo fundo={c.fundo} somenteLeitura={somenteLeitura} aoFechar={() => setJanela(null)} aoAplicar={(f) => aplicarQ({ fundo: f }, 'Fundo do quadro')} />}{janela === 'zoom' && (
         <Janela titulo="Zoom" icone="maiszoom" aoFechar={() => setJanela(null)}>
           <div className="janela-c">
             <div className="chips">

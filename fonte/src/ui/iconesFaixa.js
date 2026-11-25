@@ -309,7 +309,7 @@ export const MAPA = {
   'inserir.forma': 'forma', 'inserir.processo': 'processo', 'inserir.decisao': 'decisao', 'inserir.inicio': 'inicioFim', 'inserir.dados': 'entradaSaida', 'inserir.modelo': 'modeloQ',
   'organizar.quadro': 'quadro', 'organizar.kanban': 'kanban', 'organizar.raias': 'raias', 'organizar.frente': 'frente', 'organizar.tras': 'tras',
   'organizar.ordenarGut': 'classificar', 'organizar.temporizador': 'temporizador',
-  'exibir.ajustar': 'ajustar', 'exibir.minimapa': 'minimapa', 'exibir.codigos': 'codigos', 'exibir.fundo': 'fundoQ', 'exibir.caixas': 'caixaQ', 'formatar.tituloPostit': 'tituloQ', 'exibir.ferramentas': 'ferramentas', 'exibir.assistente': 'assistente',
+  'exibir.ajustar': 'ajustar', 'exibir.minimapa': 'minimapa', 'exibir.codigos': 'codigos', 'exibir.fundo': 'fundoQ', 'exibir.caixas': 'caixaQ', 'exibir.quebras': 'quebraPag', 'formatar.tituloPostit': 'tituloQ', 'exibir.ferramentas': 'ferramentas', 'exibir.assistente': 'assistente',
 };
 
 /** v0.6.21 parte 2: desenhos usados pelos botões com lista e pelos tipos de gráfico da faixa (não são comandos do catálogo) */

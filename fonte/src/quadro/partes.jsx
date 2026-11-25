@@ -9,6 +9,7 @@ import { MODELOS } from './modelos.js';
 import { NOTA_GUT, NIVEIS_GUT, valorGut, nivelGut, prazoValido, resumoTarefa } from './tarefa.js';
 import { linhasLegenda } from './legenda.js';
 import { tituloDe, linhasQueCabem } from './postit.js';
+import { MarcadorComentario } from './comentarioQuadro.jsx';
 export { linhasQueCabem };
 
 const estiloTexto = (it) => {
@@ -78,7 +79,7 @@ function RodapeTarefa({ t }) {
 }
 export { RodapeTarefa };
 
-export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, feito, aoMarcar }) {
+export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, feito, aoMarcar, aoComentario, aoSairComentario }) {
   const forma = FORMAS.includes(it.tipo);
   const style = { left: it.x, top: it.y, width: it.w, height: it.h, zIndex: zi };
   if (it.tipo === 'postit') style.background = COR[it.cor] || COR.amarelo;
@@ -102,9 +103,10 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, fe
           onClick={(ev) => { ev.stopPropagation(); if (aoMarcar) aoMarcar(it.id, !feito); }}><i /></button>
       )}
       {codigos && it.cod && <span className="qi-cod" style={it.tipo === 'inicio' ? { left: Math.round(Math.min(it.h, it.w) / 2) } : undefined}>{it.cod}</span>}
-      {(it.nota || it.link) && (
+      {/* v0.6.55: comentário no estilo do Word (marcador no canto, cartão ao passar o mouse) */}
+      {it.nota && <MarcadorComentario it={it} aoAbrir={aoComentario} aoSair={aoSairComentario} />}
+      {it.link && (
         <span className="qi-marcas" style={it.tipo === 'inicio' ? { right: Math.round(Math.min(it.h, it.w) / 2), top: 5 } : undefined}>
-          {it.nota && <span title={'Comentário: ' + it.nota}><Icone n="comentario" /></span>}
           {it.link && <a href={it.link} target="_blank" rel="noopener noreferrer" title={'Abrir link: ' + it.link} onPointerDown={(ev) => ev.stopPropagation()}><Icone n="link" /></a>}
         </span>
       )}

@@ -124,7 +124,7 @@ test('O que a lista marca: margem pronta, orientação, papel, ajuste e congelad
 test('Comandos novos: no catálogo, só na planilha, já funcionando, com dica e com desenho próprio', () => {
   const ids = ['dados.az', 'dados.za', 'dados.limparFiltro', 'impressao.papel', 'impressao.grade', 'impressao.titulosLC', 'exibir.zoom100'];
   for (const id of ids) {
-    assert.ok(PorId[id], id); assert.deepEqual(PorId[id].mods, ['planilha'], id); assert.equal(chegaNa(PorId[id], 'planilha'), null, id + ' já funciona');
+    assert.ok(PorId[id], id); assert.deepEqual(PorId[id].mods.filter((m) => !(m === 'postits' && id === 'impressao.papel')), ['planilha'], id); /* v0.6.55: Tamanho do papel também no Quadro (Layout da Página) */ assert.equal(chegaNa(PorId[id], 'planilha'), null, id + ' já funciona');
     assert.ok((DESCRICAO[id] || '').length > 20, 'sem dica: ' + id); assert.ok(NOVOS[MAPA[id]], 'sem desenho: ' + id);
   }
   assert.equal(new Set(ids.map((id) => MAPA[id])).size, ids.length, 'um desenho para cada');
