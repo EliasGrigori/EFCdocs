@@ -215,15 +215,20 @@ await caso('Kanban novo · o cartão é o post-it (papel da cor escolhida), sem 
   certo(m.caixa.length === 1 && m.caixa[0] !== 'rgba(0, 0, 0, 0)', 'o vencido devia estar em caixa: ' + m.caixa); certo(m.pontos >= 2, 'prazos com ponto: ' + m.pontos);
   certo(m.ini.includes('AL') && m.ini.includes('BS'), 'iniciais: ' + m.ini);
 });
-await caso('Kanban novo · ao mover um cartão de coluna, os cartões deslizam até o lugar (250 ms) e o andamento muda', async () => {
+await caso('Kanban novo · ao mover um cartão de coluna, os vizinhos deslizam (250 ms), o post-it voa até a vaga e o andamento muda', async () => {
   const ctxM = await abrirSemeado(nav, BASE, {}); const q = ctxM.page;
   await montarKanban(q, BASE);
   const de = await q.locator('.kb-col').nth(0).locator('.kb-card').nth(1).boundingBox(), para = await q.locator('.kb-col').nth(2).locator('.kb-lista').boundingBox();
-  await q.mouse.move(de.x + 40, de.y + 30); await q.mouse.down(); for (let i = 1; i <= 10; i++) { await q.mouse.move(de.x + 40 + (para.x + 60 - de.x - 40) * i / 10, de.y + 30 + (para.y + 20 - de.y - 30) * i / 10); await espera(20); }
+  /* v0.6.64 (F1 a F7, plano aprovado em 25/11): os vizinhos deslizam DURANTE o arrasto (250 ms), quando a vaga sai e entra;
+     ao soltar, o post-it voa da mão até a vaga (150, 250 ou 350 ms pela distância) e ninguém mais pula */
+  const anims = () => q.evaluate(() => document.getAnimations().map((a) => a.id + ':' + Math.round(a.effect.getTiming().duration)));
+  await q.mouse.move(de.x + 40, de.y + 30); await q.mouse.down(); const durante = new Set();
+  for (let i = 1; i <= 10; i++) { await q.mouse.move(de.x + 40 + (para.x + 60 - de.x - 40) * i / 10, de.y + 30 + (para.y + 20 - de.y - 30) * i / 10); for (const a of await anims()) durante.add(a); await espera(20); }
   certo(await q.locator('.kb-vaga').count() === 1, 'sem a vaga do tamanho do cartão'); certo((await q.locator('.kb-vaga').boundingBox()).height >= 40, 'vaga fina demais');
-  await q.mouse.up(); await espera(50);
-  const an = await q.evaluate(() => [...document.querySelectorAll('.kb-card')].flatMap((k) => k.getAnimations().map((a) => a.id + ':' + Math.round(a.effect.getTiming().duration))));
-  certo(an.includes('kb-desliza:250'), 'os cartões não deslizaram: ' + JSON.stringify(an));
+  certo(durante.has('kb-desliza:250'), 'os cartões não deslizaram durante o arrasto: ' + JSON.stringify([...durante]));
+  await q.mouse.up(); await espera(30);
+  const an = await anims();
+  certo(an.some((a) => /^kb-voo:(150|250|350)$/.test(a)), 'o post-it não voou até a vaga: ' + JSON.stringify(an));
   await espera(500); certo((await q.locator('[data-kb-andamento]').innerText()).includes('2 de 6'), 'andamento não mudou');
   certo(ctxM.erros.length === 0, ctxM.erros.join(' | ')); await ctxM.ctx.close();
 });

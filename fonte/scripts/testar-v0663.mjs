@@ -80,6 +80,17 @@ const nomeContemTexto = (p, sel) => p.evaluate((s) => [...document.querySelector
   if (PRINTS) await p.locator('.ribbon').screenshot({ path: `${PRINTS}/doc-faixa.png` });
   await p.goto(BASE + '#/'); await p.waitForTimeout(500); await p.click('[data-novo=postits]'); await p.waitForSelector('.qd-vazio');
   await caso('Quadro: a busca mostra Alt Q', async () => { const t = await atalho(); certo(t === 'Alt Q', t); });
+  /* pergunta ao Elias (25/11 16:05): "deve estar por baixo da letra" — a mancha de café é o fundo do próprio post-it */
+  await caso('Café: a mancha fica por baixo das letras (fundo do post-it; nenhuma camada com a mancha por cima do texto)', async () => {
+    await p.locator('[data-cmd="inserir.postit"]').first().click(); const ta = p.locator('textarea.qd-edita'); await ta.waitFor();
+    await ta.fill('Conferir o lacre e a temperatura das amostras na chegada'); await ta.press('Control+Enter'); await p.waitForTimeout(150);
+    await p.keyboard.press('Escape'); await p.click('.tab:has-text("Página Inicial")'); await p.waitForTimeout(200);
+    await p.locator('.qi', { hasText: 'Conferir o lacre' }).first().click(); await p.waitForTimeout(150);
+    await p.click('[data-menu-faixa=texturaQ]'); await p.locator('.rb-lista [data-cmd="formatar.textura|cafe"]').click(); await p.waitForTimeout(200);
+    const r = await p.locator('.qi', { hasText: 'Conferir o lacre' }).first().evaluate((e) => ({ fundo: /cafe/.test(getComputedStyle(e).backgroundImage), porCima: [...e.querySelectorAll('*')].filter((x) => /cafe/.test(getComputedStyle(x).backgroundImage) || /cafe/.test(getComputedStyle(x, '::after').backgroundImage)).length }));
+    if (PRINTS) { await p.keyboard.press('Escape'); await p.waitForTimeout(150); await p.locator('.qi', { hasText: 'Conferir o lacre' }).first().screenshot({ path: `${PRINTS}/cafe-por-baixo.png` }); }
+    certo(r.fundo && r.porCima === 0, JSON.stringify(r));
+  });
   await ctx.close();
 }
 

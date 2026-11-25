@@ -38,7 +38,7 @@ for (const [id, t] of TEX) {
   if (!id) continue;
   await p.keyboard.press('Escape'); await p.locator('.qi', { hasText: t.slice(0, 12) }).first().click(); await p.waitForTimeout(60);
   await p.click('[data-menu-faixa=texturaQ]'); const op = p.locator(`.rb-lista [data-cmd="formatar.textura|${id}"]`);
-  if (await op.count()) await op.click(); else await p.keyboard.press('Escape');
+  if (await op.count()) await op.first().click(); else await p.keyboard.press("Escape"); /* v0.6.63: a lista pode aparecer duas vezes (a da faixa e a do "Mais"); vale a primeira */
   await p.waitForTimeout(120);
 }
 const PECAS = { dobrado: '.qi-aba', amassado: '.qi-tex-papel', rasgado: '.qi-tex-papel', fita: '.qi-fita', alfinete: '.qi-alfinete', clipe: '.qi-clipe' };

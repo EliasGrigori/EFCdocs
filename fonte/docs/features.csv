@@ -494,20 +494,20 @@ F492;Quadro;organizar;"Distribuir com espaço igual (horizontal e vertical)";fun
 F493;Quadro;organizar;"Travar item: não move, não muda de tamanho, não é excluído; cadeado no canto";funciona;"v0.6.59";manter;ideia de 24/11 (Doory)
 F494;Quadro;formatar;"Trocar a cor do post-it mantém a textura";funciona;"v0.6.60 (D-85)";manter;D-85
 F495;Quadro;organizar;"Kanban respeita o post-it travado (cadeado, sem arrastar entre colunas, sem lixeira)";funciona;"v0.6.61";manter;relatório de 25/11
-F496;Quadro;kanban;"Soltar sem salto: o post-it pousa a partir da mão, tempo pela distância (0,18 a 0,34 s)";com defeito;"hoje salta 586 px em 250 ms ao soltar";"v0.6.64 (F1)";estudo do Kanban 25/11
-F497;Quadro;kanban;"Vizinhos abrem espaço deslizando durante o arrasto";com defeito;"hoje pulam 72 px sem animação";"v0.6.64 (F2)";estudo do Kanban 25/11
-F498;Quadro;kanban;"Vaga do tamanho do post-it, sem buraco no lugar antigo";com defeito;"vaga de 56 px fixos e o original fica apagado ocupando espaço";"v0.6.64 (F3)";estudo do Kanban 25/11
-F499;Quadro;kanban;"Sem piscar entre colunas e sem ida e volta da vaga (posição final, folga de 8 px)";com defeito;"6 quadros sem vaga no vão; ida e volta medida na maquete antiga";"v0.6.64 (F4)";estudo do Kanban 25/11
-F500;Quadro;kanban;"Rolar sozinho na beira durante o arrasto";falta;"não rola";"v0.6.64 (F5)";estudo do Kanban 25/11
-F501;Quadro;kanban;"Pegar e carregar com calma (fantasma igual ao cartão, inclinação pela velocidade, sem pulo no hover)";com defeito;"fantasma só com o texto e inclinado fixo";"v0.6.64 (F6)";estudo do Kanban 25/11
-F502;Quadro;kanban;"Esc no meio do arrasto devolve o post-it";falta;"";"v0.6.64 (F7)";estudo do Kanban 25/11
+F496;Quadro;kanban;"Soltar sem salto: o post-it pousa a partir da mão, tempo pela distância (0,18 a 0,34 s)";funciona;"";"feito na v0.6.64 (F1)";estudo do Kanban 25/11
+F497;Quadro;kanban;"Vizinhos abrem espaço deslizando durante o arrasto";funciona;"";"feito na v0.6.64 (F2)";estudo do Kanban 25/11
+F498;Quadro;kanban;"Vaga do tamanho do post-it, sem buraco no lugar antigo";funciona;"";"feito na v0.6.64 (F3)";estudo do Kanban 25/11
+F499;Quadro;kanban;"Sem piscar entre colunas e sem ida e volta da vaga (posição final, folga de 8 px)";funciona;"";"feito na v0.6.64 (F4)";estudo do Kanban 25/11
+F500;Quadro;kanban;"Rolar sozinho na beira durante o arrasto";funciona;"";"feito na v0.6.64 (F5)";estudo do Kanban 25/11
+F501;Quadro;kanban;"Pegar e carregar com calma (fantasma igual ao cartão, inclinação pela velocidade, sem pulo no hover)";funciona;"";"feito na v0.6.64 (F6)";estudo do Kanban 25/11
+F502;Quadro;kanban;"Esc no meio do arrasto devolve o post-it";funciona;"";"feito na v0.6.64 (F7)";estudo do Kanban 25/11
 F503;Quadro;kanban;"Colunas em raia suave e nome do quadro acima das colunas";falta;"";"v0.6.65 (V1)";estudo do Kanban 25/11
 F504;Quadro;kanban;"Cartão limpo: etiqueta, código, título, texto, rodapé só com o que existe; sem bolinha de iniciais";parcial;"mostra Sem responsável e Sem prazo; bolinha de iniciais";"v0.6.65 (V2)";estudo do Kanban 25/11
 F505;Quadro;kanban;"Kanban usa a textura e a letra escolhidas no Quadro";falta;"";"v0.6.65 (V3)";estudo do Kanban 25/11
 F506;Quadro;kanban;"Fechar o painel de detalhes não deixa faixa vazia";com defeito;"faixa vazia até rolar";"v0.6.65 (V4)";estudo do Kanban 25/11
 F507;Quadro;organizar;"Etiqueta de frente no post-it (cor e nome) e filtro único recolhível com contagem";falta;"";"v0.6.66 (N1)";estudo do Kanban 25/11
 F508;Quadro;kanban;"Comentários pelo número no cartão, numa gaveta ao lado (usa nota/notaR da v0.6.55)";parcial;"só um ícone no cartão";"v0.6.67 (N2)";estudo do Kanban 25/11
-F509;Geral;janelas;"Janelas e menus nascem 85% visíveis (print logo após o clique não pega a janela vazada)";com defeito;"D-86: nascem com opacidade 0";"v0.6.63 (J1)";estudo do Kanban 25/11
+F509;Geral;janelas;"Janelas e menus nascem 85% visíveis (print logo após o clique não pega a janela vazada)";funciona;"";"feito na v0.6.63 (J1)";estudo do Kanban 25/11
 F510;Quadro;modelos;"Modelo de quadro com Kanban ligado (mesmo arquivo; atividades nascem das etapas do fluxo)";falta;"";"depois da v0.6.67 (R44)";estudo do Kanban 25/11
 F511;Quadro;modelos;"Quem iniciou, quem concluiu e histórico de atualizações, só nos Documentos internos; acesso por login na fase do Firebase";falta;"antes do login: nome do perfil do aparelho";"depois da v0.6.67 (R44)";estudo do Kanban 25/11
 F512;Quadro;arquivo;"Exportar e importar o quadro editável (arquivo próprio, ida e volta sem perda)";falta;"só PDF, PNG, imprimir e Cwork";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
@@ -516,3 +516,16 @@ F514;Quadro;organizar;"Agrupar (Ctrl+G) e mover em bloco";falta;"só a Página l
 F515;Quadro;organizar;"Organizar em árvore ou grade com um clique";falta;"";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
 F516;Quadro;editar;"Mapa mental: Enter cria o irmão ligado ao mesmo pai (Tab já cria o próximo ligado)";parcial;"Tab e Shift+Tab existem, mas não aparecem em lugar nenhum";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
 F517;Quadro;organizar;"Recolher e abrir ramos do mapa";falta;"";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
+F518;Quadro;editar;"Caixinha de feito com 44 px no toque (o quadradinho continua no mesmo lugar)";funciona;"";"feito na v0.6.63 (V56-04)";relatório do Grok 25/11
+F519;Quadro;editar;"Post-it no tamanho mínimo: o texto começa abaixo do código (tela e PDF)";funciona;"";"feito na v0.6.63 (PL06)";relatório do Grok 25/11
+F520;Geral;busca;"Busca acha o comando no plural (Excluir linhas)";funciona;"";"feito na v0.6.63";relatório do Grok 25/11
+F521;Planilha;faixa;"Inserir: grupo Filtros depois de Gráficos, como no Excel";funciona;"";"feito na v0.6.63";relatório do Grok 25/11
+F522;Geral;fluidez;"Animações só da escala e só transform, opacity e filter (camadas.css, quadro.css, movimento.css)";funciona;"";"feito na v0.6.63";relatório do Grok 25/11
+F523;Geral;listas;"Documentos internos: a coluna Tipo sai só abaixo de 1040 px";funciona;"";"feito na v0.6.63";relatório do Grok 25/11
+F524;Planilha;segmentacao;"Segmentação no celular: a escolhida vem para dentro da tela, com a barra e a alça";funciona;"";"feito na v0.6.63 (42·H13)";relatório do Grok 25/11
+F525;Geral;acessibilidade;"Nome lido igual ao texto visível em Esconder menu e nos cartões de criar (V42-02)";funciona;"";"feito na v0.6.63";relatório do Grok 25/11
+F526;Geral;inicio;"Frase do cartão do Documento inteira (até duas linhas)";funciona;"";"feito na v0.6.63";relatório 25/11 13:08
+F527;Geral;busca;"Atalho da busca igual em todas as telas (Alt Q)";funciona;"";"feito na v0.6.63";relatório 25/11 13:08
+F528;Documento;tela;"Documento em tela média esconde o menu lateral, como Planilha e Quadro";funciona;"";"feito na v0.6.63";relatório 25/11 13:08
+F529;Geral;faixa;"Ponto dourado do chega depois dentro do botão, sem encostar no rótulo";funciona;"";"feito na v0.6.63";relatório 25/11 13:08
+F530;Quadro;texturas;"Mancha de café por baixo das letras (resposta do Elias 25/11 16:05; já era assim desde a v0.6.62)";funciona;"";"feito na v0.6.63 (teste)";pergunta ao Elias 25/11
