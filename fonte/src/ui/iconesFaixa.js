@@ -224,6 +224,8 @@ export const NOVOS = {
   minimapa: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><rect class="t" x="12" y="11.5" width="6.5" height="6" rx="1.2"/>',
   caixaQ: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path class="t" d="M8.5 12.2l2.4 2.4 4.8-5.2"/>',
   texturaQ: '<path d="M4.5 4.5h15v10l-5 5h-10z"/><path class="t" d="M19.5 14.5h-4a1 1 0 0 0-1 1v4"/><path d="M8 9.5c1.5-1 2.5.8 4 0M8 13c1-.6 2 .5 3 0"/>', /* v0.6.57 */
+  alinharQ: '<path d="M4.5 3.5v17"/><rect class="t" x="7" y="6" width="11" height="4.5" rx="1"/><rect x="7" y="13.5" width="7" height="4.5" rx="1"/>', /* v0.6.59 */
+  distribuirQ: '<path d="M3.5 4v16M20.5 4v16"/><rect class="t" x="9.5" y="7" width="5" height="10" rx="1"/>',
   tituloQ: '<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path class="t" d="M7 8h10"/><path d="M7 10.6h10M7 14h7M7 17h5"/>',
   fundoQ: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M8 9h.01M12 9h.01M16 9h.01M8 12h.01M12 12h.01M16 12h.01M8 15h.01M12 15h.01M16 15h.01"/>',
   codigos: '<rect class="t" x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><path d="M14 14h3v3h-3zM19.5 14.5V20M14 19.5h3"/>',
@@ -308,7 +310,7 @@ export const MAPA = {
   'editar.duplicar': 'duplicar', 'editar.excluir': 'lixeira', 'editar.selecionarTudo': 'selecionarTudo',
   'inserir.postit': 'postit', 'inserir.seta': 'seta', 'inserir.proximo': 'proximo', 'inserir.texto': 'texto', 'inserir.pagina': 'paginaQ', 'inserir.legenda': 'legenda',
   'inserir.forma': 'forma', 'inserir.processo': 'processo', 'inserir.decisao': 'decisao', 'inserir.inicio': 'inicioFim', 'inserir.dados': 'entradaSaida', 'inserir.modelo': 'modeloQ',
-  'organizar.quadro': 'quadro', 'organizar.kanban': 'kanban', 'organizar.raias': 'raias', 'organizar.frente': 'frente', 'organizar.tras': 'tras',
+  'organizar.quadro': 'quadro', 'organizar.kanban': 'kanban', 'organizar.raias': 'raias', 'organizar.frente': 'frente', 'organizar.alinhar': 'alinharQ', 'organizar.distribuir': 'distribuirQ', 'organizar.travar': 'cadeado', 'organizar.tras': 'tras',
   'organizar.ordenarGut': 'classificar', 'organizar.temporizador': 'temporizador',
   'exibir.ajustar': 'ajustar', 'exibir.minimapa': 'minimapa', 'exibir.codigos': 'codigos', 'exibir.fundo': 'fundoQ', 'exibir.caixas': 'caixaQ', 'exibir.quebras': 'quebraPag', 'formatar.tituloPostit': 'tituloQ', 'formatar.textura': 'texturaQ', 'formatar.fonteQ': 'fonte', 'exibir.ferramentas': 'ferramentas', 'exibir.assistente': 'assistente',
 };

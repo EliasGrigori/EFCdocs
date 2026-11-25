@@ -96,6 +96,7 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, fe
     <div className={classe} data-item={it.id} data-cod={it.cod || undefined} style={style}>
       {forma && <FormaSvg it={it} />}
       {tex === 'dobrado' && <span className="qi-aba" aria-hidden="true" style={{ width: tamanhoDobra(it), height: tamanhoDobra(it) }} />}
+      {it.trava && <span className="qi-trava" title="Travado" aria-label="Travado" data-trava={it.id}><Icone n="cadeado" /></span>}
       {it.tipo === 'imagem' && (it.src ? <img src={it.src} alt={it.texto || 'Imagem'} draggable="false" /> : <span className="qi-semimg"><Icone n="imagem" /></span>)}
       {it.tipo === 'assinatura' && <AssinaturaView nome={it.texto} rub={it.rub} w={it.w} h={it.h} />}
       {it.tipo === 'raia' && <div className="qi-raia-h"><span>{escondeTexto ? '' : it.texto}</span></div>}

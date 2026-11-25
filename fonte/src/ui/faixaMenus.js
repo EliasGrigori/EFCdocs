@@ -9,6 +9,7 @@ import { MARGENS, PAPEIS } from '../planilha/impressao.js';
 import { AJUSTES, CONGELAR } from '../planilha/faixaExtra.js';
 import { FONTES_Q, garantirFonte } from '../quadro/fontesQ.js'; /* v0.6.57 */
 import { TEXTURAS } from '../quadro/texturas.js';
+import { ALINHAR, DISTRIBUIR } from '../quadro/arrumar.js'; /* v0.6.59 */
 
 /* Botões que abrem uma lista de comandos (Inserir, Excluir, Formatar, Preencher, Limpar), como no Excel */
 export const MENUS_FAIXA = {
@@ -33,6 +34,10 @@ export const MENUS_FAIXA = {
   ajustarPag: { nome: 'Ajustar à página', ic: 'n:ajustar', valor: 'valor.ajustar', dica: 'Ajustar à página|Encolhe a impressão para caber na folha.',
     itens: Object.entries(AJUSTES).map(([k, nome]) => ({ id: 'impressao.ajustar|' + k, v: k, nome })), fim: { id: 'impressao.ajustar', nome: 'Mais opções de ajuste…' } },
   /* v0.6.55: Quadro › Layout da Página: Área de impressão (itens escolhidos) e Ajustar à página com as opções do quadro */
+  alinharQ: { nome: 'Alinhar', ic: 'n:alinharQ', dica: 'Alinhar|Põe os itens escolhidos na mesma linha (dois ou mais).', /* v0.6.59 (arrumar.js) */
+    itens: ALINHAR.map((a) => ({ id: 'organizar.alinhar|' + a.id, nome: a.nome })) },
+  distribuirQ: { nome: 'Distribuir', ic: 'n:distribuirQ', dica: 'Distribuir|Mesmo espaço entre três ou mais itens escolhidos.',
+    itens: DISTRIBUIR.map((a) => ({ id: 'organizar.distribuir|' + a.id, nome: a.nome })) },
   texturaQ: { nome: 'Textura', ic: 'n:texturaQ', valor: 'valor.textura', dica: 'Textura|Dá ao post-it escolhido cara de papel: ponta dobrada, amassado ou mancha de café.', /* v0.6.57 */
     itens: TEXTURAS.map((t) => ({ id: 'formatar.textura|' + t.id, v: t.id, nome: t.nome })) },
   areaImpQ: { nome: 'Área de impressão', ic: 'n:area', dica: 'Área de impressão|Imprime só a parte do quadro com os itens escolhidos, ou volta a imprimir tudo.', itens: ['impressao.area', 'impressao.limparArea'] },

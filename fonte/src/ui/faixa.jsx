@@ -132,6 +132,7 @@ const FAIXAS = {
     { id: 'organizar', nome: 'Organizar', grupos: [
       { nome: 'Visões', itens: [['g', 'organizar.quadro'], ['g', 'organizar.kanban'], ['g', 'organizar.raias']] },
       { nome: 'Ordem', itens: [['col', ['organizar.frente', 'organizar.tras']]] },
+      { nome: 'Arrumar', itens: [['col', [['menu', 'alinharQ'], ['menu', 'distribuirQ'], 'organizar.travar']]] }, /* v0.6.59 */
       { nome: 'Prioridade', itens: [['g', 'organizar.ordenarGut']] },
       { nome: 'Reunião', itens: [['g', 'organizar.temporizador']] }] },
     { id: 'revisao', nome: 'Revisão', grupos: [

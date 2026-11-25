@@ -166,7 +166,7 @@ export const setasDoItem = (c, id) => listaSetas(c).filter((s) => s.de.id === id
 /** Apaga itens e setas; as setas presas aos itens apagados saem junto. */
 export function mudancasExcluir(c, idsItens = [], idsSetas = []) {
   const mud = {};
-  const fora = new Set(idsItens.filter((id) => c.itens[id]));
+  const fora = new Set(idsItens.filter((id) => c.itens[id] && !c.itens[id].trava)); /* v0.6.59: travado não sai */
   for (const id of fora) mud['itens.' + id] = undefined;
   for (const s of listaSetas(c)) {
     if (idsSetas.includes(s.id) || fora.has(s.de.id) || fora.has(s.para.id)) mud['setas.' + s.id] = undefined;
@@ -190,7 +190,7 @@ export function mudancasMover(c, ids, dx, dy) {
   const mud = {};
   for (const id of ids) {
     const it = c.itens[id];
-    if (it) mud['itens.' + id] = { ...it, x: Math.round(it.x + dx), y: Math.round(it.y + dy) };
+    if (it && !it.trava) mud['itens.' + id] = { ...it, x: Math.round(it.x + dx), y: Math.round(it.y + dy) }; /* v0.6.59: travado não se move */
   }
   return mud;
 }

@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { trataArrumar, valorArrumar, AVISO_TRAVADO } from './arrumar.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -219,11 +219,11 @@ export function Quadro({ arquivo, cx }) {
 
   const excluir = useCallback(() => {
     if (!selValida.itens.length && !selValida.seta) { avisoSelecione(); return; }
-    const mud = Q.mudancasExcluir(c, selValida.itens, selValida.seta ? [selValida.seta] : []);
-    const n = selValida.itens.length;
+    const soltos = selValida.itens.filter((i) => !(c.itens[i] && c.itens[i].trava)); if (selValida.itens.length && !soltos.length && !selValida.seta) { cx.avisar(AVISO_TRAVADO, { ic: 'cadeado' }); return; } const mud = Q.mudancasExcluir(c, soltos, selValida.seta ? [selValida.seta] : []);
+    const n = soltos.length; /* v0.6.59: travados ficam */
     aplicarQ(mud, n ? `Excluir ${n} ${n === 1 ? 'item' : 'itens'}` : 'Excluir seta', 'excluiu');
     setSel({ itens: [], seta: null });
-    cx.avisar(n ? `${n} ${n === 1 ? 'item excluído' : 'itens excluídos'}.` : 'Seta excluída.', { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
+    cx.avisar((n ? `${n} ${n === 1 ? 'item excluído' : 'itens excluídos'}.` : 'Seta excluída.') + (soltos.length < selValida.itens.length ? ' Os travados ficaram.' : ''), { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
   }, [c, selValida, aplicarQ, cx]);
 
   const copiar = useCallback((recortar) => {
@@ -402,7 +402,7 @@ export function Quadro({ arquivo, cx }) {
   };
 
   /* ---------- comandos do catálogo ---------- */
-  const trata = (id) => { const eq = trataEstiloQuadro(id, { c, selecionados: selValida.itens, aplicarQ, avisar: cx.avisar }); if (eq !== undefined) return eq; /* v0.6.57: Letra e Textura (estiloQuadro.js) */ const lq = trataLayoutQuadro(id, { c, selecionados: selValida.itens, aplicarQ, abrirJanela: () => { setVista('quadro'); setJanela('imprimir'); }, trocarQp, avisar: cx.avisar }); if (lq !== undefined) return lq; /* v0.6.55: Layout da Página (layoutQuadro.jsx) */
+  const trata = (id) => { const aq = trataArrumar(id, { c, selecionados: selValida.itens, aplicarQ, avisar: cx.avisar }); if (aq !== undefined) return aq; /* v0.6.59: alinhar, distribuir, travar (arrumar.js) */ const eq = trataEstiloQuadro(id, { c, selecionados: selValida.itens, aplicarQ, avisar: cx.avisar }); if (eq !== undefined) return eq; /* v0.6.57: Letra e Textura (estiloQuadro.js) */ const lq = trataLayoutQuadro(id, { c, selecionados: selValida.itens, aplicarQ, abrirJanela: () => { setVista('quadro'); setJanela('imprimir'); }, trocarQp, avisar: cx.avisar }); if (lq !== undefined) return lq; /* v0.6.55: Layout da Página (layoutQuadro.jsx) */
     switch (id) {
       case 'inserir.postit': inserir('postit'); return true;
       case 'inserir.processo': inserir('processo'); return true;
@@ -478,7 +478,7 @@ export function Quadro({ arquivo, cx }) {
     }
   };
 
-  const ligado = (id) => { const vq = valorLayoutQuadro(id, c, qp) ?? valorEstiloQuadro(id, c, selValida.itens); if (vq !== undefined) return vq; /* v0.6.55 */
+  const ligado = (id) => { const vq = valorLayoutQuadro(id, c, qp) ?? valorEstiloQuadro(id, c, selValida.itens) ?? valorArrumar(id, c, selValida.itens); if (vq !== undefined) return vq; /* v0.6.55 */
     const alvo = selValida.itens.map((i) => c.itens[i]).filter(COM_TEXTO);
     const todos = (f) => alvo.length > 0 && alvo.every(f);
     switch (id) {
@@ -613,7 +613,7 @@ export function Quadro({ arquivo, cx }) {
           if (cxo >= r.x && cxo <= r.x + r.w && cyo >= r.y && cyo <= r.y + r.h) levar.add(o.id);
         }
       }
-      gesto.current = somenteLeitura ? null : { tipo: 'mover', ...base, ids: [...levar] };
+      gesto.current = somenteLeitura || ![...levar].some((i) => c.itens[i] && !c.itens[i].trava) ? null : { tipo: 'mover', ...base, ids: [...levar].filter((i) => !(c.itens[i] && c.itens[i].trava)) }; /* v0.6.59: travado não se arrasta */
       return;
     }
     if (setaEl) {
@@ -994,7 +994,7 @@ export function Quadro({ arquivo, cx }) {
             {!somenteLeitura && umItem && !arrasto && !editando && !modo && cv.itens[umItem.id] && (
               <>
                 {LIGAVEL(umItem) && <PontosLigacao it={cv.itens[umItem.id]} />}
-                {umItem.tipo !== 'legenda' && <Alca it={cv.itens[umItem.id]} />}
+                {umItem.tipo !== 'legenda' && !umItem.trava && <Alca it={cv.itens[umItem.id]} />}
               </>
             )}
             {retArea && <div className="qd-ret" style={{ left: retArea.x, top: retArea.y, width: retArea.w, height: retArea.h }} />}

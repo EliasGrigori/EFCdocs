@@ -204,6 +204,9 @@ export const COMANDOS = [
   C('organizar.kanban', 'Kanban', 'kanban', { sin: ['colunas de status', 'a fazer', 'fazendo', 'feito'], mods: ['postits'] }),
   C('organizar.quadro', 'Quadro livre', 'quadro', { sin: ['voltar ao quadro', 'tela livre', 'fluxograma'], mods: ['postits'] }),
   C('organizar.raias', 'Raias por setor', 'raias', { sin: ['swimlane', 'fluxograma por setor', 'faixas'], mods: ['postits'], acao: 'quadro.editar' }),
+  C('organizar.alinhar', 'Alinhar itens', 'alinharQ', { sin: ['alinhar', 'alinhar à esquerda', 'centralizar itens', 'alinhar em cima', 'pôr em linha'], mods: ['postits'], acao: 'quadro.editar' }), /* v0.6.59 */
+  C('organizar.distribuir', 'Distribuir itens', 'distribuirQ', { sin: ['distribuir', 'espaço igual', 'espaçar igualmente'], mods: ['postits'], acao: 'quadro.editar' }),
+  C('organizar.travar', 'Travar item', 'cadeado', { sin: ['travar', 'trancar', 'bloquear item', 'fixar no lugar', 'destravar'], mods: ['postits'], acao: 'quadro.editar' }),
   C('organizar.frente', 'Trazer para a frente', 'frente', { sin: ['por cima', 'ordem'], mods: ['postits'], acao: 'quadro.editar' }),
   C('organizar.tras', 'Mandar para trás', 'tras', { sin: ['por baixo', 'ordem', 'fundo'], mods: ['postits'], acao: 'quadro.editar' }),
   C('organizar.ordenarGut', 'Ordenar pelo GUT', 'classificar', { sin: ['prioridade', 'gravidade urgência tendência', 'priorizar'], mods: ['postits'], acao: 'quadro.editar' }),
