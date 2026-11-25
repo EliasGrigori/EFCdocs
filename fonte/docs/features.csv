@@ -493,3 +493,4 @@ F491;Quadro;organizar;"Alinhar itens escolhidos (esquerda, centro, direita, em c
 F492;Quadro;organizar;"Distribuir com espaço igual (horizontal e vertical)";funciona;"v0.6.59";manter;ideia de 24/11 (Doory)
 F493;Quadro;organizar;"Travar item: não move, não muda de tamanho, não é excluído; cadeado no canto";funciona;"v0.6.59";manter;ideia de 24/11 (Doory)
 F494;Quadro;formatar;"Trocar a cor do post-it mantém a textura";funciona;"v0.6.60 (D-85)";manter;D-85
+F495;Quadro;organizar;"Kanban respeita o post-it travado (cadeado, sem arrastar entre colunas, sem lixeira)";funciona;"v0.6.61";manter;relatório de 25/11
