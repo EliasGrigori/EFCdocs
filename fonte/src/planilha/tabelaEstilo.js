@@ -78,7 +78,22 @@ function pecasEmCache(nome, tema) {
 }
 
 /** Tabela com estilo desenhável? (as criadas antes da v0.6.19 ficam com a pintura nas células, sem t.est) */
-export const temEstiloVivo = (t) => !!(t && t.est && !t.est.sem && lerNomeEstilo(t.est.nome));
+export const temEstiloVivo = (t) => !!(t && t.est && !t.est.sem && (lerNomeEstilo(t.est.nome) || pecasProprias(t)));
+/* v0.6.58 (D-17): estilo próprio do arquivo (peças lidas dos dxf em xlsx/estilos.js), conferidas aqui antes de desenhar */
+const COR6 = /^#[0-9a-f]{6}$/;
+function pecasProprias(t) {
+  const P = t && t.est && t.est.proprio;
+  if (!P || typeof P !== 'object') return null;
+  const out = {};
+  for (const k of ['todo', 'cab', 'tot', 'l1', 'c1', 'pc', 'uc']) {
+    const p = P[k]; if (!p || typeof p !== 'object') continue;
+    const q = {};
+    if (COR6.test(p.f)) q.f = p.f; if (COR6.test(p.t)) q.t = p.t; if (p.b) q.b = 1;
+    for (const s of ['top', 'bottom', 'left', 'right', 'ih', 'iv']) if (Array.isArray(p[s]) && COR6.test(p[s][0]) && [1, 2, 3].includes(p[s][1])) q[s] = [p[s][0], p[s][1]];
+    out[k] = q;
+  }
+  return Object.keys(out).length ? out : null;
+}
 
 /**
  * Estilo que a tabela dá à célula (l, col): { fundo, cor, b, bd, bdcs, bdc } ou null.
@@ -86,7 +101,7 @@ export const temEstiloVivo = (t) => !!(t && t.est && !t.est.sem && lerNomeEstilo
  */
 export function estiloDaTabela(t, l, col, tema) {
   if (l < t.l1 || l > t.l2 || col < t.c1 || col > t.c2 || !temEstiloVivo(t)) return null;
-  const P = pecasEmCache(t.est.nome, tema);
+  const P = lerNomeEstilo(t.est.nome) ? pecasEmCache(t.est.nome, tema) : pecasProprias(t);
   if (!P) return null;
   const est = t.est;
   const d0 = t.l1 + (t.cab ? 1 : 0), dN = t.l2 - (t.tot ? 1 : 0);

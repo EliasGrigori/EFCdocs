@@ -16,6 +16,14 @@ const largCol = (aba, c) => (aba.ocC && aba.ocC[c] ? 0 : aba.larg && aba.larg[c]
 const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : aba.alt && aba.alt[l] != null ? aba.alt[l] : altPadrao(aba));
 const TIPOS_IMG = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
 const int = (v, p = 0) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : p; };
+/** v0.6.58 (D-30): a foto de fundo de uma forma (spPr/blipFill) como texto data:, ou null se não der para abrir. */
+async function fotoDoFundo(bf, ctx) {
+  const blip = filho(bf, 'blip'), rc = blip && blip.a.embed && ctx.relsD.get(blip.a.embed);
+  const ext = rc && rc.alvo ? String(rc.alvo).split('.').pop().toLowerCase() : '';
+  const bytes = rc && rc.alvo && TIPOS_IMG[ext] ? await ctx.zip.bytes(rc.alvo) : null;
+  const src = bytes && bytes.length ? await figuraParaTexto(bytes, TIPOS_IMG[ext]) : '';
+  return src ? { src, rid: blip.a.embed } : null;
+}
 
 /** Ponto (px a partir do canto da célula l,c + dx,dy) → âncora { l, c, dx, dy } (anda pelas larguras e alturas). */
 export function ancoraMais(aba, l, c, dx, dy, ox, oy) {
@@ -264,7 +272,9 @@ export async function lerFormaDaAncora(el, ctx) {
     /* preenchimento, contorno e efeitos: o do spPr manda; senão vale o estilo (xdr:style) */
     const o = lerSpPr(sp, ctx.tema);
     const temGrpFill = sp && filho(sp, 'grpFill');
-    if (o.preench) p.preench = o.preench.t === 'solido' && sp && filho(sp, 'blipFill') ? { t: 'solido', cor: '#d9d9d9' } : o.preench;
+    const bf = sp && filho(sp, 'blipFill'), fundo = bf ? await fotoDoFundo(bf, ctx) : null;
+    if (fundo) { p.preench = { t: 'imagem', src: fundo.src }; xoRels[fundo.rid] = { k, t: 'fundo' }; } /* v0.6.58 (D-30): a foto de fundo vai e volta (antes virava cinza e o XML original se perdia) */
+    else if (o.preench) p.preench = o.preench.t === 'solido' && bf ? { t: 'solido', cor: '#d9d9d9' } : o.preench;
     else if (temGrpFill && preGrupo && preGrupo.preench) p.preench = preGrupo.preench;
     else {
       const fr = corDoEstilo(st, 'fillRef', ctx.tema);
@@ -394,6 +404,8 @@ function preenchXml(pr) {
   if (pr.t === 'degrade') return `<a:gradFill rotWithShape="1"><a:gsLst>${pr.paradas.map((s) => `<a:gs pos="${Math.round((s.p || 0) * 100000)}">${corXml(s.cor, s.alfa)}</a:gs>`).join('')}</a:gsLst>${pr.forma === 'circulo' ? '<a:path path="circle"><a:fillToRect l="50000" t="50000" r="50000" b="50000"/></a:path>' : `<a:lin ang="${Math.round((pr.ang || 0) * 60000)}" scaled="0"/>`}</a:gradFill>`;
   return `<a:solidFill>${corXml(pr.cor, pr.alfa)}</a:solidFill>`;
 }
+/** v0.6.58 (D-30): foto de fundo esticada (sem a foto, cinza como antes). */
+const fundoXml = (rid) => (rid ? `<a:blipFill rotWithShape="1"><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></a:blipFill>` : '<a:solidFill><a:srgbClr val="D9D9D9"/></a:solidFill>');
 function linhaXml(ln) {
   if (!ln || ln.t === 'nenhum') return '<a:ln><a:noFill/></a:ln>';
   return `<a:ln w="${Math.round((ln.larg ?? 0.75) * EMU_PT)}"><a:solidFill>${corXml(ln.cor, ln.alfa)}</a:solidFill>${ln.tr ? `<a:prstDash val="${ln.tr}"/>` : ''}${ln.ini ? `<a:headEnd type="${ln.ini}"/>` : ''}${ln.fim ? `<a:tailEnd type="${ln.fim}"/>` : ''}</a:ln>`;
@@ -465,7 +477,7 @@ function parteXml(p, k, box, ctx, reg) {
   }
   const aberto = ['line', 'arrowLine', 'straightConnector1'].includes(p.g) || /Connector/.test(p.g);
   return `<xdr:sp macro="" textlink="${escapar(tl, true)}"><xdr:nvSpPr><xdr:cNvPr id="${id}" name="${nome}">${hl}</xdr:cNvPr><xdr:cNvSpPr${p.txBox || p.g === 'textBox' ? ' txBox="1"' : ''}/></xdr:nvSpPr>` +
-    `<xdr:spPr>${xfrm}${geoXml(p, box.w, box.h)}${aberto ? '<a:noFill/>' : preenchXml(p.preench)}${linhaXml(p.linha)}${efeitoXml(p.efeito)}</xdr:spPr>` +
+    `<xdr:spPr>${xfrm}${geoXml(p, box.w, box.h)}${aberto ? '<a:noFill/>' : p.preench && p.preench.t === 'imagem' ? fundoXml(reg('img', p.preench.src)) : preenchXml(p.preench)}${linhaXml(p.linha)}${efeitoXml(p.efeito)}</xdr:spPr>` +
     `${p.texto ? textoXml(p.texto, ctx) : ''}</xdr:sp>`;
 }
 
@@ -535,7 +547,7 @@ export function gravarForma(o, ctx) {
     for (const [antigo, r] of Object.entries(o.xoRels)) {
       if (r.k != null) {
         const p = o.partes[r.k];
-        const id = p ? (r.t === 'img' ? reg('img', p.src) : p.link ? reg('link', p.link) : null) : null;
+        const id = p ? (r.t === 'img' ? reg('img', p.src) : r.t === 'fundo' ? reg('img', p.preench && p.preench.src) : p.link ? reg('link', p.link) : null) : null;
         if (!id) { ok = false; break; }
         mapa[antigo] = id;
       } else { const id = ctx.novoRel(); rels.push({ id, tipo: 'hyperlink', alvo: r.alvo, externo: !!r.externo }); mapa[antigo] = id; }

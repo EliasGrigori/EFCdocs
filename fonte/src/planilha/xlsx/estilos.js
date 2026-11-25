@@ -194,8 +194,63 @@ export function lerEstilos(xml, tema) {
   });
   if (!xfs.length) xfs.push({});
   const dxfs = tags(tag(xml, 'dxfs')?.dentro || '', 'dxf').map((d) => lerDxf(d.dentro, cor));
-  return { xfs, fonteBase: { nome: base.nome || 'Calibri', tam: base.tam || 11 }, fmts, dxfs, corFn: cor };
+  return { xfs, fonteBase: { nome: base.nome || 'Calibri', tam: base.tam || 11 }, fmts, dxfs, corFn: cor, tabProprias: lerTabProprias(xml, cor) };
 }
+
+/* ---------- v0.6.58 (D-17): estilos de tabela PRÓPRIOS do arquivo (tableStyles + dxf) ----------
+   O Excel descreve cada peça (títulos, listras, totais, colunas em destaque) por um dxf. Viram as mesmas peças de
+   tabelaEstilo.js ({ f, t, b, top, bottom, left, right, ih, iv }) e ficam na tabela (t.est.proprio), para desenhar. */
+const PECA_DO_TIPO = { wholeTable: 'todo', headerRow: 'cab', totalRow: 'tot', firstRowStripe: 'l1', firstColumnStripe: 'c1', firstColumn: 'pc', lastColumn: 'uc' };
+const PESO_BORDA = { hair: 1, thin: 1, dotted: 1, dashed: 1, dashDot: 1, dashDotDot: 1, medium: 2, mediumDashed: 2, mediumDashDot: 2, mediumDashDotDot: 2, slantDashDot: 2, double: 2, thick: 3 };
+const corOk = (c) => (typeof c === 'string' && /^#?[0-9a-f]{6}$/i.test(c) ? '#' + c.replace('#', '').toLowerCase() : null);
+function pecaDoDxf(dentro, cor) {
+  const d = lerDxf(dentro, cor), p = {};
+  if (corOk(d.fundo)) p.f = corOk(d.fundo);
+  if (corOk(d.cor)) p.t = corOk(d.cor);
+  if (d.b) p.b = 1;
+  const bd = tag(dentro, 'border');
+  if (bd) for (const [lado, k] of [['left', 'left'], ['right', 'right'], ['top', 'top'], ['bottom', 'bottom'], ['horizontal', 'ih'], ['vertical', 'iv']]) {
+    const s = tag(bd.dentro, lado);
+    if (s && PESO_BORDA[s.a.style]) p[k] = [corOk(cor(s.dentro, 'color')) || '#000000', PESO_BORDA[s.a.style]];
+  }
+  return p;
+}
+export function lerTabProprias(xml, cor) {
+  const ts = tag(xml || '', 'tableStyles');
+  if (!ts) return null;
+  const brutos = tags(tag(xml, 'dxfs')?.dentro || '', 'dxf'), out = {};
+  for (const s of tags(ts.dentro, 'tableStyle')) {
+    const nome = String(s.a.name || '');
+    if (!nome || s.a.table === '0' || /^TableStyle(Light|Medium|Dark)\d{1,2}$/.test(nome) || !/^[\p{L}\p{N} _.-]{1,60}$/u.test(nome)) continue;
+    const P = {};
+    for (const el of tags(s.dentro, 'tableStyleElement')) { const k = PECA_DO_TIPO[el.a.type], d = brutos[+el.a.dxfId]; if (k && d && el.a.dxfId != null) P[k] = pecaDoDxf(d.dentro, cor); }
+    if (Object.keys(P).length) out[nome] = P;
+  }
+  return Object.keys(out).length ? out : null;
+}
+/** Peças → <dxf> e <tableStyle> (o caminho de volta de lerTabProprias). base = quantos dxf já existem antes. */
+const TIPO_DA_PECA = Object.fromEntries(Object.entries(PECA_DO_TIPO).map(([a, b]) => [b, a]));
+const ESTILO_DO_PESO = { 1: 'thin', 2: 'medium', 3: 'thick' };
+function tabPropriasXml(mapa, base) {
+  const dxfs = [], estilos = [];
+  for (const [nome, P] of Object.entries(mapa || {})) {
+    if (!/^[\p{L}\p{N} _.-]{1,60}$/u.test(nome) || !P || typeof P !== 'object') continue;
+    const els = [];
+    for (const [k, p] of Object.entries(P)) {
+      if (!TIPO_DA_PECA[k] || !p || typeof p !== 'object') continue;
+      const font = (p.b ? '<b/>' : '') + (corOk(p.t) ? `<color rgb="${hexArgb(corOk(p.t))}"/>` : '');
+      const fill = corOk(p.f) ? `<fill><patternFill patternType="solid"><bgColor rgb="${hexArgb(corOk(p.f))}"/></patternFill></fill>` : '';
+      const lado = (n, s) => (Array.isArray(p[s]) && ESTILO_DO_PESO[p[s][1]] ? `<${n} style="${ESTILO_DO_PESO[p[s][1]]}"><color rgb="${hexArgb(corOk(p[s][0]) || '#000000')}"/></${n}>` : '');
+      const bordas = lado('left', 'left') + lado('right', 'right') + lado('top', 'top') + lado('bottom', 'bottom') + lado('vertical', 'iv') + lado('horizontal', 'ih');
+      dxfs.push(`<dxf>${font ? `<font>${font}</font>` : ''}${fill}${bordas ? `<border>${bordas}</border>` : ''}</dxf>`);
+      els.push(`<tableStyleElement type="${TIPO_DA_PECA[k]}" dxfId="${base + dxfs.length - 1}"/>`);
+    }
+    if (els.length) estilos.push(`<tableStyle name="${escapar(nome, true)}" pivot="0" count="${els.length}">${els.join('')}</tableStyle>`);
+  }
+  return { dxfs, estilos };
+}
+/** A tabela leva junto as peças do estilo próprio, se o nome for de um deles. */
+export const comEstiloProprio = (e, mapa) => (e && mapa && Object.prototype.hasOwnProperty.call(mapa, e.nome) ? { ...e, proprio: mapa[e.nome] } : e);
 
 /* ---------- gravar ---------- */
 /** { fundo, cor, b, i, u, st } → <dxf> (o que a formatação condicional muda). */
@@ -214,7 +269,8 @@ const hexArgb = (h) => 'FF' + String(h).replace('#', '').toUpperCase().padStart(
 const LARG_BORDA = { 1: 'thin', 2: 'medium', 3: 'thick' };
 
 /** Estilos do EFCdocs → styles.xml. O estilo N do EFCdocs vira o xf N do Excel. */
-export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = [], tamBase = 11) {
+export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = [], tamBase = 11, tabProprias = null) {
+  const tp = tabPropriasXml(tabProprias, dxfs.length); /* v0.6.58 (D-17): estilos próprios das tabelas voltam ao arquivo */
   const fontes = [], fundos = [], bordas = [], fmts = [], xfs = [];
   const idx = (lista, x) => { const k = JSON.stringify(x); let i = lista.findIndex((y) => y.k === k); if (i < 0) { lista.push({ k, x }); i = lista.length - 1; } return i; };
   /* v0.6.14 (D-48): a letra do estilo "Normal" (fonte 0) volta com o tamanho do arquivo (ex.: 10); o Excel mede as larguras com ela */
@@ -294,7 +350,7 @@ export function gravarEstilos(estilos, fonteBase = 'Calibri', dxfs = [], tamBase
     '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
     `<cellXfs count="${xfs.length}">${xfs.map(xfXml).join('')}</cellXfs>` +
     '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
-    `<dxfs count="${dxfs.length}">${dxfs.map(dxfXml).join('')}</dxfs><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>` +
+    `<dxfs count="${dxfs.length + tp.dxfs.length}">${dxfs.map(dxfXml).join('')}${tp.dxfs.join('')}</dxfs>${tp.estilos.length ? `<tableStyles count="${tp.estilos.length}" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16">${tp.estilos.join('')}</tableStyles>` : '<tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>'}` +
     '</styleSheet>';
   return xml;
 }

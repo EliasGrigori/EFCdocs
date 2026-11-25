@@ -8,7 +8,7 @@
      são cortadas, e o relatório diz onde. */
 import { lerZip } from './zip.js';
 import { atributos, tags, tag, desescapar, textoRico } from './xml.js';
-import { lerTema, lerEstilos, corDe } from './estilos.js';
+import { lerTema, lerEstilos, corDe, comEstiloProprio } from './estilos.js';
 import { tirarPrefixos, trocarTabelas, porPrefixos } from './formulas.js';
 import { chave, letraCol, lerChave, numCol, MAX_LIN, MAX_COL } from '../ref.js';
 import { lerColunas, lerGrupoDaLinha, lerResumoDosGrupos } from './colunasXlsx.js';
@@ -67,7 +67,7 @@ const fmtN = (n) => n.toLocaleString('pt-BR');
 function estiloDaTabela(ts) {
   if (!ts || !ts.a) return null;
   const nome = String(ts.a.name || '');
-  if (nome && !/^[A-Za-z0-9 _-]{1,60}$/.test(nome)) return null;
+  if (nome && !/^[\p{L}\p{N} _.-]{1,60}$/u.test(nome)) return null; /* v0.6.58: nome com acento (estilo próprio) também vale */
   const b = (k) => (ts.a[k] === '1' || ts.a[k] === 'true' ? 1 : 0);
   return { nome, pc: b('showFirstColumn'), uc: b('showLastColumn'), ll: b('showRowStripes'), lc: b('showColumnStripes') };
 }
@@ -165,7 +165,7 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
         nome, aba: f.nome, l1: p1.l, c1: p1.c, l2: p2.l, c2: p2.c, cols, ...extrasDaTabela(t),
         ...(Object.keys(fcx).length ? { fcx } : {}),
         cab: t.a.headerRowCount === '0' ? 0 : 1, tot: +(t.a.totalsRowCount || 0) > 0 || t.a.totalsRowShown === '1' && +(t.a.totalsRowCount || 0) > 0 ? 1 : 0,
-        est: estiloDaTabela(tag(t.dentro, 'tableStyleInfo')) || { sem: 1 }, // v0.6.8 (Grok): sem estilo no arquivo, volta sem estilo
+        est: comEstiloProprio(estiloDaTabela(tag(t.dentro, 'tableStyleInfo')), est.tabProprias) || { sem: 1 }, // v0.6.8 (Grok): sem estilo no arquivo, volta sem estilo; v0.6.58 (D-17): estilo próprio leva as peças
       });
     }
   }

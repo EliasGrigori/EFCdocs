@@ -448,7 +448,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     { nome: 'docProps/app.xml', dados: app },
     { nome: 'xl/workbook.xml', dados: wb },
     { nome: 'xl/_rels/workbook.xml.rels', dados: relsWb },
-    { nome: 'xl/styles.xml', dados: gravarEstilos(c.estilos || [{}], c.fonteBase || 'Calibri', dxfs, c.tamBase || 11) },
+    { nome: 'xl/styles.xml', dados: gravarEstilos(c.estilos || [{}], c.fonteBase || 'Calibri', dxfs, c.tamBase || 11, Object.fromEntries(Object.values(c.tabelas || {}).filter((t) => t.est && t.est.proprio && !t.est.sem).map((t) => [t.est.nome, t.est.proprio]))) }, // v0.6.58 (D-17)
     { nome: 'xl/theme/theme1.xml', dados: XML_CAB + temaSemFigura(typeof c.temaXml === 'string' && c.temaXml ? c.temaXml : TEMA_XML) }, // v0.6.5
     { nome: 'xl/sharedStrings.xml', dados: sst },
     ...(usaMatriz ? [{ nome: 'xl/metadata.xml', dados: metadata }] : []),

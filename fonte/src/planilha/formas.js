@@ -7,7 +7,7 @@
      xo = XML original (volta igual ao Excel se nada mudou; só a posição é refeita).
    parte = { g, adj?, cust?, x, y, w, h, rot?, fh?, fv?, preench?, linha?, efeito?, texto?, link?, src?, nome? }
      g: desenho ('rect', 'roundRect', 'ellipse', 'rightArrow', 'line', 'img' para figura, 'cust' para desenho livre...)
-     preench: { t:'nenhum' } | { t:'solido', cor, alfa? } | { t:'degrade', paradas:[{p,cor,alfa?}], ang, forma? }
+     preench: { t:'nenhum' } | { t:'solido', cor, alfa? } | { t:'degrade', paradas:[{p,cor,alfa?}], ang, forma? } | { t:'imagem', src } (v0.6.58, D-30: foto de fundo)
      linha: { t:'nenhum' } | { t:'solido', cor, alfa?, larg (pt), tr?, ini?, fim? }  (ini/fim: ponta 'triangle', 'stealth', 'arrow', 'oval', 'diamond')
      efeito: { sombra?: { cor, alfa, blur, dist, dir }, brilho?: { cor, alfa, raio } } (pt e graus)
      texto: { pars:[{ al, runs:[{ t, tam?, cor?, neg?, it?, sub?, tach?, fonte? }] , tam? }], anc, ins:[l,t,r,b] px, wrap, vert?, cor?, tam?, clip?, ligado?: { aba?, abaNome?, ref } }
@@ -356,6 +356,8 @@ function pontaDaLinha(id, tipo, corL, larg) {
 
 function preenchimento(pr, id, defs) {
   if (!pr || pr.t === 'nenhum') return 'fill="none"';
+  /* v0.6.58 (D-30): foto de fundo esticada na forma, como o Excel (blipFill com stretch) */
+  if (pr.t === 'imagem' && pr.src) { defs.push(`<pattern id="${id}" patternUnits="objectBoundingBox" patternContentUnits="objectBoundingBox" width="1" height="1"><image href="${esc(pr.src)}" x="0" y="0" width="1" height="1" preserveAspectRatio="none"/></pattern>`); return `fill="url(#${id})"`; }
   if (pr.t === 'degrade' && Array.isArray(pr.paradas) && pr.paradas.length) {
     const st = pr.paradas.map((s) => `<stop offset="${r2(Math.max(0, Math.min(1, s.p || 0)))}" stop-color="${cor(s.cor, '#888888')}"${s.alfa != null && s.alfa < 1 ? ` stop-opacity="${r2(s.alfa)}"` : ''}/>`).join('');
     if (pr.forma === 'circulo') defs.push(`<radialGradient id="${id}" cx="50%" cy="50%" r="70%">${st}</radialGradient>`);
@@ -517,6 +519,8 @@ function limparPreench(pr) {
     return paradas.length ? { t: 'degrade', paradas, ang: limitar(pr.ang, -360, 360, 90), ...(pr.forma === 'circulo' ? { forma: 'circulo' } : {}) } : undefined;
   }
   if (pr.t === 'solido') return { t: 'solido', cor: limparCor(pr.cor) || '#888888', ...(ehNum(pr.alfa) && pr.alfa < 1 ? { alfa: limitar(pr.alfa, 0, 1, 1) } : {}) };
+  /* v0.6.58 (D-30): foto de fundo da forma (só imagem embutida, nunca endereço de fora) */
+  if (pr.t === 'imagem' && typeof pr.src === 'string' && pr.src.length <= 500000 && SRC_OK.test(pr.src)) return { t: 'imagem', src: pr.src };
   return undefined;
 }
 const PONTAS = new Set(['triangle', 'stealth', 'arrow', 'oval', 'diamond']);
@@ -639,7 +643,7 @@ const jsonOrdenado = (v) => (Array.isArray(v) ? '[' + v.map(jsonOrdenado).join('
 export const formaSemMudanca = (o) => !!(o && o.xoSig && (o.xoSig === assinaturaForma(o, { estavel: true }) || o.xoSig === assinaturaForma(o)));
 /** Assinatura do que dá para mexer (para saber se o XML original ainda vale). */
 export function assinaturaForma(o, { estavel = false } = {}) {
-  const arr = (o.partes || []).map((p) => ({ ...p, src: p.src ? p.src.length + ':' + p.src.slice(-40) : undefined }));
+  const arr = (o.partes || []).map((p) => ({ ...p, src: p.src ? p.src.length + ':' + p.src.slice(-40) : undefined, ...(p.preench && p.preench.t === 'imagem' ? { preench: { t: 'imagem', src: String(p.preench.src).length + ':' + String(p.preench.src).slice(-40) } } : {}) }));
   /* v0.6.14 (D-51): a estável não depende da ordem das chaves (a que o leitor grava daqui em diante) */
   const s = estavel ? jsonOrdenado(arr) : JSON.stringify(arr);
   let h = 5381;
