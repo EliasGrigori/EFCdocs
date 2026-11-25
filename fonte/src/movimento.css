@@ -19,6 +19,10 @@
 .novo-drive-m, .pl-menu, .pl-fmenu, .ge-pop, .faixa-menu { animation: t-dropdown-in var(--dropdown-open-dur) var(--dropdown-ease); transform-origin: top left; }
 .faixa-menu { transform-origin: top right; }
 @keyframes t-dropdown-in { from { opacity: 0; transform: scale(var(--dropdown-pre-scale)); } to { opacity: 1; transform: scale(1); } }
+/* v0.6.46 (Elias): a lista suspensa da célula desce e aparece de leve (fluida), a partir da célula */
+.pl-lista { animation: t-lista-in var(--dropdown-open-dur) var(--ease-out); transform-origin: top center; }
+@keyframes t-lista-in { from { opacity: 0; transform: translateY(-6px) scaleY(0.94); } to { opacity: 1; transform: none; } }
+.pl-lista-i { transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out); }
 
 /* aviso (22 toast): sobe de baixo, um pouco desfocado */
 .toast { animation: t-toast-in var(--toast-open) var(--toast-ease); }
@@ -41,7 +45,8 @@
 .barra-prog i { transition: transform var(--resize-dur) var(--resize-ease); transform-origin: left center; }
 
 @media (prefers-reduced-motion: reduce) {
-  .janela, .novo-drive-m, .pl-menu, .pl-fmenu, .ge-pop, .faixa-menu, .toast, .op-corpo { animation: none !important; }
+  .janela, .novo-drive-m, .pl-menu, .pl-fmenu, .ge-pop, .faixa-menu, .toast, .op-corpo, .pl-lista { animation: none !important; }
+  .pl-lista-i, .pl-seta-lista { transition: none !important; }
   .op-cab > svg, .chave input:after, .menu-alca, .menu-alca svg, .barra-prog i { transition: none !important; }
 }
 

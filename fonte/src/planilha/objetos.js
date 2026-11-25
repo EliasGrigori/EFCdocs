@@ -191,3 +191,32 @@ export function recorteDoObjeto(o, r, G) {
   const visivel = corte.l + corte.r < Math.max(1, r.w) && corte.t + corte.b < Math.max(1, r.h); // v0.6.5: linha reta tem altura zero
   return { visivel, corte, semCorte: !corte.l && !corte.t && !corte.r && !corte.b };
 }
+
+/**
+ * v0.6.46 (D-75): objeto preso na parte congelada que passa da linha (ou coluna) fixa aparece em pedaços, como no Excel:
+ * a parte de cima fica parada com as linhas congeladas e a de baixo rola com as outras (antes a de baixo sumia "dentro das
+ * células"). Devolve a lista de pedaços { ...o, _p, _r (retângulo), _rc (recorte), _semAlca }; objeto comum (ou sendo
+ * arrastado) volta sozinho, como antes.
+ */
+export function pedacosDoObjeto(o, G, arrastando = false) {
+  if (arrastando || !(o.l < G.cl || o.c < G.cc)) return [o];
+  const z = G.z, L = G.linhas, C = G.colunas, Y = L.pos(o.l) + (o.dy || 0), X = C.pos(o.c) + (o.dx || 0), w = o.w * z, h = o.h * z;
+  const faixas = (fix, Pn, n, base, ini, tamFix, tela, deLivre, tamO) => {
+    if (!(n < fix)) return [{ v: deLivre, a: ini + tamFix, b: tela }];
+    const out = [{ v: ini + base * z, a: ini, b: ini + tamFix }];
+    if (base + tamO > Pn(fix)) out.push({ v: deLivre(fix) + (base - Pn(fix)) * z, a: ini + tamFix, b: tela });
+    return out;
+  };
+  const ys = faixas(G.cl, L.pos, o.l, Y, G.hh, G.fy, G.H, o.l < G.cl ? G.yDe : G.yDe(o.l) + (o.dy || 0) * z, o.h);
+  const xs = faixas(G.cc, C.pos, o.c, X, G.hw, G.fx, G.W, o.c < G.cc ? G.xDe : G.xDe(o.c) + (o.dx || 0) * z, o.w);
+  const out = [];
+  for (const fy of ys) for (const fx of xs) {
+    const r = { x: fx.v, y: fy.v, w, h };
+    const corte = { l: Math.max(0, fx.a - r.x), t: Math.max(0, fy.a - r.y), r: Math.max(0, r.x + w - fx.b), b: Math.max(0, r.y + h - fy.b) };
+    const visivel = corte.l + corte.r < Math.max(1, w) && corte.t + corte.b < Math.max(1, h);
+    if (visivel) out.push({ ...o, _p: out.length, _r: r, _rc: { visivel, corte, semCorte: !corte.l && !corte.t && !corte.r && !corte.b }, _semAlca: true });
+  }
+  if (!out.length) return [{ ...o, _rc: { visivel: false } }];
+  out[out.length - 1]._semAlca = false; /* a alça de tamanho fica no pedaço do canto de baixo */
+  return out;
+}

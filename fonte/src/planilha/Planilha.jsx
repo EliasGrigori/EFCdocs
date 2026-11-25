@@ -28,7 +28,7 @@ import { ERRO_EXPLICA, ehErro, numeroCheio, serialHoje, serialAgora, lerNumeroPt
 import * as O from './operacoes.js';
 import * as D from './dados.js';
 import { JanelaClassificar, JanelaDuplicados, JanelaTravar, JanelaExpandirOrdem } from './dadosUi.jsx';
-import { objetosDaAba, novaAssinatura, novoGrafico, novaImagem, novoBotao, caberImagem, GR, IMG, BTN, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, MAX_OBJETOS, idObjeto } from './objetos.js';
+import { objetosDaAba, novaAssinatura, novoGrafico, novaImagem, novoBotao, caberImagem, GR, IMG, BTN, mudancaObjetos, comObjeto, semObjeto, retDoObjeto, ancoraNoPonto, recorteDoObjeto, pedacosDoObjeto, MAX_OBJETOS, idObjeto } from './objetos.js';
 import { FM, temLink, textoDaForma } from './formas.js';
 import { FormaView, JanelaForma, valoresLigados } from './formasUi.jsx';
 import * as I from './inserir.js';
@@ -277,7 +277,7 @@ export function Planilha({ arquivo, cx }) {
     const el = rolRef.current;
     if (!el) return;
     const y = (el.scrollTop * fatorY) / z, x = (el.scrollLeft * fatorX) / z;
-    setRol({ x, y });
+    setRol({ x, y }); if (lista && (!lista.rol || Math.abs(el.scrollTop - lista.rol.y) > 4 || Math.abs(el.scrollLeft - lista.rol.x) > 4)) setLista(null); /* v0.6.46 (D-72, D-74): a lista suspensa fecha ao rolar, como no Excel (subia por cima das congeladas até perto do fx) */
     /* v0.6.4: com linhas congeladas a rolagem termina sempre numa linha inteira (como o Excel): nenhuma linha fica cortada embaixo da parte fixa.
        v0.6.27: o fim desliza até a linha (e até a coluna, com colunas congeladas), em vez de pular; durante a rolagem anda pixel a pixel */
     if (((cl > 0 && fatorY === 1) || (cc0 > 0 && fatorX === 1)) && !cel) {
@@ -1983,7 +1983,7 @@ export function Planilha({ arquivo, cx }) {
     if (!reg) return;
     const r = opcoesLista(motor, c, abaId, reg, l, col);
     setBalao(null);
-    setLista({ l, c: col, itens: r.itens, aviso: r.erro || null, literal: !!r.literal });
+    setLista({ l, c: col, itens: r.itens, aviso: r.erro || null, literal: !!r.literal, rol: rolRef.current ? { x: rolRef.current.scrollLeft, y: rolRef.current.scrollTop } : null }); /* v0.6.46: onde estava a rolagem (a lista fecha se a planilha rolar) */
   };
   const escolherDaLista = (it) => {
     if (!lista) return;
@@ -3089,17 +3089,17 @@ export function Planilha({ arquivo, cx }) {
         {/* assinaturas sobre a grade (v0.4.5) */}
         {objs.length > 0 && !painelAtivo && (
           <div className="pl-objs" style={{ left: G.hw, top: G.hh, width: Math.max(0, tam.W - G.hw), height: Math.max(0, tam.H - G.hh) }}>
-            {objs.map((o) => {
-              const base = retDoObjeto(o, G);
+            {objs.flatMap((o) => pedacosDoObjeto(o, G, arrObj && arrObj.id === o.id)).map((o) => { /* v0.6.46 (D-75): pedaços na parte congelada */
+              const base = o._r || retDoObjeto(o, G);
               const r = arrObj && arrObj.id === o.id ? { x: arrObj.x, y: arrObj.y, w: arrObj.w, h: arrObj.h } : base;
-              const rc = recorteDoObjeto(o, r, G);
+              const rc = o._rc || recorteDoObjeto(o, r, G);
               if (!rc.visivel) return null;
               const escolhida = objSel === o.id;
               if (o.tipo === 'grafico') {
                 const xl = o.g.t === 'excel' || o.g.t === 'cx';
                 const ld = xl ? { d: null } : lerDadosGrafico(o.g.dados.fx, !!o.g.porLinhas, o.g.dados.aba && c.abas[o.g.dados.aba] ? o.g.dados.aba : abaId, !!o.g.op.ocultos);
                 return (
-                  <div key={o.id} className={'pl-obj pl-obj-gr' + (xl ? ' pl-obj-xl' : '') + (escolhida ? ' sel' : '')} data-obj={o.id} data-grafico={o.g.t} role="img" aria-label={'Gráfico' + (o.g.titulo ? ': ' + o.g.titulo : '')}
+                  <div key={o.id + "." + (o._p || 0)} className={'pl-obj pl-obj-gr' + (xl ? ' pl-obj-xl' : '') + (escolhida ? ' sel' : '')} data-obj={o.id} data-grafico={o.g.t} role="img" aria-label={'Gráfico' + (o.g.titulo ? ': ' + o.g.titulo : '')}
                     style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
                     onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
                     onDoubleClick={() => abrirObjeto(o)}
@@ -3107,7 +3107,7 @@ export function Planilha({ arquivo, cx }) {
                     <div style={{ width: r.w / z, height: r.h / z, transform: `scale(${z})`, transformOrigin: '0 0' }}>
                       <GraficoView g={o.g} dados={ld.d} w={Math.round(r.w / z)} h={Math.round(r.h / z)} tema={temaGrafico} lerFaixa={xl ? lerFaixaDoLivro(c, motor, abaId, o.g.plano && o.g.plano.soVisiveis === false) : undefined} />
                     </div>
-                    {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
+                    {escolhida && !somenteLeitura && !o._semAlca && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
                   </div>
                 );
               }
@@ -3115,33 +3115,33 @@ export function Planilha({ arquivo, cx }) {
                 const comLink = temLink(o);
                 const txt = textoDaForma(o);
                 return (
-                  <div key={o.id} className={'pl-obj pl-obj-fm' + (comLink ? ' com-link' : '') + (escolhida ? ' sel' : '')} data-obj={o.id} data-obj-tipo="forma" role={comLink ? 'button' : 'img'} aria-label={(comLink ? 'Botão' : 'Forma') + (txt ? ': ' + txt.slice(0, 80) : '')}
+                  <div key={o.id + "." + (o._p || 0)} className={'pl-obj pl-obj-fm' + (comLink ? ' com-link' : '') + (escolhida ? ' sel' : '')} data-obj={o.id} data-obj-tipo="forma" role={comLink ? 'button' : 'img'} aria-label={(comLink ? 'Botão' : 'Forma') + (txt ? ': ' + txt.slice(0, 80) : '')}
                     style={{ left: r.x - G.hw, top: r.y - G.hh, width: Math.max(1, r.w), height: Math.max(1, r.h), zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
                     onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
                     onWheel={(ev) => { if (rolRef.current) { const d = deltaEmPx(ev, tam.H * 0.85); if (rodaDeMouse(ev)) rolarSuave(rolRef.current, d.dx, d.dy); else rolRef.current.scrollBy({ left: d.dx, top: d.dy }); } }}>
                     <div style={{ width: Math.max(1, o.w), height: Math.max(1, o.h), transform: `scale(${z})`, transformOrigin: '0 0' }}>
                       <FormaView o={o} w={Math.max(1, o.w)} h={Math.max(1, o.h)} lerLigado={lerLigado} valores={valoresLigados(o, lerLigado)} />
                     </div>
-                    {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
+                    {escolhida && !somenteLeitura && !o._semAlca && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
                   </div>
                 );
               }
               if (o.tipo === 'imagem' || o.tipo === 'botao') {
                 const ehImg = o.tipo === 'imagem';
                 return (
-                  <div key={o.id} className={'pl-obj ' + (ehImg ? 'pl-obj-img' : 'pl-obj-btn') + (escolhida ? ' sel' : '')} data-obj={o.id} data-obj-tipo={o.tipo}
+                  <div key={o.id + "." + (o._p || 0)} className={'pl-obj ' + (ehImg ? 'pl-obj-img' : 'pl-obj-btn') + (escolhida ? ' sel' : '')} data-obj={o.id} data-obj-tipo={o.tipo}
                     role={ehImg ? 'img' : 'button'} aria-label={ehImg ? (o.nome || 'Imagem') : `${o.nome || 'Botão'}: leva para a aba ${c.abas[o.alvo] ? c.abas[o.alvo].nome : '(apagada)'}`}
                     style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)`, ...(ehImg ? {} : { background: o.cor || '#1f6f8b', fontSize: Math.max(10, Math.min(16, r.h * 0.4)) }) }}
                     onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
                     onDoubleClick={() => { if (ehImg) abrirObjeto(o); }}
                     onWheel={(ev) => { if (rolRef.current) { const d = deltaEmPx(ev, tam.H * 0.85); if (rodaDeMouse(ev)) rolarSuave(rolRef.current, d.dx, d.dy); else rolRef.current.scrollBy({ left: d.dx, top: d.dy }); } }}>
                     {ehImg ? <img src={o.src} alt={o.nome || ''} draggable={false} /> : <span className="pl-btn-t"><Icone n="seta" />{o.nome || 'Botão'}</span>}
-                    {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
+                    {escolhida && !somenteLeitura && !o._semAlca && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
                   </div>
                 );
               }
               return (
-                <div key={o.id} className={'pl-obj' + (escolhida ? ' sel' : '')} data-obj={o.id} role="img" aria-label={'Assinatura de ' + o.nome}
+                <div key={o.id + "." + (o._p || 0)} className={'pl-obj' + (escolhida ? ' sel' : '')} data-obj={o.id} role="img" aria-label={'Assinatura de ' + o.nome}
                   style={{ left: r.x - G.hw, top: r.y - G.hh, width: r.w, height: r.h, zIndex: escolhida ? 3 : 2, clipPath: rc.semCorte ? undefined : `inset(${rc.corte.t}px ${rc.corte.r}px ${rc.corte.b}px ${rc.corte.l}px)` }}
                   onPointerDown={(ev) => aoBaixarObj(ev, o, 'mover')} onPointerMove={aoMoverObj} onPointerUp={aoSoltarObj} onPointerCancel={aoSoltarObj}
                   onDoubleClick={() => abrirAssinatura(o)}
@@ -3149,7 +3149,7 @@ export function Planilha({ arquivo, cx }) {
                   <div style={{ width: r.w / z, height: r.h / z, transform: `scale(${z})`, transformOrigin: '0 0' }}>
                     <AssinaturaView nome={o.nome} rub={o.rub} w={Math.round(r.w / z)} h={Math.round(r.h / z)} />
                   </div>
-                  {escolhida && !somenteLeitura && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
+                  {escolhida && !somenteLeitura && !o._semAlca && <span className="pl-obj-alca" data-alca="obj" aria-label="Mudar o tamanho" onPointerDown={(ev) => aoBaixarObj(ev, o, 'tamanho')} />}
                 </div>
               );
             })}
@@ -3240,7 +3240,7 @@ export function Planilha({ arquivo, cx }) {
               {temSeta && (
                 <button type="button" className="pl-seta-lista" data-lista-seta aria-label="Abrir a lista da célula" title="Abrir a lista (Alt+↓)" tabIndex={-1}
                   style={{ left: Math.min(x1, tam.W) - 19, top: Math.max(y0, topoLivre) + 1, height: Math.max(10, y1 - Math.max(y0, topoLivre) - 2) }}
-                  onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); if (lista) setLista(null); else abrirLista(); }}><Icone n="chevronBaixo" /></button>
+                  onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); if (lista) setLista(null); else abrirLista(); }}><span className="tri" aria-hidden="true" /></button>
               )}
               {(() => {
                 const lk = visivel && !lista ? I.linkDaCelula(aba, al, ac) : null;
