@@ -25,7 +25,7 @@
 .pg-cab.sub .pg-tit::after { display: none; }
 .pg-inicio .cartoes-novos { flex: none; }
 /* a barra de cima mostra o caminho (o título grande fica na página) */
-.tb-trilha { margin: 0; font-size: 14px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-trilha { margin: 0; padding-right: 3px; font-size: 14px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* v0.6.63: folga contra o arredondamento da largura ("Iníci…" no relatório de 25/11) */
 .tb-trilha b { font-weight: 600; color: var(--text); }
 
 /* ---------- R4 · ferramentas na linha das abas ---------- */

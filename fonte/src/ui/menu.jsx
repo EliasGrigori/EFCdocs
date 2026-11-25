@@ -74,7 +74,7 @@ export function Menu({ rota, modAtual, cont, prefs, cx, gaveta, fechar }) {
         {link(LIXEIRA)}
         {!gaveta && (
           <button type="button" className="rn oculta-menu" data-menu-ocultar title="Esconder o menu (a tela fica toda para o arquivo). Para voltar, use a setinha na borda esquerda."
-            aria-label="Esconder o menu lateral" onClick={() => cx.executar('exibir.menuOculto')}>
+            aria-label="Esconder menu lateral" onClick={() => cx.executar('exibir.menuOculto')}>
             <Icone n="tela" /><span>Esconder menu</span>
           </button>
         )}

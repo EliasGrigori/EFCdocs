@@ -119,7 +119,7 @@ body[data-theme=dark] { --gold: var(--primary); --gold-ink: var(--primary); --go
   .app:not(.cel) .tb-arq .c-situacao { width: 170px; }
   .app:not(.cel) .pg-lixeira .tb-arq .c-tipo { display: none; }
 }
-@media (max-width: 1040px) { .app:not(.cel) .internos .tb-arq .c-tipo { display: none; } }
+@media (max-width: 1039.98px) { .app:not(.cel) .internos .tb-arq .c-tipo { display: none; } } /* v0.6.63: abaixo de 1040, como diz a regra (com 1040 exatos o Tipo fica) */
 /* V24-03 refeito (v0.6.24 parte 2, comentário do Elias: "deixa como antes porém a tela rola para o lado"): a barra das colunas
    fica numa linha só, como antes, e rola para o lado dentro do cartão; a Situação entra no fim; a barra não alarga a tabela */
 .app.cel .internos .tb-arq thead th.c-situacao.col-th { display: block; width: auto; }

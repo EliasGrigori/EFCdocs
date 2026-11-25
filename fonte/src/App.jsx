@@ -492,7 +492,8 @@ export function App() {
 
   const mod = aberto ? aberto.arquivo.ficha.tipo : TIPOS[rota] ? rota : null;
   /* v0.6.22 (D3): em tela média, com a planilha aberta, o menu lateral se esconde sozinho (a escolha guardada não muda) */
-  const planilhaAberta = !!aberto && aberto.arquivo.ficha.tipo === 'planilha'; /* só com o arquivo aberto (a lista de planilhas não conta) */
+  /* v0.6.63 (relatório de 25/11): vale para os três editores (o Documento em branco ficava com o menu aberto, diferente da Planilha e do Quadro) */
+  const planilhaAberta = !!aberto; /* só com o arquivo aberto (a lista de arquivos não conta) */
   useEffect(() => { if (!planilhaAberta) setMenuNaPlanilha(false); }, [planilhaAberta]);
   const menuAuto = !globalThis.EFC_MENU_FIXO && media && !cel && planilhaAberta && prefs.menu !== 'oculto' && !menuNaPlanilha;
   const menuEf = menuAuto ? 'oculto' : prefs.menu;

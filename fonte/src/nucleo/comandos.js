@@ -297,15 +297,19 @@ export function valeNoModulo(cmd, mod) {
 }
 
 const normal = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+/* v0.6.63: plural e singular contam igual na busca ("Excluir linhas" acha "Excluir linha"): cada palavra perde o plural
+   (ões → ão, ais → al, eis → el, s no fim), dos dois lados, então "células", "colunas" e "ações" também casam */
+const singular = (t) => t.split(' ').map((w) => (w.length < 4 ? w : w.replace(/oes$/, 'ao').replace(/aes$/, 'ao').replace(/ais$/, 'al').replace(/eis$/, 'el').replace(/([^s])s$/, '$1'))).join(' ');
+const buscavel = (t) => singular(normal(t));
 
 export function buscarComandos(texto, mod, max = 8) {
-  const q = normal(texto);
+  const q = buscavel(texto);
   const validos = COMANDOS.filter((c) => valeNoModulo(c, mod));
   if (!q) return validos.filter((c) => !chegaNa(c, mod)).slice(0, max);
   const palavras = q.split(' ');
   const nota = (c) => {
-    const nome = normal(c.nome);
-    const sin = c.sin.map(normal);
+    const nome = buscavel(c.nome);
+    const sin = c.sin.map(buscavel);
     let s = 0;
     if (nome === q) s += 100;
     if (nome.startsWith(q)) s += 50;

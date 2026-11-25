@@ -13,16 +13,18 @@
 
 /* janela (06 modal): cresce do centro, de 0,96 a 1 (era jan-entra de 140 ms) */
 .janela { animation: t-modal-in var(--modal-open-dur) var(--modal-ease); will-change: transform, opacity; }
-@keyframes t-modal-in { from { opacity: 0; transform: scale(var(--modal-scale)); } to { opacity: 1; transform: scale(1); } }
+/* v0.6.63 (J1, D-86): janelas, menus e listas nascem quase opacos (0,85) e só crescem: um print ou um olhar logo depois do
+   clique não vê mais a faixa e a grade através da janela (de 0 a 0,28 nos primeiros 40 ms, era o "transparente" dos relatórios) */
+@keyframes t-modal-in { from { opacity: .85; transform: scale(var(--modal-scale)); } to { opacity: 1; transform: scale(1); } }
 
 /* menus (05 dropdown): crescem do ponto de onde saíram */
 .novo-drive-m, .pl-menu, .pl-fmenu, .ge-pop, .faixa-menu { animation: t-dropdown-in var(--dropdown-open-dur) var(--dropdown-ease); transform-origin: top left; }
 .faixa-menu { transform-origin: top right; }
-@keyframes t-dropdown-in { from { opacity: 0; transform: scale(var(--dropdown-pre-scale)); } to { opacity: 1; transform: scale(1); } }
+@keyframes t-dropdown-in { from { opacity: .85; transform: scale(var(--dropdown-pre-scale)); } to { opacity: 1; transform: scale(1); } }
 /* v0.6.46 (Elias): a lista suspensa da célula desce e aparece de leve (fluida), a partir da célula */
 .pl-lista { animation: t-lista-in var(--dropdown-open-dur) var(--ease-out); transform-origin: top center; }
-@keyframes t-lista-in { from { opacity: 0; transform: translateY(-6px) scaleY(0.94); } to { opacity: 1; transform: none; } }
-.pl-lista-i { transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out); }
+@keyframes t-lista-in { from { opacity: .85; transform: translateY(-6px) scaleY(0.94); } to { opacity: 1; transform: none; } }
+/* v0.6.63 (R32): o item da lista troca de cor na hora, como os itens dos outros menus (a transição era da cor de fundo) */
 
 /* aviso (22 toast): sobe de baixo, um pouco desfocado */
 .toast { animation: t-toast-in var(--toast-open) var(--toast-ease); }
@@ -46,7 +48,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .janela, .novo-drive-m, .pl-menu, .pl-fmenu, .ge-pop, .faixa-menu, .toast, .op-corpo, .pl-lista { animation: none !important; }
-  .pl-lista-i, .pl-seta-lista { transition: none !important; }
+  .pl-seta-lista::before, .pl-seta-lista .tri { transition: none !important; }
   .op-cab > svg, .chave input:after, .menu-alca, .menu-alca svg, .barra-prog i { transition: none !important; }
 }
 

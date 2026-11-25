@@ -90,7 +90,7 @@ function escreverTexto(ctx, it, caixa) {
     while (ult.length > 1 && ctx.measureText(fim).width > caixa.w) { ult = ult.slice(0, -1); fim = ult.replace(/\s+$/, '') + '…'; }
     mostrar[mostrar.length - 1] = fim;
   }
-  let y = caixa.topo ? caixa.y + tam * 0.98 : caixa.y + (caixa.h - mostrar.length * alt) / 2 + tam * 0.98; /* topo: post-it com título (como .qi-titulado) */
+  let y = caixa.topo ? caixa.y + tam * 0.98 : caixa.y + Math.max(0, (caixa.h - mostrar.length * alt) / 2) + tam * 0.98; /* v0.6.63: sem espaço para a linha, ela começa em cima (como o "safe center" da tela), sem subir até o código */ /* topo: post-it com título (como .qi-titulado) */
   ctx.textAlign = alinh === 'e' ? 'left' : alinh === 'd' ? 'right' : 'center';
   const x = alinh === 'e' ? caixa.x : alinh === 'd' ? caixa.x + caixa.w : caixa.x + caixa.w / 2;
   for (const l of mostrar) {

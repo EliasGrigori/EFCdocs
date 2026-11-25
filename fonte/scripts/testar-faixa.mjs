@@ -145,10 +145,10 @@ const editando = () => q.evaluate(() => { const e = document.querySelector('text
 const naBarra = () => q.evaluate(() => [...document.querySelectorAll('.pl-fx [class^="tk-"]')].map((x) => x.textContent).join(''));
 for (const [r, v] of [['A1', 'Item'], ['B1', 'Valor'], ['A2', 'a'], ['B2', '10'], ['A3', 'b'], ['B3', '20'], ['A4', 'c'], ['B4', '30']]) { await celula(q, r); await q.keyboard.type(v); await q.keyboard.press('Enter'); }
 
-await caso('Inserir: grupos na ordem do Excel (Tabelas, Ilustrações, Gráficos, Links, Comentários, Texto) e, no fim, Do Vértice', async () => {
+await caso('Inserir: grupos na ordem do Excel (Tabelas, Ilustrações, Gráficos, Filtros, Links, Comentários, Texto) e, no fim, Do Vértice', async () => {
   await aba('Inserir'); const g = await grupos();
-  certo(g === 'Tabelas|Ilustrações|Gráficos|Links|Comentários|Texto|Do Vértice', g);
-  const ordem = []; for (const c of ['dados.dinamica', 'inserir.tabela', 'inserir.imagem', 'inserir.formas', 'inserir.grafico', 'inserir.link', 'editar.comentar', 'inserir.assinatura', 'inserir.painel']) ordem.push((await topo(q, `.ribbon [data-cmd="${c}"]`)).x);
+  certo(g === 'Tabelas|Ilustrações|Gráficos|Filtros|Links|Comentários|Texto|Do Vértice', g); /* v0.6.63: Filtros (v0.6.42) depois de Gráficos, como no Excel */
+  const ordem = []; for (const c of ['dados.dinamica', 'inserir.tabela', 'inserir.imagem', 'inserir.formas', 'inserir.grafico', 'inserir.segmentacao', 'inserir.link', 'editar.comentar', 'inserir.assinatura', 'inserir.painel']) ordem.push((await topo(q, `.ribbon [data-cmd="${c}"]`)).x);
   certo(ordem.every((x, i) => !i || x > ordem[i - 1]), 'da esquerda para a direita: ' + ordem.join(','));
 });
 await caso('Inserir e Fórmulas cabem inteiras em 1280 com o menu aberto (nenhum grupo vai para o "Mais")', async () => {
@@ -394,7 +394,7 @@ await caso('Classificar de A a Z pela coluna da célula: Acerola, Banana, Mamão
 });
 await caso('Limpar sem filtro com critério avisa e não muda nada', async () => {
   await aba3('Dados'); await r3.click('.ribbon [data-cmd="dados.limparFiltro"]'); await espera(300);
-  certo(/não tem filtro com critério/.test(await r3.locator('body').innerText()), 'avisa');
+  certo(/não tem critério/.test(await r3.locator('body').innerText()), 'avisa'); /* o texto do aviso mudou ("Este filtro não tem critério."); o que vale é avisar */
 });
 await caso('Revisão: grupos do Excel (Revisão de texto, Comentários, Proteger, Alterações) com os nomes do Excel', async () => {
   await aba3('Revisão'); const g = await grupos3(); certo(g === 'Revisão de texto|Comentários|Proteger|Alterações', g);

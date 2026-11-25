@@ -55,11 +55,11 @@ const FAIXAS = {
        Nova aba, Inserir linha e Inserir coluna moram em Página Inicial › Células › Inserir, como no Excel. */
     { id: 'inserir', nome: 'Inserir', grupos: [
       { nome: 'Tabelas', itens: [['g', 'dados.dinamica'], ['g', 'inserir.tabela']] },
-      { nome: 'Filtros', itens: [['g', 'inserir.segmentacao', 'Segmentação de dados']] }, /* v0.6.42 (S2), como no Excel */
       { nome: 'Ilustrações', itens: [['g', 'inserir.imagem'], ['g', 'inserir.formas']] },
       { nome: 'Gráficos', itens: [['g', 'inserir.grafico'], ['pilha', [
         [['v', 'inserir.grafico|colunas'], ['v', 'inserir.grafico|linha'], ['v', 'inserir.grafico|pizza'], ['v', 'inserir.grafico|rosca']],
         [['v', 'inserir.grafico|barras'], ['v', 'inserir.grafico|area'], ['v', 'inserir.grafico|dispersao'], ['menu', 'outrosGraficos']]]]] },
+      { nome: 'Filtros', itens: [['g', 'inserir.segmentacao', 'Segmentação de dados']] }, /* v0.6.42 (S2); v0.6.63: depois de Gráficos, como no Excel */
       { nome: 'Links', itens: [['g', 'inserir.link'], ['col', ['inserir.tirarLink']]] },
       { nome: 'Comentários', itens: [['g', 'editar.comentar']] },
       { nome: 'Texto', itens: [['g', 'inserir.assinatura']] },
@@ -728,7 +728,7 @@ export function Topo({ titulo, trilha, ficha, salvo, prefs, cx, cel, aba, setAba
           <BotaoCmd id="editar.desfazer" tipo="i" cx={cx} />
           <BotaoCmd id="editar.refazer" tipo="i" cx={cx} />
           <BotaoCmd id="editar.historico" tipo="i" cx={cx} />
-          <button type="button" className="iconbtn" aria-label={`O que você quer fazer? (${cx.mod === 'planilha' ? 'Alt Q' : 'Ctrl K'})`} title={`O que você quer fazer? (${cx.mod === 'planilha' ? 'Alt Q' : 'Ctrl K'})`} onClick={() => cx.executar('app.buscar')}><Icone n="busca" /></button>
+          <button type="button" className="iconbtn" aria-label="O que você quer fazer? (Alt Q)" title="O que você quer fazer? (Alt Q)" onClick={() => cx.executar('app.buscar')}><Icone n="busca" /></button>
           <BotaoCmd id="exibir.painel" tipo="i" cx={cx} />
           <button type="button" className="iconbtn" aria-label="Opções" title="Opções" onClick={() => cx.executar('app.opcoes')}><Icone n="gear" /></button>
         </span>
@@ -749,7 +749,7 @@ export function Topo({ titulo, trilha, ficha, salvo, prefs, cx, cel, aba, setAba
         {temArquivo && !cel && <BotaoCmd id="editar.refazer" tipo="i" cx={cx} />}
         {temArquivo && !cel && <BotaoCmd id="editar.historico" tipo="i" cx={cx} />}
         <button type="button" className="busca" onClick={() => cx.executar('app.buscar')}>
-          <Icone n="busca" />O que você quer fazer?<kbd>{cx.mod === 'planilha' ? 'Alt Q' : 'Ctrl K'}</kbd>
+          <Icone n="busca" />O que você quer fazer?<kbd>Alt Q</kbd>{/* v0.6.63: o mesmo atalho em todas as telas, como no Excel (Ctrl K continua abrindo fora da Planilha) */}
         </button>
         {cel && <button type="button" className="iconbtn" aria-label="O que você quer fazer?" onClick={() => cx.executar('app.buscar')}><Icone n="busca" /></button>}
         {temArquivo && layoutA && prefs.faixa === 'oculta' && !faixaTemp && (

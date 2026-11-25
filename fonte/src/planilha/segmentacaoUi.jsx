@@ -36,7 +36,7 @@ function Seg({ s, e, multi, setMulti, aplicar, somenteLeitura, minimo, aoBaixarT
 }
 
 /** As segmentações da aba, por cima da grade. */
-export function Segmentacoes({ c, abaId, G, tam, motor, mudar, avisar, perguntar, somenteLeitura }) {
+export function Segmentacoes({ c, abaId, G, tam, motor, mudar, avisar, perguntar, somenteLeitura, rolarPor }) {
   const [multi, setMulti] = useState({});
   const [sel, setSel] = useState(null); // nome da segmentação escolhida
   const [arr, setArr] = useState(null); // arrastando: { nome, modo: 'mover' | 'tamanho', ddx, ddy }
@@ -76,13 +76,22 @@ export function Segmentacoes({ c, abaId, G, tam, motor, mudar, avisar, perguntar
     const soltar = () => {
       el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', soltar); el.removeEventListener('pointercancel', soltar);
       setArr(null);
-      if (!ultimo || Math.abs(ultimo.ddx) + Math.abs(ultimo.ddy) < 4) { if (dupla) { toque.current = null; configurar(s); } return; }
+      if (!ultimo || Math.abs(ultimo.ddx) + Math.abs(ultimo.ddy) < 4) { if (dupla) { toque.current = null; configurar(s); } else if (ev.pointerType !== 'mouse') trazerParaATela(s); return; }
       toque.current = null;
       const p = posDaSeg(aba, s);
       if (modo === 'mover') { const r = retDoObjeto(p, G); mudar(comSeg(c, abaId, s.nome, ancoraNoPonto(G, Math.max(G.hw, r.x + ultimo.ddx), Math.max(G.hh, r.y + ultimo.ddy))), 'Mover a segmentação'); }
       else mudar(comSeg(c, abaId, s.nome, { w: Math.round(Math.max(SEG.W_MIN, p.w + ultimo.ddx / z)), h: Math.round(Math.max(SEG.H_MIN, p.h + ultimo.ddy / z)) }), 'Tamanho da segmentação');
     };
     el.addEventListener('pointermove', mover); el.addEventListener('pointerup', soltar); el.addEventListener('pointercancel', soltar);
+  };
+  /* v0.6.63 (42·H13): no toque, a segmentação escolhida que passa da borda da tela vem para dentro dela (a grade rola o que
+     falta, sem passar do começo dela), para a barra e a alça do canto ficarem à mão sem rolar */
+  const trazerParaATela = (s) => {
+    if (!rolarPor) return;
+    const r = retDoObjeto(posDaSeg(aba, s), G), folga = 8;
+    const dx = r.x + r.w > tam.W - folga ? Math.min(r.x + r.w - (tam.W - folga), Math.max(0, r.x - G.hw - folga)) : 0;
+    const dy = r.y + r.h > tam.H - folga ? Math.min(r.y + r.h - (tam.H - folga), Math.max(0, r.y - G.hh - folga)) : 0;
+    if (dx > 0 || dy > 0) rolarPor(dx, dy);
   };
   let barra = null;
   const caixas = lista.map((s) => {
@@ -97,7 +106,7 @@ export function Segmentacoes({ c, abaId, G, tam, motor, mudar, avisar, perguntar
     const esta = escolhida === s.nome;
     if (esta && !a && !somenteLeitura) {
       barra = (
-        <div className="pl-obj-barra pl-seg-barra" data-seg-barra style={{ left: Math.max(0, r.x - G.hw + r.w - 70), top: Math.max(0, r.y - G.hh - 40) }} onPointerDown={(ev) => { ev.stopPropagation(); ev.preventDefault(); }}>
+        <div className="pl-obj-barra pl-seg-barra" data-seg-barra style={{ left: Math.max(0, Math.min(r.x - G.hw + r.w - 70, tam.W - G.hw - 100)), top: Math.max(0, Math.min(r.y - G.hh - 40, tam.H - G.hh - 48)) }} onPointerDown={(ev) => { ev.stopPropagation(); ev.preventDefault(); }}>
           <button type="button" className="iconbtn" data-seg-config aria-label="Configurações da segmentação" title="Configurações" onClick={() => configurar(s)}><Icone n="gear" /></button>
           <button type="button" className="iconbtn" data-seg-apagar aria-label="Excluir a segmentação" title="Excluir (Delete)" onClick={() => apagar(s.nome)}><Icone n="lixeira" /></button>
         </div>

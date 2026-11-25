@@ -3263,7 +3263,7 @@ export function Planilha({ arquivo, cx }) {
           );
         })()}
         {/* v0.6.3: setas do filtro e menu de valores; v0.6.40 (T2): o da aba e o de cada tabela (filtrosUi.jsx) */}
-        {!painelAtivo && <Segmentacoes c={c} abaId={abaId} G={G} tam={tam} motor={motor} mudar={mudar} avisar={cx.avisar} perguntar={cx.perguntar} somenteLeitura={somenteLeitura} />}{!edit && <SetasDeFiltro c={c} abaId={abaId} G={G} tam={tam} motor={motor} menuFiltro={menuFiltro} setMenuFiltro={setMenuFiltro} textoDe={textoDeDados} valorDe={valorDeDados} xDados={xDados} gravar={gravarFiltro} aplicarLote={aplicarLote} avisar={cx.avisar} voltarFoco={voltarFocoGrade} />}
+        {!painelAtivo && <Segmentacoes c={c} abaId={abaId} G={G} tam={tam} motor={motor} mudar={mudar} avisar={cx.avisar} perguntar={cx.perguntar} somenteLeitura={somenteLeitura} rolarPor={(dx, dy) => rolRef.current && rolRef.current.scrollBy({ left: dx / fatorX, top: dy / fatorY })} />}{!edit && <SetasDeFiltro c={c} abaId={abaId} G={G} tam={tam} motor={motor} menuFiltro={menuFiltro} setMenuFiltro={setMenuFiltro} textoDe={textoDeDados} valorDe={valorDeDados} xDados={xDados} gravar={gravarFiltro} aplicarLote={aplicarLote} avisar={cx.avisar} voltarFoco={voltarFocoGrade} />}
         {!cel && ajuda && <div className="pl-ajuda-ancora">{ajuda}</div>}
         {cel && !edit && !somenteLeitura && !painelAtivo && (<>{alcaCel('a')}{alcaCel('b')}</>)}
         {!painelAtivo && tv.alca({ G, tam, ponto, rolarNaBorda, faixa, toque: cel, editando: !!edit })}

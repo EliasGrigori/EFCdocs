@@ -67,7 +67,7 @@ body[data-theme=dark] .qd-area.com-cor, body[data-theme=dark] .qd-fundo-am.com-c
 }
 .qi-t:empty { display: none; }
 .qi-postit { box-shadow: 0 3px 8px rgba(16,24,40,.18); border: 1px solid rgba(0,0,0,.10); border-radius: 4px; }
-.qi-postit .qi-t { padding: 18px 12px 10px; }
+.qi-postit .qi-t { padding: 18px 12px 10px; align-items: safe center; } /* v0.6.63 (PL06): no tamanho mínimo, a linha que não cabe no meio começa em cima, abaixo do código (antes subia 2 px por cima dele) */
 .qi-processo .qi-t, .qi-inicio .qi-t { padding: 6px 14px; }
 .qi-decisao .qi-t { padding: 22% 20%; }
 .qi-dados .qi-t { padding: 6px 22px; }
@@ -442,7 +442,7 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .qi-caixa { position: absolute; left: 4px; bottom: 4px; width: 25px; height: 25px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; z-index: 2; }
 .qi-com-tarefa .qi-caixa { bottom: 5px; }
 .qi-com-tarefa.qi-com-caixa .qi-tarefa { padding-left: 31px; }
-.qi-caixa i { position: relative; width: 15px; height: 15px; box-sizing: border-box; border-radius: 4px; border: 1.5px solid rgba(31,35,40,.45); background: rgba(255,255,255,.6); transition: background-color var(--dur-curta, .12s), border-color var(--dur-curta, .12s); }
+.qi-caixa i { position: relative; width: 15px; height: 15px; box-sizing: border-box; border-radius: 4px; border: 1.5px solid rgba(31,35,40,.45); background: rgba(255,255,255,.6); }
 .qi-caixa:hover i { border-color: #2e7d4f; }
 .qi-caixa:focus-visible { outline: none; }
 .qi-caixa:focus-visible i { box-shadow: 0 0 0 3px rgba(46,125,79,.28); }
@@ -451,6 +451,11 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .qi-feito .qi-caixa i::after { content: ''; position: absolute; left: 3.6px; top: .6px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .qi-feito .qi-clamp { text-decoration: line-through; color: rgba(31,35,40,.55); }
 .qi-feito .qi-tit { color: rgba(31,35,40,.55); }
+/* v0.6.63 (V56-04): no toque a caixinha de feito tem 44 px para o dedo; o quadradinho fica no mesmo lugar (centro a 16,5 px do canto) */
+@media (pointer: coarse) {
+  .qi-caixa { left: 0; bottom: 0; width: 44px; height: 44px; box-sizing: border-box; place-items: end start; padding: 0 0 9px 9px; }
+  .qi-com-tarefa .qi-caixa { bottom: 1px; }
+}
 .qd-jtitulo { width: min(420px, 94vw); }
 .qd-jtitulo-campo { width: 100%; box-sizing: border-box; min-height: 34px; padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--r-ctl, 8px); background: var(--surface); color: var(--text); font: inherit; }
 .qd-jtitulo-campo:focus { outline: none; border-color: var(--primary); box-shadow: var(--anel, 0 0 0 3px var(--primary-soft)); }
@@ -461,12 +466,12 @@ em.gut-baixa { background: #d1fadf; color: #067647; }
 .qd-imp-cab span { font-size: .72em; color: #475467; }
 .qd-imp-rod { position: absolute; color: #737a85; font-size: max(6px, 1.1cqw); white-space: nowrap; }
 /* v0.6.55: comentário no estilo do Word — marcador no canto de cima por fora e cartão com as respostas */
-.qi-com { position: absolute; right: -11px; top: -11px; z-index: 3; width: 24px; height: 24px; padding: 0; border: 1px solid rgba(0,0,0,.12); border-radius: 8px 8px 8px 2px; background: #ffe58f; color: #5c4400; display: grid; place-items: center; cursor: pointer; box-shadow: 0 1px 2px rgba(16,24,40,.12), 0 3px 8px rgba(16,24,40,.12); transition: transform var(--dur-curta, .12s); }
+.qi-com { position: absolute; right: -11px; top: -11px; z-index: 3; width: 24px; height: 24px; padding: 0; border: 1px solid rgba(0,0,0,.12); border-radius: 8px 8px 8px 2px; background: #ffe58f; color: #5c4400; display: grid; place-items: center; cursor: pointer; box-shadow: 0 1px 2px rgba(16,24,40,.12), 0 3px 8px rgba(16,24,40,.12); transition: transform var(--duration-quick); }
 .qi-com svg { width: 14px; height: 14px; }
 .qi-com:hover, .qi-com:focus-visible { transform: scale(1.1); outline: none; }
 .qi-com:focus-visible { box-shadow: 0 0 0 3px var(--primary-soft); }
 .qi-com-n { position: absolute; right: -6px; bottom: -6px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px; background: var(--primary); color: var(--on-primary, #fff); font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; box-sizing: border-box; }
-.qd-com-cartao { position: fixed; z-index: 60; width: min(310px, calc(100vw - 16px)); max-height: min(420px, calc(100vh - 16px)); overflow: auto; padding: 10px 12px 12px; border-radius: var(--r-card, 10px); border: 1px solid var(--border-light); background: var(--surface); color: var(--text); box-shadow: var(--sh-2, 0 2px 6px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.14)); font-size: 13px; animation: t-lista-in var(--dur-media, .16s) var(--ease-sai, ease-out); }
+.qd-com-cartao { position: fixed; z-index: 60; width: min(310px, calc(100vw - 16px)); max-height: min(420px, calc(100vh - 16px)); overflow: auto; padding: 10px 12px 12px; border-radius: var(--r-card, 10px); border: 1px solid var(--border-light); background: var(--surface); color: var(--text); box-shadow: var(--sh-2, 0 2px 6px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.14)); font-size: 13px; animation: t-lista-in var(--duration-quick) var(--ease-sai, ease-out); }
 .qd-com-cartao.fixo { border-color: color-mix(in srgb, var(--primary) 45%, var(--border-light)); }
 .qd-com-cab { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .qd-com-cab b { font-size: 13px; }
