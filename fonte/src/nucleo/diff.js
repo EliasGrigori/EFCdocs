@@ -32,7 +32,8 @@ export function por(obj, caminho, valor) {
 }
 
 /* v0.6.12 (D-16): objeto vigiado (as células de uma aba) trocado por outro conta como mudança, sem escrever os dois inteiros para comparar */
-const igual = (a, b) => a === b || (!(vigiado(a) || vigiado(b)) && JSON.stringify(a) === JSON.stringify(b));
+const grande = (x) => { if (!x || typeof x !== 'object') return false; let n = 0; for (const k in x) if (++n > 5000) return true; return false; }; /* v0.6.45 (D-70): mapa enorme (linhas escondidas até o fim) não vira texto para comparar */
+const igual = (a, b) => a === b || (!(vigiado(a) || vigiado(b)) && !grande(a) && !grande(b) && JSON.stringify(a) === JSON.stringify(b));
 
 /** mudancas: { "conteudo.itens.p1": novoValor, ... } */
 export function criarDiff(estado, mudancas, rotulo = '') {

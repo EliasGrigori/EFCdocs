@@ -429,7 +429,8 @@ export function estrutura(c, abaId, eixo, i, n) {
   const mapaIdx = (obj) => {
     if (!obj) return obj;
     const out = {};
-    for (const key of Object.keys(obj)) { const v = move(+key); if (v != null) out[v] = obj[key]; }
+    const max = eixo === 'l' ? MAX_LIN : MAX_COL, fim = obj[max - 1]; /* v0.6.45 (D-70): nada passa do fim do livro; escondidas até o fim continuam até o fim ao excluir */
+    for (const key of Object.keys(obj)) { const v = move(+key); if (v != null && v < max) out[v] = obj[key]; } if (exclui && fim && (obj === aba.ocL || obj === aba.ocC || obj === aba.ocF)) for (let x = max - k; x < max; x++) out[x] = fim;
     return out;
   };
   if (eixo === 'l') {

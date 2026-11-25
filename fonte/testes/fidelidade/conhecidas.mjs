@@ -6,6 +6,10 @@
 /** fonte: 'idaVolta' (EFCdocs lê → grava → lê), 'openpyxl' (estrutura e estilo) ou 'libreoffice' (recálculo).
  *  grupo: expressão que casa com o nome do grupo da diferença. */
 export const CONHECIDAS = {
+  /* 24/11/2026 (varredura da estabilização, gerar-amostra-varredura.py): aba "muito oculta" (veryHidden) volta só como oculta */
+  'amostra-varredura.xlsx': [
+    { fonte: 'openpyxl', grupo: /^aba oculta$/, id: 'D-79', motivo: 'a aba muito oculta (veryHidden) volta como oculta (hidden): no Excel, a muito oculta não aparece no menu Reexibir; achado na varredura de 24/11' },
+  ],
   'amostra-anonimizar.xlsx': [
     { fonte: 'idaVolta', grupo: / · v \(número virou o mesmo texto\)$/, id: 'L-08', motivo: 'título numérico de tabela (2024) volta como texto "2024", como o Excel grava (era o D-20)' },
     { fonte: 'openpyxl', grupo: /^número virou o mesmo texto$/, id: 'L-08', motivo: 'título numérico de tabela volta como texto, como o Excel grava' },

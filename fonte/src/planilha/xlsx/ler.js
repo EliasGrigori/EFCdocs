@@ -532,10 +532,9 @@ export async function lerXlsx(bytes, { nomeArquivo = 'planilha.xlsx', aoProgress
     }
     if (pararEm != null) ra.cortes.push(`a aba passou de ${fmtN(limites.celulasAba)} células: parou na linha ${fmtN(pararEm + 1)}`);
     if (zeroAltura) {
-      /* v0.6.4: com zeroHeight o Excel esconde toda linha que o arquivo não lista; as de baixo ficam escondidas até 1.000 linhas depois da última listada */
+      /* v0.6.4: com zeroHeight o Excel esconde toda linha que o arquivo não lista; todas as de baixo ficam escondidas */
       abasZero.push(F.nome);
-      const ult = linhasDef.size ? Math.max(...linhasDef) : -1;
-      const fim = Math.min(MAX_LIN - 1, ult + 1000);
+      const fim = MAX_LIN - 1; /* v0.6.45 (D-70): até o fim, como o Excel (era até 1.000 depois da última; a grade agora não pesa) */
       let n = 0;
       for (let r = 0; r <= fim; r++) if (!linhasDef.has(r)) { (aba.ocL || (aba.ocL = {}))[r] = 1; n++; }
       void n;

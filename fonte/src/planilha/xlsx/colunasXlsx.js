@@ -58,6 +58,10 @@ export function lerColunas(aba, colsDef, ultCol, sDe) {
     let fim = -1;
     for (const [p1, p2] of ocultos) { if (p2 < aba.ocCFim) continue; if (fim < 0 ? p1 <= aba.ocCFim : p1 <= fim + 1) fim = Math.max(fim, p2); }
     if (fim >= MAX_COL - 1 || fim < 0) delete aba.ocCFimAte; else aba.ocCFimAte = fim;
+    /* v0.6.45 (D-70): na tela também ficam escondidas (antes só a marca, para salvar: as de depois do limite de leitura
+       apareciam no app). 16 mil chaves no máximo; a grade não pesa mais com elas */
+    const ate = Number.isInteger(aba.ocCFimAte) ? aba.ocCFimAte : MAX_COL - 1;
+    for (let c = aba.ocCFim; c <= ate; c++) (aba.ocC || (aba.ocC = {}))[c] = 1;
   }
 
 }

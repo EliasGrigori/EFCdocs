@@ -401,12 +401,12 @@ export function Planilha({ arquivo, cx }) {
     } else {
       /* pula linhas/colunas ocultas e mescladas */
       l += dl; col += dc;
-      while (l > 0 && l < MAX_LIN - 1 && !linhas.tam(l)) l += dl || 1;
-      while (col > 0 && col < MAX_COL - 1 && !colunas.tam(col)) col += dc || 1;
+      while (l > 0 && l < MAX_LIN - 1 && l <= linhas.ultima && !linhas.tam(l)) l += dl || 1;
+      while (col > 0 && col < MAX_COL - 1 && col <= colunas.ultima && !colunas.tam(col)) col += dc || 1; if (l > linhas.ultima) l = Math.max(base.l, dl > 1 ? linhas.ultima : base.l); if (col > colunas.ultima) col = base.c; /* v0.6.45 (D-70): depois da última visível não há para onde ir (Shift estende da ponta; PageDown vai até a última) */
       if (!estender) {
         const m = mesclaEm(mesc, sel.ativa.l, sel.ativa.c);
-        if (m && dl > 0) l = m.l2 + 1;
-        if (m && dc > 0) col = m.c2 + 1;
+        if (m && dl > 0) l = Math.min(m.l2 + 1, linhas.ultima);
+        if (m && dc > 0) col = Math.min(m.c2 + 1, colunas.ultima);
       }
     }
     if (estender) selecionar(l, col, { estender: true });
@@ -1625,7 +1625,7 @@ export function Planilha({ arquivo, cx }) {
     if (mostrar) {
       const ini = Math.max(0, i - 1), fim = i + n;
       for (const k of Object.keys(atual)) if (+k >= ini && +k <= fim) delete atual[k];
-    } else for (let x = i; x < i + Math.min(n, 100000); x++) atual[x] = 1;
+    } else for (let x = i, max = eixoX === 'l' ? MAX_LIN : MAX_COL, ate = i + n >= max ? max : i + Math.min(n, 100000); x < ate; x++) atual[x] = 1; /* v0.6.45 (D-70): até o fim, quando a escolha vai até o fim (parava em 100 mil) */
     mudar({ [`conteudo.abas.${abaId}.${campo}`]: atual }, (mostrar ? 'Reexibir ' : 'Ocultar ') + (eixoX === 'l' ? 'linhas' : 'colunas'));
   };
 
@@ -1919,13 +1919,13 @@ export function Planilha({ arquivo, cx }) {
     };
     const excluir = () => { const antes = contarRefErros(); if (mudar(O.estrutura(c, abaId, eixoX, i, -n), `Excluir ${quais}`)) avisarRefs(antes); };
     const mapa = ehCol ? 'ocC' : 'ocL';
-    const ocultas = Object.keys(aba[mapa] || {}).map(Number);
+    const ocultas = { some: (f) => { const m = aba[mapa] || {}; for (let k = Math.max(0, i - 1); k <= i + n; k++) if (m[k] && f(k)) return true; return false; } }; /* v0.6.45: sem listar um milhão de chaves a cada toque no cabeçalho */
     const reexibir = () => {
       const atual = { ...(aba[mapa] || {}) };
       for (const k of Object.keys(atual)) if (+k >= i - 1 && +k <= i + n) delete atual[k];
       mudar({ [`conteudo.abas.${abaId}.${mapa}`]: atual }, ehCol ? 'Reexibir colunas' : 'Reexibir linhas');
     };
-    const ocultarEssas = () => { const atual = { ...(aba[mapa] || {}) }; for (let k = i; k < i + Math.min(n, 100000); k++) atual[k] = 1; mudar({ [`conteudo.abas.${abaId}.${mapa}`]: atual }, `Ocultar ${quais}`); };
+    const ocultarEssas = () => { const atual = { ...(aba[mapa] || {}) }; const max = ehCol ? MAX_COL : MAX_LIN; for (let k = i, ate = i + n >= max ? max : i + Math.min(n, 100000); k < ate; k++) atual[k] = 1; mudar({ [`conteudo.abas.${abaId}.${mapa}`]: atual }, `Ocultar ${quais}`); };
     const tamanho = () => pedirTamanho({ cx, mudar, abaId, ehCol, i, n, atual: ehCol ? colunas.tam(i) || largPadrao(aba) : linhas.tam(i) || altPadrao(aba) });
     const ajustar = () => ajustarTamanho({ mudar, abaId, ehCol, i, n, autoAjustar });
     const ro = somenteLeitura;

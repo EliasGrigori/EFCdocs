@@ -18,7 +18,7 @@ import { nivelMax } from '../contorno.js';
 import { extrasDaColuna, comOrdenacao } from './tabelasXlsx.js';
 import { porPrefixos } from './formulas.js';
 import { lerGuardada } from '../formula.js';
-import { chave, letraCol, lerChave, MAX_COL } from '../ref.js';
+import { chave, letraCol, lerChave, MAX_COL, MAX_LIN } from '../ref.js';
 import { valorGuardado, LARG_PADRAO, largPadrao, ALT_PADRAO, altPadrao } from '../modelo.js';
 import { ehErro } from '../valores.js';
 import { criterioParaXlsx } from '../filtroCriterios.js';
@@ -203,15 +203,18 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     for (const k of [...Object.keys(aba.grpL || {}), ...Object.keys(aba.grpFL || {})]) if (!linhas.has(+k)) linhas.set(+k, new Map());
     /* v0.6.14 (D-47): linha com estilo da linha inteira vai listada, mesmo vazia */
     for (const k of Object.keys(aba.estL || {})) if (aba.estL[k] && !linhas.has(+k)) linhas.set(+k, new Map());
+    /* v0.6.45 (D-70): linhas escondidas até a última do livro (1.000 ou mais) vão como o Excel grava: zeroHeight, e só as que
+       aparecem listadas. Antes iam um milhão de <row hidden> (35 MB dentro do arquivo, 2,6 s para salvar). */
+    const iniFimL = fimOcultoL(aba.ocL, MAX_LIN), zeroH = iniFimL != null && iniFimL < MAX_LIN - iniFimL; /* bloco grande e não muito embaixo; aba.zeroH do Excel não vale mais sozinho (a leitura marca até o fim; reexibido, sai) */
     /* v0.6.8 (Grok): com zeroHeight, linha oculta e vazia não precisa ir listada (o Excel já esconde quem não está na lista) */
-    if (!aba.zeroH) for (const k of Object.keys(aba.ocL || {})) if (aba.ocL[k] && !linhas.has(+k)) linhas.set(+k, new Map());
+    if (!zeroH) for (const k of Object.keys(aba.ocL || {})) if (aba.ocL[k] && !linhas.has(+k)) linhas.set(+k, new Map());
     /* v0.6.6 (Grok): aba com zeroHeight (o Excel esconde toda linha que o arquivo não lista): cada linha que aparece vai listada */
-    if (aba.zeroH) {
+    if (zeroH) {
       let lim = -1;
       for (const k of linhas.keys()) if (k > lim) lim = k;
       /* v0.6.15 (D-58): as linhas vazias e visíveis entre o último dado e o bloco oculto do fim também vão listadas; sem isso,
          salvando duas vezes, elas sumiam (o Excel esconde quem não está na lista) */
-      if (aba.ocL) { let fim = -1; for (const k of Object.keys(aba.ocL)) if (aba.ocL[k] && +k > fim) fim = +k; let ini = fim; while (ini > 0 && aba.ocL[ini - 1]) ini--; if (ini - 1 > lim) lim = ini - 1; }
+      if (aba.ocL) { let fim = aba.ocL[MAX_LIN - 1] ? MAX_LIN - 1 : -1; if (fim < 0) for (const k of Object.keys(aba.ocL)) if (aba.ocL[k] && +k > fim) fim = +k; let ini = fim; while (ini > 0 && aba.ocL[ini - 1]) ini--; if (ini - 1 > lim) lim = ini - 1; }
       for (let r = 0; r <= Math.min(lim, 1048575); r++) if (!(aba.ocL && aba.ocL[r]) && !linhas.has(r)) linhas.set(r, new Map());
     }
 
@@ -302,6 +305,8 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
       for (let cc = aba.ocCFim; cc <= maior; cc++) if (!(aba.ocC && aba.ocC[cc])) ini = cc + 1;
       if (ini < MAX_COL) fimOculto = ini;
     }
+    /* v0.6.45 (D-70): colunas escondidas no app até a XFD também vão numa faixa só (antes, uma <col> por coluna: 16 mil) */
+    { let s = fimOcultoL(aba.ocC, MAX_COL, 2); if (s != null) { for (const cc of colunas.keys()) { const x = colunas.get(cc); if (cc >= s && (x.w != null || x.niv || x.fech)) s = cc + 1; } for (const k of Object.keys(aba.estC || {})) if (+k >= s) s = +k + 1; if (aba.estCFim && aba.estCFim.c > s) s = aba.estCFim.c; } if (s != null && s < MAX_COL && fimOculto == null && !Number.isInteger(aba.ocCFim)) fimOculto = s; } /* começa depois da última com largura, estilo ou grupo próprios */ /* só as escondidas no app: a marca do Excel (ocCFim) já tem a regra dela */
     const cols = colunasXml(aba, colunas, fimOculto, c.estilos || []);
 
     let cab = '';
@@ -319,7 +324,7 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
     }
     vista += '</sheetView>';
     cab += `<sheetViews>${vista}</sheetViews>`;
-    cab += `<sheetFormatPr defaultColWidth="${larguraExcel(largPadrao(aba))}" defaultRowHeight="${ptDe(altPadrao(aba))}" customHeight="1"${aba.zeroH ? ' zeroHeight="1"' : ''}${nivelMax(aba, 'l') ? ` outlineLevelRow="${nivelMax(aba, 'l')}"` : ''}${nivelMax(aba, 'c') ? ` outlineLevelCol="${nivelMax(aba, 'c')}"` : ''}/>`;
+    cab += `<sheetFormatPr defaultColWidth="${larguraExcel(largPadrao(aba))}" defaultRowHeight="${ptDe(altPadrao(aba))}" customHeight="1"${zeroH ? ' zeroHeight="1"' : ''}${nivelMax(aba, 'l') ? ` outlineLevelRow="${nivelMax(aba, 'l')}"` : ''}${nivelMax(aba, 'c') ? ` outlineLevelCol="${nivelMax(aba, 'c')}"` : ''}/>`;
     if (cols.length) cab += `<cols>${cols.join('')}</cols>`;
     let fim = '';
     /* v0.6.3: aba protegida e filtro automático (antes das mescladas, como o Excel exige) */
@@ -534,3 +539,9 @@ export async function gravarXlsx(conteudo, motor, { agora = new Date(), titulo =
    sem relação é motivo de reparo no Excel. Sem o original, a figura vira cor lisa do tema; com o original, devolver.js põe
    o tema e a figura de volta como vieram. */
 export const temaSemFigura = (x) => (/\br:(?:embed|id|link)="/.test(x) ? x.replace(/<a:blipFill\b[\s\S]*?<\/a:blipFill>/g, '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>').replace(/\sr:(?:embed|id|link)="[^"]*"/g, '') : x);
+/** v0.6.45 (D-70): primeira linha (ou coluna) do bloco escondido que vai até a última do livro, se ele tem pelo menos `min`. */
+export function fimOcultoL(mapa, max, min = 1000) {
+  if (!mapa || !mapa[max - 1]) return null;
+  let i = max - 1; while (i > 0 && mapa[i - 1]) i--;
+  return max - i >= min ? i : null;
+}

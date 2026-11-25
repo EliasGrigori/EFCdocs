@@ -97,24 +97,36 @@ export const altLin = (aba, l) => (aba.ocL && aba.ocL[l] ? 0 : (aba.alt && aba.a
  * guarda só as linhas/colunas com tamanho diferente do padrão.
  */
 export function eixo(mapaTam, mapaOculto, padrao, max) {
-  const esp = new Map();
-  for (const k of Object.keys(mapaTam || {})) { const i = +k; if (i < max) esp.set(i, mapaTam[k]); }
-  for (const k of Object.keys(mapaOculto || {})) { const i = +k; if (i < max && mapaOculto[k]) esp.set(i, 0); }
-  const idx = [...esp.keys()].sort((a, b) => a - b);
+  /* v0.6.45 (D-70): sem Map e sem ordenar. Com as linhas escondidas até o fim (um milhão de chaves) montar levava meio
+     segundo a cada ocultar, reexibir ou filtrar. As chaves numéricas de um objeto já vêm em ordem crescente: basta
+     intercalar as duas listas (a escondida vale 0, mesmo com tamanho próprio). */
+  const ord = (m) => { const ks = Object.keys(m || {}); const out = []; for (const k of ks) { const i = +k; if (i >= 0 && i < max && Number.isInteger(i)) out.push(i); } let ok = true; for (let n = 1; n < out.length; n++) if (out[n] <= out[n - 1]) { ok = false; break; } return ok ? out : out.sort((a, b) => a - b).filter((x, n, l) => n === 0 || x !== l[n - 1]); }; /* "3" e "03": uma só */
+  const kt = ord(mapaTam), ko = ord(mapaOculto).filter((i) => mapaOculto[i]);
+  const n = kt.length + ko.length, idxT = new Int32Array(n), valT = new Float64Array(n);
+  let a = 0, b = 0, q = 0;
+  while (a < kt.length || b < ko.length) {
+    if (b >= ko.length || (a < kt.length && kt[a] < ko[b])) { idxT[q] = kt[a]; valT[q++] = +mapaTam[kt[a]] || 0; a++; }
+    else { if (a < kt.length && kt[a] === ko[b]) a++; idxT[q] = ko[b]; valT[q++] = 0; b++; }
+  }
+  const idx = idxT.subarray(0, q), val = valT.subarray(0, q);
   /* soma das diferenças até cada índice especial */
-  const acum = [];
+  const acum = new Float64Array(q);
   let d = 0;
-  for (const i of idx) { acum.push(d); d += esp.get(i) - padrao; }
-  const difAte = (n) => { // soma das diferenças dos índices < n
-    let lo = 0, hi = idx.length;
-    while (lo < hi) { const m = (lo + hi) >> 1; if (idx[m] < n) lo = m + 1; else hi = m; }
-    return lo === 0 ? 0 : acum[lo - 1] + esp.get(idx[lo - 1]) - padrao;
-  };
-  const pos = (n) => n * padrao + difAte(n);
-  const tam = (n) => (esp.has(n) ? esp.get(n) : padrao);
+  for (let k = 0; k < q; k++) { acum[k] = d; d += val[k] - padrao; }
+  const achar = (x) => { let lo = 0, hi = q; while (lo < hi) { const m = (lo + hi) >> 1; if (idx[m] < x) lo = m + 1; else hi = m; } return lo; };
+  const difAte = (x) => { const lo = achar(x); return lo === 0 ? 0 : acum[lo - 1] + val[lo - 1] - padrao; }; // soma das diferenças dos índices < x
+  const pos = (x) => x * padrao + difAte(x);
+  const tam = (x) => { const k = achar(x); return k < q && idx[k] === x ? val[k] : padrao; };
+  /* a última linha/coluna que aparece: com as de baixo escondidas até o fim, a posição depois dela dava a última do livro
+     (1.048.575) e a grade percorria um milhão de linhas de tamanho zero a cada quadro */
+  let ultima = max - 1;
+  for (let k = q - 1; k >= 0 && idx[k] === ultima && val[k] === 0; k--) ultima--;
+  if (ultima < 0) ultima = 0;
+  const fimVisto = pos(ultima + 1);
   /** índice na posição p (px) */
   const em = (p) => {
     if (p <= 0) return 0;
+    if (ultima < max - 1 && p >= fimVisto) return ultima;
     let lo = 0, hi = max - 1;
     while (lo < hi) {
       const m = (lo + hi + 1) >> 1;
@@ -122,7 +134,7 @@ export function eixo(mapaTam, mapaOculto, padrao, max) {
     }
     return lo;
   };
-  return { pos, tam, em, max, total: pos(max) };
+  return { pos, tam, em, max, total: pos(max), ultima };
 }
 
 /* ---------- área usada ---------- */
