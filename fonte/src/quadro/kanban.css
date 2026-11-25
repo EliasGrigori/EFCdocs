@@ -139,7 +139,14 @@ input.kb-titulo { min-width: 240px; outline: none; background: var(--surface); b
 .kb-com-novo svg { width: 15px; height: 15px; }
 .kb-card:hover .kb-com-novo, .kb-com-novo:focus-visible, .app.cel .kb-com-novo { opacity: 1; }
 .kb-com-novo:hover { background: rgba(0, 0, 0, .07); }
-.app.cel .kb-com-novo { width: 44px; height: 44px; right: 0; bottom: 0; }
+/* no toque o dedo "puxa" para o botão mais perto: o balãozinho no canto de baixo roubava o toque da alça em cartão baixo.
+   No toque ele só aparece no cartão escolhido, no alto, ao lado da lixeira (longe da alça) */
+@media (pointer: coarse) {
+  .kb-com-novo { display: none; }
+  .kb-card.sel .kb-com-novo { display: grid; opacity: 1; right: 62px; top: 2px; bottom: auto; width: 28px; height: 28px; }
+  .kb-card.sel.kb-com-eti .kb-cod { right: 94px; }
+}
+.app.cel .kb-card.sel .kb-com-novo { width: 44px; height: 44px; top: -8px; right: 74px; }
 .kb-gaveta { position: fixed; right: 0; top: 0; bottom: 0; z-index: 60; width: 380px; max-width: 94vw; display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--border-light); border-radius: var(--r-jan, 12px) 0 0 var(--r-jan, 12px); box-shadow: -18px 0 40px -18px rgba(0, 0, 0, .35); animation: fzGaveta var(--panel-open-dur) var(--panel-ease); }
 .kb-gv-msgs { flex: 1; overflow: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
 .kb-gv-vazio { margin: 0; color: var(--text-dim); font-size: 14px; }
