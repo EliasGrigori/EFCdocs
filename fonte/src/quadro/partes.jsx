@@ -96,9 +96,9 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa }) {
       {it.tipo === 'legenda' && <LegendaView it={it} />}
       {!['imagem', 'raia', 'pagina', 'legenda', 'assinatura'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : <span className="qi-clamp" style={{ WebkitLineClamp: linhasQueCabem(it, !!tarefa) }}>{it.texto}</span>}</div>}
       {tarefa && <RodapeTarefa t={tarefa} />}
-      {codigos && it.cod && <span className="qi-cod">{it.cod}</span>}
+      {codigos && it.cod && <span className="qi-cod" style={it.tipo === 'inicio' ? { left: Math.round(Math.min(it.h, it.w) / 2) } : undefined}>{it.cod}</span>}
       {(it.nota || it.link) && (
-        <span className="qi-marcas">
+        <span className="qi-marcas" style={it.tipo === 'inicio' ? { right: Math.round(Math.min(it.h, it.w) / 2), top: 5 } : undefined}>
           {it.nota && <span title={'Comentário: ' + it.nota}><Icone n="comentario" /></span>}
           {it.link && <a href={it.link} target="_blank" rel="noopener noreferrer" title={'Abrir link: ' + it.link} onPointerDown={(ev) => ev.stopPropagation()}><Icone n="link" /></a>}
         </span>
