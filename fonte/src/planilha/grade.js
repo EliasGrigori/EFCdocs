@@ -594,22 +594,24 @@ function desenharSelecao(p, q) {
     }
   }
   if (sel && !p.escondeSel) {
+    /* v0.6.47 (D-73): a área da ativa é a mesclada inteira; selecionada sozinha, fica só a moldura (como no Excel) */
+    const at = sel.ativaArea || (p.mesclas && mesclaEm(p.mesclas, sel.ativa.l, sel.ativa.c)) || { l1: sel.ativa.l, c1: sel.ativa.c, l2: sel.ativa.l, c2: sel.ativa.c };
+    const u = sel.faixas[sel.faixas.length - 1];
+    const soAtiva = sel.faixas.length === 1 && u.l1 === at.l1 && u.l2 === at.l2 && u.c1 === at.c1 && u.c2 === at.c2;
     for (const f of sel.faixas) {
-      if (f.l1 === f.l2 && f.c1 === f.c2 && sel.faixas.length === 1) continue;
+      if (soAtiva) continue;
       const a = ret(f);
       if (!a) continue;
       ctx.fillStyle = cores.selFundo;
       ctx.fillRect(a.x, a.y, a.w, a.h);
     }
     /* a célula ativa fica sem a cor de fundo */
-    const at = sel.ativaArea || { l1: sel.ativa.l, c1: sel.ativa.c, l2: sel.ativa.l, c2: sel.ativa.c };
     const aa = ret(at);
-    const u = sel.faixas[sel.faixas.length - 1];
     const ua = ret(u);
     ctx.strokeStyle = cores.sel;
     ctx.lineWidth = 2;
     if (ua) ctx.strokeRect(ua.x + 0.5, ua.y + 0.5, ua.w - 1, ua.h - 1);
-    if (ua && aa && (sel.faixas.length > 1 || u.l1 !== u.l2 || u.c1 !== u.c2)) {
+    if (ua && aa && !soAtiva) {
       ctx.lineWidth = 1;
       ctx.strokeRect(aa.x + 1.5, aa.y + 1.5, aa.w - 3, aa.h - 3);
     }
@@ -724,6 +726,9 @@ function desenharCabecalhos(p, mesc) {
 }
 
 /** O que está sob o ponto (x, y) da tela. */
+/* v0.6.47 (D-69): cursor do Excel no cabeçalho: seta preta para baixo em cima da letra (escolher a coluna) e para a direita no número (escolher a linha); a seta dupla fica só na divisa */
+const setaCursor = (d, x, y) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><path d='${d}' fill='#000' stroke='#fff' stroke-width='1' stroke-linejoin='round'/></svg>`)}") ${x} ${y}, default`;
+export const CURSOR_COL = setaCursor('M5.5 1.5h5v6.5h3.5L8 14.5 2 8h3.5z', 8, 14), CURSOR_LIN = setaCursor('M1.5 5.5v5h6.5v3.5L14.5 8 8 2v3.5z', 14, 8);
 export function ondeCaiu(G, x, y) {
   const { hw, hh } = G;
   if (G.contorno && (x < G.mL || y < G.mC)) { const r = contornoEm(G, x, y); if (r) return r; } /* v0.6.37: margem dos grupos */

@@ -15,7 +15,7 @@ import { MAX_LIN, MAX_COL, chave, lerChave, letraCol, textoFaixa, textoFaixaCaix
 import { indiceDe } from './indice.js';
 import { esperaDeConferir } from '../nucleo/ritmo.js';
 import { eixo, ALT_PADRAO, LARG_PADRAO, largPadrao, altPadrao, estiloDe, celOuHerdada, mescladas, mesclaEm, valorGuardado, paraGuardarValor, validarNomeAba, validarNomeDefinido } from './modelo.js';
-import { geometria, divisaMaisPerto, pintarGrade, mesmasCores, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, corDaGrade, estiloVisto } from './grade.js';
+import { geometria, divisaMaisPerto, pintarGrade, mesmasCores, ondeCaiu, textoCelula, fonteCanvas, FONTE_PADRAO, corLegivel, corDaGrade, estiloVisto, CURSOR_COL, CURSOR_LIN } from './grade.js';
 import { formatar, codigoPt, mudarCasas, FORMATO_MOEDA, FORMATO_PCT, ehFormatoData, FORMATOS } from './formato.js';
 import { TAMANHOS_LETRA } from './fontes.js';
 import { lerEntrada, lerTSV, escreverTSV, lerTabelaHTML, escHTML } from './entrada.js';
@@ -393,7 +393,7 @@ export function Planilha({ arquivo, cx }) {
   }, [abaId, sel, trocarAba, mostrarCelula]);
 
   const andar = (dl, dc, { estender = false, pular = false } = {}) => {
-    const base = estender ? { l: faixaPonta().l, c: faixaPonta().c } : sel.ativa;
+    const inC = estender && faixa.l1 === 0 && faixa.l2 === MAX_LIN - 1, inL = estender && faixa.c1 === 0 && faixa.c2 === MAX_COL - 1; if ((inC && dl) || (inL && dc)) return; const base = estender ? { l: inC ? sel.ativa.l : faixaPonta().l, c: inL ? sel.ativa.c : faixaPonta().c } : sel.ativa; /* v0.6.47 (D-80): coluna ou linha inteira continua inteira; só cresce para o lado */
     let l = base.l, col = base.c;
     if (pular) {
       if (dl) l = tv.pararNaTabela(l, col, dl, 0, pularBorda(cheias.porCol.get(col), l, dl, MAX_LIN - 1)); /* v0.6.29: para na borda da tabela */
@@ -409,7 +409,7 @@ export function Planilha({ arquivo, cx }) {
         if (m && dc > 0) col = Math.min(m.c2 + 1, colunas.ultima);
       }
     }
-    if (estender) selecionar(l, col, { estender: true });
+    if (inC || inL) { setSel({ ativa: sel.ativa, faixas: [...sel.faixas.slice(0, -1), normalFaixa({ l1: inC ? 0 : sel.ativa.l, c1: inL ? 0 : sel.ativa.c, l2: inC ? MAX_LIN - 1 : l, c2: inL ? MAX_COL - 1 : col })] }); mostrarCelula(inC ? sel.ativa.l : l, inL ? sel.ativa.c : col); } else if (estender) selecionar(l, col, { estender: true });
     else selecionar(l, col);
   };
   /* ponta móvel da seleção (o canto oposto à ativa) */
@@ -2645,8 +2645,8 @@ export function Planilha({ arquivo, cx }) {
     if (!arrasto) {
       /* cursor do mouse: divisa de coluna/linha e alça */
       const o = ondeCaiu(G, p.x, p.y);
-      const cur = o.tipo === 'bordaCol' ? 'col-resize' : o.tipo === 'bordaLin' ? 'row-resize' : pertoDaAlca(p) ? 'crosshair' : o.tipo === 'col' ? 's-resize' : o.tipo === 'lin' ? 'e-resize' : 'cell';
-      if (cvRef.current.style.cursor !== cur) cvRef.current.style.cursor = cur;
+      const cur = o.tipo === 'bordaCol' ? 'col-resize' : o.tipo === 'bordaLin' ? 'row-resize' : pertoDaAlca(p) ? 'crosshair' : o.tipo === 'col' ? CURSOR_COL : o.tipo === 'lin' ? CURSOR_LIN : 'cell';
+      if (cvRef.current._cur !== cur) { cvRef.current._cur = cur; cvRef.current.style.cursor = cur; } /* v0.6.47: o navegador reescreve o url(...), então a comparação é com o último pedido */
       const temC = o.tipo === 'cel' && aba.com && aba.com[chave(o.l, o.c)];
       setBalao((b) => (temC ? (b && b.l === o.l && b.c === o.c ? b : { l: o.l, c: o.c }) : b ? null : b));
       return;
