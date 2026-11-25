@@ -1,24 +1,32 @@
-/* Vértice Docs v0.6.41 — segmentação de dados (S1), no padrão Camadas: cartão de 10 px, sombra em camadas, botões de 8 px. */
-.pl-seg { position: absolute; pointer-events: auto; border-radius: var(--r-card, 10px); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--sh-1); overflow: hidden; z-index: 2; }
-.pl-seg.filtrada { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
-.pl-seg-in { display: flex; flex-direction: column; box-sizing: border-box; padding: 6px 8px 8px; gap: 6px; }
-.seg-cab { display: flex; align-items: center; gap: 2px; min-height: var(--seg-min, 28px); }
-.seg-cab b { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.seg-ic { width: var(--seg-min, 28px); height: var(--seg-min, 28px); display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--r-ctl, 8px); background: transparent; color: var(--text-muted); cursor: pointer; padding: 0; }
-.seg-ic svg { width: 18px; height: 18px; }
-.seg-ic:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
-.seg-ic.on { background: var(--primary-soft); color: var(--primary); }
+/* Vértice Docs v0.6.43 — segmentação de dados com o desenho do Excel 365 (estilo claro padrão), pedido do Elias em 20/11:
+   caixa de canto reto, borda fina e sem sombra; título em letra normal com os dois ícones à direita; botões retos;
+   marcado em azul (o azul do Excel), desmarcado na cor da caixa; valor sem linhas em cinza, sem tracejado.
+   As cores saem do tema (no escuro a caixa fica escura, como a grade). */
+.pl-seg { --seg-azul: #4472c4; --seg-linha: color-mix(in srgb, var(--text) 24%, var(--surface));
+  --seg-on: color-mix(in srgb, var(--seg-azul) 26%, var(--surface)); --seg-on-linha: color-mix(in srgb, var(--seg-azul) 62%, var(--surface));
+  --seg-off-linha: color-mix(in srgb, var(--text) 16%, var(--surface));
+  position: absolute; pointer-events: auto; border-radius: 0; background: var(--surface); border: 1px solid var(--seg-linha); box-shadow: none; overflow: hidden; z-index: 2; }
+[data-theme="dark"] .pl-seg { --seg-azul: #6f9be6; --seg-on: color-mix(in srgb, var(--seg-azul) 34%, var(--surface)); }
+.pl-seg-in { display: flex; flex-direction: column; box-sizing: border-box; padding: 4px 6px 6px; gap: 4px; }
+.seg-cab { display: flex; align-items: center; gap: 0; min-height: var(--seg-min, 28px); padding-left: 2px; }
+.seg-cab b { flex: 1; min-width: 0; font-size: 13px; font-weight: 400; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seg-ic { width: var(--seg-min, 28px); height: var(--seg-min, 28px); display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 0; background: transparent; color: var(--text-muted); cursor: pointer; padding: 0; }
+.seg-ic svg { width: 16px; height: 16px; }
+.pl-seg .seg-ic svg.ic-novo .t { stroke: currentColor; } /* ícones cinza como no Excel, sem a cor do tema */
+.pl-seg [data-seg-limpar]:not(:disabled) svg path:not(.t) { stroke: #c42b1c; } /* o X vermelho do Limpar filtro do Excel */
+.seg-ic:hover:not(:disabled) { background: var(--surface-2); border-color: var(--seg-off-linha); color: var(--text); }
+.seg-ic.on { background: var(--seg-on); border-color: var(--seg-on-linha); color: var(--text); }
 .seg-ic:disabled { opacity: .35; cursor: default; }
-.seg-ic:focus-visible, .seg-it:focus-visible { outline: none; box-shadow: var(--anel); }
-.seg-itens { flex: 1; min-height: 0; overflow: auto; display: grid; grid-auto-rows: var(--seg-alt, 28px); gap: 4px; align-content: start; }
-.seg-it { min-width: 0; border: 1px solid var(--border-light); border-radius: var(--r-ctl, 8px); background: var(--surface); color: var(--text); font-size: 12px; padding: 0 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
-.seg-it:hover:not(:disabled) { border-color: color-mix(in srgb, var(--primary) 50%, var(--border-light)); }
-.seg-it.on { background: var(--primary-soft); border-color: color-mix(in srgb, var(--primary) 40%, var(--border-light)); color: var(--text); font-weight: 600; }
-.seg-it.sem { color: var(--text-dim); border-style: dashed; }
-.seg-it.sem.on { background: color-mix(in srgb, var(--primary) 5%, var(--surface)); font-weight: 400; }
+.seg-ic:focus-visible, .seg-it:focus-visible { outline: 1px solid var(--seg-azul); outline-offset: 1px; box-shadow: none; }
+.seg-itens { flex: 1; min-height: 0; overflow: auto; display: grid; grid-auto-rows: var(--seg-alt, 28px); gap: 3px 4px; align-content: start; }
+.seg-it { min-width: 0; border: 1px solid var(--seg-off-linha); border-radius: 0; background: var(--surface); color: var(--text); font-size: 13px; font-weight: 400; padding: 0 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.seg-it:hover:not(:disabled) { border-color: var(--seg-on-linha); }
+.seg-it.on { background: var(--seg-on); border-color: var(--seg-on-linha); }
+.seg-it.sem { color: var(--text-muted); }
+.seg-it.sem.on { background: color-mix(in srgb, var(--seg-azul) 10%, var(--surface)); border-color: var(--seg-off-linha); }
 .seg-it:disabled { cursor: default; }
 /* v0.6.42 (S2): escolhida, mover pelo título, janelas */
-.pl-seg.escolhida { border-color: var(--primary); box-shadow: var(--sh-2), 0 0 0 1px var(--primary); }
+.pl-seg.escolhida { border-color: var(--seg-azul); box-shadow: 0 0 0 1px var(--seg-azul); } /* moldura de escolha, sem sombra */
 .pl-seg .seg-cab { cursor: move; touch-action: none; }
 .pl-seg.sem-titulo { cursor: move; }
 .pl-seg-barra { z-index: 7; }
@@ -26,5 +34,5 @@
 .pl-jseg .janela-r .sp { flex: 1; }
 .pl-jseg-lista { display: flex; flex-direction: column; gap: 2px; max-height: 300px; overflow: auto; }
 .pl-jseg-erro { margin: 4px 0 0; color: var(--crit); font-size: 12px; }
-.pl-seg .pl-obj-alca { right: 2px; bottom: 2px; border-radius: 3px; z-index: 1; } /* dentro do cartão (o cartão corta o que passa da borda) */
+.pl-seg .pl-obj-alca { right: 2px; bottom: 2px; border-radius: 0; z-index: 1; background: var(--seg-azul); } /* dentro do cartão (o cartão corta o que passa da borda) */
 @media (pointer: coarse) { .pl-seg .pl-obj-alca { right: 2px; bottom: 2px; } }
