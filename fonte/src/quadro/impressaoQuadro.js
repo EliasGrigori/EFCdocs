@@ -115,7 +115,7 @@ export function paginasDaImpressao(c, imp0, escolhidos) {
 
 /** Desenha a área de uma folha num canvas (k = pixels por ponto). */
 export async function canvasDaFolha(c, pg, { k = 2, codigos = true, demo = false, imagens } = {}) {
-  await fontesProntas();
+  await fontesProntas(c);
   const cv = document.createElement('canvas');
   cv.width = Math.max(1, Math.round(pg.area.w * k)); cv.height = Math.max(1, Math.round(pg.area.h * k));
   const ctx = cv.getContext('2d');

@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -402,7 +402,7 @@ export function Quadro({ arquivo, cx }) {
   };
 
   /* ---------- comandos do catálogo ---------- */
-  const trata = (id) => { const lq = trataLayoutQuadro(id, { c, selecionados: selValida.itens, aplicarQ, abrirJanela: () => { setVista('quadro'); setJanela('imprimir'); }, trocarQp, avisar: cx.avisar }); if (lq !== undefined) return lq; /* v0.6.55: Layout da Página (layoutQuadro.jsx) */
+  const trata = (id) => { const eq = trataEstiloQuadro(id, { c, selecionados: selValida.itens, aplicarQ, avisar: cx.avisar }); if (eq !== undefined) return eq; /* v0.6.57: Letra e Textura (estiloQuadro.js) */ const lq = trataLayoutQuadro(id, { c, selecionados: selValida.itens, aplicarQ, abrirJanela: () => { setVista('quadro'); setJanela('imprimir'); }, trocarQp, avisar: cx.avisar }); if (lq !== undefined) return lq; /* v0.6.55: Layout da Página (layoutQuadro.jsx) */
     switch (id) {
       case 'inserir.postit': inserir('postit'); return true;
       case 'inserir.processo': inserir('processo'); return true;
@@ -478,7 +478,7 @@ export function Quadro({ arquivo, cx }) {
     }
   };
 
-  const ligado = (id) => { const vq = valorLayoutQuadro(id, c, qp); if (vq !== undefined) return vq; /* v0.6.55 */
+  const ligado = (id) => { const vq = valorLayoutQuadro(id, c, qp) ?? valorEstiloQuadro(id, c, selValida.itens); if (vq !== undefined) return vq; /* v0.6.55 */
     const alvo = selValida.itens.map((i) => c.itens[i]).filter(COM_TEXTO);
     const todos = (f) => alvo.length > 0 && alvo.every(f);
     switch (id) {

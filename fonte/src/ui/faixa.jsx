@@ -117,9 +117,9 @@ const FAIXAS = {
   postits: [ABA_ARQUIVO,
     { id: 'inicio', nome: 'Página Inicial', grupos: [GRUPO_TRANSFERENCIA,
       { nome: 'Editar', itens: [['lin', ['editar.duplicar', 'editar.excluir', 'editar.selecionarTudo', 'editar.localizar', 'editar.historico'], 3]] },
-      { nome: 'Fonte', itens: [['lin', ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', 'formatar.corFonte', 'formatar.preenchimento'], 3]] },
+      { nome: 'Fonte', itens: [['pilha', [[['cx', 'fonteQ']], ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', '|', 'formatar.corFonte', 'formatar.preenchimento']]]] }, /* v0.6.57: caixa Letra, como na Planilha */
       { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita']]] },
-      { nome: 'Post-it', itens: [['lin', ['formatar.tituloPostit']]] }] },
+      { nome: 'Post-it', itens: [['col', ['formatar.tituloPostit', ['menu', 'texturaQ']]]] }] },
     { id: 'inserir', nome: 'Inserir', grupos: [
       { nome: 'Quadro', itens: [['g', 'inserir.postit'], ['g', 'inserir.seta'], ['g', 'inserir.proximo'], ['g', 'inserir.texto'], ['g', 'inserir.pagina'], ['g', 'inserir.legenda']] },
       { nome: 'Fluxograma', itens: [['g', 'inserir.forma'], ['col', ['inserir.processo', 'inserir.decisao', 'inserir.inicio']], ['col', ['inserir.dados']], ['g', 'inserir.modelo']] },
@@ -376,7 +376,7 @@ function CaixaFaixa({ chave, cx }) {
   return (
     <>
       <button ref={ref} type="button" className={'rb-cx' + (aberto ? ' aberto' : '')} data-cx={chave} data-dica={c.dica} style={{ width: c.largura }}
-        aria-haspopup="menu" aria-expanded={aberto} aria-label={c.nome + ': ' + texto} disabled={!!bloq} title={bloq || undefined} onClick={() => setAberto(!aberto)}>
+        aria-haspopup="menu" aria-expanded={aberto} aria-label={c.nome + ': ' + texto} disabled={!!bloq} title={bloq || undefined} onClick={() => { if (!aberto && c.aoAbrir) c.aoAbrir(); setAberto(!aberto); }}>
         <span className="rb-cx-v" key={texto}>{texto}</span><Icone n="chevronBaixo" className="rb-seta" />
       </button>
       {aberto && (

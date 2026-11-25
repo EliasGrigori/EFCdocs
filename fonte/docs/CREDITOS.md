@@ -16,7 +16,17 @@ Lente 6.4 do Método Sabiá 2.0: toda biblioteca e todo código aberto usado ou 
 | Fraunces (Undercase Type) | 600 | SIL Open Font License 1.1 | títulos (`src/fontes/fraunces-latin-600-normal.woff2`) | pacote @fontsource/fraunces (só o recorte latino) |
 | Source Sans 3 (Adobe) | 400, 600, 700 | SIL Open Font License 1.1 | texto (`src/fontes/source-sans-3-latin-*.woff2`) | pacote @fontsource/source-sans-3 (só o recorte latino) |
 
-Os avisos de licença ficam ao lado das letras (`src/fontes/OFL-Fraunces.txt` e `src/fontes/OFL-Source-Sans-3.txt`). A OFL permite embutir e redistribuir com o app; não permite vender a letra sozinha. Vão no pacote e no guardado para uso sem internet.
+| Caveat (Impallari Type) | 400, 700 | SIL Open Font License 1.1 | letra "à mão" do Quadro (`src/fontes/extra/caveat-latin-*.woff2`), v0.6.57 | pacote @fontsource/caveat (só o recorte latino) |
+| Patrick Hand (Patrick Wagesreiter) | 400 | SIL Open Font License 1.1 | letra "bilhete" do Quadro (`src/fontes/extra/patrick-hand-latin-400-normal.woff2`), v0.6.57 | pacote @fontsource/patrick-hand |
+| Nunito (Vernon Adams) | 400, 700 | SIL Open Font License 1.1 | letra "arredondada" do Quadro (`src/fontes/extra/nunito-latin-*.woff2`), v0.6.57 | pacote @fontsource/nunito |
+| Merriweather (Sorkin Type) | 400, 700 | SIL Open Font License 1.1 | letra "com serifa" do Quadro (`src/fontes/extra/merriweather-latin-*.woff2`), v0.6.57 | pacote @fontsource/merriweather |
+| JetBrains Mono (JetBrains) | 400, 700 | SIL Open Font License 1.1 | letra "máquina" do Quadro (`src/fontes/extra/jetbrains-mono-latin-*.woff2`), v0.6.57 | pacote @fontsource/jetbrains-mono |
+
+Os avisos de licença ficam ao lado das letras (`src/fontes/OFL-Fraunces.txt` e `src/fontes/OFL-Source-Sans-3.txt`). As cinco letras do Quadro (v0.6.57) têm o aviso em `src/fontes/extra/OFL-*.txt`, que vai junto para `assets/fontes/`; elas não entram no cache inicial: cada uma é baixada na primeira vez que aparece.
+
+## Texturas do post-it (v0.6.57)
+
+Desenhadas por programa (`scripts/gerar-texturas.py`, semente fixa), sem foto nem imagem de terceiros: `src/quadro/texturas/cafe.png` (mancha de café em anel, como as de verdade) e `src/quadro/texturas/amassado.png`. A ponta dobrada é desenhada em CSS e no canvas. A OFL permite embutir e redistribuir com o app; não permite vender a letra sozinha. Vão no pacote e no guardado para uso sem internet.
 
 ## Movimento das telas (v0.6.15)
 

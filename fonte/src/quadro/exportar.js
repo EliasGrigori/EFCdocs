@@ -101,14 +101,14 @@ export function canvasDoKanban(c, { escala = 2, demo = false } = {}) {
 }
 
 async function canvasDaVista(c, vista, opcoes) {
-  await fontesProntas(); /* v0.6.52 (D-81) */
+  await fontesProntas(c); /* v0.6.52 (D-81); v0.6.57: e as letras escolhidas */
   if (vista === 'kanban') return canvasDoKanban(c, opcoes);
   return canvasDoQuadro(c, opcoes);
 }
 
 /** Folhas do PDF e da impressão: no quadro com páginas, uma folha por página (mais uma para o que ficou fora delas). */
 async function canvasesDaSaida(c, vista, opcoes) {
-  await fontesProntas(); /* v0.6.52 (D-81) */
+  await fontesProntas(c); /* v0.6.52 (D-81); v0.6.57: e as letras escolhidas */
   if (vista !== 'kanban') {
     const cd = derivar(c);
     const lista = folhas(cd);

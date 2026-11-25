@@ -7,6 +7,8 @@ import { pontosSeta, contornoForma, limites, meioDoCaminho, sentidoDeLeitura, po
 import { resumoTarefa, hojeISO } from './tarefa.js';
 import { derivar, MEDIDAS } from './legenda.js';
 import { desenharTitulo, desenharCaixa, mostraCaixas, estaFeito, tituloDe, linhasQueCabem } from './postit.js';
+import { familiaCss, escalaDo, garantirFontesDo, familiasUsadas } from './fontesQ.js'; /* v0.6.57 */
+import { texturaDo, urlTextura, caminhoDobrado, desenharAba, desenharImagemTextura } from './texturas.js';
 
 /* cores do nível GUT: [fundo, texto] */
 export const COR_GUT = { alta: ['#fee4e2', '#b42318'], media: ['#fef0c7', '#b54708'], baixa: ['#d1fadf', '#067647'] };
@@ -14,9 +16,13 @@ export const COR_GUT = { alta: ['#fee4e2', '#b42318'], media: ['#fef0c7', '#b547
 /* v0.6.52 (D-81): a mesma letra da tela (Source Sans 3, que vem com o app). Antes era DejaVu Sans/Verdana, bem mais
    larga: o texto quebrava mais linhas e saía cortado com "…". fontesProntas() espera a letra carregar antes de desenhar. */
 export const FONTE = '"Source Sans 3", "Segoe UI", system-ui, sans-serif';
-export async function fontesProntas() {
+export async function fontesProntas(c) {
   if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) return;
   try { await Promise.all(['400', '600', '700'].map((p) => document.fonts.load(`${p} 14px "Source Sans 3"`))); } catch { /* sem a letra, o navegador usa a seguinte da lista */ }
+  if (!c) return;
+  /* v0.6.57: as letras escolhidas nos itens (fontesQ.js) precisam ter chegado antes de desenhar */
+  await garantirFontesDo(c);
+  try { await Promise.all(familiasUsadas(c).flatMap((f) => ['400', '700'].map((p) => document.fonts.load(`${p} 14px "${f}"`)))); } catch { /* fica a padrão */ }
 }
 export const COR_TEXTO = '#1f2328';
 export const COR_LINHA = '#3b4552';
@@ -62,13 +68,13 @@ export function quebrarTexto(ctx, texto, largura) {
 
 function fonteDo(it, tamanho) {
   const f = it.fonte || {};
-  return `${f.i ? 'italic ' : ''}${f.n || (it.tipo === 'texto' && !it.borda) ? '700 ' : ''}${tamanho}px ${FONTE}`;
+  return `${f.i ? 'italic ' : ''}${f.n || (it.tipo === 'texto' && !it.borda) ? '700 ' : ''}${tamanho}px ${familiaCss(it, FONTE)}`;
 }
 
 export const tamanhoFonte = (it) => (it.tipo === 'texto' ? (it.borda ? 14 : 16) : it.tipo === 'raia' || it.tipo === 'pagina' ? 15 : 14);
 
 function escreverTexto(ctx, it, caixa) {
-  const tam = tamanhoFonte(it);
+  const tam = tamanhoFonte(it) * escalaDo(it); /* v0.6.57: letra escolhida, no tamanho da tela */
   ctx.font = fonteDo(it, tam);
   ctx.fillStyle = (it.fonte && it.fonte.cor) || COR_TEXTO;
   const alinh = it.alinh || (it.tipo === 'texto' || (it.tipo === 'postit' && tituloDe(it)) ? 'e' : 'c');
@@ -289,10 +295,14 @@ function desenharItem(ctx, it, opcoes) {
     ctx.shadowBlur = 8;
     ctx.shadowOffsetY = 3;
     ctx.fillStyle = cor;
-    ctx.fillRect(it.x, it.y, it.w, it.h);
-    ctx.shadowColor = 'transparent';
-    ctx.strokeStyle = 'rgba(0,0,0,.10)';
-    ctx.strokeRect(it.x + 0.5, it.y + 0.5, it.w - 1, it.h - 1);
+    const tex = texturaDo(it); /* v0.6.57: textura de papel (texturas.js), como na tela */
+    if (tex === 'dobrado') { ctx.shadowBlur = 4; caminhoDobrado(ctx, it); ctx.fill(); ctx.shadowColor = 'transparent'; desenharAba(ctx, it); } else {
+      ctx.fillRect(it.x, it.y, it.w, it.h);
+      ctx.shadowColor = 'transparent';
+      desenharImagemTextura(ctx, it, opcoes.imagens && opcoes.imagens.get('tex:' + tex));
+      ctx.strokeStyle = 'rgba(0,0,0,.10)';
+      ctx.strokeRect(it.x + 0.5, it.y + 0.5, it.w - 1, it.h - 1);
+    }
   } else if (it.tipo !== 'texto') {
     caminhoForma(ctx, it);
     ctx.fillStyle = cor;
@@ -418,6 +428,9 @@ export function marcaDemo(ctx) {
 export async function carregarImagens(c) {
   const mapa = new Map();
   const lista = Object.values(c.itens).filter((it) => (it.tipo === 'imagem' && it.src) || (it.tipo === 'assinatura' && it.rub));
+  /* v0.6.57: texturas de papel (texturas.js), uma imagem de cada, guardada como 'tex:cafe' */
+  const texs = [...new Set(Object.values(c.itens).map(texturaDo).filter((t) => urlTextura(t)))];
+  await Promise.all(texs.map((t) => new Promise((ok) => { const img = new Image(); img.onload = () => { mapa.set('tex:' + t, img); ok(); }; img.onerror = () => ok(); img.src = urlTextura(t); })));
   await Promise.all(lista.map((it) => new Promise((ok) => {
     const img = new Image();
     const chave = it.tipo === 'assinatura' ? 'rub:' + it.id : it.id;
@@ -430,7 +443,7 @@ export async function carregarImagens(c) {
 
 /** Monta o canvas do quadro inteiro (margem em volta). Limite de 24 milhões de pixels. */
 export async function canvasDoQuadro(c, { escala = 2, margem = 40, codigos = true, demo = false } = {}) {
-  await fontesProntas();
+  await fontesProntas(c);
   c = derivar(c);
   const lim = limitesDoQuadro(c) || { x: 0, y: 0, w: 400, h: 240 };
   let e = escala;

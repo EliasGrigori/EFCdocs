@@ -14,6 +14,8 @@
 
 import { limparNome, rubricaValida, ASN } from '../nucleo/assinatura.js';
 import { fundoValido, ehFundoPadrao } from './fundo.js';
+import { fonteValida } from './fontesQ.js'; /* v0.6.57 */
+import { texturaValida } from './texturas.js';
 
 export const CORES = [
   /* v0.6.50: cores mais claras e limpas (aprovadas nas propostas de 25/11); a cor é guardada pelo nome, então os quadros já feitos também mudam */
@@ -76,6 +78,9 @@ export function normalizarQuadro(c) {
     if (!it || !it.id || !TIPOS_ITEM[it.tipo]) continue;
     const t = TIPOS_ITEM[it.tipo];
     itens[it.id] = { ...it, x: num(it.x, 0), y: num(it.y, 0), w: num(it.w, t.w), h: num(it.h, t.h), z: num(it.z, 0), texto: String(it.texto ?? '') };
+    /* v0.6.57: letra e textura só da lista conhecida (o nome vai para o CSS e para o endereço da letra) */
+    if (itens[it.id].fonte && 'fam' in itens[it.id].fonte && !fonteValida(itens[it.id].fonte.fam)) { itens[it.id].fonte = { ...itens[it.id].fonte }; delete itens[it.id].fonte.fam; }
+    if ('tex' in itens[it.id] && (it.tipo !== 'postit' || !texturaValida(it.tex))) delete itens[it.id].tex;
     if (it.tipo === 'assinatura') {
       /* nome limpo; a rubrica só vale se for um PNG em texto do tamanho esperado (nunca um endereço de fora) */
       const a = itens[it.id];

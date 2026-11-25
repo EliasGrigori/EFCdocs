@@ -7,6 +7,8 @@ import { GAVETAS, itensDaGaveta, CONTAS_AUTOSOMA, OUTROS_GRAFICOS } from '../pla
 import { NOME_TIPO } from '../planilha/graficos.js';
 import { MARGENS, PAPEIS } from '../planilha/impressao.js';
 import { AJUSTES, CONGELAR } from '../planilha/faixaExtra.js';
+import { FONTES_Q, garantirFonte } from '../quadro/fontesQ.js'; /* v0.6.57 */
+import { TEXTURAS } from '../quadro/texturas.js';
 
 /* Botões que abrem uma lista de comandos (Inserir, Excluir, Formatar, Preencher, Limpar), como no Excel */
 export const MENUS_FAIXA = {
@@ -31,6 +33,8 @@ export const MENUS_FAIXA = {
   ajustarPag: { nome: 'Ajustar à página', ic: 'n:ajustar', valor: 'valor.ajustar', dica: 'Ajustar à página|Encolhe a impressão para caber na folha.',
     itens: Object.entries(AJUSTES).map(([k, nome]) => ({ id: 'impressao.ajustar|' + k, v: k, nome })), fim: { id: 'impressao.ajustar', nome: 'Mais opções de ajuste…' } },
   /* v0.6.55: Quadro › Layout da Página: Área de impressão (itens escolhidos) e Ajustar à página com as opções do quadro */
+  texturaQ: { nome: 'Textura', ic: 'n:texturaQ', valor: 'valor.textura', dica: 'Textura|Dá ao post-it escolhido cara de papel: ponta dobrada, amassado ou mancha de café.', /* v0.6.57 */
+    itens: TEXTURAS.map((t) => ({ id: 'formatar.textura|' + t.id, v: t.id, nome: t.nome })) },
   areaImpQ: { nome: 'Área de impressão', ic: 'n:area', dica: 'Área de impressão|Imprime só a parte do quadro com os itens escolhidos, ou volta a imprimir tudo.', itens: ['impressao.area', 'impressao.limparArea'] },
   ajustarPagQ: { nome: 'Ajustar à página', ic: 'n:ajustar', valor: 'valor.ajusteQ', dica: 'Ajustar à página|O quadro enche uma folha ou sai no tamanho real.',
     itens: [{ id: 'impressao.ajustar|pagina', v: 'pagina', nome: 'Ajustar a 1 página' }, { id: 'impressao.ajustar|real', v: 'real', nome: 'Tamanho real (100%)' }], fim: { id: 'impressao.ajustar', nome: 'Mais opções de ajuste…' } },
@@ -54,6 +58,12 @@ export const MENUS_FAIXA = {
 
 /* Caixas que mostram o valor da célula ativa (letra, tamanho, formato do número) e abrem a lista para trocar */
 export const CAIXAS_FAIXA = {
+  fonteQ: { /* v0.6.57: letra do item no quadro (fontesQ.js); cada letra aparece escrita nela mesma e só é baixada ao abrir a lista */
+    nome: 'Letra', cmd: 'formatar.fonteQ', valor: 'valor.fonteQ', largura: 150, dica: 'Letra|O tipo de letra do post-it, da forma ou do texto escolhido.',
+    mostra: (v) => (v === null ? 'Várias' : (FONTES_Q.find((f) => f.id === (v || '')) || FONTES_Q[0]).nome.split(' · ')[0]),
+    aoAbrir: () => FONTES_Q.forEach((f) => garantirFonte(f.id)),
+    opcoes: () => FONTES_Q.map((f) => ({ id: 'formatar.fonteQ|' + f.id, v: f.id, nome: f.nome, estilo: f.id ? { fontFamily: `"${f.id}", var(--f)`, fontSize: Math.round(14 * f.k) } : undefined })),
+  },
   fonte: {
     nome: 'Letra', cmd: 'formatar.fonte', valor: 'valor.fonte', largura: 124, dica: 'Letra|O tipo de letra da célula escolhida.',
     mostra: (v) => v || 'Padrão',

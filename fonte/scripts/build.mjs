@@ -74,9 +74,15 @@ writeFileSync(join(dist, 'manifest.webmanifest'), JSON.stringify({
   ],
 }, null, 2) + '\n');
 
+/* v0.6.57: letras extras do quadro (baixam só quando usadas; o sw.js guarda depois) e texturas do post-it (pequenas, vão no cache inicial) */
+for (const [de, para, fim] of [['src/fontes/extra', 'assets/fontes', /\.(woff2|txt)$/], ['src/quadro/texturas', 'assets/texturas', /\.png$/]]) {
+  mkdirSync(join(dist, para), { recursive: true });
+  for (const f of readdirSync(join(raiz, de))) if (fim.test(f)) copyFileSync(join(raiz, de, f), join(dist, para, f));
+}
+const texturas = readdirSync(join(dist, 'assets/texturas')).map((f) => 'assets/texturas/' + f);
 /* v0.6.15: as fontes embutidas também vão para o cache do app (funciona sem internet) */
 const fontes = assets.filter((f) => f.endsWith('.woff2')).map((f) => 'assets/' + f);
-const arquivos = ['./', ...['apple-touch-icon.png', 'logo-abertura.png', 'assets/' + css, 'assets/' + js, ...fontes, 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'index.html', 'manifest.webmanifest'].map((f) => './' + f)];
+const arquivos = ['./', ...['apple-touch-icon.png', 'logo-abertura.png', 'assets/' + css, 'assets/' + js, ...fontes, ...texturas, 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'index.html', 'manifest.webmanifest'].map((f) => './' + f)];
 const sw = readFileSync(join(raiz, 'scripts/sw.modelo.js'), 'utf8')
   .replace('{{VERSAO}}', 'efcdocs-' + versao)
   .replace('{{ARQUIVOS}}', JSON.stringify(arquivos, null, 2));

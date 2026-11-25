@@ -10,6 +10,8 @@ import { NOTA_GUT, NIVEIS_GUT, valorGut, nivelGut, prazoValido, resumoTarefa } f
 import { linhasLegenda } from './legenda.js';
 import { tituloDe, linhasQueCabem } from './postit.js';
 import { MarcadorComentario } from './comentarioQuadro.jsx';
+import { familiaDo, escalaDo, garantirFonte } from './fontesQ.js'; /* v0.6.57 */
+import { texturaDo, estiloTextura, tamanhoDobra } from './texturas.js';
 export { linhasQueCabem };
 
 const estiloTexto = (it) => {
@@ -20,6 +22,9 @@ const estiloTexto = (it) => {
     fontWeight: f.n ? 700 : undefined,
     fontStyle: f.i ? 'italic' : undefined,
     textDecoration: f.s ? 'underline' : undefined,
+    /* v0.6.57: letra escolhida (fontesQ.js), no tamanho que a deixa parecida com a padrão */
+    fontFamily: familiaDo(it) ? `"${familiaDo(it)}", var(--f, sans-serif)` : undefined,
+    fontSize: escalaDo(it) !== 1 ? +((it.tipo === 'texto' ? (it.borda ? 14 : 16) : 14) * escalaDo(it)).toFixed(2) : undefined,
   };
 };
 
@@ -83,11 +88,14 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, fe
   const forma = FORMAS.includes(it.tipo);
   const style = { left: it.x, top: it.y, width: it.w, height: it.h, zIndex: zi };
   if (it.tipo === 'postit') style.background = COR[it.cor] || COR.amarelo;
+  const tex = texturaDo(it); if (tex) Object.assign(style, estiloTextura(it, style.background)); /* v0.6.57 */
+  if (familiaDo(it)) garantirFonte(familiaDo(it)); /* baixa a letra na primeira vez (fica guardada) */
   const tit = tituloDe(it);
-  const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '') + (tit ? ' qi-titulado' : '') + (caixa ? ' qi-com-caixa' : '') + (feito ? ' qi-feito' : '') + (codigos && it.cod && ['inicio', 'processo', 'dados'].includes(it.tipo) ? ' qi-com-cod' : '');
+  const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '') + (tit ? ' qi-titulado' : '') + (caixa ? ' qi-com-caixa' : '') + (feito ? ' qi-feito' : '') + (codigos && it.cod && ['inicio', 'processo', 'dados'].includes(it.tipo) ? ' qi-com-cod' : '') + (tex ? ' qi-tex-' + tex : '');
   return (
     <div className={classe} data-item={it.id} data-cod={it.cod || undefined} style={style}>
       {forma && <FormaSvg it={it} />}
+      {tex === 'dobrado' && <span className="qi-aba" aria-hidden="true" style={{ width: tamanhoDobra(it), height: tamanhoDobra(it) }} />}
       {it.tipo === 'imagem' && (it.src ? <img src={it.src} alt={it.texto || 'Imagem'} draggable="false" /> : <span className="qi-semimg"><Icone n="imagem" /></span>)}
       {it.tipo === 'assinatura' && <AssinaturaView nome={it.texto} rub={it.rub} w={it.w} h={it.h} />}
       {it.tipo === 'raia' && <div className="qi-raia-h"><span>{escondeTexto ? '' : it.texto}</span></div>}

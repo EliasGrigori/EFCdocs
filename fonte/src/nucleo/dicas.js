@@ -161,6 +161,8 @@ export const DESCRICAO = {
   'exibir.ajustar': 'Enquadra tudo o que está no quadro na tela.',
   'exibir.minimapa': 'Mapa pequeno do quadro, para se achar.',
   'exibir.codigos': 'Mostra o código (Q-001) de cada item.',
+  'formatar.fonteQ': 'Troca a letra do post-it, da forma ou do texto escolhido: à mão, bilhete, arredondada, com serifa ou de máquina.',
+  'formatar.textura': 'Dá ao post-it escolhido cara de papel: ponta dobrada, amassado ou mancha de café.',
   'formatar.tituloPostit': 'Põe um título em negrito, com um fio embaixo, no post-it escolhido.',
   'exibir.caixas': 'Mostra ou esconde a caixinha de feito dos post-its deste quadro. Marcar leva o post-it para a coluna Feito do Kanban.',
   'exibir.quebras': 'Mostra no quadro, em tracejado, a área de impressão e onde cada folha começa e acaba (depois de mudar a impressão).',
