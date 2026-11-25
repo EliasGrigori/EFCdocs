@@ -312,7 +312,8 @@ function desenharItem(ctx, it, opcoes) {
   const desce = it.tipo === 'postit' ? desenharTitulo(ctx, it, FONTE) : 0;
   const caixa = it.tipo === 'postit' && opcoes.c && mostraCaixas(opcoes.c), feito = caixa && estaFeito(opcoes.c, it);
   const baixo = it.tipo === 'postit' ? (tarefa ? 38 : caixa ? 28 : 10) : folga.y;
-  escreverTexto(ctx, feito ? { ...it, feito: true } : it, { x: it.x + folga.x, y: it.y + folga.y + desce, w: it.w - folga.x * 2, h: it.h - folga.y - baixo - desce, max: linhasQueCabem(it, !!tarefa, !!caixa), topo: desce > 0 });
+  const comCod = !!(opcoes.codigos && it.cod), topoCod = it.tipo === 'inicio' && comCod ? 14 : 0; /* v0.6.53 (D-82): abaixo do código, como .qi-com-cod */
+  escreverTexto(ctx, feito ? { ...it, feito: true } : it, { x: it.x + folga.x, y: it.y + folga.y + desce + topoCod, w: it.w - folga.x * 2, h: it.h - folga.y - baixo - desce - topoCod, max: linhasQueCabem(it, !!tarefa, !!caixa, comCod), topo: desce > 0 });
   if (tarefa) desenharTarefa(ctx, caixa ? { ...it, x: it.x + 23, w: it.w - 23 } : it, tarefa, it);
   if (caixa) desenharCaixa(ctx, it, feito, !!tarefa);
   if (opcoes.codigos && it.cod) {

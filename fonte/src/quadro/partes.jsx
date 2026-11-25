@@ -83,7 +83,7 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, fe
   const style = { left: it.x, top: it.y, width: it.w, height: it.h, zIndex: zi };
   if (it.tipo === 'postit') style.background = COR[it.cor] || COR.amarelo;
   const tit = tituloDe(it);
-  const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '') + (tit ? ' qi-titulado' : '') + (caixa ? ' qi-com-caixa' : '') + (feito ? ' qi-feito' : '');
+  const classe = 'qi qi-' + it.tipo + (sel ? ' sel' : '') + (it.borda ? ' qi-borda' : '') + (tarefa ? ' qi-com-tarefa' : '') + (tit ? ' qi-titulado' : '') + (caixa ? ' qi-com-caixa' : '') + (feito ? ' qi-feito' : '') + (codigos && it.cod && it.tipo === 'inicio' ? ' qi-com-cod' : '');
   return (
     <div className={classe} data-item={it.id} data-cod={it.cod || undefined} style={style}>
       {forma && <FormaSvg it={it} />}
@@ -93,7 +93,7 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, fe
       {it.tipo === 'pagina' && <div className="qi-pg-h"><span>{escondeTexto ? '' : it.texto}</span></div>}
       {it.tipo === 'legenda' && <LegendaView it={it} />}
       {tit && <span className="qi-tit" title={tit}>{tit}</span>}
-      {!['imagem', 'raia', 'pagina', 'legenda', 'assinatura'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : <span className="qi-clamp" style={{ WebkitLineClamp: linhasQueCabem(it, !!tarefa, !!caixa) }}>{it.texto}</span>}</div>}
+      {!['imagem', 'raia', 'pagina', 'legenda', 'assinatura'].includes(it.tipo) && <div className="qi-t" style={estiloTexto(it)}>{escondeTexto ? '' : <span className="qi-clamp" style={{ WebkitLineClamp: linhasQueCabem(it, !!tarefa, !!caixa, !!(codigos && it.cod)) }}>{it.texto}</span>}</div>}
       {tarefa && <RodapeTarefa t={tarefa} />}
       {caixa && (
         <button type="button" className="qi-caixa" role="checkbox" aria-checked={!!feito} disabled={!aoMarcar}

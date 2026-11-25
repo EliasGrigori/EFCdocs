@@ -92,7 +92,8 @@ body[data-theme=dark] .qd-area.com-cor, body[data-theme=dark] .qd-fundo-am.com-c
   color: rgba(31,35,40,.72); pointer-events: none; font-variant-numeric: tabular-nums; /* v0.6.32 (PL08): contraste de 5,2 a 6,2 em todas as cores */
 }
 .qi-decisao .qi-cod { left: 50%; transform: translateX(-50%); top: 12%; }
-.qi-inicio .qi-cod { top: 5px; } /* v0.6.48 (D-77): a distância da esquerda vem do raio da curva (partes.jsx), como no PDF */
+.qi-inicio .qi-cod { top: 5px; }
+.qi-inicio.qi-com-cod .qi-t { padding-top: 20px; } /* v0.6.53 (D-82): o texto começa abaixo do código */ /* v0.6.48 (D-77): a distância da esquerda vem do raio da curva (partes.jsx), como no PDF */
 .qi-dados .qi-cod { left: 20px; }
 .qi-marcas { position: absolute; right: 4px; top: 3px; display: flex; gap: 2px; color: rgba(31,35,40,.6); }
 .qi-marcas svg { width: 13px; height: 13px; }
