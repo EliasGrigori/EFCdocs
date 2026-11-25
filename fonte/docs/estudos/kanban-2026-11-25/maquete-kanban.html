@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vértice Docs · Kanban proposto (maquete para testar)</title>
+<style>
+:root{--fundo:#f1ede3;--sup:#fff;--txt:#1f2328;--mud:#5b6470;--dim:#7a838e;--borda:#e3ddd0;--a:#a0752a;--a-soft:rgba(160,117,42,.13);--prim:#8a6420;
+--sh-1:0 1px 1px rgba(16,24,40,.08),0 2px 6px -2px rgba(16,24,40,.16);--sh-2:0 2px 4px rgba(16,24,40,.08),0 12px 24px -8px rgba(16,24,40,.22);
+--r-jan:12px;--r-card:10px;--r-ctl:8px;--r-chip:6px;--fh:Georgia,'Fraunces',serif}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);background:var(--fundo);
+ background-image:radial-gradient(rgba(0,0,0,.09) 1px,transparent 1.2px);background-size:18px 18px;overflow:hidden;height:100vh}
+.topo{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 22px 8px}
+.titulo{font-family:var(--fh);font-size:22px;font-weight:600;padding:2px 8px;margin-left:-8px;border-radius:var(--r-ctl);border:1px solid transparent;outline:none;min-width:120px}
+.titulo:hover{border-color:var(--borda);background:rgba(255,255,255,.6)}
+.titulo:focus{background:#fff;border-color:var(--a);box-shadow:0 0 0 3px rgba(160,117,42,.22)}
+.and{display:flex;align-items:center;gap:10px;color:var(--mud);font-size:14px}
+.barra{width:160px;height:6px;border-radius:4px;background:var(--borda);overflow:hidden}.barra i{display:block;height:100%;background:var(--a);transform-origin:left;transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.filtro{margin-left:auto;position:relative}
+.btn{height:34px;padding:0 12px;border-radius:var(--r-ctl);border:1px solid var(--borda);background:var(--sup);box-shadow:var(--sh-1);font:inherit;font-size:14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--txt)}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8}
+.filtro-p{position:absolute;right:0;top:40px;width:240px;background:var(--sup);border-radius:var(--r-card);box-shadow:var(--sh-2);padding:8px;z-index:30;transform-origin:top right;animation:pop .18s cubic-bezier(.22,1,.36,1)}
+@keyframes pop{from{opacity:.85;transform:scale(.97)}}
+.filtro-p label{display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--r-chip);cursor:pointer}.filtro-p label:hover{background:var(--a-soft)}
+.ponto{width:9px;height:9px;border-radius:50%;flex:none}
+.palco{display:flex;gap:16px;align-items:flex-start;padding:10px 22px 30px;overflow:auto;height:calc(100vh - 64px);position:relative}
+.col{flex:0 0 288px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.05);border-radius:var(--r-card);padding:10px 10px 8px;box-shadow:0 1px 0 rgba(255,255,255,.7) inset;transition:background .2s}
+.col.alvo{background:rgba(255,255,255,.82)}
+.col h3{margin:2px 4px 10px;display:flex;align-items:baseline;gap:8px;font-family:var(--fh);font-size:17px;font-weight:600}
+.col h3 small{font:600 13px system-ui;color:var(--dim)}
+.lista{display:flex;flex-direction:column;gap:10px;min-height:60px}
+.card{position:relative;background:var(--cor,#fff3a8);border:1px solid rgba(0,0,0,.09);border-radius:4px;padding:10px 12px 9px;box-shadow:0 1px 1px rgba(16,24,40,.10),0 6px 10px -6px rgba(16,24,40,.28);cursor:grab;user-select:none;touch-action:pan-y;transition:box-shadow .15s}
+.card:hover{box-shadow:0 1px 1px rgba(16,24,40,.12),0 10px 16px -8px rgba(16,24,40,.32)}
+.card.tex{background-image:linear-gradient(135deg,rgba(255,255,255,.35),rgba(255,255,255,0) 40%,rgba(0,0,0,.04) 70%,rgba(255,255,255,.18))}
+.cab{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:4px}
+.eti{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#3d434a}
+.cod{margin-left:auto;color:rgba(31,35,40,.55);font-weight:600}
+.alca{width:28px;height:28px;margin:-6px -8px -6px 0;display:grid;place-items:center;color:rgba(31,35,40,.4);border-radius:var(--r-chip)}
+.alca svg{width:14px;height:14px;fill:currentColor}
+.tit{font-weight:700;font-size:14.5px;line-height:1.3;margin:0 0 2px}
+.txt{margin:0;font-size:14px;color:#2f353b}
+.pe{display:flex;align-items:center;gap:12px;margin-top:9px;padding-top:7px;border-top:1px solid rgba(0,0,0,.10);font-size:12.5px;color:#3d434a}
+.pe span{display:inline-flex;align-items:center;gap:5px}.pe svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+.pe .com{margin-left:auto;border:0;background:transparent;font:inherit;color:inherit;padding:3px 6px;margin-right:-6px;border-radius:var(--r-chip);cursor:pointer;display:inline-flex;gap:5px;align-items:center}
+.pe .com:hover{background:rgba(0,0,0,.07)}
+.card>.com.so-mouse{position:absolute;right:8px;bottom:6px;border:0;background:transparent;padding:3px;border-radius:var(--r-chip);opacity:0;cursor:pointer;color:#3d434a}.card:hover>.com.so-mouse{opacity:1}.card>.com svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+.venc{color:#b42318;font-weight:600}
+.vaga{border:2px dashed rgba(138,100,32,.55);border-radius:4px;background:rgba(160,117,42,.07)}
+.fantasma{position:fixed;left:0;top:0;z-index:50;pointer-events:none;cursor:grabbing;will-change:transform;box-shadow:0 22px 38px -12px rgba(0,0,0,.40),0 4px 10px rgba(0,0,0,.10)}
+.novo{margin-top:6px;width:100%;justify-content:flex-start;border:0;box-shadow:none;background:transparent;color:var(--mud);font-weight:600}
+.novo:hover{background:rgba(255,255,255,.7)}
+.gaveta{position:fixed;right:0;top:0;bottom:0;width:360px;max-width:92vw;background:var(--sup);box-shadow:-18px 0 40px -18px rgba(0,0,0,.35);border-radius:var(--r-jan) 0 0 var(--r-jan);display:flex;flex-direction:column;z-index:60;transform:translateX(105%);transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.gaveta.aberta{transform:none}
+.gaveta header{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--borda)}
+.gaveta header b{font-family:var(--fh);font-size:17px;font-weight:600}
+.gaveta header .x{margin-left:auto;width:34px;height:34px;padding:0;justify-content:center}
+.msgs{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.msg{background:#f7f4ec;border-radius:var(--r-card);padding:9px 12px}.msg small{color:var(--dim);margin-left:6px}.msg p{margin:3px 0 0}
+.gaveta form{display:flex;gap:8px;padding:12px 16px 16px;border-top:1px solid var(--borda)}
+.gaveta textarea{flex:1;resize:none;border:1px solid var(--borda);border-radius:var(--r-ctl);padding:8px 10px;font:inherit;outline:none}
+.gaveta textarea:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(160,117,42,.22)}
+.primario{background:var(--prim);color:#fff;border-color:var(--prim);box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 4px 10px -4px rgba(138,100,32,.6)}
+.dica{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#1f2328;color:#fff;font-size:13px;padding:8px 14px;border-radius:var(--r-card);opacity:.9}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="topo">
+  <div class="titulo" contenteditable="true" spellcheck="false" aria-label="Nome do quadro" data-maq-titulo>Atividades do Elias · Semana 48</div>
+  <div class="and"><b data-maq-total>7 post-its</b><span class="barra"><i data-maq-barra></i></span><span data-maq-pct></span></div>
+  <div class="filtro">
+    <button class="btn" data-maq-filtro><svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7v6l-4 2v-8z"/></svg><span data-maq-filtro-txt>Todas as frentes</span></button>
+  </div>
+</div>
+<div class="palco" data-maq-palco></div>
+<aside class="gaveta" aria-label="Comentários" data-maq-gaveta>
+  <header><b data-maq-gaveta-tit>Comentários</b><button class="btn x" aria-label="Fechar" data-maq-fechar><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+  <div class="msgs" data-maq-msgs></div>
+  <form data-maq-form><textarea rows="2" placeholder="Escrever um comentário" aria-label="Comentário"></textarea><button class="btn primario" type="submit">Enviar</button></form>
+</aside>
+<div class="dica">Maquete: arraste os post-its (no toque, pela mão de cima); Esc no meio do arrasto devolve o post-it.</div>
+<script>
+const FRENTES={Coletas:'#0f766e',Documental:'#475569',Auditoria:'#b7791f'};
+const COR={amarelo:'#fff3a8',verde:'#d9f2c9',azul:'#d6e8fb',rosa:'#fbdbe3',laranja:'#fde3c4'};
+const colunas=[{id:'a',nome:'A fazer'},{id:'b',nome:'Fazendo'},{id:'c',nome:'Feito'}];
+let cards=[
+ {id:'Q-001',col:'a',fr:'Coletas',tit:'Recebimento de amostras',txt:'Conferir lacre e temperatura na chegada.',prazo:'Seg 09:00',gut:27,cor:'amarelo',com:[['Elias','25/11 08:40','Chegaram 12 caixas.'],['Ana','25/11 09:05','Duas com lacre aberto, separei.']]},
+ {id:'Q-002',col:'a',fr:'Coletas',tit:'Preparo de amostras',txt:'',prazo:'Seg 14:00',gut:12,cor:'amarelo',com:[]},
+ {id:'Q-003',col:'a',fr:'Coletas',tit:'Despache nos Correios',txt:'Levar até as 16 h.',prazo:'Ter',gut:0,cor:'laranja',com:[['Elias','24/11 17:10','Código de rastreio no grupo.']]},
+ {id:'Q-004',col:'b',fr:'Documental',tit:'Receber formulários e conferir',txt:'',prazo:'',gut:8,cor:'azul',com:[]},
+ {id:'Q-005',col:'b',fr:'Documental',tit:'Arquivamento de formulários',txt:'Armário 2, pasta da semana.',prazo:'Ontem',venc:true,gut:0,cor:'azul',com:[]},
+ {id:'Q-006',col:'a',fr:'Auditoria',tit:'Acompanhar auditora em campo',txt:'',prazo:'Qua 07:30',gut:45,cor:'verde',com:[]},
+ {id:'Q-007',col:'c',fr:'Auditoria',tit:'Entrega de documentos',txt:'',prazo:'',gut:0,cor:'verde',com:[]}];
+let filtro=new Set(Object.keys(FRENTES));
+const reduz=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const palco=document.querySelector('[data-maq-palco]');
+const ic={rel:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',com:'<svg viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></svg>',
+ mao:'<svg viewBox="0 0 16 16"><circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/><circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/><circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/></svg>'};
+const gutSvg=(g)=>{const n=g>=40?3:g>=15?2:g>0?1:0;return `<svg viewBox="0 0 14 12" style="stroke:none">${[0,1,2].map(i=>`<rect x="${i*5.5}" y="${7-i*3.5}" width="3" height="${5+i*3.5}" rx="1" fill="${i<n?'rgba(31,35,40,.85)':'rgba(31,35,40,.22)'}"/>`).join('')}</svg>`};
+function htmlCard(k){
+ const pe=[k.prazo&&`<span class="${k.venc?'venc':''}">${ic.rel}${k.venc?'Vencido ':''}${k.prazo}</span>`,k.gut&&`<span>${gutSvg(k.gut)}GUT ${k.gut}</span>`,
+  `<button class="com" data-com="${k.id}" aria-label="Comentários de ${k.id}">${ic.com}${k.com.length||''}</button>`].filter(Boolean).join('');
+ return `<div class="cab"><span class="eti"><i class="ponto" style="background:${FRENTES[k.fr]}"></i>${k.fr}</span><span class="cod">${k.id}</span><span class="alca" aria-hidden="true">${ic.mao}</span></div>
+  <p class="tit">${k.tit}</p>${k.txt?`<p class="txt">${k.txt}</p>`:''}${k.prazo||k.gut||k.com.length?`<div class="pe">${pe}</div>`:`<button class="com so-mouse" data-com="${k.id}" aria-label="Comentar ${k.id}">${ic.com}</button>`}`;}
+function desenhar(){
+ palco.innerHTML='';
+ for(const c of colunas){
+  const lista=cards.filter(k=>k.col===c.id&&filtro.has(k.fr));
+  const s=document.createElement('section');s.className='col';s.dataset.col=c.id;
+  s.innerHTML=`<h3>${c.nome}<small>${lista.length}</small></h3><div class="lista"></div><button class="btn novo">+ Post-it</button>`;
+  for(const k of lista){const a=document.createElement('article');a.className='card tex';a.dataset.id=k.id;a.style.setProperty('--cor',COR[k.cor]);a.innerHTML=htmlCard(k);s.querySelector('.lista').append(a);}
+  palco.append(s);}
+ const tot=cards.length,feitos=cards.filter(k=>k.col==='c').length;
+ document.querySelector('[data-maq-total]').textContent=tot+' post-its';
+ document.querySelector('[data-maq-barra]').style.transform=`scaleX(${feitos/tot})`;
+ document.querySelector('[data-maq-pct]').textContent=`${feitos} de ${tot} em “Feito”`;}
+desenhar();
+
+/* ---------- arrastar: o que a proposta F1 a F7 faz ---------- */
+let ar=null;
+const posicoes=()=>{const m=new Map();palco.querySelectorAll('.card,.vaga').forEach(e=>m.set(e,e.getBoundingClientRect()));return m};
+function deslizar(antes){if(reduz)return;for(const[e,r0]of antes){if(!e.isConnected||e===ar?.vaga)continue;e.getAnimations().forEach(a=>a.cancel());const r=e.getBoundingClientRect(),dx=r0.left-r.left,dy=r0.top-r.top;if(Math.abs(dx)+Math.abs(dy)<1)continue;
+ /* o deslize sai de onde o cartão está agora (mesmo no meio de outro deslize), sem pulo */
+ e.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:'none'}],{duration:200,easing:'cubic-bezier(.25,.8,.25,1)'});}}
+/* posição final do cartão na tela, sem o deslize em andamento (offsetTop não conta o transform) */
+const topoFinal=(e)=>{let y=0,n=e;while(n&&n!==palco){y+=n.offsetTop;n=n.offsetParent;}return y-palco.scrollTop+palco.getBoundingClientRect().top+palco.clientTop;};
+palco.addEventListener('pointerdown',ev=>{
+ const card=ev.target.closest('.card');if(!card||ev.button>0||ev.target.closest('.com'))return;
+ if(ev.pointerType==='touch'&&!ev.target.closest('.alca'))return;
+ const r=card.getBoundingClientRect();
+ ar={card,id:card.dataset.id,px:ev.clientX,py:ev.clientY,dx:ev.clientX-r.left,dy:ev.clientY-r.top,w:r.width,h:r.height,ok:false,pid:ev.pointerId,x:r.left,y:r.top,tx:r.left,ty:r.top,vx:0,inc:0,ultX:ev.clientX};
+});
+function comecar(){
+ const {card}=ar;ar.ok=true;try{palco.setPointerCapture(ar.pid)}catch{}
+ const f=card.cloneNode(true);f.classList.add('fantasma');f.style.width=ar.w+'px';document.body.append(f);ar.f=f;
+ const v=document.createElement('div');v.className='vaga';v.style.height=ar.h+'px';card.replaceWith(v);ar.vaga=v; /* F3: a vaga tem o tamanho do cartão e ocupa o lugar dele */
+ if(!reduz)f.animate([{transform:`translate(${ar.x}px,${ar.y}px) scale(1)`},{transform:`translate(${ar.x}px,${ar.y}px) scale(1.03)`}],{duration:120,easing:'ease-out'});
+ ar.esc=0;loop();}
+palco.addEventListener('pointermove',ev=>{
+ if(!ar)return;
+ if(!ar.ok){if(Math.hypot(ev.clientX-ar.px,ev.clientY-ar.py)<5)return;comecar();}
+ ev.preventDefault();ar.tx=ev.clientX-ar.dx;ar.ty=ev.clientY-ar.dy;ar.mx=ev.clientX;ar.my=ev.clientY;
+ ar.vx=ev.clientX-ar.ultX;ar.ultX=ev.clientX;moverVaga();});
+function colMaisPerto(x){let m=null,d=1e9;for(const c of palco.querySelectorAll('.col')){const r=c.getBoundingClientRect();const dd=x<r.left?r.left-x:x>r.right?x-r.right:0;if(dd<d){d=dd;m=c;}}return m;} /* F4: no vão vale a coluna mais perto, nunca "nenhuma" */
+function moverVaga(){
+ const col=colMaisPerto(ar.mx);const lista=col.querySelector('.lista');
+ const irmaos=[...lista.querySelectorAll('.card')];
+ const naLista=ar.vaga.parentNode===lista;
+ /* a vaga vai para antes do primeiro cartão cujo meio está abaixo da mão; a folga de 8 px segura a vaga onde ela está */
+ let antesDe=null;for(const k of irmaos){const meio=topoFinal(k)+k.offsetHeight/2;const vagaAntes=naLista&&(ar.vaga.compareDocumentPosition(k)&Node.DOCUMENT_POSITION_FOLLOWING);
+  if(ar.my<meio+(vagaAntes?8:-8)){antesDe=k;break;}}
+ if(naLista&&ar.vaga.nextElementSibling===antesDe)return;
+ if(naLista&&!antesDe&&ar.vaga===lista.lastElementChild)return;
+ const p=posicoes();lista.insertBefore(ar.vaga,antesDe);deslizar(p);
+ if(!reduz)ar.vaga.animate([{opacity:.3,transform:'scaleY(.92)'},{opacity:1,transform:'none'}],{duration:200,easing:'cubic-bezier(.25,.8,.25,1)'});
+ palco.querySelectorAll('.col').forEach(c=>c.classList.toggle('alvo',c===col));}
+function loop(){
+ if(!ar||!ar.f)return;
+ /* F6: o post-it segue a mão com uma folga pequena (não fica preso nem atrasado) e inclina conforme a velocidade */
+ const k=reduz?1:.45;ar.x+=(ar.tx-ar.x)*k;ar.y+=(ar.ty-ar.y)*k;
+ ar.inc+=((Math.max(-4,Math.min(4,ar.vx*.35)))-ar.inc)*.15;ar.vx*=.85;
+ ar.f.style.transform=`translate(${ar.x}px,${ar.y}px) rotate(${ar.inc.toFixed(2)}deg) scale(1.03)`;
+ /* F5: perto da beira, o quadro rola sozinho, mais rápido quanto mais perto */
+ const r=palco.getBoundingClientRect(),B=70;let sx=0,sy=0;
+ if(ar.mx>r.right-B)sx=(ar.mx-(r.right-B))/B*14;else if(ar.mx<r.left+B)sx=-((r.left+B)-ar.mx)/B*14;
+ if(ar.my>r.bottom-B)sy=(ar.my-(r.bottom-B))/B*12;else if(ar.my<r.top+B)sy=-((r.top+B)-ar.my)/B*12;
+ if(sx||sy){palco.scrollBy(sx,sy);moverVaga();}
+ requestAnimationFrame(loop);}
+function soltar(){
+ if(!ar)return;const a=ar;ar=null;if(!a.ok)return;
+ palco.querySelectorAll('.col').forEach(c=>c.classList.remove('alvo'));
+ const destino=a.vaga.getBoundingClientRect();
+ const dist=Math.hypot(destino.left-a.x,destino.top-a.y);const dur=reduz?0:Math.max(180,Math.min(340,160+dist*.25)); /* F1: o tempo cresce com a distância */
+ const fim=()=>{a.f.remove();const k=cards.find(c=>c.id===a.id);
+  {const col=a.vaga.closest('.col').dataset.col;const ordem=[...a.vaga.parentNode.children];const i=ordem.indexOf(a.vaga);
+   cards=cards.filter(c=>c.id!==a.id);k.col=col;const idsAntes=ordem.slice(0,i).map(e=>e.dataset.id).filter(Boolean);
+   const pos=idsAntes.length?cards.findIndex(c=>c.id===idsAntes[idsAntes.length-1])+1:cards.findIndex(c=>c.col===col);cards.splice(pos<0?cards.length:pos,0,k);}
+  a.vaga.replaceWith(a.card);desenhar();};
+ if(!dur){fim();return;}
+ a.f.animate([{transform:a.f.style.transform},{transform:`translate(${destino.left}px,${destino.top}px) rotate(0) scale(1)`}],{duration:dur,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'}).onfinish=fim;}
+/* F7: Esc no meio do arrasto devolve o post-it para onde estava */
+addEventListener('keydown',ev=>{if(ev.key==='Escape'&&ar&&ar.ok){const p=posicoes();ar.vaga.remove();const orig=document.createElement('div');orig.className='vaga';orig.style.height=ar.h+'px';
+ const k=cards.find(c=>c.id===ar.id);const col=palco.querySelector(`.col[data-col="${k.col}"] .lista`);const vizinhos=cards.filter(c=>c.col===k.col&&filtro.has(c.fr));const i=vizinhos.indexOf(k);
+ col.insertBefore(orig,col.querySelectorAll('.card')[i]||null);ar.vaga=orig;deslizar(p);soltar();}
+ if(ev.key==='Escape')fecharGaveta();});
+palco.addEventListener('pointerup',()=>soltar());palco.addEventListener('pointercancel',()=>soltar());
+
+/* ---------- filtro único recolhível ---------- */
+const bf=document.querySelector('[data-maq-filtro]');
+bf.addEventListener('click',()=>{let p=document.querySelector('.filtro-p');if(p){p.remove();return;}
+ p=document.createElement('div');p.className='filtro-p';p.innerHTML=Object.entries(FRENTES).map(([n,c])=>`<label><input type="checkbox" ${filtro.has(n)?'checked':''} value="${n}"><i class="ponto" style="background:${c}"></i>${n}<span style="margin-left:auto;color:var(--dim)">${cards.filter(k=>k.fr===n).length}</span></label>`).join('');
+ p.addEventListener('change',e=>{e.target.checked?filtro.add(e.target.value):filtro.delete(e.target.value);
+  document.querySelector('[data-maq-filtro-txt]').textContent=filtro.size===3?'Todas as frentes':filtro.size?[...filtro].join(', '):'Nenhuma frente';desenhar();});
+ bf.parentNode.append(p);});
+/* ---------- gaveta de comentários ---------- */
+const gav=document.querySelector('[data-maq-gaveta]');let gavId=null;
+function abrirGaveta(id){gavId=id;const k=cards.find(c=>c.id===id);document.querySelector('[data-maq-gaveta-tit]').textContent='Comentários · '+id;
+ const m=document.querySelector('[data-maq-msgs]');m.innerHTML='';
+ if(!k.com.length)m.innerHTML='<p style="color:var(--dim)">Nenhum comentário ainda.</p>';
+ for(const[a,d,t]of k.com){const e=document.createElement('div');e.className='msg';e.innerHTML='<b></b><small></small><p></p>';e.querySelector('b').textContent=a;e.querySelector('small').textContent=d;e.querySelector('p').textContent=t;m.append(e);}
+ gav.classList.add('aberta');}
+function fecharGaveta(){gav.classList.remove('aberta');}
+palco.addEventListener('click',ev=>{const b=ev.target.closest('[data-com]');if(b)abrirGaveta(b.dataset.com);});
+document.querySelector('[data-maq-fechar]').onclick=fecharGaveta;
+document.querySelector('[data-maq-form]').addEventListener('submit',ev=>{ev.preventDefault();const t=ev.target.querySelector('textarea');if(!t.value.trim())return;
+ const k=cards.find(c=>c.id===gavId);const d=new Date();k.com.push(['Elias',d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),t.value.trim()]);t.value='';abrirGaveta(gavId);desenhar();});
+</script>
+</body>
+</html>

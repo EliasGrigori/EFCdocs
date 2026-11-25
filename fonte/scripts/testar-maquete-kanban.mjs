@@ -1,0 +1,24 @@
+import { chromium } from 'playwright';
+const D = process.argv[2] || 'docs/estudos/kanban-2026-11-25';
+const nav = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome' });
+const p = await (await nav.newContext({ viewport: { width: 1180, height: 640 } })).newPage();
+const erros = []; p.on('pageerror', (e) => erros.push(String(e)));
+await p.goto('file://' + (D.startsWith('/') ? D : process.cwd() + '/' + D) + '/maquete-kanban.html'); await p.evaluate(() => document.querySelector('.dica').remove()); await p.waitForTimeout(300);
+await p.screenshot({ path: D + '/maq-1-visao.png' });
+const colDe = (id) => p.locator(`.palco .card[data-id="${id}"]`).evaluate((e) => e.closest('.col').dataset.col);
+const c = await p.locator('.card[data-id="Q-002"]').boundingBox(), feito = await p.locator('.col[data-col="c"]').boundingBox();
+await p.mouse.move(c.x + 60, c.y + 20); await p.mouse.down();
+let semVaga = 0;
+for (let x = c.x + 60; x < feito.x + 140; x += 6) { await p.mouse.move(x, c.y + 60); await p.waitForTimeout(16); if (!(await p.locator('.vaga').count())) semVaga++; }
+await p.mouse.move(feito.x + 140, feito.y + 130, { steps: 6 }); await p.waitForTimeout(250);
+await p.screenshot({ path: D + '/maq-2-arrastando.png' });
+await p.mouse.up(); await p.waitForTimeout(500);
+console.log('Q-002 foi para', await colDe('Q-002'), '· quadros sem vaga ao atravessar:', semVaga, '· fantasmas sobrando:', await p.locator('.fantasma').count());
+const d = await p.locator('.card[data-id="Q-003"]').boundingBox();
+await p.mouse.move(d.x + 60, d.y + 20); await p.mouse.down(); await p.mouse.move(feito.x + 100, feito.y + 60, { steps: 10 }); await p.keyboard.press('Escape'); await p.waitForTimeout(500); await p.mouse.up();
+console.log('Esc: Q-003 ficou em', await colDe('Q-003'));
+await p.click('[data-com="Q-001"]'); await p.waitForTimeout(400); await p.screenshot({ path: D + '/maq-3-comentarios.png' }); await p.click('[data-maq-fechar]'); await p.waitForTimeout(350);
+await p.click('[data-maq-filtro]'); await p.locator('.filtro-p input[value="Documental"]').uncheck(); await p.waitForTimeout(200);
+await p.screenshot({ path: D + '/maq-4-filtro.png' });
+console.log('erros:', erros);
+await nav.close();
