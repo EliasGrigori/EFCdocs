@@ -94,9 +94,9 @@ export function ajustarParteSeg(xml, aba) {
     const s = doApp(aba, desescapar((/\bname="([^"]*)"/.exec(at) || [])[1] || ''));
     if (!s || !s.mexida) return m;
     let a = at;
-    const por = (k, v) => { a = new RegExp(`\\s${k}="[^"]*"`).test(a) ? a.replace(new RegExp(`(\\s${k}=")[^"]*"`), `$1${v}"`) : `${a} ${k}="${v}"`; };
+    const por = (k, v) => { a = new RegExp(`\\s${k}="[^"]*"`).test(a) ? a.replace(new RegExp(`(\\s${k}=")[^"]*"`), (_, ini) => `${ini}${v}"`) : `${a} ${k}="${v}"`; }; /* v0.6.61: função na troca (um "$" no título não vira padrão) */
     const tirar = (k) => { a = a.replace(new RegExp(`\\s${k}="[^"]*"`), ''); };
-    por('caption', escapar(String(s.titulo || '')));
+    por('caption', escapar(String(s.titulo || ''), true)); /* v0.6.61 (V56-01): aspas no título viravam XML quebrado */
     if (s.cols > 1) por('columnCount', s.cols); else tirar('columnCount');
     if (s.semTitulo) por('showCaption', '0'); else tirar('showCaption');
     return `<${tg}${a}${fim}>`;

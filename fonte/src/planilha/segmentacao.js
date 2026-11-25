@@ -111,7 +111,10 @@ export function novasSegs(c, abaId, k, titulos) {
   const t = c.tabelas[k], aba = c.abas[abaId], usados = nomesDeSeg(c);
   const naMesma = t.aba === abaId;
   const base = naMesma ? { l: t.l1, c: t.c2 + 2 } : { l: 1, c: 1 };
-  const novas = titulos.map((tit, i) => ({ nome: nomeLivre(tit, usados), titulo: tit, tab: k, cn: tit, cols: 1, alt: 25, l: base.l, c: base.c, dx: 24 * i, dy: 24 * i, w: SEG.W, h: SEG.H, novo: 1 }));
+  /* v0.6.61 (V56-02): a nova procura o primeiro degrau da cascata que esteja livre (antes a 2ª nascia em cima da 1ª) */
+  const ocupados = new Set((aba.seg || []).filter((x) => x.l === base.l && x.c === base.c).map((x) => Math.round((x.dx || 0) / 24)));
+  const degrau = () => { let d = 0; while (ocupados.has(d)) d++; ocupados.add(d); return d; };
+  const novas = titulos.map((tit) => { const d = degrau(); return { nome: nomeLivre(tit, usados), titulo: tit, tab: k, cn: tit, cols: 1, alt: 25, l: base.l, c: base.c, dx: 24 * d, dy: 24 * d, w: SEG.W, h: SEG.H, novo: 1 }; });
   return { [caminhoSeg(abaId)]: [...((aba.seg || []).map((s) => normalSeg(aba, s))), ...novas] };
 }
 

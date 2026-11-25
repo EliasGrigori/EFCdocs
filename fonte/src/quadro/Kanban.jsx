@@ -7,6 +7,7 @@ import { Mov } from '../ui/fluidez.js';
 import { vencida, concluida } from './tarefa.js';
 import { Icone } from '../ui/comum.jsx';
 import { resumoTarefa } from './tarefa.js';
+import { AVISO_TRAVADO } from './arrumar.js'; /* v0.6.61 */
 import { COR, porColuna, mudancasMoverKanban, adicionarColuna, renomearColuna, removerColuna, moverColuna, novoItem, vagaKanban, mudancasCampo, mudancasExcluir } from './modelo.js';
 import { tituloDe } from './postit.js'; /* v0.6.51: título do post-it no cartão */
 
@@ -78,7 +79,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
   const baixo = (ev, it) => {
     if (ev.button > 0 || editando) return;
     setSel({ itens: [it.id], seta: null });
-    if (somenteLeitura) return;
+    if (somenteLeitura || it.trava) return; /* v0.6.61: travado não sai da coluna arrastando */
     /* no toque, só a alça arrasta (assim o dedo ainda rola a coluna) */
     if (ev.pointerType === 'touch' && !ev.target.closest('.kb-alca')) return;
     const r = ev.currentTarget.getBoundingClientRect();
@@ -100,7 +101,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
     inicio.current = null;
     if (!i || !i.ok || !arrasto) { setArrasto(null); return; }
     if (arrasto.alvo) {
-      const mud = mudancasMoverKanban(c, i.id, arrasto.alvo.col, arrasto.alvo.indice);
+      const mud = c.itens[i.id] && c.itens[i.id].trava ? {} : mudancasMoverKanban(c, i.id, arrasto.alvo.col, arrasto.alvo.indice);
       const nome = (c.colunas.find((k) => k.id === arrasto.alvo.col) || {}).nome;
       if (Object.keys(mud).length) aplicarQ(mud, 'Mover para ' + nome, 'moveu');
     }
@@ -131,6 +132,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
 
   /* v0.6.26 (Elias, 18/11 18:22: "não consigo excluir com facilidade um post-it" no Kanban do celular): lixeira no canto de cima do cartão escolhido */
   const excluirCartao = (it) => {
+    if (it.trava) { cx.avisar(AVISO_TRAVADO, { ic: 'cadeado' }); return; } /* v0.6.61: antes dizia "Post-it excluído." sem excluir */
     aplicarQ(mudancasExcluir(c, [it.id]), 'Excluir post-it', 'excluiu');
     setSel({ itens: [], seta: null });
     cx.avisar('Post-it excluído.', { ic: 'lixeira', acao: { rotulo: 'Desfazer', fazer: () => cx.executar('editar.desfazer') } });
@@ -183,8 +185,8 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
                     data-item={it.id} style={{ '--kb-cor': COR[it.cor] || COR.amarelo }}
                     onPointerDown={(ev) => baixo(ev, it)}
                     onDoubleClick={() => { if (!somenteLeitura) setEditando({ id: it.id, valor: it.texto }); }}>
-                    {!somenteLeitura && <span className="kb-alca" title="Arraste para outra coluna" aria-hidden="true"><Icone n="mao" /></span>}
-                    {!somenteLeitura && sel.itens.includes(it.id) && !(editando && editando.id === it.id) && (
+                    {!somenteLeitura && (it.trava ? <span className="kb-trava" title="Travado" aria-label="Travado" data-trava={it.id}><Icone n="cadeado" /></span> : <span className="kb-alca" title="Arraste para outra coluna" aria-hidden="true"><Icone n="mao" /></span>)}
+                    {!somenteLeitura && !it.trava && sel.itens.includes(it.id) && !(editando && editando.id === it.id) && (
                       <button type="button" className="kb-lixo" title="Excluir o post-it" aria-label={'Excluir o post-it ' + (it.cod || '')} data-kb-excluir={it.id}
                         onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); excluirCartao(it); }}><Icone n="lixeira" /></button>
                     )}

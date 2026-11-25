@@ -895,7 +895,7 @@ export function Quadro({ arquivo, cx }) {
           {umItem.tipo === 'pagina' && <p className="qd-dica">Itens dentro desta página: {Q.itensDaPagina(c, umItem).length}. Arraste pelo título para levar tudo junto. No PDF, cada página vira uma folha.</p>}
           {umItem.tipo === 'postit' && (
             <label className="campo-t">Coluna do Kanban
-              <select value={umItem.col} disabled={somenteLeitura} onChange={(ev) => aplicarQ(Q.mudancasMoverKanban(c, umItem.id, ev.target.value), 'Mudar de coluna', 'moveu')}>
+              <select value={umItem.col} disabled={somenteLeitura || !!umItem.trava} onChange={(ev) => aplicarQ(Q.mudancasMoverKanban(c, umItem.id, ev.target.value), 'Mudar de coluna', 'moveu')}>
                 {c.colunas.map((k) => <option key={k.id} value={k.id}>{k.nome}</option>)}
               </select>
             </label>
