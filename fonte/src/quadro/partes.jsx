@@ -12,6 +12,7 @@ import { tituloDe, linhasQueCabem } from './postit.js';
 import { MarcadorComentario } from './comentarioQuadro.jsx';
 import { familiaDo, escalaDo, garantirFonte } from './fontesQ.js'; /* v0.6.57 */
 import { texturaDo, estiloTextura, pecasTextura } from './texturas.js';
+import { etiquetaPorId } from './etiquetas.js'; /* v0.6.66 (N1) */
 export { linhasQueCabem };
 
 const estiloTexto = (it) => {
@@ -111,6 +112,7 @@ export function ItemView({ it, zi, sel, codigos, escondeTexto, tarefa, caixa, fe
           onPointerDown={(ev) => ev.stopPropagation()} onDoubleClick={(ev) => ev.stopPropagation()}
           onClick={(ev) => { ev.stopPropagation(); if (aoMarcar) aoMarcar(it.id, !feito); }}><i /></button>
       )}
+      {it.tipo === 'postit' && etiquetaPorId(it.fr) && <span className={'qi-eti' + (it.trava ? ' com-trava' : '')} data-eti={it.fr} title={'Etiqueta: ' + etiquetaPorId(it.fr).nome}><i style={{ background: etiquetaPorId(it.fr).cor }} aria-hidden="true" />{etiquetaPorId(it.fr).nome}</span>} {/* v0.6.66 (N1): etiqueta de frente, no canto de cima à direita */}
       {codigos && it.cod && <span className="qi-cod" style={it.tipo === 'inicio' ? { left: Math.round(Math.min(it.h, it.w) / 2) } : undefined}>{it.cod}</span>}
       {/* v0.6.55: comentário no estilo do Word (marcador no canto, cartão ao passar o mouse) */}
       {it.nota && <MarcadorComentario it={it} aoAbrir={aoComentario} aoSair={aoSairComentario} />}

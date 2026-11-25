@@ -16,6 +16,7 @@ import { texturaDo, estiloTextura, pecasTextura } from './texturas.js'; /* v0.6.
 import { familiaDo, escalaDo, garantirFonte } from './fontesQ.js'; /* v0.6.65 (V3): a letra do Quadro no cartão */
 import { respostasDe } from './comentario.js';
 import { validarNome } from '../nucleo/modelo.js';
+import { etiquetasDe, etiquetaDo, contagemEtiquetas, passaNoFiltro, resumoFiltro, indiceNaColuna, SEM } from './etiquetas.js'; /* v0.6.66 (N1) */
 
 const NIVEL = { alta: 3, media: 2, baixa: 1 };
 
@@ -62,6 +63,39 @@ function NomeQuadro({ ficha, cx }) {
   );
 }
 
+/** v0.6.66 (N1): filtro único recolhível (botão com o resumo; o painel lista as etiquetas com a contagem). Não é guardado no arquivo. */
+function FiltroEtiquetas({ c, todos, escondidas, setEscondidas }) {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!aberto) return undefined;
+    const fora = (ev) => { if (ref.current && !ref.current.contains(ev.target)) setAberto(false); };
+    const esc = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setAberto(false); } };
+    document.addEventListener('pointerdown', fora, true); window.addEventListener('keydown', esc, true);
+    return () => { document.removeEventListener('pointerdown', fora, true); window.removeEventListener('keydown', esc, true); };
+  }, [aberto]);
+  const n = contagemEtiquetas(todos), lista = [...etiquetasDe(c), { id: SEM, nome: 'Sem etiqueta', cor: null }];
+  const trocar = (id) => { const s2 = new Set(escondidas); if (s2.has(id)) s2.delete(id); else s2.add(id); setEscondidas(s2); };
+  const ativo = escondidas.size > 0;
+  return (
+    <span className="kb-filtro" ref={ref}>
+      <button type="button" className={'btn kb-filtro-b' + (ativo ? ' on' : '')} data-kb-filtro aria-expanded={aberto} onClick={() => setAberto(!aberto)}><Icone n="filtro" /><span>{resumoFiltro(c, escondidas)}</span></button>
+      {aberto && (
+        <div className="filtro-p kb-filtro-p card" role="group" aria-label="Filtrar por etiqueta">
+          {lista.map((e) => (
+            <label key={e.id || 'sem'} className="kb-filtro-op">
+              <input type="checkbox" checked={!escondidas.has(e.id)} onChange={() => trocar(e.id)} data-kb-filtro-op={e.id || 'sem'} />
+              <i className="kb-eti-ponto" style={{ background: e.cor || 'transparent', borderColor: e.cor ? 'transparent' : undefined }} aria-hidden="true" />
+              <span>{e.nome}</span><small>{n[e.id] || 0}</small>
+            </label>
+          ))}
+          {ativo && <button type="button" className="kb-filtro-limpar" onClick={() => setEscondidas(new Set())}>Mostrar todas</button>}
+        </div>
+      )}
+    </span>
+  );
+}
+
 /** v0.6.65 (V3): a textura e a letra escolhidas no Quadro também no cartão (o tamanho do cartão é o do Kanban). */
 function papelDoCartao(it) {
   const cor = COR[it.cor] || COR.amarelo, tex = texturaDo(it) || 'liso', medida = { ...it, w: 260, h: 96 };
@@ -73,6 +107,7 @@ function papelDoCartao(it) {
 export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codigos, hoje, ficha }) {
   const grupos = porColuna(c);
   const [editando, setEditando] = useState(null);
+  const [escondidas, setEscondidas] = useState(() => new Set()); /* v0.6.66 (N1): etiquetas escondidas pelo filtro */
   /* v0.6.64: o arrasto mexe só no DOM (kanbanArrasto.js); o React fica sabendo no fim, com a coluna e o lugar */
   const arrastando = useRef(false), aoSoltarRef = useRef(null), arr = useRef(null);
   /* ao mover, criar ou tirar, cada cartão desliza do lugar antigo até o novo (só transform; 250 ms da escala) */
@@ -97,7 +132,8 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
   aoSoltarRef.current = ({ id, col, indice, cancelado, lugares: ondeEstavam }) => {
     lugares.current = new Map([...ondeEstavam].map(([k, v]) => [k, { ...v, k: null }]));
     if (cancelado || !col || !c.itens[id] || c.itens[id].trava) return;
-    const mud = mudancasMoverKanban(c, id, col, indice);
+    const cheia = (grupos[col] || []).filter((x) => x.id !== id), visiveis = cheia.filter((x) => passaNoFiltro(x, escondidas)); /* v0.6.66: com o filtro, a vaga conta só os à vista */
+    const mud = mudancasMoverKanban(c, id, col, indiceNaColuna(cheia, visiveis, indice));
     const nome = (c.colunas.find((k) => k.id === col) || {}).nome;
     if (Object.keys(mud).length) flushSync(() => aplicarQ(mud, 'Mover para ' + nome, 'moveu'));
   };
@@ -167,9 +203,10 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
         {c.colunas.length > 1 && todos.length > 0 && <span className="kb-and-barra" role="img" aria-label={`${pct}% feito`}><i style={{ transform: `scaleX(${pct / 100})` }} /></span>}
         {c.colunas.length > 1 && todos.length > 0 && <span className="kb-and-pct">{feitos} de {todos.length} em “{c.colunas[c.colunas.length - 1].nome}” · {pct}%</span>}
         {vencidos > 0 && <span className="efl-pilula cr" data-kb-vencidos>{vencidos} {vencidos === 1 ? 'vencido' : 'vencidos'}</span>}
+        {etiquetasDe(c).length > 0 && <FiltroEtiquetas c={c} todos={todos} escondidas={escondidas} setEscondidas={setEscondidas} />}
       </header>
       {c.colunas.map((k, i) => {
-        const lista = grupos[k.id] || [];
+        const lista = (grupos[k.id] || []).filter((it) => passaNoFiltro(it, escondidas)); /* v0.6.66 (N1) */
         return (
           <section key={k.id} className="kb-col" data-col={k.id} aria-label={'Coluna ' + k.nome}>
             <header className="kb-h">
@@ -185,9 +222,9 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
               )}
             </header>
             <div className="kb-lista">
-              {lista.map((it) => { const papel = papelDoCartao(it); return (
+              {lista.map((it) => { const papel = papelDoCartao(it), eti = etiquetaDo(c, it); return (
                 <div key={it.id} className="kb-item">
-                  <article className={'kb-card qi-tex-' + papel.tex + (sel.itens.includes(it.id) ? ' sel' : '')}
+                  <article className={'kb-card qi-tex-' + papel.tex + (eti ? ' kb-com-eti' : '') + (sel.itens.includes(it.id) ? ' sel' : '')}
                     data-item={it.id} style={papel.style}
                     onPointerDown={(ev) => baixo(ev, it)}
                     onDoubleClick={() => { if (!somenteLeitura) setEditando({ id: it.id, valor: it.texto }); }}>
@@ -197,6 +234,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
                       <button type="button" className="kb-lixo" title="Excluir o post-it" aria-label={'Excluir o post-it ' + (it.cod || '')} data-kb-excluir={it.id}
                         onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); excluirCartao(it); }}><Icone n="lixeira" /></button>
                     )}
+                    {eti && <span className="kb-eti" data-eti={eti.id}><i className="kb-eti-ponto" style={{ background: eti.cor }} aria-hidden="true" />{eti.nome}</span>}
                     {codigos && <span className="kb-cod">{it.cod}</span>}
                     {tituloDe(it) && <b className="kb-tit" style={papel.letra ? { fontFamily: papel.letra.fontFamily } : undefined}>{tituloDe(it)}</b>}
                     {editando && editando.id === it.id ? (

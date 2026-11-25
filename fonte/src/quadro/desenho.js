@@ -8,7 +8,8 @@ import { resumoTarefa, hojeISO } from './tarefa.js';
 import { derivar, MEDIDAS } from './legenda.js';
 import { desenharTitulo, desenharCaixa, mostraCaixas, estaFeito, tituloDe, linhasQueCabem } from './postit.js';
 import { familiaCss, escalaDo, garantirFontesDo, familiasUsadas } from './fontesQ.js'; /* v0.6.57 */
-import { urlTextura, imagensDoPostit, desenharPostitTextura, desenharPecasTextura, marcaDaLinha } from './texturas.js';
+import { urlTextura, imagensDoPostit, desenharPostitTextura, desenharPecasTextura, marcaDaLinha, texturaDo } from './texturas.js';
+import { etiquetaDo } from './etiquetas.js'; /* v0.6.66 (N1) */
 
 /* cores do nível GUT: [fundo, texto] */
 export const COR_GUT = { alta: ['#fee4e2', '#b42318'], media: ['#fef0c7', '#b54708'], baixa: ['#d1fadf', '#067647'] };
@@ -324,6 +325,14 @@ function desenharItem(ctx, it, opcoes) {
     ctx.textAlign = 'left';
     const cx = it.tipo === 'decisao' ? it.x + it.w / 2 - 16 : it.tipo === 'inicio' ? it.x + Math.min(it.h, it.w) / 2 : it.x + 6;
     ctx.fillText(it.cod, cx, it.y + (it.tipo === 'decisao' ? 22 : ['processo', 'dados'].includes(it.tipo) ? 11 : 13));
+  }
+  const eti = it.tipo === 'postit' && opcoes.c ? etiquetaDo(opcoes.c, it) : null;
+  if (eti) { /* v0.6.66 (N1): etiqueta no canto de cima à direita, como na tela (.qi-eti) */
+    ctx.font = `600 10px ${FONTE}`; ctx.textAlign = 'right';
+    let nome = eti.nome; const max = it.w * 0.6 - 12; while (nome.length > 1 && ctx.measureText(nome).width > max) nome = nome.slice(0, -2) + '…';
+    const dir = it.x + it.w - (texturaDo(it) === 'clipe' ? 40 : 8), larg = ctx.measureText(nome).width;
+    ctx.fillStyle = 'rgba(31,35,40,.72)'; ctx.fillText(nome, dir, it.y + 13);
+    ctx.fillStyle = eti.cor; ctx.beginPath(); ctx.arc(dir - larg - 7, it.y + 9.5, 3.5, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
 }

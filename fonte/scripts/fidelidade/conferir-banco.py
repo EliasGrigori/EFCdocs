@@ -52,6 +52,10 @@ def conferir_quadro(c, e):
     t = e["tarefa"]
     it = c["itens"].get(t["id"], {})
     diz(all(it.get(k) == t[k] for k in ("resp", "prazo", "g", "u", "t")), "quadro: responsável, prazo e nota GUT da tarefa")
+    if "etiqueta" in e:  # v0.6.66 (N1)
+        et = e["etiqueta"]
+        nomes = {x.get("id"): x.get("nome") for x in c.get("etiquetas", [])}
+        diz(c["itens"].get(et["id"], {}).get("fr") == et["fr"] and nomes.get(et["fr"]) == et["nome"], "quadro: etiqueta de frente do post-it e a lista de etiquetas")
     cods = [i["cod"] for i in itens if "cod" in i]
     diz(len(cods) == len(set(cods)) and all(x.startswith("Q-") for x in cods), f"quadro: {len(cods)} códigos Q sem repetir")
     pontas = all(s["de"]["id"] in c["itens"] and s["para"]["id"] in c["itens"] for s in c["setas"].values())

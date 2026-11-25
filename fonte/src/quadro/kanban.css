@@ -109,7 +109,26 @@ input.kb-titulo { min-width: 240px; outline: none; background: var(--surface); b
 .kb-card.qi-tex-amassado, .kb-card.qi-tex-rasgado { box-shadow: none; border: 0; filter: drop-shadow(0 1px 2px rgba(16, 24, 40, .12)) drop-shadow(0 4px 8px rgba(16, 24, 40, .14)); }
 .kb-card.qi-tex-rasgado .qi-tex-papel { border-radius: 4px 4px 0 0; }
 .kb-card.qi-tex-destaque > p { background: linear-gradient(104deg, rgba(253, 224, 71, 0) .9%, rgba(250, 204, 21, .55) 2.4%, rgba(250, 204, 21, .45) 95%, rgba(253, 224, 71, 0) 99%); padding: 1px 6px; border-radius: 4px; -webkit-box-decoration-break: clone; box-decoration-break: clone; display: inline; }
-.kb-card.qi-tex-clipe .kb-alca { right: 34px; }
 .kb-card.qi-tex-pautado { padding-left: 34px; } /* o texto começa depois da margem vermelha, como no Quadro */
 .kb-card.qi-tex-pautado > p { font-size: 14px; line-height: 18.2px; margin-top: -4.8px; } /* uma linha de texto por linha do papel */
 .kb-card.qi-tex-pautado .kb-cod { left: 34px; }
+/* v0.6.66 (N1): etiqueta no cartão (frente à esquerda, código à direita, como na maquete) e filtro único */
+.kb-eti { position: absolute; left: 12px; top: 4px; z-index: 1; display: inline-flex; align-items: center; gap: 5px; max-width: calc(100% - 110px); font-size: 12px; font-weight: 600; color: #3d434a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kb-eti-ponto { flex: none; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--border); box-sizing: border-box; }
+.kb-com-eti .kb-cod { left: auto; right: 64px; } /* à esquerda da lixeira e da alça (que ocupam os 60 px do canto) */
+.kb-filtro { position: relative; flex: none; }
+.kb-filtro-b { height: 32px; font-size: 13px; gap: 7px; max-width: 280px; }
+.kb-filtro-b > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-filtro-b.on { border-color: var(--primary); color: var(--primary); }
+.kb-filtro-p { position: absolute; left: 0; top: 38px; z-index: 30; width: 250px; padding: 6px; border-radius: var(--r-card, 10px); background: var(--surface); box-shadow: var(--sh-2); white-space: normal; }
+.kb-filtro-op { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: var(--r-chip, 6px); cursor: pointer; font-size: 14px; color: var(--text); }
+.kb-filtro-op:hover { background: var(--primary-soft); }
+.kb-filtro-op > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.kb-filtro-op small { color: var(--text-dim); font-weight: 600; }
+.kb-filtro-limpar { width: 100%; margin-top: 4px; border: 0; background: transparent; color: var(--primary); font: inherit; font-size: 13px; font-weight: 600; padding: 6px 8px; text-align: left; border-radius: var(--r-chip, 6px); cursor: pointer; }
+.kb-filtro-limpar:hover { background: var(--primary-soft); }
+/* D-87 (Elias, 25/11 17:55): com a textura Clipe, a lixeira ficava em cima da alça de arrastar. No cartão do Kanban o clipe vai
+   para o meio do topo; a alça (canto) e a lixeira (ao lado dela) ficam onde sempre estiveram */
+.kb-card .qi-clipe { right: auto; left: calc(50% - 6px); }
+.kb-card .qi-clipe-dentro { right: auto; left: calc(50% - 3px); }
+.kb-card.qi-tex-clipe .kb-eti { max-width: calc(50% - 26px); }

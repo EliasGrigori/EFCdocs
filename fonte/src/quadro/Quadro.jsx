@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { trataArrumar, valorArrumar, AVISO_TRAVADO } from './arrumar.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { lembrarEtiquetas, raiasPorEtiqueta } from './etiquetas.js'; /* v0.6.66 (N1) */ import { trataArrumar, valorArrumar, AVISO_TRAVADO } from './arrumar.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -55,7 +55,7 @@ function lerImagem(arquivo, max = 1200) {
 
 export function Quadro({ arquivo, cx }) {
   const ficha = arquivo.ficha;
-  const c = arquivo.conteudo;
+  const c = arquivo.conteudo; lembrarEtiquetas(c); /* v0.6.66 (N1): a faixa e o post-it leem a lista daqui */
   const somenteLeitura = !!cx.bloqueado('inserir.postit');
 
   const [vista, setVistaEstado] = useState(() => (ler('vista:' + ficha.id, 'quadro') === 'kanban' ? 'kanban' : 'quadro'));
@@ -402,7 +402,7 @@ export function Quadro({ arquivo, cx }) {
   };
 
   /* ---------- comandos do catálogo ---------- */
-  const trata = (id) => { const aq = trataArrumar(id, { c, selecionados: selValida.itens, aplicarQ, avisar: cx.avisar }); if (aq !== undefined) return aq; /* v0.6.59: alinhar, distribuir, travar (arrumar.js) */ const eq = trataEstiloQuadro(id, { c, selecionados: selValida.itens, aplicarQ, avisar: cx.avisar }); if (eq !== undefined) return eq; /* v0.6.57: Letra e Textura (estiloQuadro.js) */ const lq = trataLayoutQuadro(id, { c, selecionados: selValida.itens, aplicarQ, abrirJanela: () => { setVista('quadro'); setJanela('imprimir'); }, trocarQp, avisar: cx.avisar }); if (lq !== undefined) return lq; /* v0.6.55: Layout da Página (layoutQuadro.jsx) */
+  const trata = (id) => { const aq = trataArrumar(id, { c, selecionados: selValida.itens, aplicarQ, avisar: cx.avisar }); if (aq !== undefined) return aq; /* v0.6.59: alinhar, distribuir, travar (arrumar.js) */ const eq = trataEstiloQuadro(id, { c, selecionados: selValida.itens, aplicarQ, avisar: cx.avisar, perguntar: cx.perguntar }); if (eq !== undefined) return eq; /* v0.6.57: Letra e Textura (estiloQuadro.js) */ const lq = trataLayoutQuadro(id, { c, selecionados: selValida.itens, aplicarQ, abrirJanela: () => { setVista('quadro'); setJanela('imprimir'); }, trocarQp, avisar: cx.avisar }); if (lq !== undefined) return lq; /* v0.6.55: Layout da Página (layoutQuadro.jsx) */
     switch (id) {
       case 'inserir.postit': inserir('postit'); return true;
       case 'inserir.processo': inserir('processo'); return true;
@@ -457,7 +457,7 @@ export function Quadro({ arquivo, cx }) {
       case 'organizar.raias': {
         if (vista === 'kanban') setVista('quadro');
         const v = viewRef.current;
-        aplicarQ(Q.criarRaias(c, Math.round(-v.x / v.z + 20), Math.round(-v.y / v.z + 20)), 'Raias por setor', 'criou raias');
+        const rx = Math.round(-v.x / v.z + 20), ry = Math.round(-v.y / v.z + 20); aplicarQ(raiasPorEtiqueta(c, rx, ry, { idCurto: Q.idCurto, menorZ: Q.menorZ }) || Q.criarRaias(c, rx, ry), 'Raias por setor', 'criou raias'); /* v0.6.66 (N1): com etiquetas, uma raia por etiqueta, com os post-its dela */
         cx.avisar('Raias criadas. Toque duas vezes no nome para trocar o setor.', { ic: 'raias' });
         return true;
       }

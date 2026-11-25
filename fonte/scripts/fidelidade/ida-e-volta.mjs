@@ -44,7 +44,8 @@ const aplicar = (c, mud) => { for (const [k, v] of Object.entries(mud)) { const 
 export function quadroInventado() {
   const c = Q.conteudoQuadroVazio();
   const por = (tipo, campos, id) => { const r = Q.novoItem(c, tipo, campos, { id }); aplicar(c, r.mudancas); return r.item; };
-  por('postit', { texto: 'Calibrar a balança 001', x: 40, y: 40, resp: 'Pessoa A', prazo: '2026-12-01', g: 3, u: 2, t: 4 }, 'p1');
+  c.etiquetas = [{ id: 'e1', nome: 'Laboratório', cor: '#0f766e' }]; /* v0.6.66 (N1): etiqueta de frente */
+  por('postit', { texto: 'Calibrar a balança 001', x: 40, y: 40, resp: 'Pessoa A', prazo: '2026-12-01', g: 3, u: 2, t: 4, fr: 'e1' }, 'p1');
   por('postit', { texto: 'Conferir o lote 0043: ação, não-conformidade e até “aspas”', x: 240, y: 40, cor: 'verde' }, 'p2');
   por('postit', { texto: 'Linha 1\nLinha 2\n=1+1 (texto, não fórmula)', x: 440, y: 40, cor: 'rosa' }, 'p3');
   por('processo', { texto: 'Receber a amostra', x: 40, y: 260 }, 'f1');
@@ -62,6 +63,7 @@ export const esperadoQuadro = () => ({
   textos: ['Calibrar a balança 001', 'Conferir o lote 0043: ação, não-conformidade e até “aspas”', 'Linha 1\nLinha 2\n=1+1 (texto, não fórmula)', 'Receber a amostra', 'Está dentro do limite?', 'Fim', 'Texto solto com acento: água, coração', 'Laboratório', 'Folha 1'],
   rotulos: ['depois', 'Sim'], colunas: Q.COLUNAS_PADRAO.map((x) => x.nome),
   tarefa: { id: 'p1', resp: 'Pessoa A', prazo: '2026-12-01', g: 3, u: 2, t: 4 },
+  etiqueta: { id: 'p1', fr: 'e1', nome: 'Laboratório' },
 });
 
 export function documentoInventado() {

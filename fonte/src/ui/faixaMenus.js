@@ -9,6 +9,7 @@ import { MARGENS, PAPEIS } from '../planilha/impressao.js';
 import { AJUSTES, CONGELAR } from '../planilha/faixaExtra.js';
 import { FONTES_Q, garantirFonte } from '../quadro/fontesQ.js'; /* v0.6.57 */
 import { TEXTURAS } from '../quadro/texturas.js';
+import { etiquetasAtuais } from '../quadro/etiquetas.js'; /* v0.6.66 (N1) */
 import { ALINHAR, DISTRIBUIR } from '../quadro/arrumar.js'; /* v0.6.59 */
 
 /* Botões que abrem uma lista de comandos (Inserir, Excluir, Formatar, Preencher, Limpar), como no Excel */
@@ -40,6 +41,8 @@ export const MENUS_FAIXA = {
     itens: DISTRIBUIR.map((a) => ({ id: 'organizar.distribuir|' + a.id, nome: a.nome })) },
   texturaQ: { nome: 'Textura', ic: 'n:texturaQ', valor: 'valor.textura', dica: 'Textura|Dá ao post-it escolhido cara de papel: ponta dobrada, amassado ou mancha de café.', /* v0.6.57 */
     itens: TEXTURAS.map((t) => ({ id: 'formatar.textura|' + t.id, v: t.id, nome: t.nome })) },
+  etiquetaQ: { nome: 'Etiqueta', ic: 'n:etiquetaQ', valor: 'valor.etiqueta', dica: 'Etiqueta|A frente de trabalho do post-it (com cor). Aparece no Quadro, no Kanban e no PDF, e o Kanban filtra por ela.', /* v0.6.66 (N1) */
+    itens: () => [{ id: 'formatar.etiqueta|', v: '', nome: 'Sem etiqueta' }, ...etiquetasAtuais().map((e) => ({ id: 'formatar.etiqueta|' + e.id, v: e.id, nome: e.nome, cor: e.cor }))], fim: { id: 'formatar.etiquetaNova', nome: 'Nova etiqueta…' } },
   areaImpQ: { nome: 'Área de impressão', ic: 'n:area', dica: 'Área de impressão|Imprime só a parte do quadro com os itens escolhidos, ou volta a imprimir tudo.', itens: ['impressao.area', 'impressao.limparArea'] },
   ajustarPagQ: { nome: 'Ajustar à página', ic: 'n:ajustar', valor: 'valor.ajusteQ', dica: 'Ajustar à página|O quadro enche uma folha ou sai no tamanho real.',
     itens: [{ id: 'impressao.ajustar|pagina', v: 'pagina', nome: 'Ajustar a 1 página' }, { id: 'impressao.ajustar|real', v: 'real', nome: 'Tamanho real (100%)' }], fim: { id: 'impressao.ajustar', nome: 'Mais opções de ajuste…' } },

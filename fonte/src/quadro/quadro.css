@@ -522,3 +522,8 @@ body[data-theme=dark] .qd-quebra-folha span, body[data-theme=dark] .qd-quebra-ar
 .qi-trava { position: absolute; right: -8px; bottom: -8px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; pointer-events: none;
   background: var(--surface, #fff); color: #475467; box-shadow: 0 1px 3px rgba(16,24,40,.25); z-index: 3; }
 .qi-trava svg { width: 12px; height: 12px; }
+/* v0.6.66 (N1): etiqueta de frente no post-it, no canto de cima à direita (ponto de cor e nome) */
+.qi-eti { position: absolute; right: 8px; top: 3px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; max-width: 60%; font-size: 11px; line-height: 14px; font-weight: 600; color: rgba(31,35,40,.72); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.qi-eti i { flex: none; width: 7px; height: 7px; border-radius: 50%; }
+.qi-tex-clipe .qi-eti { right: 40px; }
+.rb-cor-ponto { flex: none; width: 9px; height: 9px; border-radius: 50%; margin: 0 2px 0 -2px; }

@@ -16,6 +16,7 @@ import { limparNome, rubricaValida, ASN } from '../nucleo/assinatura.js';
 import { fundoValido, ehFundoPadrao } from './fundo.js';
 import { fonteValida } from './fontesQ.js'; /* v0.6.57 */
 import { texturaValida } from './texturas.js';
+import { etiquetasValidas } from './etiquetas.js'; /* v0.6.66 (N1) */
 
 export const CORES = [
   /* v0.6.50: cores mais claras e limpas (aprovadas nas propostas de 25/11); a cor é guardada pelo nome, então os quadros já feitos também mudam */
@@ -103,6 +104,9 @@ export function normalizarQuadro(c) {
   if (c.fundo && typeof c.fundo === 'object' && !ehFundoPadrao(c.fundo)) r.fundo = fundoValido(c.fundo);
   if (c.caixas === false) r.caixas = false; /* v0.6.51: caixinhas de feito escondidas neste quadro (postit.js) */
   if (c.impressao && typeof c.impressao === 'object') r.impressao = c.impressao; /* v0.6.54: configuração de página (conferida em impressaoQuadro.js ao usar) */
+  /* v0.6.66 (N1): etiquetas de frente; o post-it com etiqueta que não existe mais fica sem etiqueta */
+  const eti = etiquetasValidas(c.etiquetas); if (eti.length) r.etiquetas = eti;
+  for (const it of Object.values(itens)) if ('fr' in it && (it.tipo !== 'postit' || !eti.some((e) => e.id === it.fr))) delete it.fr;
   return r;
 }
 

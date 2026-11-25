@@ -119,7 +119,7 @@ const FAIXAS = {
       { nome: 'Editar', itens: [['lin', ['editar.duplicar', 'editar.excluir', 'editar.selecionarTudo', 'editar.localizar', 'editar.historico'], 3]] },
       { nome: 'Fonte', itens: [['pilha', [[['cx', 'fonteQ']], ['formatar.negrito', 'formatar.italico', 'formatar.sublinhado', '|', 'formatar.corFonte', 'formatar.preenchimento']]]] }, /* v0.6.57: caixa Letra, como na Planilha */
       { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita']]] },
-      { nome: 'Post-it', itens: [['col', ['formatar.tituloPostit', ['menu', 'texturaQ']]]] }] },
+      { nome: 'Post-it', itens: [['col', ['formatar.tituloPostit', ['menu', 'texturaQ'], ['menu', 'etiquetaQ']]]] }] }, /* v0.6.66: Etiqueta */
     { id: 'inserir', nome: 'Inserir', grupos: [
       { nome: 'Quadro', itens: [['g', 'inserir.postit'], ['g', 'inserir.seta'], ['g', 'inserir.proximo'], ['g', 'inserir.texto'], ['g', 'inserir.pagina'], ['g', 'inserir.legenda']] },
       { nome: 'Fluxograma', itens: [['g', 'inserir.forma'], ['col', ['inserir.processo', 'inserir.decisao', 'inserir.inicio']], ['col', ['inserir.dados']], ['g', 'inserir.modelo']] },
@@ -315,7 +315,7 @@ function BotaoMenuFaixa({ chave, cx, soIcone, grande }) {
           <button key={id} type="button" data-fam={base(x).split('.')[0]} role={!puro && x.v !== undefined ? 'menuitemradio' : m.marcaLigado ? 'menuitemcheckbox' : 'menuitem'} aria-checked={(!puro && x.v !== undefined) || m.marcaLigado ? marcado : undefined}
             className={'rb-lista-it' + (m.classe ? ' ' + m.classe : '') + (x.fim ? ' fim' : '') + (marcado ? ' on' : '')} data-cmd={id} data-dica={x.dica} disabled={!!bloq} title={bloq || undefined}
             onClick={() => { setAberto(false); cx.executar(id); }}>
-            {ic && <Icone n={ic} />}<span>{puro ? cmd.nome : x.nome}</span>{(puro || id === m.direto) && info.atalho && <kbd>{info.atalho}</kbd>}{marcado && <Icone n="check" className="ok" />}
+            {ic && <Icone n={ic} />}{!puro && x.cor && <i className="rb-cor-ponto" style={{ background: x.cor }} aria-hidden="true" />}<span>{puro ? cmd.nome : x.nome}</span>{(puro || id === m.direto) && info.atalho && <kbd>{info.atalho}</kbd>}{marcado && <Icone n="check" className="ok" />}
           </button>
         );
       })}

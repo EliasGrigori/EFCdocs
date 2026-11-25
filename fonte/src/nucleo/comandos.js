@@ -254,6 +254,8 @@ export const COMANDOS = [
   C('exibir.codigos', 'Mostrar códigos (Q-001)', 'codigo', { sin: ['número do post-it', 'q-001', 'código'], mods: ['postits'] }),
   C('formatar.fonteQ', 'Letra do item (quadro)', 'fonte', { sin: ['fonte', 'letra', 'tipo de letra', 'caveat', 'manuscrita', 'letra à mão', 'serifa', 'máquina de escrever'], mods: ['postits'] }), /* v0.6.57 */
   C('formatar.textura', 'Textura do post-it', 'texturaQ', { sin: ['papel', 'ponta dobrada', 'canto dobrado', 'amassado', 'mancha de café', 'café'], mods: ['postits'] }),
+  C('formatar.etiqueta', 'Etiqueta do post-it', 'etiquetaQ', { sin: ['frente', 'setor', 'categoria', 'marcador', 'tag'], mods: ['postits'] }), /* v0.6.66 (N1) */
+  C('formatar.etiquetaNova', 'Nova etiqueta', 'etiquetaQ', { sin: ['criar etiqueta', 'nova frente', 'novo setor'], mods: ['postits'] }),
   C('formatar.tituloPostit', 'Título do post-it', 'titulo', { sin: ['cabeçalho do post-it', 'nome do post-it', 'título'], mods: ['postits'] }),
   C('exibir.caixas', 'Caixinhas de feito', 'check', { sin: ['feito', 'concluído', 'checklist', 'marcar tarefa'], mods: ['postits'] }),
   C('exibir.quebras', 'Quebras de página', 'quebrapag', { sin: ['quebra', 'folha', 'tracejado da impressão', 'área de impressão'], mods: ['postits'] }),

@@ -223,6 +223,7 @@ export const NOVOS = {
   ajustar: '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><rect class="t" x="8.5" y="8.5" width="7" height="7" rx="1.3"/>',
   minimapa: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><rect class="t" x="12" y="11.5" width="6.5" height="6" rx="1.2"/>',
   caixaQ: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path class="t" d="M8.5 12.2l2.4 2.4 4.8-5.2"/>',
+  etiquetaQ: '<path d="M4.5 5.5v5.2l8.3 8.3 6.2-6.2-8.3-8.3z"/><circle class="t" cx="8.2" cy="8.2" r="1.4"/>', /* v0.6.66 (N1) */
   texturaQ: '<path d="M4.5 4.5h15v10l-5 5h-10z"/><path class="t" d="M19.5 14.5h-4a1 1 0 0 0-1 1v4"/><path d="M8 9.5c1.5-1 2.5.8 4 0M8 13c1-.6 2 .5 3 0"/>', /* v0.6.57 */
   alinharQ: '<path d="M4.5 3.5v17"/><rect class="t" x="7" y="6" width="11" height="4.5" rx="1"/><rect x="7" y="13.5" width="7" height="4.5" rx="1"/>', /* v0.6.59 */
   distribuirQ: '<path d="M3.5 4v16M20.5 4v16"/><rect class="t" x="9.5" y="7" width="5" height="10" rx="1"/>',
