@@ -10,6 +10,7 @@ import { desenharTitulo, desenharCaixa, mostraCaixas, estaFeito, tituloDe, linha
 import { familiaCss, escalaDo, garantirFontesDo, familiasUsadas } from './fontesQ.js'; /* v0.6.57 */
 import { urlTextura, imagensDoPostit, desenharPostitTextura, desenharPecasTextura, marcaDaLinha, texturaDo } from './texturas.js';
 import { etiquetaDo } from './etiquetas.js'; /* v0.6.66 (N1) */
+import { situacaoNoFluxo } from './fluxoKanban.js'; /* v0.6.70 (S2): o selo da coluna também no PNG e no PDF */
 
 /* cores do nível GUT: [fundo, texto] */
 export const COR_GUT = { alta: ['#fee4e2', '#b42318'], media: ['#fef0c7', '#b54708'], baixa: ['#d1fadf', '#067647'] };
@@ -337,6 +338,25 @@ function desenharItem(ctx, it, opcoes) {
   ctx.restore();
 }
 
+/* v0.6.70 (S2): o selo da coluna na atividade ligada ao Kanban, igual à tela (.qi-fase): na borda de cima, à direita,
+   desenhado depois das setas para ficar por cima delas. */
+const CORES_FASE = { afazer: ['#f1f3f5', '#3d434a', 'rgba(31,35,40,.18)'], andamento: ['#e8f0fe', '#1d4ed8', 'rgba(29,78,216,.30)'], feito: ['#e6f4ea', '#14653a', 'rgba(20,101,58,.30)'] };
+function desenharSelo(ctx, c, it) {
+  const s = situacaoNoFluxo(c, it);
+  if (!s) return;
+  const [fundo, cor, borda] = CORES_FASE[s.fase];
+  ctx.save();
+  ctx.font = `600 11px ${FONTE}`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  let nome = s.nome; const max = it.w - 16 - 30; while (nome.length > 1 && ctx.measureText(nome).width > max) nome = nome.slice(0, -2) + '…';
+  const marca = s.fase === 'feito' ? 14 : 0, w = ctx.measureText(nome).width + 14 + marca, h = 19;
+  const x = it.x + it.w - (it.nota ? 22 : 8) - w, y = it.y - 10;
+  ctx.beginPath(); ctx.moveTo(x + 9.5, y); ctx.arcTo(x + w, y, x + w, y + h, 9.5); ctx.arcTo(x + w, y + h, x, y + h, 9.5); ctx.arcTo(x, y + h, x, y, 9.5); ctx.arcTo(x, y, x + w, y, 9.5); ctx.closePath();
+  ctx.fillStyle = fundo; ctx.fill(); ctx.strokeStyle = borda; ctx.lineWidth = 1; ctx.stroke();
+  if (marca) { ctx.strokeStyle = cor; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x + 7, y + 9.5); ctx.lineTo(x + 9.5, y + 12); ctx.lineTo(x + 14, y + 7); ctx.stroke(); }
+  ctx.fillStyle = cor; ctx.fillText(nome, x + 7 + marca, y + 13.5);
+  ctx.restore();
+}
+
 function desenharSeta(ctx, s, c) {
   const a = c.itens[s.de.id], b = c.itens[s.para.id];
   if (!a || !b) return;
@@ -408,6 +428,7 @@ export function desenharQuadro(ctx, c, opcoes = {}) {
   for (const it of itens.filter((i) => i.tipo === 'pagina')) desenharItem(ctx, it, opcoes);
   for (const it of itens.filter((i) => i.tipo !== 'raia' && i.tipo !== 'pagina')) desenharItem(ctx, it, opcoes);
   for (const s of listaSetas(c)) desenharSeta(ctx, s, c);
+  for (const it of itens) if (it.tipo === 'processo') desenharSelo(ctx, c, it); /* v0.6.70 (S2) */
   ctx.restore();
   if (opcoes.demo) marcaDemo(ctx);
 }

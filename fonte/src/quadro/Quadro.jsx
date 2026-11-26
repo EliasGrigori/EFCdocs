@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { lembrarEtiquetas, raiasPorEtiqueta } from './etiquetas.js'; /* v0.6.66 (N1) */ import { lembrarFluxo, registrarAndamento, quemAgora } from './fluxoKanban.js'; /* v0.6.68 (R44) */ import { trataArrumar, valorArrumar, AVISO_TRAVADO } from './arrumar.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { lembrarEtiquetas, raiasPorEtiqueta } from './etiquetas.js'; /* v0.6.66 (N1) */ import { lembrarFluxo, quemAgora } from './fluxoKanban.js'; import { registrarTudo } from './historico.js'; /* v0.6.68 e v0.6.69 (R44) */ import { trataArrumar, valorArrumar, AVISO_TRAVADO } from './arrumar.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -100,7 +100,7 @@ export function Quadro({ arquivo, cx }) {
   const criouRef = useRef(null);
   const aplicarQ = useCallback((mud, rotulo, acao, opcoes = {}) => {
     if (!mud || !Object.keys(mud).length) return false;
-    const ok = cx.aplicar(Q.noArquivo(registrarAndamento(c, mud, { rastrear: !!ficha.pastaNome, quem: quemAgora(cx.perfilNome) })), rotulo, acao, opcoes); /* v0.6.68 (R44): quem iniciou e quem concluiu */
+    const ok = cx.aplicar(Q.noArquivo(registrarTudo(c, mud, { rastrear: !!ficha.pastaNome, quem: quemAgora(cx.perfilNome) })), rotulo, acao, opcoes); /* v0.6.68 (R44): quem iniciou e quem concluiu; v0.6.69: e o histórico */
     criouRef.current = opcoes.criou || null;
     return ok;
   }, [cx, c, ficha]);

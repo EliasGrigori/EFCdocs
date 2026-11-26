@@ -169,3 +169,15 @@ input.kb-titulo { min-width: 240px; outline: none; background: var(--surface); b
 .kb-quem svg { width: 13px; height: 13px; flex: none; }
 .kb-quem-fim { color: #14653a; font-weight: 600; }
 .kb-card.kb-ativ:not(.sel) { box-shadow: 0 0 0 1px rgba(31, 35, 40, .20), 0 1px 1px rgba(16, 24, 40, .10), 0 6px 10px -6px rgba(16, 24, 40, .28); }
+/* v0.6.69 (R44 parte 2): abas Comentários | Histórico na gaveta do cartão */
+.kb-gv-abas { display: flex; gap: 4px; padding: 8px 16px 0; border-bottom: 1px solid var(--border-light); }
+.kb-gv-aba { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-dim); cursor: pointer; border-radius: var(--r-ctl, 8px) var(--r-ctl, 8px) 0 0; }
+.kb-gv-aba::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--primary); opacity: 0; transition: opacity var(--duration-fast) var(--ease-out); }
+.kb-gv-aba.on { color: var(--text); }
+.kb-gv-aba.on::after { opacity: 1; }
+.kb-gv-aba:hover { color: var(--text); }
+.kb-gv-aba:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.kb-gv-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--surface-2); font-size: 11px; line-height: 18px; text-align: center; }
+.kb-gv-ev { font-size: 13.5px; line-height: 19px; color: var(--text); padding: 2px 0 8px 12px; border-left: 2px solid var(--border-light); overflow-wrap: anywhere; }
+.kb-gv-ev small { display: block; color: var(--text-dim); font-size: 12px; }
+@media (pointer: coarse) { .kb-gv-aba { height: 44px; } }
