@@ -20,6 +20,12 @@ export function dentroDoCwork(loc = typeof location !== 'undefined' ? location :
   return false;
 }
 
+/** v0.6.73 (P2): só a moldura de verdade (página de fora do mesmo site, em /efcwork/). O ?em=cwork não conta aqui, porque
+    qualquer um pode digitar no endereço: é o que decide a trava "só dentro do Cwork". */
+export function molduraDoCwork(loc = typeof location !== 'undefined' ? location : null, win = typeof window !== 'undefined' ? window : null) {
+  return dentroDoCwork({ href: 'http://x/', origin: loc ? loc.origin : '' }, win);
+}
+
 /** Liga a classe do modo aba no <html>. Devolve se está dentro. */
 export function ligarModoAba(doc = typeof document !== 'undefined' ? document : null, dentro = dentroDoCwork()) {
   if (doc && doc.documentElement) doc.documentElement.classList.toggle('em-cwork', !!dentro);

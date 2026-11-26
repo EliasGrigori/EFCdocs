@@ -8,18 +8,24 @@
 
 export const ID_APARELHO = 'neste aparelho';
 const CHAVE_NOME = 'efcdocs.autor';
+/* v0.6.73 (P2): quem entrou no Cwork (nucleo/loginCwork.js). O App avisa aqui; todo mundo que pergunta "quem sou" já recebe a conta. */
+let loginAtual = null;
+export const definirLogin = (l) => { loginAtual = l && l.uid ? l : null; };
+export const loginDoCwork = () => loginAtual;
 
 /** O nome digitado neste aparelho (comentários). */
 export function nomeDoAparelho() {
+  if (loginAtual) return loginAtual.nome || 'Conta do Cwork'; /* v0.6.73: logado pelo Cwork, o nome é o do cadastro */
   try { return String(localStorage.getItem(CHAVE_NOME) || '').trim().slice(0, 60); } catch { return ''; }
 }
 export function guardarNomeDoAparelho(nome) {
+  if (loginAtual) return; /* logado: o nome não é digitado */
   try { const n = String(nome || '').trim().slice(0, 60); if (n) localStorage.setItem(CHAVE_NOME, n); } catch { /* sem armazenamento: só não guarda */ }
 }
 
 /** Quem sou: { id, nome, perfil, origem }. login = { uid, nome, perfil } quando vier do Cwork (P2). */
-export function quemSou({ perfil = '', perfilNome = '' } = {}, login = null) {
-  if (login && login.uid) return { id: String(login.uid), nome: String(login.nome || '').slice(0, 80), perfil: login.perfil || perfil, origem: 'cwork' };
+export function quemSou({ perfil = '', perfilNome = '' } = {}, login = loginAtual) {
+  if (login && login.uid) return { id: String(login.uid), nome: String(login.nome || '').slice(0, 80) || 'Conta do Cwork', perfil: login.perfil || perfil, origem: 'cwork' };
   return { id: ID_APARELHO, nome: nomeDoAparelho() || String(perfilNome || '').trim(), perfil, origem: 'aparelho' };
 }
 
@@ -35,3 +41,5 @@ export function autorDaFicha(autor) {
 
 /** Quem criou o arquivo, para a permissão "só o dono": o id novo ou, nos arquivos antigos, o texto de antes. */
 export const donoDaFicha = (f) => (f && (f.criadoPorId || f.criadoPor)) || ID_APARELHO;
+/** v0.6.73 (P2): arquivo de "neste aparelho" (antes do login) é de quem está usando este aparelho; o resto, do código gravado. */
+export const ehDono = (f, q) => { const d = donoDaFicha(f); return d === ID_APARELHO || d === (q && q.id); };

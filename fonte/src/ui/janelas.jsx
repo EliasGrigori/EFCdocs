@@ -118,14 +118,20 @@ export function Opcoes({ prefs, setPref, cx, aoFechar, demo, versao, espaco, abr
           <label className="chave"><input type="checkbox" checked={prefs.painel} onChange={(ev) => setPref('painel', ev.target.checked)} />Abrir o painel de detalhes junto com o arquivo</label>
           <small className="op-dica">O painel da direita mostra nome, datas, tamanho e ações do arquivo aberto.</small>
         </Secao>
+        {cx && cx.login ? ( /* v0.6.73 (P2): logado pelo Cwork, o perfil vem do cadastro e não muda aqui */
+          <Secao id="perfil" titulo="Perfil" abertas={abertas} alternar={alternar} resumo={PERFIS[cx.login.perfil].nome}>
+            <p data-perfil-cwork>{cx.login.nome || 'Conta do Cwork'} · {PERFIS[cx.login.perfil].cadastro}{cx.login.estrela ? ' (líder ★)' : ''}. O perfil vem do cadastro de Pessoas do Cwork e muda lá.</p>
+          </Secao>
+        ) : (
         <Secao id="perfil" titulo="Perfil de teste" abertas={abertas} alternar={alternar} resumo={PERFIS[prefs.perfil].nome}>
           <div className="seg">
             {Object.entries(PERFIS).map(([id, pf]) => (
               <button key={id} type="button" className={'chipb' + (prefs.perfil === id ? ' on' : '')} aria-pressed={prefs.perfil === id} title={pf.cadastro} onClick={() => setPref('perfil', id)}>{pf.nome}</button>
             ))}
           </div>
-          <p>Só para testar o que cada tipo de pessoa pode fazer. O perfil de verdade vem do login (v0.9.0).</p>
+          <p>Só para testar o que cada tipo de pessoa pode fazer. Dentro do Cwork, o perfil vem do login.</p>
         </Secao>
+        )}
         <Secao id="sobre" titulo="Sobre" abertas={abertas} alternar={alternar} resumo={`Vértice Docs ${versao}`}>
           <p>{demo ? 'Modo demonstração (até 3 arquivos, banco separado).' : 'Tudo fica neste aparelho.'}{espaco ? ` Espaço usado: ${espaco}.` : ''}</p>
           {cx.instalar && <button type="button" className="btn sm" onClick={cx.instalar}><Icone n="instalar" />Instalar o Vértice Docs</button>}

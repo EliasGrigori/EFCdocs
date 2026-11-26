@@ -9,6 +9,7 @@ import { CabGaveta } from '../ui/gaveta.jsx';
 import { autorGuardado, guardarAutor, respostasDe, dataCurta, respostaNova } from './comentario.js';
 import { mudancasCampo } from './modelo.js';
 import { linhasHistorico } from './historico.js'; /* v0.6.69 (R44 parte 2) */
+import { loginDoCwork } from '../nucleo/quem.js'; /* v0.6.73 (P2) */
 
 export const totalComentarios = (it) => (it && it.nota ? 1 : 0) + respostasDe(it).length;
 
@@ -32,7 +33,7 @@ export function GavetaComentarios({ c, id, ids, abrir, fechar, aplicarQ, somente
   const enviar = (ev) => {
     if (ev) ev.preventDefault();
     const t = txt.trim(); if (!t) return;
-    const a = autor.trim(); guardarAutor(a);
+    const a = loginDoCwork() ? loginDoCwork().nome : autor.trim(); guardarAutor(a); /* v0.6.73: logado, sempre o nome do cadastro de agora */
     if (!it.nota) aplicarQ(mudancasCampo(c, [id], { nota: t.slice(0, 1000), notaA: a || undefined }), 'Comentário', 'formatou');
     else { const m = respostaNova(it, t, a); if (m) aplicarQ(mudancasCampo(c, [id], m), 'Responder comentário', 'formatou'); }
     setTxt('');
@@ -60,7 +61,8 @@ export function GavetaComentarios({ c, id, ids, abrir, fechar, aplicarQ, somente
       </div>
       {!somenteLeitura && (
         <form className="kb-gv-form" onSubmit={enviar}>
-          <input className="kb-gv-autor" value={autor} maxLength={60} placeholder="Seu nome" aria-label="Seu nome" onChange={(ev) => setAutor(ev.target.value)} />
+          {loginDoCwork() ? <span className="kb-gv-como" data-kb-como>Comentando como <b>{loginDoCwork().nome}</b></span> /* v0.6.73: logado, o nome vem do Cwork */
+            : <input className="kb-gv-autor" value={autor} maxLength={60} placeholder="Seu nome" aria-label="Seu nome" onChange={(ev) => setAutor(ev.target.value)} />}
           <span className="kb-gv-linha">
             <textarea rows={2} value={txt} maxLength={1000} placeholder={it.nota ? 'Escrever uma resposta' : 'Escrever um comentário'} aria-label={it.nota ? 'Resposta' : 'Comentário'}
               onChange={(ev) => setTxt(ev.target.value)} onKeyDown={(ev) => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) enviar(ev); }} />

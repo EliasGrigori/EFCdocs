@@ -13,7 +13,10 @@ import { tamanhoLegivel } from './nucleo/compacta.js';
 import { criarBanco } from './nucleo/banco.js';
 import { PorId, chegaNa, textoChega } from './nucleo/comandos.js';
 import { pode, SEM_PERMISSAO, PERFIS } from './nucleo/perfis.js';
-import { quemSou, nomeGravado, donoDaFicha } from './nucleo/quem.js'; /* v0.6.72 (P1): um lugar só para "quem sou" */
+import { quemSou, nomeGravado, ehDono, definirLogin } from './nucleo/quem.js'; /* v0.6.72 (P1): um lugar só para "quem sou" */
+import { lerLogin, ponteDoCwork, aoMudarLogin, situacaoDoAcesso } from './nucleo/loginCwork.js'; /* v0.6.73 (P2): login do Cwork */
+import { TelaAcesso } from './ui/acessoCwork.jsx';
+import { molduraDoCwork } from './nucleo/emCwork.js';
 import { avisarCwork } from './nucleo/emCwork.js'; /* v0.6.72 (P1): a aba do Cwork mostra o arquivo aberto */
 import { normalizarPrefs } from './nucleo/prefs.js';
 import { normalizarQuadro } from './quadro/modelo.js';
@@ -91,7 +94,14 @@ export function App() {
   const estadoPwa = usePwa();
   const escuro = typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches;
   const [prefs, setPrefs] = useState(() => normalizarPrefs(ler('prefs', null, { demo }), escuro));
-  const perfilRef = useRef(prefs.perfil); perfilRef.current = prefs.perfil;
+  const [login, setLogin] = useState(() => { const l = lerLogin(); definirLogin(l); return l; }); /* v0.6.73 (P2): quem entrou no Cwork */
+  const [, setAvisoLogin] = useState(0); /* redesenha mesmo quando o login continua null (a interface do Cwork pode ter chegado agora) */
+  useEffect(() => aoMudarLogin(() => { const l = lerLogin(); definirLogin(l); setLogin(l); setAvisoLogin((n) => n + 1); }), []);
+  const acesso = situacaoDoAcesso({ dentro: molduraDoCwork(), ponte: ponteDoCwork(), login }); /* a trava olha a moldura de verdade, não o ?em=cwork */
+  const perfilEf = login ? login.perfil : prefs.perfil; /* logado: o perfil vem do cadastro do Cwork */
+  const acessoRef = useRef(acesso); acessoRef.current = acesso;
+  const contaRef = useRef(login ? login.uid : null);
+  const perfilRef = useRef(perfilEf); perfilRef.current = perfilEf;
   const eu = useCallback(() => quemSou({ perfil: perfilRef.current }), []); /* v0.6.72 (P1): na ficha, o nome digitado neste aparelho ou "neste aparelho" (o perfil de teste não vira nome de pessoa); na P2 entra o login do Cwork */
   const setPref = useCallback((k, v) => setPrefs((p) => ({ ...p, [k]: v })), []);
   const cel = useMedia('(max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse)'); /* v0.6.35 (S1): celular grande deitado também é celular */
@@ -430,6 +440,7 @@ export function App() {
 
   /** Cria um arquivo já com conteúdo (ex.: a conta desenhada vira um quadro) e abre. */
   const criarCom = useCallback(async (tipo, nome, conteudo, aviso, original) => {
+    if (semPermissaoRef.current && semPermissaoRef.current('arquivo.criar')) { avisar(SEM_PERMISSAO, { ic: 'cadeado' }); return null; } /* v0.6.73: o Visitante não cria nem importando */
     try {
       const a = criarArquivo({ tipo, nome, autor: eu() });
       a.conteudo = conteudo;
@@ -476,7 +487,8 @@ export function App() {
     await banco.mudarFicha(f.id, { pastaNome: mud.pastaNome || undefined, codigo: mud.codigo || undefined, alteradoEm: new Date().toISOString(), alteradoPor: nomeGravado(eu()), alteradoPorId: eu().id }, 'documento interno');
     recarregar();
   }, [banco, aplicarDiff, recarregar]);
-  const ponte = usarPonte({ banco, fichas, recarregar, avisar, aberto, autor: 'neste aparelho', mudarFichaArquivo }); /* a ponte segue com o texto de sempre (o contrato EFD tem id próprio do Vértice) */
+  const autorPonte = useMemo(() => quemSou({ perfil: perfilEf }), [login && login.uid, login && login.nome]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ponte = usarPonte({ banco, fichas, recarregar, avisar, aberto, autor: autorPonte, mudarFichaArquivo }); /* v0.6.73: o arquivo que vem de um pedido do Cwork leva a conta */
   const ponteRef = useRef(ponte); ponteRef.current = ponte;
   const pidRota = rota.startsWith('abrir/') ? rota.slice(6) : null;
   useEffect(() => { if (pidRota) ponteRef.current.abrirDaCaixa(pidRota); }, [pidRota]);
@@ -504,12 +516,19 @@ export function App() {
   const menuAuto = !globalThis.EFC_MENU_FIXO && media && !cel && planilhaAberta && prefs.menu !== 'oculto' && !menuNaPlanilha;
   const menuEf = menuAuto ? 'oculto' : prefs.menu;
 
+  const semPermissaoRef = useRef(null);
   const semPermissao = useCallback((acao, ficha) => {
     const f = ficha || (abertoRef.current && abertoRef.current.arquivo.ficha);
     const doAberto = !ficha || (abertoRef.current && abertoRef.current.arquivo.ficha.id === ficha.id);
     if (travado && doAberto && acao !== 'ver' && acao !== 'exportar') return travado.motivo === 'conflito' ? MSG_CONFLITO : MSG_TRAVADO;
-    return pode(prefs.perfil, acao, { usuario: eu().id, criadoPor: f ? donoDaFicha(f) : eu().id }) ? '' : SEM_PERMISSAO; /* v0.6.72: o dono pelo id (arquivos antigos: o texto de antes) */
-  }, [prefs.perfil, travado]);
+    const q = eu(); return pode(perfilEf, acao, { usuario: q.id, criadoPor: f && !ehDono(f, q) ? 'outra conta' : q.id }) ? '' : SEM_PERMISSAO; /* v0.6.73: dono pelo código; "neste aparelho" é de quem usa o aparelho */
+  }, [perfilEf, travado]);
+  semPermissaoRef.current = semPermissao;
+  /* v0.6.73 (P2): saiu da conta, a trava apareceu ou entrou outra conta: fecha o arquivo aberto (e o desfazer da conta anterior vai junto) */
+  useEffect(() => {
+    const uid = login ? login.uid : null, trocou = contaRef.current !== uid; contaRef.current = uid;
+    if ((acesso === 'sair' || acesso === 'trava' || trocou) && abertoRef.current) irPara('');
+  }, [acesso, login && login.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const bloqueado = useCallback((id, ficha) => {
     const cmd = PorId[id];
@@ -609,6 +628,7 @@ export function App() {
   useEffect(() => {
     const tecla = (ev) => {
       if (paleta || opcoes || pergunta || linhaTempo || abrirExcel) return;
+      if (acessoRef.current === 'sair' || acessoRef.current === 'trava') return; /* v0.6.73: com a tela de acesso na frente, nenhum atalho mexe no arquivo */
       const k = ev.key.toLowerCase();
       const ctrl = ev.ctrlKey || ev.metaKey;
       const digitando = /^(input|textarea|select)$/i.test(ev.target.tagName) || ev.target.isContentEditable;
@@ -654,7 +674,8 @@ export function App() {
     compartilharCwork: (gerar) => { const a = abertoRef.current; if (a) ponte.compartilhar(a.arquivo.ficha, gerar); },
     /* v0.6.20 (R9): o envio ao Cwork guardado no aparelho, para o histórico da gaveta e do painel */
     envioDe: (id) => (ponte.estado || {})[id] || null,
-    perfilNome: (PERFIS[prefs.perfil] || {}).nome || '', /* v0.6.68 (R44): o "quem" do Kanban antes do login */
+    perfilNome: (PERFIS[perfilEf] || {}).nome || '', /* v0.6.68 (R44): o "quem" do Kanban antes do login */
+    login, /* v0.6.73 (P2): quem entrou no Cwork (ou null) */
   };
 
   const contagem = useMemo(() => {
@@ -686,6 +707,7 @@ export function App() {
   const ficha = aberto ? aberto.arquivo.ficha : null;
   const st = statusEd || {};
 
+  if (acesso === 'trava' || acesso === 'sair') return <TelaAcesso tipo={acesso} />; /* v0.6.73 (P2): só dentro do Cwork, e com alguém logado */
   return (
     <div className={'app' + (cel ? ' cel' : '')} data-menu={menuEf} data-menu-auto={menuAuto ? '' : undefined} data-layout={prefs.layout} data-faixa={prefs.faixa}>
       {!cel && menuEf !== 'oculto' && <Menu rota={rota} modAtual={mod} cont={contagem} prefs={prefs} cx={cx} />}

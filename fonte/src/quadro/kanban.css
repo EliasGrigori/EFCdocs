@@ -181,3 +181,5 @@ input.kb-titulo { min-width: 240px; outline: none; background: var(--surface); b
 .kb-gv-ev { font-size: 13.5px; line-height: 19px; color: var(--text); padding: 2px 0 8px 12px; border-left: 2px solid var(--border-light); overflow-wrap: anywhere; }
 .kb-gv-ev small { display: block; color: var(--text-dim); font-size: 12px; }
 @media (pointer: coarse) { .kb-gv-aba { height: 44px; } }
+.kb-gv-como { font-size: 13px; color: var(--text-dim); } /* v0.6.73 (P2) */
+.kb-gv-como b { color: var(--text); }

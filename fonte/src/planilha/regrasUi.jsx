@@ -1,4 +1,5 @@
 /* EFCdocs — Planilha (v0.5.1): telas da lista suspensa / validação de dados, da formatação condicional e dos comentários. */
+import { loginDoCwork } from '../nucleo/quem.js'; /* v0.6.73 (P2): logado, o nome do comentário vem do Cwork */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { COR as COR_PAPEL } from '../quadro/modelo.js';
 import { Icone, Janela } from '../ui/comum.jsx';
@@ -234,14 +235,15 @@ export function Balao({ x, y, titulo, texto, respostas, tipo = 'com', maxW = 260
 export function JanelaComentario({ chaveCel, inicial, nomeInicial, aoSalvar, aoExcluir, aoFechar, somenteLeitura }) {
   const [t, setT] = useState(inicial ? inicial.t || '' : '');
   const [a, setA] = useState(nomeInicial || (inicial && inicial.a) || '');
+  const quem = loginDoCwork() ? loginDoCwork().nome : a.trim(); /* v0.6.73: logado, quem responde é a conta; o autor do comentário de cima não muda */
   const [resp, setResp] = useState('');
   const campo = useRef(null);
   useEffect(() => { if (campo.current) campo.current.focus(); }, []);
   const salvar = () => {
     const txt = t.replace(/\s+$/, '');
-    const respostas = [...((inicial && inicial.r) || []), ...(resp.trim() ? [{ a: a.trim(), t: resp.trim() }] : [])];
+    const respostas = [...((inicial && inicial.r) || []), ...(resp.trim() ? [{ a: quem, t: resp.trim() }] : [])];
     if (!txt.trim() && !respostas.length) { aoFechar(); return; }
-    aoSalvar({ ...(inicial || {}), t: txt, a: a.trim() || undefined, ...(respostas.length ? { r: respostas } : {}) });
+    aoSalvar({ ...(inicial || {}), t: txt, a: (loginDoCwork() && inicial && inicial.a) ? inicial.a : (quem || undefined), ...(respostas.length ? { r: respostas } : {}) });
     aoFechar();
   };
   return (
@@ -263,7 +265,7 @@ export function JanelaComentario({ chaveCel, inicial, nomeInicial, aoSalvar, aoE
         {inicial && inicial.enc && !somenteLeitura && (
           <label className="rg-campo col"><span>Responder</span><textarea rows={2} value={resp} onChange={(ev) => setResp(ev.target.value)} /></label>
         )}
-        {!somenteLeitura && <label className="rg-campo"><span>Seu nome (aparece no comentário)</span><input value={a} maxLength={60} onChange={(ev) => setA(ev.target.value)} placeholder="Opcional" /></label>}
+        {!somenteLeitura && !loginDoCwork() && <label className="rg-campo"><span>Seu nome (aparece no comentário)</span><input value={a} maxLength={60} onChange={(ev) => setA(ev.target.value)} placeholder="Opcional" /></label>}
         {inicial && inicial.enc && <small className="rg-dica">Veio como conversa do Excel 365. Ao salvar como .xlsx, a conversa vira uma anotação comum (o texto e as respostas ficam juntos).</small>}
       </div>
     </Janela>

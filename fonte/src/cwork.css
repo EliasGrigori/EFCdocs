@@ -153,3 +153,11 @@ body[data-theme=papel] .tabs .tab.active, body[data-theme=dark] .tabs .tab.activ
 .em-cwork .rail .brand-mark, .em-cwork .rail .brand-txt, .em-cwork .gaveta .brand-mark, .em-cwork .gaveta .brand-txt { display: none; }
 .em-cwork .rail .brand, .em-cwork .gaveta .brand { min-height: 0; padding-top: 6px; padding-bottom: 2px; }
 .em-cwork .rail-user { display: none; }
+
+/* v0.6.73 (P2): telas "Abra pelo Cwork" e "Entre no Cwork" */
+.acesso-cwork { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--bg, #f4efe4); }
+.acesso-cartao { max-width: 440px; text-align: center; display: grid; justify-items: center; gap: 14px; padding: 32px 28px; background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--r-jan, 14px); box-shadow: 0 18px 40px -24px rgba(0, 0, 0, .35); }
+.acesso-cartao h1 { margin: 0; font-family: var(--font-titulo, 'Fraunces', serif); font-size: 24px; line-height: 1.25; color: var(--text); }
+.acesso-cartao p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-dim); }
+.acesso-marca { width: 64px; height: 64px; }
+.acesso-cartao .btn { min-height: 44px; padding: 0 22px; display: inline-flex; align-items: center; text-decoration: none; }

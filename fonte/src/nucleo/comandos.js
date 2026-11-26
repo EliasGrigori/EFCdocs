@@ -21,7 +21,7 @@ export const COMANDOS = [
   C('arquivo.novoQuadro', 'Novo quadro de post-its', 'postits', { sin: ['criar quadro', 'kanban', 'fluxograma', 'post-it'], acao: 'arquivo.criar' }),
   C('arquivo.renomear', 'Renomear', 'renomear', { sin: ['mudar nome', 'trocar nome', 'título'], acao: 'arquivo.renomear', ed: true }),
   C('arquivo.lixeira', 'Mandar para a lixeira', 'lixeira', { sin: ['apagar arquivo', 'excluir arquivo', 'deletar', 'remover rascunho'], acao: 'arquivo.lixeira', ed: true }),
-  C('arquivo.abrir', 'Abrir arquivo do Excel', 'abrir', { sin: ['importar', 'abrir arquivo', 'xlsx', 'xlsm', 'excel', 'carregar planilha'], chega: porModulo(null, V7, null), mods: ['*'] }),
+  C('arquivo.abrir', 'Abrir arquivo do Excel', 'abrir', { sin: ['importar', 'abrir arquivo', 'xlsx', 'xlsm', 'excel', 'carregar planilha'], chega: porModulo(null, V7, null), mods: ['*'], acao: 'arquivo.criar' }), /* v0.6.73: abrir do Excel cria arquivo */
   C('arquivo.exportarExcel', 'Salvar como Excel', 'excel', { sin: ['exportar excel', 'xlsx', 'baixar planilha', 'baixar excel'], chega: V5, mods: ['planilha'], acao: 'exportar' }),
   C('arquivo.baixarOriginal', 'Baixar o original', 'baixar', { sin: ['arquivo original', 'excel original', 'como veio', 'devolver original'], mods: ['planilha'], acao: 'exportar' }),
   C('arquivo.relatorioExcel', 'O que veio do Excel', 'info', { sin: ['relatório da importação', 'compatibilidade', 'o que ficou de fora'], mods: ['planilha'] }),

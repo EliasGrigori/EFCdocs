@@ -536,3 +536,4 @@ F534;Quadro;exportar;"Selo da coluna na atividade e linhas de quem iniciou/concl
 F535;Núcleo;cwork;"Modo aba: dentro do Cwork o menu esconde a marca e o cartão do perfil, e o Vértice avisa o Cwork do arquivo aberto (P1)";funciona;"";"feito na v0.6.72";plano Vértice como aba do Cwork 26/11
 F536;Núcleo;cwork;"Quem sou num lugar só; ficha com nome e código de quem criou e alterou; número de gravação (P1)";funciona;"";"feito na v0.6.72";plano Vértice como aba do Cwork 26/11
 F537;Núcleo;cwork;"Banco pronto para a nuvem: fila de envio, versão da nuvem e cópia em conflito (ligar na P4)";parcial;"só com banco falso";"feito na v0.6.72; liga na P4";plano Vértice como aba do Cwork 26/11
+F538;Núcleo;cwork;"Login do Cwork pela interface combinada (sem Firebase no Vértice): perfil do cadastro, nome sem digitar, Entre no Cwork e Abra pelo Cwork (P2)";funciona;"depende da P3 do Cwork para valer de verdade";"feito na v0.6.73";plano Vértice como aba do Cwork 26/11
