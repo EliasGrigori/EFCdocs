@@ -5,6 +5,7 @@ import * as Q from '../../src/quadro/modelo.js';
 import { mudancasLigarFluxo } from '../../src/quadro/fluxoKanban.js';
 import { registrarTudo, registrarHistorico, linhasHistorico, comLinha, MAX_HIST, JUNTAR_MS } from '../../src/quadro/historico.js';
 import { mudancasTarefa } from '../../src/quadro/tarefa.js';
+import { novaEtiqueta, mudancasEtiqueta } from '../../src/quadro/etiquetas.js';
 
 const aplicar = (c, mud) => { for (const [k, v] of Object.entries(mud)) { const p = k.split('.'); let o = c; for (let i = 0; i < p.length - 1; i++) o = o[p[i]]; o[p[p.length - 1]] = v; } return c; };
 const t = (min) => new Date(Date.parse('2026-11-26T10:00:00Z') + min * 60000);
@@ -44,7 +45,7 @@ test('a mesma pessoa no mesmo campo em pouco tempo vira uma linha só; ir e volt
   const c = quadro();
   for (let i = 0; i < 5; i++) vai(c, Q.mudancasCampo(c, ['p1'], { texto: 'abc'.slice(0, (i % 3) + 1) + i }), op('Pessoa A', i * 0.2));
   assert.equal(c.itens.p1.hist.length, 1);
-  assert.equal(c.itens.p1.hist[0].para, c.itens.p1.texto);
+  assert.equal(c.itens.p1.hist[0].para, 'sim', 'o conteúdo do texto não vai para o histórico');
   vai(c, Q.mudancasMoverKanban(c, 'p1', 'c2'), op('Pessoa A', 5));
   vai(c, Q.mudancasMoverKanban(c, 'p1', 'c1'), op('Pessoa A', 5.5));
   assert.deepEqual(c.itens.p1.hist.map((l) => l.o), ['texto']);
@@ -97,4 +98,21 @@ test('mudar só a ordem dentro da coluna e mexer em outro cartão não suja o hi
   aplicar(c, Q.novoItem(c, 'postit', { texto: 'B' }, { id: 'p3' }).mudancas);
   const mud = registrarHistorico(c, Q.mudancasMoverKanban(c, 'p3', 'c1', 0), op('Pessoa A', 0));
   for (const v of Object.values(mud)) assert.equal(v.hist, undefined);
+});
+
+test('revisor novo: etiqueta criada na hora tem o nome; GUT com o mesmo produto conta; relógio atrasado não junta; copiar não leva', () => {
+  const c = quadro();
+  const e = novaEtiqueta(c, 'Laboratório');
+  const mud = { ...e.mudancas, ...mudancasEtiqueta({ ...c, etiquetas: e.mudancas.etiquetas }, ['p1'], e.id) };
+  vai(c, mud, op('Pessoa A', 0));
+  assert.equal(linhasHistorico(c.itens.p1)[0].texto, 'pôs a etiqueta Laboratório');
+  vai(c, mudancasTarefa(c, 'p1', { g: 3, u: 2, t: 1 }), op('Pessoa A', 10));
+  vai(c, mudancasTarefa(c, 'p1', { g: 2, u: 3, t: 1 }), op('Pessoa B', 20));
+  assert.deepEqual(c.itens.p1.hist.filter((l) => l.o === 'gut').map((l) => l.q), ['Pessoa A', 'Pessoa B']);
+  let h = comLinha([], { q: 'A', em: t(60).toISOString(), o: 'texto', para: 'sim' });
+  h = comLinha(h, { q: 'A', em: t(0).toISOString(), o: 'texto', para: 'sim' });
+  assert.equal(h.length, 2);
+  vai(c, Q.mudancasMoverKanban(c, 'p1', 'c3'), op('Pessoa A', 30));
+  const cp = Q.copiar(c, ['p1']);
+  assert.ok(!('hist' in cp.itens[0]) && !('ini' in cp.itens[0]) && !('fim' in cp.itens[0]));
 });

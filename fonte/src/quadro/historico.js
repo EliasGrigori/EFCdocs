@@ -19,17 +19,20 @@ const curto = (v, n = 80) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0
 
 const nomeColuna = (c, it) => { const id = colunaEfetiva(c, it); const k = c.colunas.find((x) => x.id === id); return k ? k.nome : ''; };
 const nomeEtiqueta = (c, fr) => { const e = (c.etiquetas || []).find((x) => x.id === fr); return e ? e.nome : ''; };
+const mesmaGut = (a, b) => ['g', 'u', 't'].every((k) => (a[k] || 0) === (b[k] || 0)) || valorGut(a) === valorGut(b) && !valorGut(a);
 
 /** O que mudou entre o item velho e o novo, como linhas de histórico (sem quem e quando). */
-export function diferencas(c, velho, novo) {
+export function diferencas(c, velho, novo, etiquetasNovas) {
+  if (etiquetasNovas) c = { ...c, etiquetas: etiquetasNovas }; /* "Nova etiqueta › Criar e pôr" manda a lista nova junto */
   const out = [];
   if (c.colunas.length && colunaEfetiva(c, velho) !== colunaEfetiva(c, novo)) out.push({ o: 'col', de: nomeColuna(c, velho), para: nomeColuna(c, novo) });
-  if ((velho.texto || '') !== (novo.texto || '')) out.push({ o: 'texto', para: curto(novo.texto) });
-  if (tituloDe(velho) !== tituloDe(novo)) out.push({ o: 'tit', para: curto(tituloDe(novo)) });
+  /* texto e título: só que mudou, sem guardar o conteúdo (o que alguém apagou do cartão não fica guardado no histórico) */
+  if ((velho.texto || '') !== (novo.texto || '')) out.push({ o: 'texto', para: novo.texto && novo.texto.trim() ? 'sim' : '' });
+  if (tituloDe(velho) !== tituloDe(novo)) out.push({ o: 'tit', para: tituloDe(novo) ? 'sim' : '' });
   if ((velho.resp || '') !== (novo.resp || '')) out.push({ o: 'resp', para: curto(novo.resp, 60) });
   if ((velho.prazo || '') !== (novo.prazo || '')) out.push({ o: 'prazo', para: novo.prazo || '' });
-  if (valorGut(velho) !== valorGut(novo)) out.push({ o: 'gut', para: String(valorGut(novo) || '') });
-  if ((velho.fr || '') !== (novo.fr || '')) out.push({ o: 'fr', para: nomeEtiqueta(c, novo.fr) });
+  if (!mesmaGut(velho, novo)) out.push({ o: 'gut', para: String(valorGut(novo) || '') });
+  if ((velho.fr || '') !== (novo.fr || '')) out.push({ o: 'fr', para: nomeEtiqueta(c, novo.fr) || (novo.fr ? '?' : '') });
   if (!!velho.trava !== !!novo.trava) out.push({ o: 'trava', para: novo.trava ? 'sim' : '' });
   return out;
 }
@@ -38,7 +41,8 @@ export function diferencas(c, velho, novo) {
 export function comLinha(hist, linha) {
   const h = Array.isArray(hist) ? hist.slice() : [];
   const ult = h[h.length - 1];
-  const perto = ult && ult.q === linha.q && Date.parse(linha.em) - Date.parse(ult.em) < JUNTAR_MS;
+  const dt = ult ? Date.parse(linha.em) - Date.parse(ult.em) : -1;
+  const perto = ult && ult.q === linha.q && dt >= 0 && dt < JUNTAR_MS; /* relógio de outro aparelho atrasado não junta */
   if (perto && ult.o === 'criou' && (linha.o === 'texto' || linha.o === 'tit')) return h.slice(-MAX_HIST); /* escrever logo depois de criar faz parte de criar */
   if (perto && ult.o === linha.o && linha.o !== 'criou') {
     const junta = { ...linha };
@@ -66,7 +70,7 @@ export function registrarHistorico(c, mud, { rastrear, quem, agora = new Date() 
       continue;
     }
     if (!rastrear || !noKanban(c2, novo)) continue;
-    const dif = diferencas(c, velho, novo);
+    const dif = diferencas(c, velho, novo, Array.isArray(mud.etiquetas) ? mud.etiquetas : null);
     if (!dif.length) continue;
     let h = novo.hist;
     for (const d of dif) h = comLinha(h, { ...base, ...d });
@@ -84,12 +88,12 @@ export function textoDaLinha(l) {
   const t = {
     criou: 'criou o cartão',
     col: 'moveu de “' + (l.de || '?') + '” para “' + (p || '?') + '”',
-    texto: p ? 'mudou o texto para “' + p + '”' : 'apagou o texto',
-    tit: p ? 'mudou o título para “' + p + '”' : 'tirou o título',
+    texto: !p ? 'apagou o texto' : p === 'sim' ? 'mudou o texto' : 'mudou o texto para “' + p + '”',
+    tit: !p ? 'tirou o título' : p === 'sim' ? 'mudou o título' : 'mudou o título para “' + p + '”',
     resp: p ? 'passou para ' + p : 'tirou o responsável',
     prazo: p ? 'pôs o prazo ' + prazoBR(p) : 'tirou o prazo',
     gut: p ? 'mudou a GUT para ' + p : 'tirou a GUT',
-    fr: p ? 'pôs a etiqueta ' + p : 'tirou a etiqueta',
+    fr: p === '?' ? 'mudou a etiqueta' : p ? 'pôs a etiqueta ' + p : 'tirou a etiqueta',
     trava: p ? 'travou o cartão' : 'destravou o cartão',
   }[l.o] || 'mudou';
   return { quem: l.q || 'Alguém', texto: t, quando: dataCurta(l.em) };

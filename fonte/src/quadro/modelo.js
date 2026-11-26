@@ -240,7 +240,7 @@ export function mudancasCampo(c, ids, campos) {
 export function copiar(c, ids) {
   const set = new Set(ids.filter((id) => c.itens[id]));
   return {
-    itens: [...set].map((id) => structuredClone(c.itens[id])),
+    itens: [...set].map((id) => { const it = structuredClone(c.itens[id]); delete it.hist; delete it.ini; delete it.fim; return it; }), /* v0.6.69: o que se copia não leva quem fez nem o histórico */
     setas: listaSetas(c).filter((s) => set.has(s.de.id) && set.has(s.para.id)).map((s) => structuredClone(s)),
   };
 }

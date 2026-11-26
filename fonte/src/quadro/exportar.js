@@ -7,6 +7,7 @@ import { montarPdfFolhas } from './pdf.js';
 import { COR, porColuna, listaItens, folhas, recorte, noKanban } from './modelo.js';
 import { derivar } from './legenda.js';
 import { resumoTarefa, hojeISO } from './tarefa.js';
+import { linhasAndamento } from './fluxoKanban.js'; /* v0.6.70 (S2): quem iniciou e quem concluiu também no PNG e no PDF */
 
 const dois = (n) => String(n).padStart(2, '0');
 export function carimboData(d = new Date()) {
@@ -33,7 +34,7 @@ export function canvasDoKanban(c, { escala = 2, demo = false } = {}) {
   const medir = document.createElement('canvas').getContext('2d');
   medir.font = `14px ${FONTE}`;
   const hoje = hojeISO();
-  const alturaCard = (it) => Math.max(CARD_MIN, 34 + Math.min(6, quebrarTexto(medir, it.texto || ' ', LC - 40).length) * 18) + (resumoTarefa(c, it, hoje) ? 22 : 0);
+  const alturaCard = (it) => Math.max(CARD_MIN, 34 + Math.min(6, quebrarTexto(medir, it.texto || ' ', LC - 40).length) * 18) + (resumoTarefa(c, it, hoje) ? 22 : 0) + linhasAndamento(it).length * 16;
   const alturas = c.colunas.map((k) => (grupos[k.id] || []).reduce((s, it) => s + alturaCard(it) + 10, 0));
   const W = M * 2 + c.colunas.length * LC + (c.colunas.length - 1) * ESP;
   const H = M * 2 + TOPO + Math.max(120, ...alturas);
@@ -63,7 +64,7 @@ export function canvasDoKanban(c, { escala = 2, demo = false } = {}) {
       ctx.strokeStyle = '#d0d5dd';
       ctx.fillRect(x + 10, y, LC - 20, h);
       ctx.strokeRect(x + 10.5, y + 0.5, LC - 21, h - 1);
-      ctx.fillStyle = COR[it.cor] || COR.amarelo;
+      ctx.fillStyle = it.tipo === 'processo' ? '#98a2b3' : COR[it.cor] || COR.amarelo; /* v0.6.70: a atividade do fluxo tem a faixa cinza */
       ctx.fillRect(x + 10, y, 5, h);
       ctx.fillStyle = 'rgba(31,35,40,.55)';
       ctx.font = `600 10px ${FONTE}`;
@@ -74,6 +75,14 @@ export function canvasDoKanban(c, { escala = 2, demo = false } = {}) {
       const linhas = quebrarTexto(ctx, it.texto || '', LC - 40).slice(0, 6);
       linhas.forEach((l, j) => ctx.fillText(l, x + 24, y + 36 + j * 18));
       const t = resumoTarefa(c, it, hoje);
+      const and = linhasAndamento(it); /* v0.6.70 (S2): acima do rodapé da tarefa, como no cartão da tela */
+      and.forEach((l, j) => {
+        const base = y + h - 8 - (t ? 22 : 0) - (and.length - 1 - j) * 16;
+        ctx.font = `${l.tipo === 'fim' ? '600' : '400'} 11px ${FONTE}`; ctx.textAlign = 'left';
+        ctx.fillStyle = l.tipo === 'fim' ? '#14653a' : '#3d434a';
+        let tx = l.texto; if (ctx.measureText(tx).width > LC - 40) { while (tx.length > 4 && ctx.measureText(tx + '…').width > LC - 40) tx = tx.slice(0, -1); tx += '…'; }
+        ctx.fillText(tx, x + 24, base);
+      });
       if (t) {
         const base = y + h - 8;
         ctx.font = `600 11px ${FONTE}`;

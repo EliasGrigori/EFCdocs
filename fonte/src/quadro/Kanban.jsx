@@ -111,6 +111,8 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
   const [editando, setEditando] = useState(null);
   const [escondidas, setEscondidas] = useState(() => new Set()); /* v0.6.66 (N1): etiquetas escondidas pelo filtro */
   const [gaveta, setGaveta] = useState(null); /* v0.6.67 (N2): post-it com a gaveta de comentários aberta */
+  const [pedido, setPedido] = useState(0); /* v0.6.69: o balão do cartão abre a gaveta em Comentários */
+  const abrirGaveta = (id) => { setGaveta(id); setPedido((n) => n + 1); };
   /* v0.6.64: o arrasto mexe só no DOM (kanbanArrasto.js); o React fica sabendo no fim, com a coluna e o lugar */
   const arrastando = useRef(false), aoSoltarRef = useRef(null), arr = useRef(null);
   /* ao mover, criar ou tirar, cada cartão desliza do lugar antigo até o novo (só transform; 250 ms da escala) */
@@ -255,10 +257,10 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
                         onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); terminarEdicao(true); } /* v0.6.26 (D15) */ if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) terminarEdicao(true); }}
                         onBlur={() => terminarEdicao(true)} />
                     ) : <p style={{ ...(papel.letra || {}), fontWeight: it.fonte && it.fonte.n ? 700 : undefined, fontStyle: it.fonte && it.fonte.i ? 'italic' : undefined, color: it.fonte && it.fonte.cor }}>{it.texto || <span className="kb-vazio">Sem texto. Toque duas vezes para escrever.</span>}</p>}
-                    <PeCartao t={resumoTarefa(c, it, hoje)} coments={totalComentarios(it)} aoComentar={() => setGaveta(it.id)} />
+                    <PeCartao t={resumoTarefa(c, it, hoje)} coments={totalComentarios(it)} aoComentar={() => abrirGaveta(it.id)} />
                     {linhasAndamento(it).length > 0 && <div className="kb-quem" data-kb-quem>{linhasAndamento(it).map((l) => <span key={l.tipo} className={'kb-quem-' + l.tipo} data-kb-quem-tipo={l.tipo}><Icone n={l.tipo === 'fim' ? 'check' : 'usuario'} />{l.texto}</span>)}</div>} {/* v0.6.68 (R44) */}
                     {!somenteLeitura && !totalComentarios(it) && <button type="button" className="kb-com-novo" data-kb-comentar={it.id} title="Comentar" aria-label={'Comentar ' + (it.cod || 'o post-it')}
-                      onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); setGaveta(it.id); }}><Icone n="comentario" /></button>}
+                      onPointerDown={(ev) => ev.stopPropagation()} onClick={(ev) => { ev.stopPropagation(); abrirGaveta(it.id); }}><Icone n="comentario" /></button>}
                   </article>
                 </div>
               ); })}
@@ -269,7 +271,7 @@ export function KanbanVista({ c, aplicarQ, somenteLeitura, sel, setSel, cx, codi
         );
       })}
       {gaveta && c.itens[gaveta] && (
-        <GavetaComentarios c={c} id={gaveta} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} fechar={() => setGaveta(null)} abrir={setGaveta}
+        <GavetaComentarios c={c} id={gaveta} pedido={pedido} aplicarQ={aplicarQ} somenteLeitura={somenteLeitura} fechar={() => setGaveta(null)} abrir={setGaveta}
           ids={c.colunas.flatMap((k) => (grupos[k.id] || []).filter((x) => passaNoFiltro(x, escondidas)).map((x) => x.id))} />
       )}
       {!somenteLeitura && (
