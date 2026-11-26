@@ -131,14 +131,15 @@ export const DESCRICAO = {
   'inserir.campo': 'Campo de preencher em formulário.',
   'inserir.checklist': 'Lista de itens para marcar.',
   'inserir.assinatura': 'Linha de assinatura com o nome completo embaixo e a rubrica desenhada ou em foto.',
-  'inserir.postit': 'Cria um post-it no quadro.',
+  'inserir.postit': 'Cria um post-it no quadro. Com um cartão escolhido: Tab cria o próximo já ligado ao lado, Shift+Tab embaixo, e Shift+Enter cria o irmão (mesmo cartão de cima).',
   'inserir.forma': 'Formas de fluxograma (atividade, decisão, início, entrada/saída).',
   'inserir.processo': 'Atividade: um passo do processo.',
   'inserir.decisao': 'Decisão: pergunta com saídas Sim e Não.',
   'inserir.inicio': 'Início ou fim do processo.',
   'inserir.dados': 'Entrada ou saída de dados ou documentos.',
   'inserir.seta': 'Liga dois itens. A seta acompanha quando você move.',
-  'inserir.proximo': 'Cria o próximo passo já ligado ao item selecionado.',
+  'inserir.proximo': 'Cria o próximo passo já ligado ao item selecionado (Tab ao lado, Shift+Tab embaixo).',
+  'inserir.irmao': 'Cria o irmão do cartão escolhido: ligado ao mesmo cartão de cima, logo depois dele. Bom para mapa mental.',
   'inserir.pagina': 'Área do quadro que vira uma folha A4 no PDF.',
   'inserir.legenda': 'Legenda automática das formas usadas.',
   'inserir.modelo': 'Modelos prontos da qualidade (RNC, Ishikawa, 5W2H, GUT, PDCA...).',
@@ -265,7 +266,7 @@ export const ATALHOS = {
   },
   postits: {
     ...COMUNS,
-    'editar.duplicar': 'Ctrl+D', 'editar.excluir': 'Delete', 'inserir.proximo': 'Tab',
+    'editar.duplicar': 'Ctrl+D', 'editar.excluir': 'Delete', 'inserir.proximo': 'Tab', 'inserir.irmao': 'Shift+Enter', /* v0.6.71 */
     /* v0.6.24.1 (V05): iguais aos da planilha (Excel em português) */
     'formatar.negrito': 'Ctrl+N', 'formatar.italico': 'Ctrl+I', 'formatar.sublinhado': 'Ctrl+S', 'arquivo.salvar': 'Ctrl+B',
   },

@@ -511,10 +511,10 @@ F509;Geral;janelas;"Janelas e menus nascem 85% visíveis (print logo após o cli
 F510;Quadro;modelos;"Modelo de quadro com Kanban ligado (mesmo arquivo; atividades nascem das etapas do fluxo): botão Ligar o fluxo no Kanban";funciona;"";"feito na v0.6.68";estudo do Kanban 25/11
 F511;Quadro;modelos;"Quem iniciou, quem concluiu e histórico de atualizações, só nos Documentos internos; acesso por login na fase do Firebase";parcial;"falta o acesso por login (fase do Firebase)";"quem iniciou e quem concluiu na v0.6.68; histórico na v0.6.69";estudo do Kanban 25/11
 F512;Quadro;arquivo;"Exportar e importar o quadro editável (arquivo próprio, ida e volta sem perda)";falta;"só PDF, PNG, imprimir e Cwork";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
-F513;Quadro;organizar;"Igualar tamanho (largura, altura ou os dois) no Arrumar";falta;"";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
+F513;Quadro;organizar;"Igualar tamanho (largura, altura ou os dois) no Arrumar";funciona;"";"feito na v0.6.71";relatório do Quadro 25/11
 F514;Quadro;organizar;"Agrupar (Ctrl+G) e mover em bloco";falta;"só a Página leva junto o que está dentro";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
 F515;Quadro;organizar;"Organizar em árvore ou grade com um clique";falta;"";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
-F516;Quadro;editar;"Mapa mental: Enter cria o irmão ligado ao mesmo pai (Tab já cria o próximo ligado)";parcial;"Tab e Shift+Tab existem, mas não aparecem em lugar nenhum";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
+F516;Quadro;editar;"Mapa mental: Shift+Enter cria o irmão ligado ao mesmo pai (Tab cria o próximo ligado; atalhos nas dicas)";funciona;"";"feito na v0.6.71 (Enter continua editando, decisão do Elias 26/11)";relatório do Quadro 25/11
 F517;Quadro;organizar;"Recolher e abrir ramos do mapa";falta;"";"a propor (relatório do Quadro 25/11)";relatório do Quadro 25/11
 F518;Quadro;editar;"Caixinha de feito com 44 px no toque (o quadradinho continua no mesmo lugar)";funciona;"";"feito na v0.6.63 (V56-04)";relatório do Grok 25/11
 F519;Quadro;editar;"Post-it no tamanho mínimo: o texto começa abaixo do código (tela e PDF)";funciona;"";"feito na v0.6.63 (PL06)";relatório do Grok 25/11

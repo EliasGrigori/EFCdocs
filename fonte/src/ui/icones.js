@@ -86,6 +86,7 @@ export const ICONES = {
   "forma": "<rect x=\"4\" y=\"5\" width=\"9\" height=\"7\" rx=\"1\"/><path d=\"M17 9.5l3.5 3.5-3.5 3.5-3.5-3.5z\"/><circle cx=\"8.5\" cy=\"17\" r=\"3\"/>",
   "seta": "<path d=\"M4 18L18 6M12 6h6v6\"/>",
   "conector": "<rect x=\"3.5\" y=\"4\" width=\"6\" height=\"5\" rx=\"1\"/><rect x=\"14.5\" y=\"15\" width=\"6\" height=\"5\" rx=\"1\"/><path d=\"M6.5 9v4.5h11V15\"/>",
+  "irmao": "<rect x=\"2.5\" y=\"9.5\" width=\"6\" height=\"5\" rx=\"1\"/><rect x=\"15.5\" y=\"3.5\" width=\"6\" height=\"5\" rx=\"1\"/><rect x=\"15.5\" y=\"15.5\" width=\"6\" height=\"5\" rx=\"1\"/><path d=\"M8.5 12h3.5M12 6v12M12 6h3.5M12 18h3.5\"/>",
   "postit": "<path d=\"M4.5 4.5h15v10l-5 5h-10z\"/><path d=\"M19.5 14.5h-5v5\"/>",
   "kanban": "<rect x=\"3.5\" y=\"4\" width=\"5\" height=\"16\" rx=\"1\"/><rect x=\"9.5\" y=\"4\" width=\"5\" height=\"11\" rx=\"1\"/><rect x=\"15.5\" y=\"4\" width=\"5\" height=\"7\" rx=\"1\"/>",
   "raias": "<rect x=\"3.5\" y=\"4\" width=\"17\" height=\"16\" rx=\"1\"/><path d=\"M3.5 9.5h17M3.5 15h17M8 4v16\"/>",

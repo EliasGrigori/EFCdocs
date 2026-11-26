@@ -16,7 +16,7 @@ import { resumoTarefa, hojeISO, mudancasOrdenarGut, mudancasTarefa, valorGut } f
 import { problemas } from './assistente.js';
 import { aplicarModelo, ModeloPorId } from './modelos.js';
 import { manterCentro, usarItemVisivel, rolarNaBorda } from './celular.js';
-import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { lembrarEtiquetas, raiasPorEtiqueta } from './etiquetas.js'; /* v0.6.66 (N1) */ import { lembrarFluxo, quemAgora } from './fluxoKanban.js'; import { registrarTudo } from './historico.js'; /* v0.6.68 e v0.6.69 (R44) */ import { trataArrumar, valorArrumar, AVISO_TRAVADO } from './arrumar.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
+import { JanelaAssinatura } from '../ui/assinatura.jsx'; import { estiloDoFundo, JanelaFundo, fundoValido } from './fundo.jsx'; /* v0.6.50 */ import { JanelaTitulo } from './postitUi.jsx'; import { JanelaImprimirQuadro } from './imprimirUi.jsx'; import { CartaoComentario, pedirComentarioDo, respostaNova } from './comentarioQuadro.jsx'; import { trataLayoutQuadro, valorLayoutQuadro } from './layoutQuadro.js'; import { CamadaQuebras } from './quebrasUi.jsx'; import { proximaSelecaoTudo } from './selecao.js'; import { trataEstiloQuadro, valorEstiloQuadro } from './estiloQuadro.js'; import { lembrarEtiquetas, raiasPorEtiqueta } from './etiquetas.js'; /* v0.6.66 (N1) */ import { lembrarFluxo, quemAgora } from './fluxoKanban.js'; import { registrarTudo } from './historico.js'; import { fazerIrmao, setaDoPai } from './mapaMental.js'; /* v0.6.68 e v0.6.69 (R44); v0.6.71 (Q1) */ import { trataArrumar, valorArrumar, AVISO_TRAVADO } from './arrumar.js'; import { ehImpQPadrao } from './impressaoQuadro.js'; import { mudancasTitulo, mudancasFeito, mostraCaixas, estaFeito, tituloDe } from './postit.js'; /* v0.6.51 */
 
 const Z_MIN = 0.2, Z_MAX = 3;
 const limitarZ = (z) => Math.max(Z_MIN, Math.min(Z_MAX, z));
@@ -430,7 +430,7 @@ export function Quadro({ arquivo, cx }) {
         if (vista === 'kanban') setVista('quadro');
         setModo(modo && modo.tipo === 'seta' ? null : { tipo: 'seta', de: umItem ? umItem.id : null });
         return true;
-      case 'inserir.proximo': if (umItem) proximo(umItem.id); else avisoSelecione(); return true;
+      case 'inserir.proximo': if (umItem) proximo(umItem.id); else avisoSelecione(); return true; case 'inserir.irmao': if (umItem && LIGAVEL(umItem)) fazerIrmao({ c, id: umItem.id, aplicarQ, setSel, setEditando, mostrarItem, avisar: cx.avisar }); else avisoSelecione(); return true; /* v0.6.71 */
       case 'editar.copiar': copiar(false); return true;
       case 'editar.recortar': copiar(true); return true;
       case 'editar.colar': colar(); return true;
@@ -769,7 +769,7 @@ export function Quadro({ arquivo, cx }) {
       if (ctrl && k === 'a') { ev.preventDefault(); trata('editar.selecionarTudo'); return; }
       /* v0.6.24.1 (V05, decisão do Elias): iguais à planilha (Excel em português): Ctrl+N/Ctrl+2 negrito, Ctrl+I itálico, Ctrl+S sublinhado, Ctrl+B salva */
       if (ctrl && k === 'b') { ev.preventDefault(); cx.executar('arquivo.salvar'); return; } else if (ctrl && (k === 'n' || k === '2' || k === 'i' || k === 's') && selValida.itens.length) { ev.preventDefault(); trata(k === 'n' || k === '2' ? 'formatar.negrito' : k === 'i' ? 'formatar.italico' : 'formatar.sublinhado'); return; }
-      if ((ev.key === 'Enter' || ev.key === 'F2') && umItem) { ev.preventDefault(); comecarEdicao(umItem); return; }
+      if (ev.key === 'Enter' && ev.shiftKey && umItem && vista === 'quadro' && LIGAVEL(umItem)) { ev.preventDefault(); fazerIrmao({ c, id: umItem.id, aplicarQ, setSel, setEditando, mostrarItem, avisar: cx.avisar }); return; } /* v0.6.71 (Q1): Shift+Enter cria o irmão */ if ((ev.key === 'Enter' || ev.key === 'F2') && umItem) { ev.preventDefault(); comecarEdicao(umItem); return; }
       if (ev.key === 'Tab' && umItem && vista === 'quadro') { ev.preventDefault(); proximo(umItem.id, ev.shiftKey ? 'b' : 'r'); return; }
       const setas = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
       if (setas[ev.key] && selValida.itens.length && vista === 'quadro') {
@@ -855,7 +855,7 @@ export function Quadro({ arquivo, cx }) {
         if (COM_TEXTO(it)) botoes.push({ id: 'editar', ic: 'renomear', titulo: 'Escrever (Enter)', fazer: () => comecarEdicao(it) }); if (it.tipo === 'postit' && !somenteLeitura) botoes.push({ id: 'titulo', ic: 'titulo', titulo: tituloDe(it) ? 'Mudar o título' : 'Título', on: !!tituloDe(it), fazer: () => setJanela('titulo') });
         if (it.tipo === 'assinatura') botoes.push({ id: 'editar', ic: 'assinatura', titulo: 'Nome e rubrica (Enter)', fazer: () => comecarEdicao(it) });
         if (LIGAVEL(it)) {
-          botoes.push({ id: 'proximo', ic: 'conector', titulo: 'Próximo passo já ligado (Tab)', fazer: () => proximo(it.id) });
+          botoes.push({ id: 'proximo', ic: 'conector', titulo: 'Próximo passo já ligado (Tab; Shift+Tab embaixo)', fazer: () => proximo(it.id) }); if (setaDoPai(c, it.id)) botoes.push({ id: 'irmao', ic: 'irmao', titulo: 'Cartão irmão (Shift+Enter)', fazer: () => fazerIrmao({ c, id: it.id, aplicarQ, setSel, setEditando, mostrarItem, avisar: cx.avisar }) }); /* v0.6.71 (Q1) */
           botoes.push({ id: 'ligar', ic: 'seta', titulo: 'Ligar com seta: toque depois no destino', fazer: () => setModo({ tipo: 'seta', de: it.id }) });
         }
         botoes.push({ id: 'comentar', ic: 'comentario', titulo: it.nota ? 'Ver ou mudar o comentário' : 'Comentário', on: !!it.nota, fazer: pedirComentario });

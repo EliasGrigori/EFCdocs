@@ -121,7 +121,7 @@ const FAIXAS = {
       { nome: 'Alinhamento', itens: [['lin', ['formatar.esquerda', 'formatar.centro', 'formatar.direita']]] },
       { nome: 'Post-it', itens: [['col', ['formatar.tituloPostit', ['menu', 'texturaQ'], ['menu', 'etiquetaQ']]]] }] }, /* v0.6.66: Etiqueta */
     { id: 'inserir', nome: 'Inserir', grupos: [
-      { nome: 'Quadro', itens: [['g', 'inserir.postit'], ['g', 'inserir.seta'], ['g', 'inserir.proximo'], ['g', 'inserir.texto'], ['g', 'inserir.pagina'], ['g', 'inserir.legenda']] },
+      { nome: 'Quadro', itens: [['g', 'inserir.postit'], ['g', 'inserir.seta'], ['g', 'inserir.proximo'], ['g', 'inserir.irmao'], ['g', 'inserir.texto'], ['g', 'inserir.pagina'], ['g', 'inserir.legenda']] }, /* v0.6.71: + Irmão */
       { nome: 'Fluxograma', itens: [['g', 'inserir.forma'], ['col', ['inserir.processo', 'inserir.decisao', 'inserir.inicio']], ['col', ['inserir.dados']], ['g', 'inserir.modelo']] },
       { nome: 'Objetos', itens: [['g', 'inserir.imagem'], ['g', 'inserir.assinatura'], ['g', 'inserir.link'], ['g', 'inserir.grafico']] }] },
     /* v0.6.55: Layout da Página no Quadro, igual à da Planilha (proposta 2 aprovada em 25/11) */
@@ -132,7 +132,7 @@ const FAIXAS = {
     { id: 'organizar', nome: 'Organizar', grupos: [
       { nome: 'Visões', itens: [['g', 'organizar.quadro'], ['g', 'organizar.kanban'], ['g', 'organizar.raias']] },
       { nome: 'Ordem', itens: [['col', ['organizar.frente', 'organizar.tras']]] },
-      { nome: 'Arrumar', itens: [['col', [['menu', 'alinharQ'], ['menu', 'distribuirQ'], 'organizar.travar']]] }, /* v0.6.59 */
+      { nome: 'Arrumar', itens: [['col', [['menu', 'alinharQ'], ['menu', 'distribuirQ'], ['menu', 'igualarQ']]], ['g', 'organizar.travar']] }, /* v0.6.59; v0.6.71: Igualar (Travar vira botão grande) */
       { nome: 'Prioridade', itens: [['g', 'organizar.ordenarGut']] },
       { nome: 'Reunião', itens: [['g', 'organizar.temporizador']] }] },
     { id: 'revisao', nome: 'Revisão', grupos: [
@@ -201,7 +201,7 @@ export const ROTULO_CURTO = {
   'arquivo.lixeira': 'Lixeira', 'arquivo.versoes': 'Versões', 'arquivo.cancelar': 'Cancelar',
   'formula.origem': 'De onde vem / quem usa', 'formula.explicar': 'Explicar conta', 'formula.fluxo': 'Desenhar a conta', 'formula.problemas': 'Verificação de erros', 'formula.montar': 'Montar a conta', 'inserir.botao': 'Botão de aba',
   'inserir.formas': 'Formas', 'inserir.status': 'Coluna de status', 'inserir.foto': 'Foto na célula', 'inserir.assinatura': 'Linha de assinatura', 'inserir.imagem': 'Imagens',
-  'inserir.proximo': 'Próximo passo', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
+  'inserir.proximo': 'Próximo passo', 'inserir.irmao': 'Irmão', 'dados.dinamica': 'Tabela dinâmica', 'dados.duplicados': 'Duplicados',
   'dados.validacao': 'Validação', 'dados.textoColunas': 'Texto para colunas', 'dados.agrupar': 'Agrupar', 'dados.desagrupar': 'Desagrupar', 'dados.subtotal': 'Subtotal', 'inserir.segmentacao': 'Segmentação de dados', 'dados.mostrarDetalhe': 'Mostrar detalhe', 'dados.ocultarDetalhe': 'Ocultar detalhe', 'dados.limparEstrutura': 'Limpar estrutura', 'dados.circular': 'Circular inválidos', 'dados.limparCirculos': 'Limpar círculos', 'dados.estatistica': 'Estatística', 'dados.amostra': 'Amostragem', 'formatar.condicional': 'Formatação condicional', 'editar.localizar': 'Localizar',
   'arquivo.exportarPDF': 'Exportar PDF', 'arquivo.interno': 'Documento interno', 'arquivo.camposCwork': 'Campos do Cwork', 'arquivo.compartilharCwork': 'Compartilhar com o Cwork', 'arquivo.exportarImagem': 'Exportar PNG', 'arquivo.lancar': 'Lançar na pasta',
   'arquivo.abrir': 'Abrir Excel', 'arquivo.exportarExcel': 'Salvar como Excel', 'arquivo.relatorioExcel': 'O que veio do Excel', 'arquivo.baixarOriginal': 'Baixar original',

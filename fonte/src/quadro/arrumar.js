@@ -7,6 +7,8 @@ export const ALINHAR = [
   { id: 'topo', nome: 'Alinhar em cima' }, { id: 'meio', nome: 'Alinhar ao meio' }, { id: 'base', nome: 'Alinhar embaixo' },
 ];
 export const DISTRIBUIR = [{ id: 'h', nome: 'Distribuir na horizontal' }, { id: 'v', nome: 'Distribuir na vertical' }];
+/* v0.6.71 (Q1, F513): igualar o tamanho pelo maior dos escolhidos; o canto de cima à esquerda fica parado */
+export const IGUALAR = [{ id: 'w', nome: 'Igualar a largura' }, { id: 'h', nome: 'Igualar a altura' }, { id: 'wh', nome: 'Igualar largura e altura' }];
 export const AVISO_TRAVADO = 'Este item está travado. Para mexer, use Organizar › Travar de novo.';
 export const travado = (it) => !!(it && it.trava);
 /* raias e páginas são fundos: não entram no alinhar nem no distribuir */
@@ -47,6 +49,19 @@ export function mudancasDistribuir(c, ids, eixo) {
   return mud;
 }
 
+/** Igualar o tamanho (2 ou mais): todos ficam do tamanho do maior, sem sair do lugar. A legenda tem altura própria: fica de fora. */
+export function mudancasIgualar(c, ids, como) {
+  const its = livres(c, ids).filter((it) => it.tipo !== 'legenda');
+  if (its.length < 2 || !['w', 'h', 'wh'].includes(como)) return null;
+  const W = Math.max(...its.map((i) => i.w)), H = Math.max(...its.map((i) => i.h));
+  const mud = {};
+  for (const it of its) {
+    const novo = { ...it, ...(como.includes('w') ? { w: W } : {}), ...(como.includes('h') ? { h: H } : {}) };
+    if (novo.w !== it.w || novo.h !== it.h) mud['itens.' + it.id] = novo;
+  }
+  return mud;
+}
+
 /** Trava ou destrava: se algum escolhido está solto, trava todos; se todos estão travados, destrava. */
 export function mudancasTravar(c, ids) {
   const its = ids.map((id) => c.itens[id]).filter(Boolean);
@@ -57,7 +72,7 @@ export function mudancasTravar(c, ids) {
   return { mud, travar };
 }
 
-/** Comandos (Quadro.jsx chama no começo do trata): organizar.alinhar|<como>, organizar.distribuir|<eixo>, organizar.travar. */
+/** Comandos (Quadro.jsx chama no começo do trata): organizar.alinhar|<como>, organizar.distribuir|<eixo>, organizar.igualar|<w|h|wh>, organizar.travar. */
 export function trataArrumar(id, { c, selecionados, aplicarQ, avisar }) {
   const [base, valor] = String(id).split('|');
   if (base === 'organizar.travar') {
@@ -65,6 +80,15 @@ export function trataArrumar(id, { c, selecionados, aplicarQ, avisar }) {
     if (!r) { avisar('Escolha no quadro os itens que vão ficar travados.', { ic: 'info' }); return true; }
     aplicarQ(r.mud, r.travar ? 'Travar' : 'Destravar', 'formatou');
     avisar(r.travar ? (selecionados.length === 1 ? 'Item travado: não sai do lugar nem muda de tamanho.' : `${selecionados.length} itens travados: não saem do lugar nem mudam de tamanho.`) : 'Destravado.', { ic: 'cadeado' });
+    return true;
+  }
+  if (base === 'organizar.igualar') { /* v0.6.71 (Q1) */
+    if (!valor) return true;
+    const mud = mudancasIgualar(c, selecionados, valor);
+    if (!mud) { avisar('Escolha dois ou mais itens soltos (não travados) para igualar o tamanho.', { ic: 'info' }); return true; }
+    const nome = IGUALAR.find((x) => x.id === valor);
+    if (Object.keys(mud).length) aplicarQ(mud, nome ? nome.nome : 'Igualar tamanho', 'formatou');
+    else avisar('Os itens escolhidos já estão do mesmo tamanho.', { ic: 'info' });
     return true;
   }
   if (base !== 'organizar.alinhar' && base !== 'organizar.distribuir') return undefined;

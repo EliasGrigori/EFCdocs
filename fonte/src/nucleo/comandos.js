@@ -156,6 +156,7 @@ export const COMANDOS = [
   C('inserir.dados', 'Forma: entrada/saída', 'dados', { sin: ['paralelogramo', 'registro', 'dados', 'documento', 'fluxograma'], mods: ['postits'], acao: 'quadro.editar' }),
   C('inserir.seta', 'Seta', 'seta', { sin: ['conector', 'ligação', 'linha', 'ligar'], mods: ['postits'], acao: 'quadro.editar' }),
   C('inserir.proximo', 'Próximo passo (já ligado)', 'conector', { sin: ['adicionar etapa', 'mais', 'continuar fluxo'], mods: ['postits'], acao: 'quadro.editar' }),
+  C('inserir.irmao', 'Cartão irmão (mesmo cartão de cima)', 'irmao', { sin: ['irmão', 'mapa mental', 'mesmo nível', 'ramo ao lado'], mods: ['postits'], acao: 'quadro.editar' }), /* v0.6.71 (Q1, F516) */
   C('inserir.pagina', 'Página do quadro', 'pagina', { sin: ['folha', 'dividir o quadro', 'página do pdf', 'moldura'], mods: ['postits'], acao: 'quadro.editar' }),
   C('inserir.legenda', 'Legenda do fluxograma', 'legenda', { sin: ['significado das formas', 'chave', 'símbolos'], mods: ['postits'], acao: 'quadro.editar' }),
   C('inserir.modelo', 'Modelo de quadro da qualidade', 'modelo', { sin: ['rnc', 'ishikawa', '5w2h', 'gut', 'pdca', 'modelo pronto', 'mapa mental', 'linha do tempo'], mods: ['postits'], acao: 'quadro.editar' }),
@@ -206,6 +207,7 @@ export const COMANDOS = [
   C('organizar.raias', 'Raias por setor', 'raias', { sin: ['swimlane', 'fluxograma por setor', 'faixas'], mods: ['postits'], acao: 'quadro.editar' }),
   C('organizar.alinhar', 'Alinhar itens', 'alinharQ', { sin: ['alinhar', 'alinhar à esquerda', 'centralizar itens', 'alinhar em cima', 'pôr em linha'], mods: ['postits'], acao: 'quadro.editar' }), /* v0.6.59 */
   C('organizar.distribuir', 'Distribuir itens', 'distribuirQ', { sin: ['distribuir', 'espaço igual', 'espaçar igualmente'], mods: ['postits'], acao: 'quadro.editar' }),
+  C('organizar.igualar', 'Igualar tamanho', 'igualarQ', { sin: ['igualar', 'mesmo tamanho', 'mesma largura', 'mesma altura', 'padronizar tamanho'], mods: ['postits'], acao: 'quadro.editar' }), /* v0.6.71 (Q1, F513) */
   C('organizar.travar', 'Travar item', 'cadeado', { sin: ['travar', 'trancar', 'bloquear item', 'fixar no lugar', 'destravar'], mods: ['postits'], acao: 'quadro.editar' }),
   C('organizar.frente', 'Trazer para a frente', 'frente', { sin: ['por cima', 'ordem'], mods: ['postits'], acao: 'quadro.editar' }),
   C('organizar.tras', 'Mandar para trás', 'tras', { sin: ['por baixo', 'ordem', 'fundo'], mods: ['postits'], acao: 'quadro.editar' }),

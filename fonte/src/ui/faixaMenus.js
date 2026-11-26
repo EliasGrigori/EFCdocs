@@ -10,7 +10,7 @@ import { AJUSTES, CONGELAR } from '../planilha/faixaExtra.js';
 import { FONTES_Q, garantirFonte } from '../quadro/fontesQ.js'; /* v0.6.57 */
 import { TEXTURAS } from '../quadro/texturas.js';
 import { etiquetasAtuais } from '../quadro/etiquetas.js'; /* v0.6.66 (N1) */
-import { ALINHAR, DISTRIBUIR } from '../quadro/arrumar.js'; /* v0.6.59 */
+import { ALINHAR, DISTRIBUIR, IGUALAR } from '../quadro/arrumar.js'; /* v0.6.59; v0.6.71: Igualar */
 
 /* Botões que abrem uma lista de comandos (Inserir, Excluir, Formatar, Preencher, Limpar), como no Excel */
 export const MENUS_FAIXA = {
@@ -39,6 +39,8 @@ export const MENUS_FAIXA = {
     itens: ALINHAR.map((a) => ({ id: 'organizar.alinhar|' + a.id, nome: a.nome })) },
   distribuirQ: { nome: 'Distribuir', ic: 'n:distribuirQ', dica: 'Distribuir|Mesmo espaço entre três ou mais itens escolhidos.',
     itens: DISTRIBUIR.map((a) => ({ id: 'organizar.distribuir|' + a.id, nome: a.nome })) },
+  igualarQ: { nome: 'Igualar', ic: 'n:igualarQ', dica: 'Igualar tamanho|Deixa os itens escolhidos (dois ou mais) do tamanho do maior: largura, altura ou os dois.', /* v0.6.71 (Q1, F513) */
+    itens: IGUALAR.map((a) => ({ id: 'organizar.igualar|' + a.id, nome: a.nome })) },
   texturaQ: { nome: 'Textura', ic: 'n:texturaQ', valor: 'valor.textura', dica: 'Textura|Dá ao post-it escolhido cara de papel: ponta dobrada, amassado ou mancha de café.', /* v0.6.57 */
     itens: TEXTURAS.map((t) => ({ id: 'formatar.textura|' + t.id, v: t.id, nome: t.nome })) },
   etiquetaQ: { nome: 'Etiqueta', ic: 'n:etiquetaQ', valor: 'valor.etiqueta', dica: 'Etiqueta|A frente de trabalho do post-it (com cor). Aparece no Quadro, no Kanban e no PDF, e o Kanban filtra por ela.', /* v0.6.66 (N1) */

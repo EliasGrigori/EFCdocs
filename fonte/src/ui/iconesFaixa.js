@@ -206,6 +206,7 @@ export const NOVOS = {
   postit: '<path class="t" d="M4.5 6a1.5 1.5 0 0 1 1.5-1.5h12A1.5 1.5 0 0 1 19.5 6v9L14 20.5H6A1.5 1.5 0 0 1 4.5 19z"/><path d="M14 20.5V16.5A1.5 1.5 0 0 1 15.5 15h4"/>',
   seta: '<path d="M5 19L19 5M10 5h9v9"/>',
   proximo: '<rect class="t" x="3.5" y="4" width="6.5" height="5.5" rx="1.3"/><rect x="14" y="14.5" width="6.5" height="5.5" rx="1.3"/><path d="M10 6.8h3a2 2 0 0 1 2 2v3.4M13.2 10.3l1.8 2.2 1.8-2.2" stroke-width="1.5"/>',
+  irmao: '<rect x="2.5" y="9.5" width="6" height="5" rx="1"/><rect class="t" x="15.5" y="3.5" width="6" height="5" rx="1"/><rect class="t" x="15.5" y="15.5" width="6" height="5" rx="1"/><path d="M8.5 12h3.5M12 6v12M12 6h3.5M12 18h3.5"/>', /* v0.6.71 (Q1) */
   paginaQ: '<rect class="t" x="4" y="3.5" width="16" height="17" rx="2"/><path d="M4 8.5h16M7.5 12h9M7.5 15.5h6"/>',
   legenda: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><rect class="t" x="6.5" y="7.5" width="3" height="3" rx=".8"/><rect x="6.5" y="13.5" width="3" height="3" rx=".8"/><path d="M12.5 9h5M12.5 15h5"/>',
   forma: '<rect class="t" x="3.5" y="4.5" width="9" height="7" rx="1.6"/><path d="M17 11.5l3.5 3.5-3.5 3.5-3.5-3.5z"/>',
@@ -227,6 +228,7 @@ export const NOVOS = {
   texturaQ: '<path d="M4.5 4.5h15v10l-5 5h-10z"/><path class="t" d="M19.5 14.5h-4a1 1 0 0 0-1 1v4"/><path d="M8 9.5c1.5-1 2.5.8 4 0M8 13c1-.6 2 .5 3 0"/>', /* v0.6.57 */
   alinharQ: '<path d="M4.5 3.5v17"/><rect class="t" x="7" y="6" width="11" height="4.5" rx="1"/><rect x="7" y="13.5" width="7" height="4.5" rx="1"/>', /* v0.6.59 */
   distribuirQ: '<path d="M3.5 4v16M20.5 4v16"/><rect class="t" x="9.5" y="7" width="5" height="10" rx="1"/>',
+  igualarQ: '<rect class="t" x="3.5" y="5" width="7" height="14" rx="1"/><rect x="13.5" y="5" width="7" height="14" rx="1"/><path d="M3.5 2.5h17"/>', /* v0.6.71 */
   tituloQ: '<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path class="t" d="M7 8h10"/><path d="M7 10.6h10M7 14h7M7 17h5"/>',
   fundoQ: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M8 9h.01M12 9h.01M16 9h.01M8 12h.01M12 12h.01M16 12h.01M8 15h.01M12 15h.01M16 15h.01"/>',
   codigos: '<rect class="t" x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><path d="M14 14h3v3h-3zM19.5 14.5V20M14 19.5h3"/>',
@@ -309,9 +311,9 @@ export const MAPA = {
   'pagina.orientacao': 'orientacao', 'pagina.margens': 'margens', 'pagina.quebra': 'quebraPag', 'pagina.cabecalho': 'cabRod', 'pagina.sumario': 'sumario',
   'revisao.controlar': 'controlar', 'revisao.concluir': 'concluir', 'revisao.comparar': 'comparar', 'exibir.leitura': 'leitura',
   'editar.duplicar': 'duplicar', 'editar.excluir': 'lixeira', 'editar.selecionarTudo': 'selecionarTudo',
-  'inserir.postit': 'postit', 'inserir.seta': 'seta', 'inserir.proximo': 'proximo', 'inserir.texto': 'texto', 'inserir.pagina': 'paginaQ', 'inserir.legenda': 'legenda',
+  'inserir.postit': 'postit', 'inserir.seta': 'seta', 'inserir.proximo': 'proximo', 'inserir.irmao': 'irmao', 'inserir.texto': 'texto', 'inserir.pagina': 'paginaQ', 'inserir.legenda': 'legenda',
   'inserir.forma': 'forma', 'inserir.processo': 'processo', 'inserir.decisao': 'decisao', 'inserir.inicio': 'inicioFim', 'inserir.dados': 'entradaSaida', 'inserir.modelo': 'modeloQ',
-  'organizar.quadro': 'quadro', 'organizar.kanban': 'kanban', 'organizar.raias': 'raias', 'organizar.frente': 'frente', 'organizar.alinhar': 'alinharQ', 'organizar.distribuir': 'distribuirQ', 'organizar.travar': 'cadeado', 'organizar.tras': 'tras',
+  'organizar.quadro': 'quadro', 'organizar.kanban': 'kanban', 'organizar.raias': 'raias', 'organizar.frente': 'frente', 'organizar.alinhar': 'alinharQ', 'organizar.distribuir': 'distribuirQ', 'organizar.igualar': 'igualarQ', 'organizar.travar': 'cadeado', 'organizar.tras': 'tras',
   'organizar.ordenarGut': 'classificar', 'organizar.temporizador': 'temporizador',
   'exibir.ajustar': 'ajustar', 'exibir.minimapa': 'minimapa', 'exibir.codigos': 'codigos', 'exibir.fundo': 'fundoQ', 'exibir.caixas': 'caixaQ', 'exibir.quebras': 'quebraPag', 'formatar.tituloPostit': 'tituloQ', 'formatar.textura': 'texturaQ', 'formatar.fonteQ': 'fonte', 'exibir.ferramentas': 'ferramentas', 'exibir.assistente': 'assistente',
 };
