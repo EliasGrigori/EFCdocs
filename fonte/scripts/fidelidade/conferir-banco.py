@@ -60,6 +60,8 @@ def conferir_quadro(c, e):
         an = e["andamento"]
         it2 = c["itens"].get(an["id"], {})
         diz(c.get("fluxoKanban") is True and it2.get("col") == an["col"] and it2.get("ini") == an["ini"] and it2.get("fim") == an["fim"], "quadro: fluxo ligado ao Kanban, com quem iniciou e quem concluiu a atividade")
+        h = it2.get("hist") or []
+        diz(len(h) == an.get("hist", 0) and all(set(l) >= {"q", "em", "o"} for l in h) and h[-1].get("para") == "Feito", "quadro: histórico do cartão (quem, quando, o que mudou) volta inteiro")  # v0.6.69 (R44 parte 2)
     cods = [i["cod"] for i in itens if "cod" in i]
     diz(len(cods) == len(set(cods)) and all(x.startswith("Q-") for x in cods), f"quadro: {len(cods)} códigos Q sem repetir")
     pontas = all(s["de"]["id"] in c["itens"] and s["para"]["id"] in c["itens"] for s in c["setas"].values())

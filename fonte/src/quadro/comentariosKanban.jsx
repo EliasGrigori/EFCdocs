@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CabGaveta } from '../ui/gaveta.jsx';
 import { autorGuardado, guardarAutor, respostasDe, dataCurta, respostaNova } from './comentario.js';
 import { mudancasCampo } from './modelo.js';
+import { linhasHistorico } from './historico.js'; /* v0.6.69 (R44 parte 2) */
 
 export const totalComentarios = (it) => (it && it.nota ? 1 : 0) + respostasDe(it).length;
 
@@ -15,6 +16,7 @@ export function GavetaComentarios({ c, id, ids, abrir, fechar, aplicarQ, somente
   const it = c.itens[id];
   const [txt, setTxt] = useState('');
   const [autor, setAutor] = useState(autorGuardado);
+  const [aba, setAba] = useState('com'); /* v0.6.69: Comentários | Histórico (a aba fica ao passar de um cartão para outro) */
   const ref = useRef(null), lista = useRef(null);
   useEffect(() => {
     const esc = (ev) => { if (ev.key === 'Escape' && !ev.defaultPrevented) { ev.preventDefault(); ev.stopPropagation(); fechar(); } };
@@ -25,6 +27,7 @@ export function GavetaComentarios({ c, id, ids, abrir, fechar, aplicarQ, somente
   useEffect(() => { if (lista.current) lista.current.scrollTop = lista.current.scrollHeight; }, [id, it && it.nota, it && respostasDe(it).length]);
   if (!it) return null;
   const resps = respostasDe(it);
+  const hist = linhasHistorico(it);
   const enviar = (ev) => {
     if (ev) ev.preventDefault();
     const t = txt.trim(); if (!t) return;
@@ -35,7 +38,19 @@ export function GavetaComentarios({ c, id, ids, abrir, fechar, aplicarQ, somente
   };
   return (
     <aside className="kb-gaveta efl-gaveta" ref={ref} aria-label={'Comentários de ' + (it.cod || 'post-it')} data-kb-gaveta={id} onPointerDown={(ev) => ev.stopPropagation()}>
-      <CabGaveta sub={'Comentários' + (it.cod ? ' · ' + it.cod : '')} titulo={it.texto.split('\n')[0] || 'Post-it'} fechar={fechar} rotuloFechar="Fechar os comentários" nav={{ ids, atual: id, abrir }} />
+      <CabGaveta sub={(aba === 'hist' ? 'Histórico' : 'Comentários') + (it.cod ? ' · ' + it.cod : '')} titulo={it.texto.split('\n')[0] || 'Post-it'} fechar={fechar} rotuloFechar="Fechar os comentários" nav={{ ids, atual: id, abrir }} />
+      <div className="kb-gv-abas" role="tablist" aria-label="Comentários ou histórico">
+        {[['com', 'Comentários', totalComentarios(it)], ['hist', 'Histórico', hist.length]].map(([k, nome, n]) => (
+          <button key={k} type="button" role="tab" aria-selected={aba === k} className={'kb-gv-aba' + (aba === k ? ' on' : '')} data-kb-aba={k} onClick={() => setAba(k)}>{nome}{n > 0 && <span className="kb-gv-n">{n}</span>}</button>
+        ))}
+      </div>
+      {aba === 'hist' && (
+        <div className="kb-gv-msgs kb-gv-hist gv-corpo" role="tabpanel" data-kb-historico>
+          {!hist.length && <p className="kb-gv-vazio">Nenhuma mudança registrada. O histórico conta só nos Documentos internos.</p>}
+          {hist.map((l, i) => <div key={i} className="kb-gv-ev"><b>{l.quem}</b> {l.texto}<small>{l.quando}</small></div>)}
+        </div>
+      )}
+      {aba === 'com' && <>
       <div className="kb-gv-msgs gv-corpo" ref={lista}>
         {!it.nota && <p className="kb-gv-vazio">Nenhum comentário ainda.</p>}
         {it.nota && <div className="kb-gv-msg"><b>{it.notaA || 'Comentário'}</b><p>{it.nota}</p></div>}
@@ -51,6 +66,7 @@ export function GavetaComentarios({ c, id, ids, abrir, fechar, aplicarQ, somente
           </span>
         </form>
       )}
+      </>}
     </aside>
   );
 }

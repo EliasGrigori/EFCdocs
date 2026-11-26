@@ -49,7 +49,7 @@ export function quadroInventado() {
   por('postit', { texto: 'Conferir o lote 0043: ação, não-conformidade e até “aspas”', x: 240, y: 40, cor: 'verde' }, 'p2');
   por('postit', { texto: 'Linha 1\nLinha 2\n=1+1 (texto, não fórmula)', x: 440, y: 40, cor: 'rosa' }, 'p3');
   c.fluxoKanban = true; /* v0.6.68 (R44): fluxo ligado ao Kanban, com quem iniciou e quem concluiu */
-  por('processo', { texto: 'Receber a amostra', x: 40, y: 260, col: 'c3', ini: { q: 'Pessoa A', em: '2026-11-25T13:00:00.000Z' }, fim: { q: 'Pessoa B', em: '2026-11-25T15:30:00.000Z' } }, 'f1');
+  por('processo', { texto: 'Receber a amostra', x: 40, y: 260, col: 'c3', ini: { q: 'Pessoa A', em: '2026-11-25T13:00:00.000Z' }, fim: { q: 'Pessoa B', em: '2026-11-25T15:30:00.000Z' }, hist: [{ q: 'Pessoa A', em: '2026-11-25T13:00:00.000Z', o: 'col', de: 'A fazer', para: 'Fazendo' }, { q: 'Pessoa B', em: '2026-11-25T15:30:00.000Z', o: 'col', de: 'Fazendo', para: 'Feito' }] }, 'f1');
   por('decisao', { texto: 'Está dentro do limite?', x: 260, y: 250 }, 'f2');
   por('inicio', { texto: 'Fim', x: 480, y: 262 }, 'f3');
   por('texto', { texto: 'Texto solto com acento: água, coração', x: 40, y: 400 }, 't1');
@@ -65,7 +65,7 @@ export const esperadoQuadro = () => ({
   rotulos: ['depois', 'Sim'], colunas: Q.COLUNAS_PADRAO.map((x) => x.nome),
   tarefa: { id: 'p1', resp: 'Pessoa A', prazo: '2026-12-01', g: 3, u: 2, t: 4 },
   etiqueta: { id: 'p1', fr: 'e1', nome: 'Laboratório' },
-  andamento: { id: 'f1', col: 'c3', ini: { q: 'Pessoa A', em: '2026-11-25T13:00:00.000Z' }, fim: { q: 'Pessoa B', em: '2026-11-25T15:30:00.000Z' } },
+  andamento: { id: 'f1', col: 'c3', ini: { q: 'Pessoa A', em: '2026-11-25T13:00:00.000Z' }, fim: { q: 'Pessoa B', em: '2026-11-25T15:30:00.000Z' }, hist: 2 },
 });
 
 export function documentoInventado() {

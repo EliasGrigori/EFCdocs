@@ -71,6 +71,24 @@ export function marcaValida(m) {
   return { q: String(m.q ?? '').trim().slice(0, 60), em: new Date(m.em).toISOString() };
 }
 
+/** v0.6.69 (R44 parte 2): o histórico do cartão lido do arquivo; linha inválida some, ficam só as últimas MAX_HIST. */
+export const MAX_HIST = 40;
+const CAMPOS_HIST = ['criou', 'col', 'texto', 'tit', 'resp', 'prazo', 'gut', 'fr', 'trava'];
+export function historicoValido(h) {
+  if (!Array.isArray(h)) return null;
+  const curto = (v) => String(v).replace(/\s+/g, ' ').trim().slice(0, 80);
+  const out = [];
+  for (const l of h) {
+    const m = marcaValida(l);
+    if (!m || !CAMPOS_HIST.includes(l.o)) continue;
+    const r = { ...m, o: l.o };
+    if (typeof l.de === 'string') r.de = curto(l.de);
+    if (typeof l.para === 'string') r.para = curto(l.para);
+    out.push(r);
+  }
+  return out.length ? out.slice(-MAX_HIST) : null;
+}
+
 export const codigo = (n) => 'Q-' + String(n).padStart(3, '0');
 
 const num = (v, padrao) => (typeof v === 'number' && Number.isFinite(v) ? v : padrao);
@@ -116,6 +134,7 @@ export function normalizarQuadro(c) {
   /* v0.6.68 (R44): fluxo ligado ao Kanban; quem iniciou e quem concluiu (nome curto e data válida, senão sai) */
   if (c.fluxoKanban === true) r.fluxoKanban = true;
   for (const it of Object.values(itens)) for (const k of ['ini', 'fim']) if (k in it) { const m = marcaValida(it[k]); if (m) it[k] = m; else delete it[k]; }
+  for (const it of Object.values(itens)) if ('hist' in it) { const h = historicoValido(it.hist); if (h) it.hist = h; else delete it.hist; } /* v0.6.69 (R44 parte 2) */
   return r;
 }
 
@@ -241,7 +260,7 @@ export function colar(c, clip, deslocamento = { x: 24, y: 24 }) {
     mapa[orig.id] = id;
     const it = { ...structuredClone(orig), id, x: Math.round(orig.x + deslocamento.x), y: Math.round(orig.y + deslocamento.y), z: ehFundo(orig) ? orig.z : ++z };
     if (it.tipo === 'assinatura' && !rubricaValida(it.rub)) delete it.rub; /* o que vem da área de transferência não é confiável */
-    delete it.cod; delete it.ini; delete it.fim; /* v0.6.68 (R44): a cópia não começou nem terminou */
+    delete it.cod; delete it.ini; delete it.fim; delete it.hist; /* v0.6.68 (R44): a cópia não começou nem terminou; v0.6.69: nem leva o histórico */
     if (t.codigo) it.cod = codigo(++seq);
     if (t.kanban || noKanban(c, it)) {
       if (!c.colunas.some((k) => k.id === it.col)) it.col = c.colunas[0] ? c.colunas[0].id : 'c1';
