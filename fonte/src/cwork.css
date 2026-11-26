@@ -147,3 +147,9 @@ input[type=checkbox], input[type=radio] { accent-color: var(--primary); }
 .temas-dois .tema-b { min-height: 40px; justify-content: flex-start; gap: 8px; }
 /* aba ativa da faixa: traço dourado de 2 px embaixo, igual nos dois temas */
 body[data-theme=papel] .tabs .tab.active, body[data-theme=dark] .tabs .tab.active { color: var(--primary); font-weight: 600; border-bottom: 2px solid var(--a); box-shadow: none; background: transparent; }
+
+/* v0.6.72 (P1): modo aba (o Vértice dentro do Cwork). O Cwork já mostra o nome do app e quem está usando na barra dele:
+   aqui some a marca do menu e o cartão "Neste aparelho / Perfil de teste". O resto do menu continua igual. */
+.em-cwork .rail .brand-mark, .em-cwork .rail .brand-txt, .em-cwork .gaveta .brand-mark, .em-cwork .gaveta .brand-txt { display: none; }
+.em-cwork .rail .brand, .em-cwork .gaveta .brand { min-height: 0; padding-top: 6px; padding-bottom: 2px; }
+.em-cwork .rail-user { display: none; }

@@ -89,6 +89,22 @@ export function criarBanco({ demo = false, backend = bancoPadrao(demo), agora = 
   const anotar = (acao, ficha, extra = {}) =>
     backend.anota({ em: agora(), acao, id: ficha.id, nome: ficha.nome, tipo: ficha.tipo, ...extra });
 
+  /* v0.6.72 (P1): número de gravação de cada arquivo (ficha.gravacao), para a nuvem saber o que é mais novo (P4).
+     A última de cada arquivo fica na memória; a primeira vez lê do aparelho uma vez só. */
+  const gravacoes = new Map();
+  const nuvens = new Map(); /* a versão da nuvem que cada arquivo conhece (ficha.nuvem): o salvar não pode apagar */
+  const lembrar = (ficha) => {
+    if (!ficha) return;
+    gravacoes.set(ficha.id, Math.max(gravacoes.get(ficha.id) || 0, ficha.gravacao || 0));
+    if (ficha.nuvem) nuvens.set(ficha.id, ficha.nuvem);
+  };
+  const proximaGravacao = async (ficha) => {
+    if (!gravacoes.has(ficha.id)) lembrar((await backend.um(ficha.id) || {}).ficha); /* só a primeira vez na sessão, se não abriu antes */
+    const n = Math.max(gravacoes.get(ficha.id) || 0, ficha.gravacao || 0) + 1; /* o maior entre o que esta aba sabe e a ficha que chegou (outra aba pode ter gravado) */
+    gravacoes.set(ficha.id, n);
+    return n;
+  };
+
   return {
     demo,
     backend,
@@ -117,17 +133,20 @@ export function criarBanco({ demo = false, backend = bancoPadrao(demo), agora = 
     async salvar(arquivo, acao = 'salvou', esperado) {
       const pacote = await compactar(arquivo.conteudo);
       const marca = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-      const r = { id: arquivo.ficha.id, ficha: arquivo.ficha, pacote, marca };
+      const gravacao = await proximaGravacao(arquivo.ficha);
+      const ficha = { ...arquivo.ficha, gravacao, ...(nuvens.has(arquivo.ficha.id) ? { nuvem: nuvens.get(arquivo.ficha.id) } : {}) }; /* a versão da nuvem que esta aba conhece vale mais que a da ficha que chegou */
+      const r = { id: ficha.id, ficha, pacote, marca };
       if (esperado !== undefined && backend.porSe) {
         const ok = await backend.porSe(r, esperado);
-        if (!ok) return { conflito: true };
+        if (!ok) { gravacoes.delete(ficha.id); return { conflito: true }; }
       } else await backend.por(r);
-      if (acao) await anotar(acao, arquivo.ficha);
-      return { bytesOriginal: pacote.bytesOriginal, bytesFinal: pacote.bytesFinal, fmt: pacote.fmt, marca };
+      if (acao) await anotar(acao, ficha);
+      return { bytesOriginal: pacote.bytesOriginal, bytesFinal: pacote.bytesFinal, fmt: pacote.fmt, marca, gravacao };
     },
     async abrir(id) {
       const r = await backend.um(id);
       if (!r) return null;
+      lembrar(r.ficha); /* v0.6.72: o salvar já sabe o número e a versão da nuvem sem ler de novo */
       return {
         ficha: r.ficha,
         marca: r.marca || null,
@@ -138,7 +157,8 @@ export function criarBanco({ demo = false, backend = bancoPadrao(demo), agora = 
     async mudarFicha(id, mudancas, acao, extra) {
       const r = await backend.um(id);
       if (!r) return null;
-      const ficha = { ...r.ficha, ...mudancas };
+      lembrar(r.ficha);
+      const ficha = { ...r.ficha, ...mudancas, gravacao: await proximaGravacao(r.ficha) }; /* v0.6.72: mudar a ficha também conta */
       await backend.por({ ...r, ficha, marca: Date.now().toString(36) + Math.random().toString(36).slice(2, 8) });
       if (acao) await anotar(acao, ficha, extra);
       return ficha;
@@ -158,5 +178,7 @@ export function criarBanco({ demo = false, backend = bancoPadrao(demo), agora = 
       return true;
     },
     eventos: () => backend.eventos(),
+    /** v0.6.72: quem envia para a nuvem (P4) avisa a versão nova aqui, para o próximo salvar não apagar. */
+    lembrarNuvem(id, nuvem) { if (nuvem) nuvens.set(id, nuvem); else nuvens.delete(id); },
   };
 }

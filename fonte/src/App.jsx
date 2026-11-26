@@ -13,6 +13,8 @@ import { tamanhoLegivel } from './nucleo/compacta.js';
 import { criarBanco } from './nucleo/banco.js';
 import { PorId, chegaNa, textoChega } from './nucleo/comandos.js';
 import { pode, SEM_PERMISSAO, PERFIS } from './nucleo/perfis.js';
+import { quemSou, nomeGravado, donoDaFicha } from './nucleo/quem.js'; /* v0.6.72 (P1): um lugar só para "quem sou" */
+import { avisarCwork } from './nucleo/emCwork.js'; /* v0.6.72 (P1): a aba do Cwork mostra o arquivo aberto */
 import { normalizarPrefs } from './nucleo/prefs.js';
 import { normalizarQuadro } from './quadro/modelo.js';
 import { Icone, Avisos, Pergunta, useMedia, useRota, irPara, dataHora, hora } from './ui/comum.jsx';
@@ -32,7 +34,6 @@ import { usarPonte } from './ponte/usarPonte.js';
 import { DocsInternos, JanelaInterno, ResumoEnvio } from './ui/internos.jsx';
 import { PainelCampos, TelaPedido } from './ponte/camposUi.jsx';
 
-const AUTOR = 'neste aparelho';
 /* v0.6.20 (R5): nas telas de lista o título grande fica na página; a barra de cima mostra o caminho */
 const TRILHA = { '': '', planilha: 'Meus arquivos', docx: 'Meus arquivos', postits: 'Meus arquivos', internos: 'Organizar', pastas: 'Organizar', externos: 'Organizar', lixeira: '' };
 const TITULOS = { '': 'Início', planilha: 'Planilhas', docx: 'Documentos', postits: 'Quadros', lixeira: 'Lixeira', pastas: 'Pastas', externos: 'Documentos externos', internos: 'Documentos internos' };
@@ -90,6 +91,8 @@ export function App() {
   const estadoPwa = usePwa();
   const escuro = typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches;
   const [prefs, setPrefs] = useState(() => normalizarPrefs(ler('prefs', null, { demo }), escuro));
+  const perfilRef = useRef(prefs.perfil); perfilRef.current = prefs.perfil;
+  const eu = useCallback(() => quemSou({ perfil: perfilRef.current }), []); /* v0.6.72 (P1): na ficha, o nome digitado neste aparelho ou "neste aparelho" (o perfil de teste não vira nome de pessoa); na P2 entra o login do Cwork */
   const setPref = useCallback((k, v) => setPrefs((p) => ({ ...p, [k]: v })), []);
   const cel = useMedia('(max-width: 899px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse)'); /* v0.6.35 (S1): celular grande deitado também é celular */
   const media = useMedia('(min-width: 900px) and (max-width: 1499px)') && !cel; /* v0.6.22 (D3): tela média */
@@ -102,6 +105,9 @@ export function App() {
 
   /* arquivo aberto: { arquivo, h (histórico), tamanho, sujo, salvoEm } — também num ref para os atalhos */
   const [aberto, setAbertoEstado] = useState(null);
+  useEffect(() => { avisarCwork({ tipo: 'pronto', versao: VERSAO }); }, []);
+  const nomeAberto = aberto ? aberto.arquivo.ficha.nome : null, tipoAberto = aberto ? aberto.arquivo.ficha.tipo : null;
+  useEffect(() => { avisarCwork({ tipo: 'arquivo', nome: nomeAberto, tipoArquivo: tipoAberto }); }, [nomeAberto, tipoAberto]);
   const abertoRef = useRef(null);
   const setAberto = useCallback((x) => {
     const v = typeof x === 'function' ? x(abertoRef.current) : x;
@@ -276,7 +282,7 @@ export function App() {
       const pend = lerPendencia(r.ficha.id);
       const refeitas = pend ? recuperar(lido.arquivo, pend) : 0;
       if (pend && !refeitas) apagarPendencia(r.ficha.id);
-      if (refeitas) recuperarRef.current({ ...lido, arquivo: carimbar(lido.arquivo, AUTOR) }, refeitas); else setAberto(lido);
+      if (refeitas) recuperarRef.current({ ...lido, arquivo: carimbar(lido.arquivo, eu()) }, refeitas); else setAberto(lido);
       setAba(r.ficha.tipo === 'postits' ? 'inserir' : 'inicio');
       setFaixaTemp(false);
       postar({ t: 'abri', arq: r.ficha.id });
@@ -363,7 +369,7 @@ export function App() {
     if (travadoRef.current) { avisar(msgTravado(), { ic: 'aviso' }); return false; }
     const r = fazer(atual.h, atual.arquivo, diff);
     if (r.estado === atual.arquivo) return false;
-    salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, AUTOR) }, acao, false, diff.ops);
+    salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, eu()) }, acao, false, diff.ops);
     return true;
   }, [salvar]);
 
@@ -394,7 +400,7 @@ export function App() {
     if (travadoRef.current) { avisar(msgTravado(), { ic: 'aviso' }); return; }
     const r = re ? refazer(atual.h, atual.arquivo) : desfazer(atual.h, atual.arquivo);
     if (!r.diff) return;
-    salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, AUTOR) }, re ? 'refez' : 'desfez', false, re ? r.diff.ops : [...r.diff.ops].reverse().map((o) => ({ c: o.c, d: o.a })));
+    salvar({ ...atual, h: r.h, arquivo: carimbar(r.estado, eu()) }, re ? 'refez' : 'desfez', false, re ? r.diff.ops : [...r.diff.ops].reverse().map((o) => ({ c: o.c, d: o.a })));
     avisar((re ? 'Refeito: ' : 'Desfeito: ') + (r.diff.rotulo || 'última ação'), { ic: re ? 'refazer' : 'desfazer' });
   }, [salvar, avisar]);
 
@@ -407,13 +413,13 @@ export function App() {
     while (h.feitos.length > feitosAlvo && h.feitos.length) { const r = desfazer(h, estado); h = r.h; estado = r.estado; n++; }
     while (h.feitos.length < feitosAlvo && h.desfeitos.length) { const r = refazer(h, estado); h = r.h; estado = r.estado; n--; }
     if (!n) return;
-    salvar({ ...atual, h, arquivo: carimbar(estado, AUTOR) }, n > 0 ? 'desfez' : 'refez');
+    salvar({ ...atual, h, arquivo: carimbar(estado, eu()) }, n > 0 ? 'desfez' : 'refez');
     avisar(n > 0 ? `Voltou ${n} ${n === 1 ? 'passo' : 'passos'}.` : `Avançou ${-n} ${n === -1 ? 'passo' : 'passos'}.`, { ic: n > 0 ? 'desfazer' : 'refazer' });
   }, [salvar, avisar]);
 
   const criarNovo = useCallback(async (tipo) => {
     try {
-      const a = criarArquivo({ tipo, autor: AUTOR });
+      const a = criarArquivo({ tipo, autor: eu() });
       await banco.criar(a);
       await recarregar();
       irPara('arq/' + a.ficha.id);
@@ -425,7 +431,7 @@ export function App() {
   /** Cria um arquivo já com conteúdo (ex.: a conta desenhada vira um quadro) e abre. */
   const criarCom = useCallback(async (tipo, nome, conteudo, aviso, original) => {
     try {
-      const a = criarArquivo({ tipo, nome, autor: AUTOR });
+      const a = criarArquivo({ tipo, nome, autor: eu() });
       a.conteudo = conteudo;
       await banco.criar(a);
       /* v0.6.0: guarda o arquivo do Excel como veio, para "Baixar original" */
@@ -459,7 +465,7 @@ export function App() {
       aplicarDiff(criarDiff(atual.arquivo, { 'ficha.nome': nome }, 'Renomear'), 'renomeou');
       return;
     }
-    await banco.mudarFicha(f.id, { nome, alteradoEm: new Date().toISOString(), alteradoPor: AUTOR }, 'renomeou');
+    await banco.mudarFicha(f.id, { nome, alteradoEm: new Date().toISOString(), alteradoPor: nomeGravado(eu()), alteradoPorId: eu().id }, 'renomeou');
     recarregar();
   }, [banco, aplicarDiff, recarregar]);
 
@@ -467,10 +473,10 @@ export function App() {
   const mudarFichaArquivo = useCallback(async (f, mud) => {
     const atual = abertoRef.current;
     if (atual && atual.arquivo.ficha.id === f.id) { aplicarDiff(criarDiff(atual.arquivo, { 'ficha.pastaNome': mud.pastaNome || undefined, 'ficha.codigo': mud.codigo || undefined }, 'Documento interno'), 'documento interno'); return; }
-    await banco.mudarFicha(f.id, { pastaNome: mud.pastaNome || undefined, codigo: mud.codigo || undefined, alteradoEm: new Date().toISOString(), alteradoPor: AUTOR }, 'documento interno');
+    await banco.mudarFicha(f.id, { pastaNome: mud.pastaNome || undefined, codigo: mud.codigo || undefined, alteradoEm: new Date().toISOString(), alteradoPor: nomeGravado(eu()), alteradoPorId: eu().id }, 'documento interno');
     recarregar();
   }, [banco, aplicarDiff, recarregar]);
-  const ponte = usarPonte({ banco, fichas, recarregar, avisar, aberto, autor: AUTOR, mudarFichaArquivo });
+  const ponte = usarPonte({ banco, fichas, recarregar, avisar, aberto, autor: 'neste aparelho', mudarFichaArquivo }); /* a ponte segue com o texto de sempre (o contrato EFD tem id próprio do Vértice) */
   const ponteRef = useRef(ponte); ponteRef.current = ponte;
   const pidRota = rota.startsWith('abrir/') ? rota.slice(6) : null;
   useEffect(() => { if (pidRota) ponteRef.current.abrirDaCaixa(pidRota); }, [pidRota]);
@@ -502,7 +508,7 @@ export function App() {
     const f = ficha || (abertoRef.current && abertoRef.current.arquivo.ficha);
     const doAberto = !ficha || (abertoRef.current && abertoRef.current.arquivo.ficha.id === ficha.id);
     if (travado && doAberto && acao !== 'ver' && acao !== 'exportar') return travado.motivo === 'conflito' ? MSG_CONFLITO : MSG_TRAVADO;
-    return pode(prefs.perfil, acao, { usuario: AUTOR, criadoPor: f ? f.criadoPor : AUTOR }) ? '' : SEM_PERMISSAO;
+    return pode(prefs.perfil, acao, { usuario: eu().id, criadoPor: f ? donoDaFicha(f) : eu().id }) ? '' : SEM_PERMISSAO; /* v0.6.72: o dono pelo id (arquivos antigos: o texto de antes) */
   }, [prefs.perfil, travado]);
 
   const bloqueado = useCallback((id, ficha) => {

@@ -2,9 +2,9 @@
    A ficha fica sem compactar (busca e filtros precisam dela); o conteúdo vai compactado. */
 
 import { conteudoQuadroVazio } from '../quadro/modelo.js';
-import { planilhaVazia } from '../planilha/modelo.js';
+import { planilhaVazia } from '../planilha/modelo.js'; import { autorDaFicha } from './quem.js'; /* v0.6.72 (P1) */
 
-export const VERSAO = 'v0.6.71';
+export const VERSAO = 'v0.6.72';
 /** v0.6.10.1: nome do app (antes EFCdocs). O repositório, o endereço e as chaves de dados continuam com efcdocs, para nada se perder. */
 export const NOME_APP = 'Vértice Docs';
 
@@ -27,13 +27,15 @@ export function conteudoVazio(tipo) {
   return conteudoQuadroVazio();
 }
 
+/** autor: texto (jeito antigo) ou { id, nome } (v0.6.72, P1: quemSou em nucleo/quem.js). A ficha guarda o nome e o id, como o contrato EFD. */
 export function criarArquivo({ tipo, nome, autor = 'neste aparelho', agora = new Date().toISOString(), id } = {}) {
+  const a = autorDaFicha(autor);
   if (!TIPOS[tipo]) throw new Error('tipo desconhecido: ' + tipo);
   const n = String(nome || '').trim() || TIPOS[tipo].padrao;
   return {
     ficha: {
       id: id || novoId(), tipo, nome: n.slice(0, 120), status: 'rascunho', rev: 0,
-      criadoPor: autor, criadoEm: agora, alteradoPor: autor, alteradoEm: agora,
+      criadoPor: a.nome, criadoPorId: a.id, criadoEm: agora, alteradoPor: a.nome, alteradoPorId: a.id, alteradoEm: agora, gravacao: 0,
       cancelado: false, motivo: '', lixeiraEm: null,
     },
     conteudo: conteudoVazio(tipo),
@@ -49,7 +51,8 @@ export function validarNome(nome) {
 }
 
 export function carimbar(arquivo, autor = 'neste aparelho', agora = new Date().toISOString()) {
-  return { ...arquivo, ficha: { ...arquivo.ficha, alteradoPor: autor, alteradoEm: agora } };
+  const a = autorDaFicha(autor);
+  return { ...arquivo, ficha: { ...arquivo.ficha, alteradoPor: a.nome, alteradoPorId: a.id, alteradoEm: agora } };
 }
 
 export const ativos = (fichas) => fichas.filter((f) => f.status !== 'lixeira');

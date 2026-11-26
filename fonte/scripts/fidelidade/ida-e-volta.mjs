@@ -141,8 +141,9 @@ export async function rodarIdaEVolta({ saida, gravarGuardados = false } = {}) {
     nota(`banco · ${a.tipo}`, !d2, d2 ? `2ª volta diferente em ${d2}` : '2ª volta igual');
     const d3 = primeiraDiferenca(v2.conteudo, NORMALIZAR[a.tipo](structuredClone(v2.conteudo)));
     nota(`banco · ${a.tipo}`, !d3, d3 ? `abrir de novo muda o conteúdo em ${d3}` : 'abrir de novo não muda nada');
-    const f = primeiraDiferenca({ ...arq.ficha }, { ...v2.ficha });
+    const f = primeiraDiferenca({ ...arq.ficha, gravacao: undefined }, { ...v2.ficha, gravacao: undefined });
     nota(`banco · ${a.tipo}`, !f, f ? `ficha diferente em ${f}` : 'ficha igual');
+    nota(`banco · ${a.tipo}`, v2.ficha.gravacao === 2, `número de gravação conta cada salvar (v0.6.72): ${v2.ficha.gravacao}`); /* duas gravações: criar e a 2ª volta */
   }
   const crus = await backend.todos();
   writeFileSync(join(out, 'gravado.json'), JSON.stringify({ versao: VERSAO, registros: crus }));

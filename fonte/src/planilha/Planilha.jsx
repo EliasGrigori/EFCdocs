@@ -53,7 +53,7 @@ import { JanelaAssinatura, AssinaturaView } from '../ui/assinatura.jsx';
 import { RelatorioExcel } from '../ui/excel.jsx';
 import { baixarXlsx } from './xlsx/abrir.js';
 import { gravarXlsx } from './xlsx/gravar.js';
-import { validacaoEm, listaDaCelula, opcoesLista, valorValido, mensagemDeErro, comentarioEm, textoDoComentario, listaComentarios, tirarDeFaixas, regraToca, textoFaixas } from './regras.js';
+import { nomeDoAparelho, guardarNomeDoAparelho } from '../nucleo/quem.js'; import { validacaoEm, listaDaCelula, opcoesLista, valorValido, mensagemDeErro, comentarioEm, textoDoComentario, listaComentarios, tirarDeFaixas, regraToca, textoFaixas } from './regras.js';
 import { JanelaValidacao, JanelaCondicional, JanelaComentario, JanelaComentarios, ListaSuspensa, Balao } from './regrasUi.jsx';
 import { ASN } from '../nucleo/assinatura.js';
 import { CampoFormula, AjudaFormula } from './EditorFormula.jsx';
@@ -2013,8 +2013,8 @@ export function Planilha({ arquivo, cx }) {
     mudar({ [`conteudo.abas.${abaId}.val`]: resto.length ? resto : undefined }, 'Limpar validação de dados');
   };
   const salvarCondicionais = (regras) => mudar({ [`conteudo.abas.${abaId}.cf`]: regras.length ? regras : undefined }, 'Formatação condicional');
-  const nomeDoAutor = () => { try { return localStorage.getItem('efcdocs.autor') || ''; } catch { return ''; } };
-  const guardarAutor = (a) => { try { if (a) localStorage.setItem('efcdocs.autor', a); } catch { /* sem armazenamento */ } };
+  const nomeDoAutor = nomeDoAparelho; /* v0.6.72 (P1): o nome mora em nucleo/quem.js */
+  const guardarAutor = guardarNomeDoAparelho;
   const salvarComentario = (l, col, obj) => {
     guardarAutor(obj.a);
     const k = chave(l, col);

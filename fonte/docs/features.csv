@@ -533,3 +533,6 @@ F531;Quadro;texturas;"Clipe no cartão do Kanban no meio do topo: a lixeira não
 F532;Quadro;fluxo;"Selo com a coluna do Kanban na atividade do fluxo (A fazer, Fazendo, Feito) (R44)";funciona;"";"feito na v0.6.68";pedido do Elias 25/11 14:36
 F533;Quadro;kanban;"Histórico de quem fez cada atualização do cartão (aba Histórico na gaveta), só nos Documentos internos (R44 parte 2)";funciona;"";"feito na v0.6.69";aprovado pelo Elias 26/11 03:19
 F534;Quadro;exportar;"Selo da coluna na atividade e linhas de quem iniciou/concluiu também no PNG, no PDF e na impressão (S2)";funciona;"";"feito na v0.6.70";aprovado pelo Elias 26/11 03:19
+F535;Núcleo;cwork;"Modo aba: dentro do Cwork o menu esconde a marca e o cartão do perfil, e o Vértice avisa o Cwork do arquivo aberto (P1)";funciona;"";"feito na v0.6.72";plano Vértice como aba do Cwork 26/11
+F536;Núcleo;cwork;"Quem sou num lugar só; ficha com nome e código de quem criou e alterou; número de gravação (P1)";funciona;"";"feito na v0.6.72";plano Vértice como aba do Cwork 26/11
+F537;Núcleo;cwork;"Banco pronto para a nuvem: fila de envio, versão da nuvem e cópia em conflito (ligar na P4)";parcial;"só com banco falso";"feito na v0.6.72; liga na P4";plano Vértice como aba do Cwork 26/11

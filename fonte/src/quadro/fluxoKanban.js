@@ -7,7 +7,8 @@
    - "Quem", enquanto não há login: o nome usado nos comentários deste aparelho; sem ele, o perfil deste aparelho.
    Parte sem tela (testada no node); a tela fica no Kanban.jsx e no partes.jsx. */
 import { noKanban, proximaOrdemKanban, listaItens, marcaValida } from './modelo.js';
-import { autorGuardado, dataCurta } from './comentario.js';
+import { dataCurta } from './comentario.js';
+import { quemSou } from '../nucleo/quem.js';
 
 export const fluxoLigado = (c) => !!c && c.fluxoKanban === true;
 export const atividadesDoFluxo = (c) => listaItens(c).filter((it) => it.tipo === 'processo');
@@ -31,9 +32,9 @@ export function mudancasLigarFluxo(c, ligar) {
 }
 
 /** Quem está mexendo neste aparelho. */
-export function quemAgora(perfilNome) {
-  const a = String(autorGuardado() || '').trim();
-  return (a || String(perfilNome || '').trim() || 'Neste aparelho').slice(0, 60);
+export function quemAgora(perfilNome) { /* v0.6.72 (P1): pergunta ao quemSou (nucleo/quem.js) */
+  const q = quemSou({ perfilNome });
+  return (q.nome || 'Neste aparelho').slice(0, 60);
 }
 
 /** Acrescenta às mudanças o "quem iniciou" e o "quem concluiu" de cada item que mudou de coluna.
