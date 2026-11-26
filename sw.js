@@ -1,66 +1,11 @@
-/* EFCdocs — sw.js (gerado no build; não edite o de dist/).
-   Guarda a TELA do app no aparelho para abrir sem internet. Os arquivos do usuário ficam no IndexedDB, fora deste cache.
-   REGRA DE CONVIVÊNCIA: EFClaudian, EFCquiz e EFCdocs dividem o mesmo site. Este arquivo só mexe em
-   caches que começam com "efcdocs-"; nunca lê, troca nem apaga cache de outro app. */
-const VERSAO = 'efcdocs-v0.6.73';
-const PREFIXO = 'efcdocs-';
-const ARQUIVOS = [
-  "./",
-  "./apple-touch-icon.png",
-  "./logo-abertura.png",
-  "./assets/app-4JAKWMWX.css",
-  "./assets/app-OSZY4W7K.js",
-  "./assets/app-5VSMB6GO.woff2",
-  "./assets/app-LAHJG75G.woff2",
-  "./assets/app-Q3UVYGXF.woff2",
-  "./assets/app-QJ4BPJSY.woff2",
-  "./assets/texturas/amassado.png",
-  "./assets/texturas/cafe.png",
-  "./assets/texturas/grao.png",
-  "./assets/texturas/kraft.png",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./icon-maskable-512.png",
-  "./index.html",
-  "./manifest.webmanifest"
-];
-const ESPERA_REDE_MS = 3500;
-
-self.addEventListener('install', (ev) => {
-  /* sem a tela guardada esta versão não se instala e a anterior continua valendo */
-  ev.waitUntil(caches.open(VERSAO).then((c) => c.addAll(ARQUIVOS)));
-});
-self.addEventListener('activate', (ev) => {
-  ev.waitUntil(caches.keys()
-    .then((ks) => Promise.all(ks.filter((k) => k.indexOf(PREFIXO) === 0 && k !== VERSAO).map((k) => caches.delete(k))))
-    .then(() => self.clients.claim()));
-});
-self.addEventListener('message', (ev) => { if (ev.data === 'pular') self.skipWaiting(); });
-
-const guardada = () => caches.open(VERSAO).then((c) => c.match('./index.html').then((x) => x || c.match('./')));
-
-/* a tela: primeiro a internet (pega a versão nova), no máximo 3,5 s; sem internet ou lenta, a guardada */
-function navegar(r) {
-  const rede = fetch(r).then((resp) => {
-    if (resp && resp.ok && resp.type === 'basic') { const cp = resp.clone(); caches.open(VERSAO).then((c) => c.put('./index.html', cp)); }
-    return resp;
-  });
-  return new Promise((res) => {
-    let feito = false;
-    const fim = (x) => { if (!feito && x) { feito = true; res(x); } };
-    const t = setTimeout(() => guardada().then(fim), ESPERA_REDE_MS);
-    rede.then((x) => { clearTimeout(t); fim(x); }, () => { clearTimeout(t); guardada().then((g) => g ? fim(g) : fim(Response.error())); });
-  });
-}
-
-self.addEventListener('fetch', (ev) => {
-  const r = ev.request;
-  if (r.method !== 'GET') return;
-  const u = new URL(r.url);
-  if (u.origin !== location.origin) return;                 /* só o que é do próprio EFCdocs */
-  if (r.mode === 'navigate') { ev.respondWith(navegar(r)); return; }
-  ev.respondWith(caches.open(VERSAO).then((c) => c.match(r).then((x) => x || fetch(r).then((resp) => {
-    if (resp && resp.status === 200) c.put(r, resp.clone());
-    return resp;
-  }))));
+/* EFCdocs · sw.js do endereço antigo (P5, 26/11/2026). O Vértice mudou para /efcwork/vertice/ (com o sw.js dele).
+   Este se instala no lugar do antigo, não guarda nada, não apaga nenhum cache e se desliga sozinho.
+   As páginas abertas aqui seguem pela rede (a index.html leva ao endereço novo). */
+self.addEventListener('install', function () { self.skipWaiting(); });
+self.addEventListener('activate', function (ev) {
+  ev.waitUntil(self.clients.claim().then(function () { return self.registration.unregister(); }).then(function () {
+    return self.clients.matchAll({ type: 'window' }).then(function (cs) {
+      cs.forEach(function (c) { try { var u = new URL(c.url); if (/^\/EFCdocs\//i.test(u.pathname)) c.navigate(u.href); /* recarrega pela rede: a index.html nova decide o destino */ } catch (e) {} });
+    });
+  }));
 });
